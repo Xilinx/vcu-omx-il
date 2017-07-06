@@ -1,0 +1,16 @@
+# OpenMax Integration Layer
+
+This repository contains the AllegroDVT OpenMax Integration Layer (OMXIL) implementation
+
+## Installation
+*Linux x86 user*
+$ make
+
+* Linux other platforms (i.e. arm 32 bits) user*
+$ make CROSS_COMPILE=arm-linux-gnueabihf-
+
+* Linux other platforms (i.e. arm 64 bits) user*
+$ make CROSS_COMPILE=aarch64-linux-gnu-
+
+*Compile in static*
+$ make STATIC=1
