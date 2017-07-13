@@ -26,7 +26,7 @@ $(LIB_OMX_CORE_SO):
 	$(Q)$(CXX) $(LDFLAGS) -shared -Wl,-soname,libOMX.allegro.core.so.$(CORE_MAJOR) -o "$@" $^ -ldl
 	@echo "LD $@"
 	rm -f "$(BIN)/libOMX.allegro.core.so.$(CORE_MAJOR)"
-	ln -s "libOMX.allegro.core.so.$(CORE_VERSION)" "$(BIN)/libOMX.allegro.core.so.$(CORE_MAJOR)"
+	ln -s "libOMX.allegro.core.so.$(CORE_VERSION)" "$(BIN)/libOMX.allegro.core.so"
 
 lib_omx_core: $(TARGETS_OMX_CORE)
 

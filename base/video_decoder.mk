@@ -17,7 +17,7 @@ $(LIB_OMX_DECODE_SO):
 	$(Q)$(CXX) $(LDFLAGS) $(INCLUDES) -shared -Wl,-soname,libOMX.allegro.video_decoder.so.$(DEC_MAJOR) -o "$@" $^ $(LIBS)
 	@echo "LD $@"
 	rm -f "$(BIN)/libOMX.allegro.video_decoder.so.$(DEC_MAJOR)"
-	ln -s "libOMX.allegro.video_decoder.so.$(DEC_VERSION)" "$(BIN)/libOMX.allegro.video_decoder.so.$(DEC_MAJOR)"
+	ln -s "libOMX.allegro.video_decoder.so.$(DEC_VERSION)" "$(BIN)/libOMX.allegro.video_decoder.so"
 
 TARGETS_OMX_DEC+=$(LIB_OMX_DECODE_SO)
 
