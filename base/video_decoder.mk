@@ -19,7 +19,7 @@ $(LIB_OMX_DECODE_SO):
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(LDFLAGS) $(INCLUDES) -shared -Wl,-soname,libOMX.allegro.video_decoder.so.$(DEC_MAJOR) -o "$@" $^ $(LIBS)
 	@echo "LD $@"
-	ln -fs "libOMX.allegro.video_decoder.so.$(DEC_VERSION)" "$(BIN)/libOMX.allegro.video_decoder.so.$(DEC_MAJOR)"
+	ln -fs "libOMX.allegro.video_decoder.so.$(DEC_VERSION)" "$(BIN)/libOMX.allegro.video_decoder.so"
 
 TARGETS_OMX_DEC+=$(LIB_OMX_DECODE_SO)
 

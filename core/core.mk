@@ -24,7 +24,7 @@ $(LIB_OMX_CORE_SO):
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(LDFLAGS) -shared -Wl,-soname,libOMX.allegro.core.so.$(CORE_MAJOR) -o "$@" $^ -ldl
 	@echo "LD $@"
-	ln -fs "libOMX.allegro.core.so.$(CORE_VERSION)" "$(BIN)/libOMX.allegro.core.so.$(CORE_MAJOR)"
+	ln -fs "libOMX.allegro.core.so.$(CORE_VERSION)" "$(BIN)/libOMX.allegro.core.so"
 
 lib_omx_core: $(TARGETS_OMX_CORE)
 
