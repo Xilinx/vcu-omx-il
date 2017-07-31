@@ -41,7 +41,7 @@
 
 extern "C"
 {
-#include "lib_encode/IScheduler.h"
+#include "lib_encode/lib_encoder.h"
 #include "lib_common_enc/Settings.h"
 }
 
