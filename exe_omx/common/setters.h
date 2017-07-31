@@ -44,8 +44,7 @@ class Setters
 {
 public:
   Setters(OMX_HANDLETYPE* component);
-  bool SetBoardMode(OMX_HWMODE const mode);
-  bool SetBufferMode(OMX_U32 const port, OMX_BUFFERMODE const mode);
+  bool SetBufferMode(OMX_U32 const port, OMX_ALG_BUFFER_MODE const mode);
 
 private:
   OMX_HANDLETYPE* component;

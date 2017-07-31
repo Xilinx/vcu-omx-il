@@ -67,12 +67,16 @@ OMX_PARAM_BUFFERSUPPLIERTYPE & Port::getSupplier()
 
 OMX_ERRORTYPE Port::setSupplier(OMX_PARAM_BUFFERSUPPLIERTYPE supplier)
 {
-  auto const ret = OMXChecker::CheckHeaderVersion(supplier.nVersion);
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-  this->supplier = supplier;
-  return OMX_ErrorNone;
+  try
+  {
+    OMXChecker::CheckHeaderVersion(supplier.nVersion);
+    this->supplier = supplier;
+    return OMX_ErrorNone;
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_PARAM_PORTDEFINITIONTYPE & Port::getDefinition()
@@ -82,17 +86,21 @@ OMX_PARAM_PORTDEFINITIONTYPE & Port::getDefinition()
 
 OMX_ERRORTYPE Port::setDefinition(OMX_PARAM_PORTDEFINITIONTYPE definition)
 {
-  auto const ret = OMXChecker::CheckHeaderVersion(definition.nVersion);
+  try
+  {
+    OMXChecker::CheckHeaderVersion(definition.nVersion);
 
-  if(ret != OMX_ErrorNone)
-    return ret;
+    if(!isVideoDefinitionCorrect(definition.format.video))
+      return OMX_ErrorBadParameter;
 
-  if(!isVideoDefinitionCorrect(definition.format.video))
-    return OMX_ErrorBadParameter;
+    this->definition = definition;
 
-  this->definition = definition;
-
-  return OMX_ErrorNone;
+    return OMX_ErrorNone;
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 bool Port::isVideoDefinitionCorrect(OMX_VIDEO_PORTDEFINITIONTYPE videoDef)

@@ -56,63 +56,28 @@ struct EncBufferUserData
 class ProcessEncode : public ProcessType
 {
 public:
-  /* Variables */
-
-  /* Methods */
   ProcessEncode(OMX_HANDLETYPE /* hComponent */, CodecType* /* pCodec */);
-  virtual ~ProcessEncode();
+  ~ProcessEncode();
 
-  virtual OMX_STATETYPE GetState();
-  virtual OMX_STRING GetType();
-  virtual OMX_STRING GetRole();
-  virtual void SetCallBack(OMX_CALLBACKTYPE* /* pCallback */);
-  virtual void SetAppData(OMX_PTR /* pAppData */);
-  virtual OMX_ERRORTYPE GetParameter(OMX_IN OMX_INDEXTYPE /* nParamIndex */, OMX_INOUT OMX_PTR /* pParam */);
-  virtual OMX_ERRORTYPE SetParameter(OMX_IN OMX_INDEXTYPE /* nIndex */, OMX_IN OMX_PTR /* pParam */);
-  virtual OMX_ERRORTYPE SendCommand(OMX_IN OMX_COMMANDTYPE /* Cmd */, OMX_IN OMX_U32 /* nParam1 */, OMX_IN OMX_PTR /* pCmdData */);
-  virtual OMX_ERRORTYPE SetState(OMX_IN OMX_U32 /* newState */);
-  virtual OMX_ERRORTYPE UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** /* ppBufferHdr */, OMX_IN OMX_U32 /* nPortIndex */, OMX_IN OMX_PTR /* pAppPrivate */, OMX_IN OMX_U32 /* nSizeBytes */, OMX_IN OMX_U8* /* pBuffer */);
-  virtual OMX_ERRORTYPE AllocateBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** /* ppBufferHdr */, OMX_IN OMX_U32 /* nPortIndex */, OMX_IN OMX_PTR /* pAppPrivate */, OMX_IN OMX_U32 /* nSizeBytes */);
-  virtual OMX_ERRORTYPE FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* /* pBufferHdr */);
-  virtual OMX_ERRORTYPE EmptyThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* /* pBufferHdr */);
-  virtual OMX_ERRORTYPE GetExtensionIndex(OMX_IN OMX_STRING /* cParameterName */, OMX_OUT OMX_INDEXTYPE* /* pIndexType */);
-  virtual OMX_ERRORTYPE ComponentTunnelRequest(OMX_IN OMX_U32 /* nPort */, OMX_IN OMX_HANDLETYPE /* hTunneledComp */, OMX_IN OMX_U32 /* nTunneledPort */, OMX_INOUT OMX_TUNNELSETUPTYPE* /* pTunnelSetup */);
+  OMX_STATETYPE GetState();
+  OMX_STRING GetType();
+  OMX_STRING GetRole();
+  void SetCallBack(OMX_CALLBACKTYPE* /* pCallback */);
+  void SetAppData(OMX_PTR /* pAppData */);
+  OMX_ERRORTYPE GetParameter(OMX_IN OMX_INDEXTYPE /* nParamIndex */, OMX_INOUT OMX_PTR /* pParam */);
+  OMX_ERRORTYPE SetParameter(OMX_IN OMX_INDEXTYPE /* nIndex */, OMX_IN OMX_PTR /* pParam */);
+  OMX_ERRORTYPE SendCommand(OMX_IN OMX_COMMANDTYPE /* Cmd */, OMX_IN OMX_U32 /* nParam1 */, OMX_IN OMX_PTR /* pCmdData */);
+  OMX_ERRORTYPE SetState(OMX_IN OMX_U32 /* newState */);
+  OMX_ERRORTYPE UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** /* ppBufferHdr */, OMX_IN OMX_U32 /* nPortIndex */, OMX_IN OMX_PTR /* pAppPrivate */, OMX_IN OMX_U32 /* nSizeBytes */, OMX_IN OMX_U8* /* pBuffer */);
+  OMX_ERRORTYPE AllocateBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** /* ppBufferHdr */, OMX_IN OMX_U32 /* nPortIndex */, OMX_IN OMX_PTR /* pAppPrivate */, OMX_IN OMX_U32 /* nSizeBytes */);
+  OMX_ERRORTYPE FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* /* pBufferHdr */);
+  OMX_ERRORTYPE EmptyThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* /* pBufferHdr */);
+  OMX_ERRORTYPE GetExtensionIndex(OMX_IN OMX_STRING /* cParameterName */, OMX_OUT OMX_INDEXTYPE* /* pIndexType */);
+  OMX_ERRORTYPE ComponentTunnelRequest(OMX_IN OMX_U32 /* nPort */, OMX_IN OMX_HANDLETYPE /* hTunneledComp */, OMX_IN OMX_U32 /* nTunneledPort */, OMX_INOUT OMX_TUNNELSETUPTYPE* /* pTunnelSetup */);
 
-  virtual void ComponentDeInit();
-
-protected:
-  /* Variables */
-
-  /* Methods */
-  virtual void SetStandardPortParameter();
-  virtual void SetStandardInParameterPortDefinition();
-  virtual void SetStandardOutParameterPortDefinition();
-  virtual void SetStandardInParameterBufferSupplier();
-  virtual void SetStandardOutParameterBufferSupplier();
-  virtual void SetStandardYUVVideoPortDefinition();
-  virtual void SetStandardVideoPortDefinition();
-  void ResetEncodingParameters();
-
-  virtual OMX_PORT_PARAM_TYPE GetPortParameter();
-
-  virtual OMX_ERRORTYPE SetInParameterPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE);
-  virtual OMX_ERRORTYPE SetOutParameterPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE);
-  virtual OMX_ERRORTYPE SetYUVVideoParameterPortFormat(OMX_VIDEO_PARAM_PORTFORMATTYPE);
-  virtual OMX_ERRORTYPE SetVideoParameterPortFormat(OMX_VIDEO_PARAM_PORTFORMATTYPE);
-  virtual OMX_ERRORTYPE SetStandardParameterComponentRole(OMX_PARAM_COMPONENTROLETYPE);
-  OMX_ERRORTYPE SetVideoParameterRateControl(OMX_VIDEO_PARAM_BITRATETYPE);
-  OMX_ERRORTYPE SetVideoParameterProfileLevel(OMX_VIDEO_PARAM_PROFILELEVELTYPE);
-
-  AL_ERateCtrlMode ConvertRCMode(OMX_VIDEO_CONTROLRATETYPE mode);
-  OMX_VIDEO_CONTROLRATETYPE ConvertRCMode(AL_ERateCtrlMode mode);
-
-  virtual void SendTask(ComponentThreadTask*);
-  virtual ComponentThreadTask* ReceiveTask();
-
-  virtual OMX_ERRORTYPE SetupIpDevice();
+  void ComponentDeInit();
 
 private:
-  /* Variables */
   AL_HANDLE m_hEncoder;
   EncBufferUserData m_tUserData;
   ThreadSafeMap<OMX_BUFFERHEADERTYPE*, OMX_BUFFERHEADERTYPE*> map;
@@ -121,8 +86,35 @@ private:
   OMX_U32 m_EOSFlags;
   EncodingParameters m_VideoParameters {};
   EncodeParam m_tEncodeParam;
+  bool m_bSubframe;
 
-  /* Methods */
+  void SetStandardPortParameter();
+  void SetStandardInParameterPortDefinition();
+  void SetStandardOutParameterPortDefinition();
+  void SetStandardInParameterBufferSupplier();
+  void SetStandardOutParameterBufferSupplier();
+  void SetStandardYUVVideoPortDefinition();
+  void SetStandardVideoPortDefinition();
+  void ResetEncodingParameters();
+
+  OMX_PORT_PARAM_TYPE GetPortParameter();
+
+  OMX_ERRORTYPE SetInParameterPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE);
+  OMX_ERRORTYPE SetOutParameterPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE);
+  OMX_ERRORTYPE SetYUVVideoParameterPortFormat(OMX_VIDEO_PARAM_PORTFORMATTYPE);
+  OMX_ERRORTYPE SetVideoParameterPortFormat(OMX_VIDEO_PARAM_PORTFORMATTYPE);
+  OMX_ERRORTYPE SetStandardParameterComponentRole(OMX_PARAM_COMPONENTROLETYPE);
+  OMX_ERRORTYPE SetVideoParameterRateControl(OMX_VIDEO_PARAM_BITRATETYPE);
+  OMX_ERRORTYPE SetVideoParameterProfileLevel(OMX_VIDEO_PARAM_PROFILELEVELTYPE);
+
+  AL_ERateCtrlMode ConvertRCMode(OMX_VIDEO_CONTROLRATETYPE mode);
+  OMX_VIDEO_CONTROLRATETYPE ConvertRCMode(AL_ERateCtrlMode mode);
+
+  void SendTask(ComponentThreadTask*);
+  ComponentThreadTask* ReceiveTask();
+
+  OMX_ERRORTYPE SetupIpDevice();
+
   void DestroyEncoder();
   bool CreateEncoder();
   void SetEncoderSettings();
@@ -134,6 +126,8 @@ private:
   void UpdateOutputPortDefinition();
   OMX_U32 inline ComputeLatency();
   void BufferHeaderUpdate(OMX_BUFFERHEADERTYPE* /* pHeader */, OMX_U32 /* nPortIndex */, OMX_PTR /* pAppPrivate */, OMX_U32 /* nSizeBytes */);
+  int GetOutputBufferSize(AL_EPicFormat format);
+  int GetOutputBufferCount();
 
   friend void RedirectionSourceBufferIsDone(AL_TBuffer* pBuf);
   friend void RedirectionStreamBufferIsDone(AL_TBuffer* pBuf);

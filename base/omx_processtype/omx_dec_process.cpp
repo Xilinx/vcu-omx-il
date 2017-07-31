@@ -53,15 +53,11 @@ extern "C"
 #include <assert.h>
 #include <string>
 #include <sstream>
+#include <cmath>
 
-
-#define CUSTOMPARAM_CHANNEL "OMX.allegro.decoder.channel"
 
 static CustomParam AL_CustomParam[] =
 {
-  { CUSTOMPARAM_BOARD, OMX_IndexParamBoard },
-  { CUSTOMPARAM_BUFFERMODE, OMX_IndexPortParamBufferMode },
-  { CUSTOMPARAM_CHANNEL, OMX_IndexParamVideoDecoderChannel },
 };
 
 static bool isCopyNeeded(bool isFileDescriptorUsed)
@@ -91,10 +87,10 @@ static OMX_COLOR_FORMATTYPE getColorFormat(TFourCC const tFourCC)
   case 10:
   {
     if(AL_GetChromaMode(tFourCC) == CHROMA_4_2_0)
-      return (OMX_COLOR_FORMATTYPE)OMX_COLOR_FormatYUV420SemiPlanar10bitPacked;
+      return (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked;
 
     if(AL_GetChromaMode(tFourCC) == CHROMA_4_2_2)
-      return (OMX_COLOR_FORMATTYPE)OMX_COLOR_FormatYUV422SemiPlanar10bitPacked;
+      return (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
     break;
   }
   default:
@@ -109,9 +105,23 @@ static int getBitDepth(OMX_COLOR_FORMATTYPE format)
 {
   OMX_U32 extendedFormat = format;
 
-  if(extendedFormat == OMX_COLOR_FormatYUV420SemiPlanar10bitPacked || extendedFormat == OMX_COLOR_FormatYUV422SemiPlanar10bitPacked)
+  if(extendedFormat == OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked || extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked)
     return 10;
   return 8;
+}
+
+static TFourCC getFourCC(OMX_COLOR_FORMATTYPE format)
+{
+  switch(static_cast<OMX_U32>(format))
+  {
+  case OMX_COLOR_FormatYUV420SemiPlanar: return FOURCC(NV12);
+  case OMX_COLOR_FormatYUV422SemiPlanar: return FOURCC(NV16);
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked: return FOURCC(RX0A);
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked: return FOURCC(RX2A);
+  default: assert(0);
+  }
+
+  return 0;
 }
 
 void RedirectionStreamBufferIsDone(AL_TBuffer* pBuf)
@@ -236,6 +246,14 @@ void RedirectionResolutionFound(int const iBufferNeeded, int const iBufferSize, 
   processDecode->ResolutionFound(iBufferNeeded, iBufferSize, iWidth, iHeight, tCropInfo, tFourCC);
 }
 
+static void initSettings(AL_TDecSettings& settings)
+{
+  memset(&settings, 0, sizeof(AL_TDecSettings));
+  settings.iStackSize = 5;
+  settings.uDDRWidth = 32;
+  settings.eDecUnit = AL_AU_UNIT;
+}
+
 ProcessDecode::ProcessDecode(OMX_HANDLETYPE hComponent, CodecType* pCodec)
 {
   // Check Parameters
@@ -249,15 +267,13 @@ ProcessDecode::ProcessDecode(OMX_HANDLETYPE hComponent, CodecType* pCodec)
   m_hDecoder = NULL;
   m_iFramesDisplayed = 0;
   m_iFramesSend = 0;
+  m_tFourCC = FOURCC(NV12);
   m_iDPBBuffersCount = 0;
   m_iFramesDecoded = 0;
-  m_iBuffering = 5;
-  m_iNumBufHeldByNextComponent = 0;
-  m_eDpbMode = AL_DPB_NORMAL;
-  m_tUserData =
-  {
-    this
-  };
+  m_bEOSReceived = false;
+  m_bForceStop = false;
+  m_tUserData = { this };
+  initSettings(m_eSettings);
   m_bIsDPBFull = false;
   m_pEOSHeader = nullptr;
   m_bUseVCU = AL_USE_VCU;
@@ -275,6 +291,8 @@ ProcessDecode::ProcessDecode(OMX_HANDLETYPE hComponent, CodecType* pCodec)
   SetStandardVideoPortDefinition();
   SetStandardInParameterBufferSupplier();
   SetStandardOutParameterBufferSupplier();
+
+  m_hFinished = Rtos_CreateEvent(false);
 
   m_ThreadComponent = std::thread(&ProcessDecode::ThreadComponent, this);
   m_ThreadProcess = std::thread(&ProcessDecode::ThreadProcess, this);
@@ -294,6 +312,7 @@ void ProcessDecode::ComponentDeInit()
   SendProcessTask(StopProcess);
   m_ThreadProcess.join();
 
+  Rtos_DeleteEvent(m_hFinished);
   delete m_pCodec;
 }
 
@@ -328,221 +347,255 @@ void ProcessDecode::SetAppData(OMX_PTR pAppData)
 
 OMX_ERRORTYPE ProcessDecode::GetParameter(OMX_IN OMX_INDEXTYPE nParamIndex, OMX_INOUT OMX_PTR pParam)
 {
-  if(!pParam && (*((OMX_U32*)pParam) / sizeof(pParam) < 2))
-    return OMX_ErrorBadParameter;
-
-  auto eRet = OMXChecker::CheckHeaderVersion(*(((OMX_VERSIONTYPE*)pParam) + 1));
-
-  if(eRet != OMX_ErrorNone)
-    return eRet;
-
-  auto const nIndex = static_cast<OMX_U32>(nParamIndex);
-
-  if(nIndex == OMX_IndexParamVideoInit)
+  try
   {
-    LOGV("_ %s _ : OMX_IndexParamVideoInit", __func__);
-    auto port = (OMX_PORT_PARAM_TYPE*)pParam;
+    if(!pParam && (*((OMX_U32*)pParam) / sizeof(pParam) < 1))
+      return OMX_ErrorBadParameter;
 
-    if(eRet == OMX_ErrorNone)
-      *port = GetPortParameter();
+    OMXChecker::CheckHeaderVersion(*(((OMX_VERSIONTYPE*)pParam) + 1));
+    auto eRet = OMX_ErrorNone;
 
-    return eRet;
-  }
-  else if(nIndex == OMX_IndexParamLatency)
-  {
-    LOGV("_ %s _: OMX_IndexParamLatency", __func__);
-    auto port = (OMX_PARAM_LATENCY*)pParam;
-    port->nBuffersLatency = ComputeLatency();
-    return OMX_ErrorNone;
-  }
+    auto const nIndex = static_cast<OMX_U32>(nParamIndex);
 
-  OMX_U32 const nPortIndex = *(((OMX_U32*)pParam) + 2);
-  auto port = GetPort(nPortIndex);
-
-  if(!port)
-    return OMX_ErrorBadPortIndex;
-  switch((OMX_U32)nIndex)
-  {
-  case OMX_IndexParamPortDefinition:
-  {
-    LOGV("_ %s _ : OMX_IndexParamPortDefinition (%lu)", __func__, nPortIndex);
-    auto param = (OMX_PARAM_PORTDEFINITIONTYPE*)pParam;
-    *param = port->getDefinition();
-    break;
-  }
-  case OMX_IndexParamCompBufferSupplier:
-  {
-    LOGV("_ %s _ : OMX_IndexParamCompBufferSupplier (%lu)", __func__, nPortIndex);
-    auto param = (OMX_PARAM_BUFFERSUPPLIERTYPE*)pParam;
-    *param = port->getSupplier();
-    break;
-  }
-  case OMX_IndexParamVideoPortFormat:
-  {
-    LOGV("_ %s _ : OMX_IndexParamVideoPortFormat (%lu)", __func__, nPortIndex);
-    auto param = (OMX_VIDEO_PARAM_PORTFORMATTYPE*)pParam;
-
-    if(param->nIndex == 0)
-      *param = port->getVideoFormat();
-    else
-      eRet = OMX_ErrorNoMore;
-    break;
-  }
-  case OMX_IndexParamVideoProfileLevelQuerySupported:
-  {
-    LOGV("_ %s _ : OMX_IndexParamVideoProfileLevelQuerySupported (%lu)", __func__, nPortIndex);
-    auto param = (OMX_VIDEO_PARAM_PROFILELEVELTYPE*)pParam;
-
-    if(param->nPortIndex == outPort.getDefinition().nPortIndex)
-      eRet = OMX_ErrorBadPortIndex;
-    else
+    if(nIndex == OMX_IndexParamVideoInit)
     {
-      if(param->nProfileIndex < m_pCodec->GetSupportedProfileLevelSize())
-      {
-        param->eProfile = m_pCodec->GeteProfile(param->nProfileIndex);
-        param->eLevel = m_pCodec->GeteLevel(param->nProfileIndex);
-      }
+      LOGV("_ %s _ : OMX_IndexParamVideoInit", __func__);
+      auto port = (OMX_PORT_PARAM_TYPE*)pParam;
+
+      if(eRet == OMX_ErrorNone)
+        *port = GetPortParameter();
+
+      return eRet;
+    }
+    else if(nIndex == OMX_ALG_IndexParamReportedLatency)
+    {
+      LOGV("_ %s _: OMX_IndexParamLatency", __func__);
+      auto port = (OMX_ALG_PARAM_REPORTED_LATENCY*)pParam;
+      port->nLatency = ComputeLatency();
+      return OMX_ErrorNone;
+    }
+
+    OMX_U32 const nPortIndex = *(((OMX_U32*)pParam) + 2);
+    auto port = GetPort(nPortIndex);
+
+    if(!port)
+      return OMX_ErrorBadPortIndex;
+    switch((OMX_U32)nIndex)
+    {
+    case OMX_IndexParamPortDefinition:
+    {
+      LOGV("_ %s _ : OMX_IndexParamPortDefinition (%u)", __func__, nPortIndex);
+      auto param = (OMX_PARAM_PORTDEFINITIONTYPE*)pParam;
+      *param = port->getDefinition();
+      break;
+    }
+    case OMX_IndexParamCompBufferSupplier:
+    {
+      LOGV("_ %s _ : OMX_IndexParamCompBufferSupplier (%u)", __func__, nPortIndex);
+      auto param = (OMX_PARAM_BUFFERSUPPLIERTYPE*)pParam;
+      *param = port->getSupplier();
+      break;
+    }
+    case OMX_IndexParamVideoPortFormat:
+    {
+      LOGV("_ %s _ : OMX_IndexParamVideoPortFormat (%u)", __func__, nPortIndex);
+      auto param = (OMX_VIDEO_PARAM_PORTFORMATTYPE*)pParam;
+
+      if(param->nIndex == 0)
+        *param = port->getVideoFormat();
       else
         eRet = OMX_ErrorNoMore;
+      break;
     }
-    break;
-  }
-  default:
-  {
-    eRet = OMX_ErrorUnsupportedIndex;
-  }
-  }
+    case OMX_IndexParamVideoProfileLevelCurrent:
+    {
+      LOGV("_ %s _ : OMX_IndexParamVideoProfileLevelCurrent (%u)", __func__, nPortIndex);
+      auto param = (OMX_VIDEO_PARAM_PROFILELEVELTYPE*)pParam;
 
-  return eRet;
+      if(param->nPortIndex == outPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+      {
+        param->eProfile = m_pCodec->GetCurProfile();
+        param->eLevel = m_pCodec->GetCurLevel();
+      }
+      break;
+    }
+    case OMX_IndexParamVideoProfileLevelQuerySupported:
+    {
+      LOGV("_ %s _ : OMX_IndexParamVideoProfileLevelQuerySupported (%u)", __func__, nPortIndex);
+      auto param = (OMX_VIDEO_PARAM_PROFILELEVELTYPE*)pParam;
+
+      if(param->nPortIndex == outPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+      {
+        if(param->nProfileIndex < m_pCodec->GetSupportedProfileLevelSize())
+        {
+          param->eProfile = m_pCodec->GeteProfile(param->nProfileIndex);
+          param->eLevel = m_pCodec->GeteLevel(param->nProfileIndex);
+        }
+        else
+          eRet = OMX_ErrorNoMore;
+      }
+      break;
+    }
+    default:
+    {
+      eRet = OMX_ErrorUnsupportedIndex;
+    }
+    }
+
+    return eRet;
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_ERRORTYPE ProcessDecode::SetParameter(OMX_IN OMX_INDEXTYPE nIndex, OMX_IN OMX_PTR pParam)
 {
-  if(!pParam && (*((OMX_U32*)pParam) / sizeof(pParam) < 2))
-    return OMX_ErrorBadParameter;
-
-  auto eRet = OMXChecker::CheckHeaderVersion(*(((OMX_VERSIONTYPE*)pParam) + 1));
-
-  if(eRet != OMX_ErrorNone)
-    return eRet;
-
-  if(nIndex == OMX_IndexParamStandardComponentRole)
+  try
   {
-    LOGV("_ %s _ : OMX_IndexParamStandardComponentRole", __func__);
-    auto param = (OMX_PARAM_COMPONENTROLETYPE*)pParam;
-    LOGV("Role: %s", (OMX_STRING)param->cRole);
-    char role[OMX_MAX_STRINGNAME_SIZE] =
-    {
-      0
-    };
-
-    if(strlen(GetRole()) + strlen(".") + strlen(m_pCodec->GetRole()) > OMX_MAX_STRINGNAME_SIZE)
-      return OMX_ErrorOverflow;
-
-    strncat(role, GetRole(), strlen(GetRole()));
-    strncat(role, ".", strlen("."));
-    strncat(role, m_pCodec->GetRole(), strlen(m_pCodec->GetRole()));
-
-    if(!strncmp((OMX_STRING)param->cRole, role, OMX_MAX_STRINGNAME_SIZE))
-      return SetStandardParameterComponentRole(*param);
-    else
+    if(!pParam && (*((OMX_U32*)pParam) / sizeof(pParam) < 1))
       return OMX_ErrorBadParameter;
-  }
 
-  if(nIndex == (OMX_U32)OMX_IndexParamBoard)
-  {
-    LOGV("_ %s _ : OMX_IndexParamBoard", __func__);
-    auto port = (OMX_PARAM_BOARD*)pParam;
-    switch(port->eMode)
+    OMXChecker::CheckHeaderVersion(*(((OMX_VERSIONTYPE*)pParam) + 1));
+
+    auto eRet = OMX_ErrorNone;
+
+    if(nIndex == OMX_IndexParamStandardComponentRole)
     {
-    case OMX_HW_MCU:
+      LOGV("_ %s _ : OMX_IndexParamStandardComponentRole", __func__);
+      auto param = (OMX_PARAM_COMPONENTROLETYPE*)pParam;
+      LOGV("Role: %s", (OMX_STRING)param->cRole);
+      char role[OMX_MAX_STRINGNAME_SIZE] =
+      {
+        0
+      };
+
+      if(strlen(GetRole()) + strlen(".") + strlen(m_pCodec->GetRole()) > OMX_MAX_STRINGNAME_SIZE)
+        return OMX_ErrorOverflow;
+
+      strncat(role, GetRole(), strlen(GetRole()));
+      strncat(role, ".", strlen("."));
+      strncat(role, m_pCodec->GetRole(), strlen(m_pCodec->GetRole()));
+
+      if(!strncmp((OMX_STRING)param->cRole, role, OMX_MAX_STRINGNAME_SIZE))
+        return SetStandardParameterComponentRole(*param);
+      else
+        return OMX_ErrorBadParameter;
+    }
+
+
+    OMX_U32 const nPortIndex = *(((OMX_U32*)pParam) + 2);
+    auto port = GetPort(nPortIndex);
+
+    if(!port)
+      return OMX_ErrorBadPortIndex;
+    switch((OMX_U32)nIndex)
     {
-      LOGV("Use MCU");
-      m_bUseVCU = 1;
-      m_iSchedulerType = SCHEDULER_TYPE_MCU;
+    case OMX_IndexParamPortDefinition:
+    {
+      LOGV("_ %s _ : OMX_IndexParamPortDefinition (%u)", __func__, nPortIndex);
+      auto port = (OMX_PARAM_PORTDEFINITIONTYPE*)pParam;
+
+      if(eRet == OMX_ErrorNone)
+      {
+        if(port->nPortIndex == inPort.getDefinition().nPortIndex)
+          eRet = SetInParameterPortDefinition(*port);
+        else
+          eRet = SetOutParameterPortDefinition(*port);
+      }
       break;
     }
-    default:
-      return OMX_ErrorBadParameter;
-    }
-
-    return OMX_ErrorNone;
-  }
-
-  OMX_U32 const nPortIndex = *(((OMX_U32*)pParam) + 2);
-  auto port = GetPort(nPortIndex);
-
-  if(!port)
-    return OMX_ErrorBadPortIndex;
-  switch((OMX_U32)nIndex)
-  {
-  case OMX_IndexParamPortDefinition:
-  {
-    auto port = (OMX_PARAM_PORTDEFINITIONTYPE*)pParam;
-
-    eRet = OMXChecker::CheckHeaderVersion(port->nVersion);
-
-    if(eRet == OMX_ErrorNone)
+    case OMX_IndexParamCompBufferSupplier:
     {
+      LOGV("_ %s _ : OMX_IndexParamCompBufferSupplier (%u)", __func__, nPortIndex);
+      auto param = (OMX_PARAM_BUFFERSUPPLIERTYPE*)pParam;
+      eRet = port->setSupplier(*param);
+      break;
+    }
+    case OMX_IndexParamVideoPortFormat:
+    {
+      LOGV("_ %s _ : OMX_IndexParamVideoPortFormat (%u)", __func__, nPortIndex);
+      auto port = (OMX_VIDEO_PARAM_PORTFORMATTYPE*)pParam;
+
       if(port->nPortIndex == inPort.getDefinition().nPortIndex)
-        eRet = SetInParameterPortDefinition(*port);
-      else if(port->nPortIndex == outPort.getDefinition().nPortIndex)
-        eRet = SetOutParameterPortDefinition(*port);
+        eRet = SetVideoParameterPortFormat(*port);
+      else
+        eRet = SetYUVVideoParameterPortFormat(*port);
+      break;
+    }
+    case OMX_IndexParamVideoProfileLevelCurrent:
+    {
+      LOGV("_ %s _ : OMX_IndexParamVideoProfileLevelCurrent (%u)", __func__, nPortIndex);
+      auto param = (OMX_VIDEO_PARAM_PROFILELEVELTYPE*)pParam;
+
+      if(param->nPortIndex == outPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+        m_pCodec->SetProfileLevel({ param->eProfile, param->eLevel });
+      break;
+    }
+    case OMX_ALG_IndexPortParamBufferMode:
+    {
+      auto bufMode = (OMX_ALG_PORT_PARAM_BUFFER_MODE*)pParam;
+
+      if(bufMode->nPortIndex == inPort.getDefinition().nPortIndex)
+        m_bUseInputFileDescriptor = (bufMode->eMode == OMX_ALG_BUF_DMA);
+      else
+        m_bUseOutputFileDescriptor = (bufMode->eMode == OMX_ALG_BUF_DMA);
+      break;
+    }
+    case OMX_ALG_IndexParamVideoDecodedPictureBuffer:
+    {
+      auto dpb = (OMX_ALG_VIDEO_PARAM_DECODED_PICTURE_BUFFER*)pParam;
+
+      if(dpb->nPortIndex == inPort.getDefinition().nPortIndex)
+        m_eSettings.eDpbMode = (AL_EDpbMode)dpb->eDecodedPictureBufferMode;
       else
         eRet = OMX_ErrorBadPortIndex;
+      break;
     }
-    break;
-  }
-  case OMX_IndexParamCompBufferSupplier:
-  {
-    LOGV("_ %s _ : OMX_IndexParamCompBufferSupplier (%lu)", __func__, nPortIndex);
-    auto param = (OMX_PARAM_BUFFERSUPPLIERTYPE*)pParam;
-    eRet = port->setSupplier(*param);
-    break;
-  }
-  case OMX_IndexParamVideoPortFormat:
-  {
-    LOGV("_ %s _ : OMX_IndexParamVideoPortFormat (%lu)", __func__, nPortIndex);
-    auto port = (OMX_VIDEO_PARAM_PORTFORMATTYPE*)pParam;
-
-    if(port->nPortIndex == inPort.getDefinition().nPortIndex)
-      eRet = SetVideoParameterPortFormat(*port);
-    else
-      eRet = SetYUVVideoParameterPortFormat(*port);
-    break;
-  }
-  case OMX_IndexPortParamBufferMode:
-  {
-    auto bufMode = (OMX_PORT_PARAM_BUFFERMODE*)pParam;
-
-    if(bufMode->nPortIndex == inPort.getDefinition().nPortIndex)
-      m_bUseInputFileDescriptor = (bufMode->eMode == OMX_BUF_DMA);
-    else
-      m_bUseOutputFileDescriptor = (bufMode->eMode == OMX_BUF_DMA);
-    break;
-  }
-  case OMX_IndexParamVideoDecoderChannel:
-  {
-    auto chan = (OMX_VIDEO_PARAM_DECODER_CHANNEL*)pParam;
-
-    if(chan->nPortIndex == inPort.getDefinition().nPortIndex)
+    case OMX_ALG_IndexParamVideoInternalEntropyBuffers:
     {
-      m_eDpbMode = (AL_EDpbMode)chan->eDecodedPictureBufferMode;
-      m_iNumBufHeldByNextComponent = chan->nBufferCountHeldByNextComponent;
-      m_iBuffering = chan->nBufferingCount;
+      auto ieb = (OMX_ALG_VIDEO_PARAM_INTERNAL_ENTROPY_BUFFERS*)pParam;
+
+      if(ieb->nPortIndex == inPort.getDefinition().nPortIndex)
+        m_eSettings.iStackSize = ieb->nNumInternalEntropyBuffers;
+      else
+        eRet = OMX_ErrorBadPortIndex;
+      break;
     }
-    else
-      eRet = OMX_ErrorBadPortIndex;
-    break;
-  }
+    case OMX_ALG_IndexParamVideoSubframe:
+    {
+      auto sub = (OMX_ALG_VIDEO_PARAM_SUBFRAME*)pParam;
 
-  default:
+      if(sub->nPortIndex == inPort.getDefinition().nPortIndex)
+      {
+        fprintf(stderr, "Subframe is disable");
+        m_eSettings.eDecUnit = AL_AU_UNIT;
+      }
+      else
+        eRet = OMX_ErrorBadPortIndex;
+
+      break;
+    }
+
+    default:
+    {
+      eRet = OMX_ErrorUnsupportedIndex;
+    }
+    }
+
+    return eRet;
+  }
+  catch(OMX_ERRORTYPE e)
   {
-    eRet = OMX_ErrorUnsupportedIndex;
+    return e;
   }
-  }
-
-  return eRet;
 }
 
 void ProcessDecode::SetStandardPortParameter()
@@ -624,6 +677,7 @@ void ProcessDecode::SetStandardYUVVideoPortDefinition()
   videoDef.eColorFormat = OMX_COLOR_FormatYUV420SemiPlanar;
   videoDef.nStride = RndPitch(videoDef.nFrameWidth, getBitDepth(videoDef.eColorFormat));
   videoDef.pNativeWindow = NULL;
+  m_tFourCC = getFourCC(videoDef.eColorFormat);
 }
 
 void ProcessDecode::SetStandardVideoPortDefinition()
@@ -648,21 +702,6 @@ OMX_PORT_PARAM_TYPE ProcessDecode::GetPortParameter()
   return m_PortParameter;
 }
 
-OMX_U32 ProcessDecode::GetSizeYUV()
-{
-  auto size = (outPort.getVideoDefinition().nStride * outPort.getVideoDefinition().nSliceHeight);
-
-  if((outPort.getVideoDefinition().eColorFormat == OMX_COLOR_FormatYUV422SemiPlanar) || outPort.getVideoDefinition().eColorFormat == static_cast<OMX_COLOR_FORMATTYPE>(OMX_COLOR_FormatYUV422SemiPlanar10bitPacked))
-    size *= 2;
-  else
-  {
-    size *= 3;
-    size /= 2;
-  }
-
-  return size;
-}
-
 OMX_ERRORTYPE ProcessDecode::SetInParameterPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE param)
 {
   auto& videoParam = param.format.video;
@@ -670,7 +709,7 @@ OMX_ERRORTYPE ProcessDecode::SetInParameterPortDefinition(OMX_PARAM_PORTDEFINITI
   if(((videoParam.nStride % AL_ALIGN_PITCH) != 0) || videoParam.nStride == 0)
   {
     OMX_S32 newStride = RndPitch(videoParam.nFrameWidth, getBitDepth(videoParam.eColorFormat));
-    LOGI("Changing input port stride (%li) to %li (port width is %li)", videoParam.nStride, newStride, videoParam.nFrameWidth);
+    LOGI("Changing input port stride (%i) to %i (port width is %i)", videoParam.nStride, newStride, videoParam.nFrameWidth);
     videoParam.nStride = newStride;
   }
 
@@ -679,7 +718,7 @@ OMX_ERRORTYPE ProcessDecode::SetInParameterPortDefinition(OMX_PARAM_PORTDEFINITI
      ((int)videoParam.nSliceHeight < (int)videoParam.nFrameHeight))
   {
     OMX_S32 newSliceHeight = RndHeight(videoParam.nFrameHeight);
-    LOGI("Changing input port slice height (%li) to %li (port height is %li)", videoParam.nSliceHeight, newSliceHeight, videoParam.nFrameHeight);
+    LOGI("Changing input port slice height (%i) to %i (port height is %i)", videoParam.nSliceHeight, newSliceHeight, videoParam.nFrameHeight);
     videoParam.nSliceHeight = newSliceHeight;
   }
 
@@ -693,7 +732,7 @@ OMX_ERRORTYPE ProcessDecode::SetInParameterPortDefinition(OMX_PARAM_PORTDEFINITI
   videoDef.nSliceHeight = RndHeight(videoParam.nFrameHeight);
 
   auto& def = outPort.getDefinition();
-  def.nBufferSize = GetSizeYUV();
+  def.nBufferSize = AL_GetAllocSize_Frame({ (int)videoDef.nFrameWidth, (int)videoDef.nFrameHeight }, AL_GetChromaMode(m_tFourCC), AL_GetBitDepth(m_tFourCC), false, AL_FB_RASTER);
 
   return OMX_ErrorNone;
 }
@@ -706,7 +745,7 @@ OMX_ERRORTYPE ProcessDecode::SetOutParameterPortDefinition(OMX_PARAM_PORTDEFINIT
   if(((videoParam.nStride % AL_ALIGN_PITCH) != 0) || videoParam.nStride == 0)
   {
     OMX_S32 newStride = RndPitch(videoParam.nFrameWidth, getBitDepth(videoParam.eColorFormat));
-    LOGI("Changing output port stride (%li) to %li (port width is %li)", videoParam.nStride, newStride, videoParam.nFrameWidth);
+    LOGI("Changing output port stride (%i) to %i (port width is %i)", videoParam.nStride, newStride, videoParam.nFrameWidth);
     videoParam.nStride = newStride;
   }
 
@@ -715,11 +754,12 @@ OMX_ERRORTYPE ProcessDecode::SetOutParameterPortDefinition(OMX_PARAM_PORTDEFINIT
      ((int)videoParam.nSliceHeight < (int)videoParam.nFrameHeight))
   {
     OMX_S32 newSliceHeight = RndHeight(videoParam.nFrameHeight);
-    LOGI("Changing output port slice height (%li) to %li (port height is %li)", videoParam.nSliceHeight, newSliceHeight, videoParam.nFrameHeight);
+    LOGI("Changing output port slice height (%i) to %i (port height is %i)", videoParam.nSliceHeight, newSliceHeight, videoParam.nFrameHeight);
     videoParam.nSliceHeight = newSliceHeight;
   }
 
-  param.nBufferSize = GetSizeYUV();
+  m_tFourCC = getFourCC(videoParam.eColorFormat);
+  param.nBufferSize = AL_GetAllocSize_Frame({ (int)videoParam.nFrameWidth, (int)videoParam.nFrameHeight }, AL_GetChromaMode(m_tFourCC), AL_GetBitDepth(m_tFourCC), false, AL_FB_RASTER);
   outPort.setDefinition(param);
 
   return eRet;
@@ -731,9 +771,10 @@ OMX_ERRORTYPE ProcessDecode::SetYUVVideoParameterPortFormat(OMX_VIDEO_PARAM_PORT
   videoDef.eCompressionFormat = format.eCompressionFormat;
   videoDef.eColorFormat = format.eColorFormat;
   videoDef.xFramerate = format.xFramerate;
+  m_tFourCC = getFourCC(videoDef.eColorFormat);
 
   auto& def = outPort.getDefinition();
-  def.nBufferSize = GetSizeYUV();
+  def.nBufferSize = AL_GetAllocSize_Frame({ (int)videoDef.nFrameWidth, (int)videoDef.nFrameHeight }, AL_GetChromaMode(m_tFourCC), AL_GetBitDepth(m_tFourCC), false, AL_FB_RASTER);
 
   return OMX_ErrorNone;
 }
@@ -776,7 +817,7 @@ OMX_ERRORTYPE ProcessDecode::SendCommand(OMX_COMMANDTYPE Cmd, OMX_U32 nPortIndex
      (nPortIndex == OMX_ALL))
   {
     auto ThreadTask = new ComponentThreadTask;
-    ThreadTask->data = (uintptr_t*)nPortIndex;
+    ThreadTask->data = reinterpret_cast<uintptr_t*>(nPortIndex);
     ThreadTask->opt = pCmdData;
     switch(Cmd)
     {
@@ -830,7 +871,7 @@ OMX_ERRORTYPE ProcessDecode::SetState(OMX_U32 newState)
   auto ThreadTask = new ComponentThreadTask;
 
   ThreadTask->cmd = ProcessSetComponentState;
-  ThreadTask->data = (uintptr_t*)newState;
+  ThreadTask->data = reinterpret_cast<uintptr_t*>(newState);
   ThreadTask->opt = nullptr;
 
   SendTask(ThreadTask);
@@ -850,7 +891,7 @@ void ProcessDecode::SendTask(ComponentThreadTask* ThreadTask)
 
 OMX_ERRORTYPE ProcessDecode::UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_IN OMX_U32 nPortIndex, OMX_IN OMX_PTR pAppPrivate, OMX_IN OMX_U32 nSizeBytes, OMX_IN OMX_U8* pBuffer)
 {
-  LOGV("_ %s _,\nnPortIndex = %lu\npAppPrivate = %p\nnSizeBytes = %lu\npBuffer = %p", __func__,
+  LOGV("_ %s _,\nnPortIndex = %u\npAppPrivate = %p\nnSizeBytes = %u\npBuffer = %p", __func__,
        nPortIndex,
        pAppPrivate,
        nSizeBytes,
@@ -889,7 +930,7 @@ OMX_ERRORTYPE ProcessDecode::UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** ppBufferHd
 
 OMX_ERRORTYPE ProcessDecode::AllocateBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_IN OMX_U32 nPortIndex, OMX_IN OMX_PTR pAppPrivate, OMX_IN OMX_U32 nSizeBytes)
 {
-  LOGV("_ %s _ \nnPortIndex = %lu\npAppPrivate = %p\nnSizeBytes = %lu", __func__,
+  LOGV("_ %s _ \nnPortIndex = %u\npAppPrivate = %p\nnSizeBytes = %u", __func__,
        nPortIndex,
        pAppPrivate,
        nSizeBytes
@@ -987,23 +1028,13 @@ void ProcessDecode::ThreadComponent()
     case ProcessFlush:
     {
       auto nPortIndex = (OMX_U32)((uintptr_t)(ThreadTask->data));
-      auto PortIsIn = (nPortIndex == inPort.getDefinition().nPortIndex);
 
-      LOGV("Flush %lu", (OMX_U32)nPortIndex);
-
-      auto port = PortIsIn ? &inPort : &outPort;
-
-      while(1)
+      if(!m_bEOSReceived && !m_bForceStop)
       {
-        auto tmp = port->getBuffer();
-
-        if(!tmp)
-          break;
-
-        if(PortIsIn)
-          m_pCallback->EmptyBufferDone(m_hComponent, m_pAppData, tmp);
-        else
-          m_pCallback->FillBufferDone(m_hComponent, m_pAppData, tmp);
+        LOGV("ForceStop %u", (OMX_U32)nPortIndex);
+        AL_Decoder_ForceStop(m_hDecoder);
+        Rtos_WaitEvent(m_hFinished, AL_WAIT_FOREVER);
+        m_bForceStop = true;
       }
 
       m_pCallback->EventHandler(m_hComponent, m_pAppData, OMX_EventCmdComplete, OMX_CommandFlush, nPortIndex, nullptr);
@@ -1068,7 +1099,7 @@ OMX_ERRORTYPE ProcessDecode::SetupIpDevice()
 
   if(!m_IpDevice)
   {
-    m_IpDevice = CreateIpDevice(m_bUseVCU, m_iSchedulerType);
+    m_IpDevice = CreateIpDevice(m_bUseVCU, m_iSchedulerType, m_eSettings.eDecUnit);
     LOGI("Create IP Device");
 
     if(!m_IpDevice)
@@ -1092,19 +1123,17 @@ void ProcessDecode::CreateDecoder()
   if(SetupIpDevice() != OMX_ErrorNone)
     throw std::runtime_error("Failed to create IpDevice");
 
-  AL_TDecSettings Settings;
-  memset(&Settings, 0, sizeof(AL_TDecSettings));
-  SetSettings(Settings);
+  SetSettings(m_eSettings);
 
   LOGI("\nCreate Decoder : \n\tStack size : %i\n\tBitDepth : %i\n\tFramerate : %u\n\tClockRatio : %u\n\tCodec : %s",
-       Settings.iStackSize,
-       Settings.iBitDepth,
-       Settings.uFrameRate,
-       Settings.uClkRatio,
-       (Settings.bIsAvc) ? "AVC" : "HEVC"
+       m_eSettings.iStackSize,
+       m_eSettings.iBitDepth,
+       m_eSettings.uFrameRate,
+       m_eSettings.uClkRatio,
+       (m_eSettings.bIsAvc) ? "AVC" : "HEVC"
        );
 
-  m_hDecoder = AL_Decoder_Create(m_IpDevice->m_pScheduler, m_IpDevice->m_pAllocator, &Settings, &m_CallBacks);
+  m_hDecoder = AL_Decoder_Create(m_IpDevice->m_pScheduler, m_IpDevice->m_pAllocator, &m_eSettings, &m_CallBacks);
 
   if(!m_hDecoder)
     throw std::runtime_error("Can't create AL_Decoder");
@@ -1205,24 +1234,12 @@ void ProcessDecode::SetSettings(AL_TDecSettings& settings)
   settings.iBitDepth = HW_IP_BIT_DEPTH;
   settings.uFrameRate = framerate >> 16;
   settings.uClkRatio = clkRatio;
-  settings.uDDRWidth = 32;
-  settings.eDpbMode = m_eDpbMode;
 
-  if(m_iBuffering < 1)
+  if(m_eSettings.iStackSize < 1)
   {
-    LOGI("Set iStackSize to 5");
+    LOGI("Set Buffering to 5");
     settings.iStackSize = 5;
   }
-  else
-    settings.iStackSize = m_iBuffering;
-
-  if(m_iNumBufHeldByNextComponent < 1)
-  {
-    LOGI("Set iNumBufHeldByNextComponent to 2");
-    settings.iNumBufHeldByNextComponent = 2;
-  }
-  else
-    settings.iNumBufHeldByNextComponent = m_iNumBufHeldByNextComponent;
 }
 
 static inline std::string FourCCToString(TFourCC tFourCC)
@@ -1347,6 +1364,7 @@ void ProcessDecode::FrameDisplay(AL_TBuffer* pDisplayedFrame, AL_TInfoDecode con
   if(!pDisplayedFrame)
   {
     LOGI("Complete");
+    Rtos_SetEvent(m_hFinished);
     m_pEOSHeader->nFilledLen = 0;
     m_pEOSHeader->nFlags = OMX_BUFFERFLAG_EOS;
     m_pCallback->FillBufferDone(m_hComponent, m_pAppData, m_pEOSHeader);
@@ -1357,7 +1375,8 @@ void ProcessDecode::FrameDisplay(AL_TBuffer* pDisplayedFrame, AL_TInfoDecode con
   m_iFramesDisplayed++;
   auto pOutputBuf = GetOMXBufferHeader(pDisplayedFrame);
   assert(pOutputBuf);
-  pOutputBuf->nFilledLen = GetSizeYUV();
+  auto const videoParam = outPort.getVideoDefinition();
+  pOutputBuf->nFilledLen = AL_GetAllocSize_Frame({ (int)videoParam.nFrameWidth, (int)videoParam.nFrameHeight }, AL_GetChromaMode(m_tFourCC), AL_GetBitDepth(m_tFourCC), false, AL_FB_RASTER);
 
   if(isCopyNeeded(outPort.useFileDescriptor()))
     copy((char*)AL_Buffer_GetBufferData(pDisplayedFrame), 0, (char*)pOutputBuf->pBuffer, pOutputBuf->nOffset, AL_Buffer_GetSizeData(pDisplayedFrame));
@@ -1394,6 +1413,7 @@ void ProcessDecode::SendToDecoder(OMX_BUFFERHEADERTYPE* pInputBuf)
   if(pInputBuf->nFlags & OMX_BUFFERFLAG_EOS)
   {
     LOGI("Flush");
+    m_bEOSReceived = true;
     AL_Decoder_Flush(m_hDecoder);
   }
 }
@@ -1458,6 +1478,9 @@ void ProcessDecode::StreamBufferIsDone(OMX_BUFFERHEADERTYPE* pBufHdr)
 
 OMX_U32 inline ProcessDecode::ComputeLatency()
 {
-  return m_iBuffering + 16;
+  auto const videoDef = inPort.getVideoDefinition();
+  double bufsCount = m_eSettings.iStackSize + ((m_eSettings.eDpbMode == (AL_EDpbMode)OMX_ALG_DPB_LOW_REF) ? 2 : m_pCodec->DPBSize(videoDef.nFrameWidth, videoDef.nFrameHeight));
+  auto const framerate = ((videoDef.xFramerate) >> 16) + (videoDef.xFramerate & 0x0000FFFF) * (2 ^ -16);
+  return m_eSettings.eDecUnit == AL_AU_UNIT ? bufsCount : std::ceil((bufsCount / framerate) * 1000);
 }
 

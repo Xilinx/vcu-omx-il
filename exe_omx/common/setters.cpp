@@ -40,62 +40,30 @@
 
 #include <assert.h>
 #include <OMX_Component.h>
+#include <OMX_IndexExt.h>
 
 Setters::Setters(OMX_HANDLETYPE* component) : component(component)
 {
   assert(component);
 }
 
-bool Setters::SetBoardMode(OMX_HWMODE const mode)
+
+bool Setters::SetBufferMode(OMX_U32 const port, OMX_ALG_BUFFER_MODE const mode)
 {
   switch(mode)
   {
-  case OMX_HW_UNUSED: break;
-  case OMX_HW_MCU: break;
+  case OMX_ALG_BUF_NORMAL: break;
+  case OMX_ALG_BUF_DMA: break;
   default:
     return false;
   }
 
-  OMX_INDEXTYPE type = OMX_IndexComponentStartUnused;
-  auto err = OMX_GetExtensionIndex(*component, (OMX_STRING)"OMX.allegro.board", &type);
-
-  if(err != OMX_ErrorNone)
-    return false;
-
-  OMX_PARAM_BOARD param;
-  initHeader(param);
-  param.eMode = mode;
-
-  err = OMX_SetParameter(*component, type, &param);
-
-  if(err != OMX_ErrorNone)
-    return false;
-
-  return true;
-}
-
-bool Setters::SetBufferMode(OMX_U32 const port, OMX_BUFFERMODE const mode)
-{
-  switch(mode)
-  {
-  case OMX_BUF_NORMAL: break;
-  case OMX_BUF_DMA: break;
-  default:
-    return false;
-  }
-
-  OMX_INDEXTYPE type = OMX_IndexComponentStartUnused;
-  auto err = OMX_GetExtensionIndex(*component, (OMX_STRING)"OMX.allegro.bufferMode", &type);
-
-  if(err != OMX_ErrorNone)
-    return false;
-
-  OMX_PORT_PARAM_BUFFERMODE param;
+  OMX_ALG_PORT_PARAM_BUFFER_MODE param;
   initHeader(param);
   param.nPortIndex = port;
   param.eMode = mode;
 
-  err = OMX_SetParameter(*component, type, &param);
+  auto err = OMX_SetParameter(*component, (OMX_INDEXTYPE)OMX_ALG_IndexPortParamBufferMode, &param);
 
   if(err != OMX_ErrorNone)
     return false;

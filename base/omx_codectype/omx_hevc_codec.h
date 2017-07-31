@@ -54,9 +54,11 @@ public:
   OMX_U32 GeteProfile(OMX_IN OMX_U32 /* nProfileIndex */);
   OMX_U32 GeteLevel(OMX_IN OMX_U32 /* nProfileIndex */);
   OMX_U32 GetSupportedProfileLevelSize();
+  int DPBSize(int width, int height);
+  void SetProfileLevel(VideoProfileLevelType /* proflevel */);
   OMX_BOOL CheckIndexParamVideoCodec(OMX_IN OMX_INDEXTYPE /* nParamIndex */);
   OMX_ERRORTYPE GetIndexParamVideoCodec(OMX_INOUT OMX_PTR /* pParam */, OMX_IN OMX_PARAM_PORTDEFINITIONTYPE /* PortDef */);
-  OMX_ERRORTYPE SetIndexParamVideoCodec(OMX_INOUT OMX_PTR /* pParam */, OMX_IN OMX_PARAM_PORTDEFINITIONTYPE const /* InPortDef */, OMX_OUT OMX_PARAM_PORTDEFINITIONTYPE & /* OutPortDef */);
+  OMX_ERRORTYPE SetIndexParamVideoCodec(OMX_INOUT OMX_PTR /* pParam */, OMX_INOUT OMX_PARAM_PORTDEFINITIONTYPE & /* InPortDef */, OMX_OUT OMX_PARAM_PORTDEFINITIONTYPE & /* OutPortDef */);
   int ConvertLevel(OMX_U32 level);
   OMX_U32 ConvertLevel(int level);
   AL_EProfile ConvertProfile(OMX_U32 profile);
@@ -65,9 +67,12 @@ public:
   OMX_U32 GetCodecBFrames();
   OMX_U32 GetCodecTier();
   AL_EChEncOption GetCodecOptions();
+  bool IsCAVLC();
+  void EnableLowBandwidth(bool shouldBeEnabled);
+  int GetBandwidth();
 
 private:
-  OMX_VIDEO_PARAM_HEVCTYPE m_ParameterVideoCodec;
+  OMX_ALG_VIDEO_PARAM_HEVCTYPE m_ParameterVideoCodec;
   OMX_BOOL m_bIsMainTier;
 };
 

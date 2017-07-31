@@ -44,7 +44,6 @@
 #include "omx_core.h"
 #include <OMX_Component.h>
 
-
 typedef OMX_ERRORTYPE CreateComponentFuncType (OMX_IN OMX_HANDLETYPE, OMX_IN OMX_STRING, OMX_IN OMX_STRING, OMX_IN OMX_PTR, OMX_IN OMX_CALLBACKTYPE*);
 
 static const omx_comp_type* getComp(char* cComponentName)
@@ -63,7 +62,6 @@ static const omx_comp_type* getComp(char* cComponentName)
 
 OMX_ERRORTYPE OMX_APIENTRY OMX_Init(void)
 {
-  LOGV("_ %s _ \n", __func__);
   char path[OMX_MAX_STRINGNAME_SIZE] =
   {
     0
@@ -108,8 +106,6 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_Init(void)
 
 OMX_ERRORTYPE OMX_APIENTRY OMX_Deinit(void)
 {
-  LOGV("_ %s _ \n", __func__);
-
   for(auto i = 0; i < NB_OF_COMP; i++)
   {
     if(!AL_COMP_LIST[i].pLibHandle)
@@ -124,8 +120,6 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_Deinit(void)
 
 OMX_ERRORTYPE OMX_APIENTRY OMX_ComponentNameEnum(OMX_OUT OMX_STRING cComponentName, OMX_IN OMX_U32 nNameLength, OMX_IN OMX_U32 nIndex)
 {
-  LOGV("_ %s _ \n", __func__);
-
   if(!cComponentName)
     return OMX_ErrorBadParameter;
 
@@ -164,8 +158,6 @@ static OMX_HANDLETYPE CreateComponent(const omx_comp_type* pComponent, char cons
 
 OMX_ERRORTYPE OMX_APIENTRY OMX_GetHandle(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_PTR pAppData, OMX_IN OMX_CALLBACKTYPE* pCallBacks)
 {
-  LOGV("_ %s _ \n", __func__);
-
   if(!pHandle)
     return OMX_ErrorBadParameter;
 
@@ -181,8 +173,6 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_GetHandle(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN
 
 OMX_ERRORTYPE OMX_APIENTRY OMX_FreeHandle(OMX_IN OMX_HANDLETYPE hComponent)
 {
-  LOGV("_ %s _ \n", __func__);
-
   auto pMyComponent = static_cast<OMX_COMPONENTTYPE*>(hComponent);
   auto eRet = pMyComponent->ComponentDeInit(hComponent);
 
@@ -193,8 +183,6 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_FreeHandle(OMX_IN OMX_HANDLETYPE hComponent)
 
 OMX_ERRORTYPE OMX_GetComponentsOfRole(OMX_IN OMX_STRING role, OMX_INOUT OMX_U32* pNumComps, OMX_INOUT OMX_U8** compNames)
 {
-  LOGV("_ %s _ \n", __func__);
-
   if((!role) || (!pNumComps))
     return OMX_ErrorBadParameter;
 
@@ -242,8 +230,6 @@ OMX_ERRORTYPE OMX_GetComponentsOfRole(OMX_IN OMX_STRING role, OMX_INOUT OMX_U32*
 
 OMX_ERRORTYPE OMX_GetRolesOfComponent(OMX_IN OMX_STRING compName, OMX_INOUT OMX_U32* pNumRoles, OMX_OUT OMX_U8** roles)
 {
-  LOGV("_ %s _ \n", __func__);
-
   auto pComponent = getComp(compName);
 
   if(!pComponent)
@@ -268,7 +254,6 @@ OMX_ERRORTYPE OMX_GetRolesOfComponent(OMX_IN OMX_STRING compName, OMX_INOUT OMX_
 
 OMX_ERRORTYPE OMX_APIENTRY OMX_SetupTunnel(OMX_IN OMX_HANDLETYPE hOutput, OMX_IN OMX_U32 nPortOutput, OMX_IN OMX_HANDLETYPE hInput, OMX_IN OMX_U32 nPortInput)
 {
-  LOGV("");
   auto pMyComponent = static_cast<OMX_COMPONENTTYPE*>(hOutput);
 
   if(!pMyComponent)

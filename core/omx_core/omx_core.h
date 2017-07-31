@@ -37,21 +37,6 @@
 
 #pragma once
 
-#define LOGV(...) ((void)0)
-#define LOGI(...) ((void)0)
-#define LOGW(...) ((void)0)
-#define LOGE(...) ((void)0)
-
-#ifdef DEBUG
-#define DEBUG_CORE 1
-#else
-#define DEBUG_CORE 0
-#endif /* DEBUG */
-
-#define debug_print(fmt, ...) \
-  do { if(DEBUG_CORE) fprintf(stderr, "%s:%d:%s(): " fmt, __FILE__, \
-                              __LINE__, __FUNCTION__, __VA_ARGS__); } while(0)
-
 #include <OMX_Core.h>
 #define OMX_MAX_COMP_ROLES 1
 

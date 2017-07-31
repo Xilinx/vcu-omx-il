@@ -67,51 +67,59 @@ static inline bool isStateInvalid(OMX_STATETYPE const curState)
   return curState == OMX_StateInvalid;
 }
 
-OMX_ERRORTYPE OMXChecker::CheckStateOperation(AL_ComponentMethods const methodName, OMX_STATETYPE const curState)
+void OMXChecker::CheckStateOperation(AL_ComponentMethods const methodName, OMX_STATETYPE const curState)
 {
   switch(methodName)
   {
   case AL_GetComponentVersion:
   {
     if(isStateInvalid(curState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case AL_SendCommand:
   {
     if(isStateInvalid(curState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case AL_GetParameter:
   {
     if(isStateInvalid(curState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case AL_SetParameter:
   {
+    if(isStateIdle(curState))
+      throw OMX_ErrorIncorrectStateOperation;
+
+    if(isStateExecuting(curState))
+      throw OMX_ErrorIncorrectStateOperation;
+
+    if(isStatePause(curState))
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStateInvalid(curState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case AL_GetConfig:
   {
     if(isStateInvalid(curState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case AL_SetConfig:
   {
     if(isStateInvalid(curState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case AL_GetExtensionIndex:
   {
     if(isStateInvalid(curState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case AL_GetState:
@@ -121,49 +129,49 @@ OMX_ERRORTYPE OMXChecker::CheckStateOperation(AL_ComponentMethods const methodNa
   case AL_ComponentTunnelRequest:
   {
     if(isStateIdle(curState))
-      return OMX_ErrorIncorrectStateOperation;
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStateExecuting(curState))
-      return OMX_ErrorIncorrectStateOperation;
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStatePause(curState))
-      return OMX_ErrorIncorrectStateOperation;
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStateWaitForResources(curState))
-      return OMX_ErrorIncorrectStateOperation;
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStateInvalid(curState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case AL_UseBuffer:
   {
     // if(isStateIdle(curState))
-    // return OMX_ErrorIncorrectStateOperation;
+    // throw OMX_ErrorIncorrectStateOperation;
 
     // if(isStateExecuting(curState))
-    // return OMX_ErrorIncorrectStateOperation;
+    // throw OMX_ErrorIncorrectStateOperation;
 
     if(isStatePause(curState))
-      return OMX_ErrorIncorrectStateOperation;
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStateInvalid(curState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case AL_AllocateBuffer:
   {
     // if(isStateIdle(curState))
-    // return OMX_ErrorIncorrectStateOperation;
+    // throw OMX_ErrorIncorrectStateOperation;
 
     // if(isStateExecuting(curState))
-    // return OMX_ErrorIncorrectStateOperation;
+    // throw OMX_ErrorIncorrectStateOperation;
 
     if(isStatePause(curState))
-      return OMX_ErrorIncorrectStateOperation;
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStateInvalid(curState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case AL_FreeBuffer:
@@ -173,43 +181,43 @@ OMX_ERRORTYPE OMXChecker::CheckStateOperation(AL_ComponentMethods const methodNa
   case AL_EmptyThisBuffer:
   {
     if(isStateLoaded(curState))
-      return OMX_ErrorIncorrectStateOperation;
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStateWaitForResources(curState))
-      return OMX_ErrorIncorrectStateOperation;
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStateInvalid(curState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case AL_FillThisBuffer:
   {
     if(isStateLoaded(curState))
-      return OMX_ErrorIncorrectStateOperation;
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStateWaitForResources(curState))
-      return OMX_ErrorIncorrectStateOperation;
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStateInvalid(curState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case AL_SetCallbacks:
   {
     if(isStateIdle(curState))
-      return OMX_ErrorIncorrectStateOperation;
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStateExecuting(curState))
-      return OMX_ErrorIncorrectStateOperation;
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStatePause(curState))
-      return OMX_ErrorIncorrectStateOperation;
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStateWaitForResources(curState))
-      return OMX_ErrorIncorrectStateOperation;
+      throw OMX_ErrorIncorrectStateOperation;
 
     if(isStateInvalid(curState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case AL_ComponentDeinit:
@@ -225,83 +233,79 @@ OMX_ERRORTYPE OMXChecker::CheckStateOperation(AL_ComponentMethods const methodNa
     break;
   }
   default:
-    return OMX_ErrorUndefined;
+    throw OMX_ErrorUndefined;
   }
-
-  return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE OMXChecker::CheckStateTransition(OMX_STATETYPE const curState, OMX_STATETYPE const newState)
+void OMXChecker::CheckStateTransition(OMX_STATETYPE const curState, OMX_STATETYPE const newState)
 {
   if(newState == curState)
-    return OMX_ErrorSameState;
+    throw OMX_ErrorSameState;
   switch(curState)
   {
   case OMX_StateLoaded:
   {
     if(isStateExecuting(newState))
-      return OMX_ErrorIncorrectStateTransition;
+      throw OMX_ErrorIncorrectStateTransition;
 
     if(isStatePause(newState))
-      return OMX_ErrorIncorrectStateTransition;
+      throw OMX_ErrorIncorrectStateTransition;
 
     if(isStateInvalid(newState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case OMX_StateWaitForResources:
   {
     if(isStateExecuting(newState))
-      return OMX_ErrorIncorrectStateTransition;
+      throw OMX_ErrorIncorrectStateTransition;
 
     if(isStatePause(newState))
-      return OMX_ErrorIncorrectStateTransition;
+      throw OMX_ErrorIncorrectStateTransition;
 
     if(isStateInvalid(newState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case OMX_StateIdle:
   {
     if(isStateWaitForResources(newState))
-      return OMX_ErrorIncorrectStateTransition;
+      throw OMX_ErrorIncorrectStateTransition;
 
     if(isStateInvalid(newState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case OMX_StateExecuting:
   {
     if(isStateWaitForResources(newState))
-      return OMX_ErrorIncorrectStateTransition;
+      throw OMX_ErrorIncorrectStateTransition;
 
     if(isStateLoaded(newState))
-      return OMX_ErrorIncorrectStateTransition;
+      throw OMX_ErrorIncorrectStateTransition;
 
     if(isStateInvalid(newState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   case OMX_StatePause:
   {
     if(isStateWaitForResources(newState))
-      return OMX_ErrorIncorrectStateTransition;
+      throw OMX_ErrorIncorrectStateTransition;
 
     if(isStateLoaded(newState))
-      return OMX_ErrorIncorrectStateTransition;
+      throw OMX_ErrorIncorrectStateTransition;
 
     if(isStateInvalid(newState))
-      return OMX_ErrorInvalidState;
+      throw OMX_ErrorInvalidState;
     break;
   }
   default:
-    return OMX_ErrorUndefined;
+    throw OMX_ErrorUndefined;
   }
-
-  return OMX_ErrorNone;
 }
 
-bool OMXChecker::CheckStateExistance(const OMX_STATETYPE state)
+void OMXChecker::CheckStateExistance(const OMX_STATETYPE state)
 {
   switch(state)
   {
@@ -311,9 +315,9 @@ bool OMXChecker::CheckStateExistance(const OMX_STATETYPE state)
   case OMX_StateExecuting:
   case OMX_StatePause:
   case OMX_StateInvalid:
-    return true;
+    return;
   default:
-    return false;
+    throw OMX_ErrorBadParameter;
   }
 }
 

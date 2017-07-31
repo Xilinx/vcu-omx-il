@@ -67,65 +67,59 @@ enum AL_ComponentMethods
 class OMXChecker
 {
 public:
-  /* Variables */
-
-  /* Methods */
-
   /*************************************************************************//*!
      \brief  The CheckStateOperation method test if the OMX_Method can be called in the
             current state
      \param[in]  methodName Name of the OMX_Method
      \param[in]  curState Current component's state
-     \return OMX_ErrorNone if the method can be called
-            OMX_ErrorInvalidState if the current state is invalid
-            OMX_ErrorIncorrectStateOperation otherwise
+     \throw  OMX_ErrorInvalidState if the current state is invalid
+             OMX_ErrorIncorrectStateOperation otherwise
   *****************************************************************************/
-  static OMX_ERRORTYPE CheckStateOperation(const AL_ComponentMethods methodName, const OMX_STATETYPE curState);
+  static void CheckStateOperation(const AL_ComponentMethods methodName, const OMX_STATETYPE curState);
 
-  static bool CheckStateExistance(const OMX_STATETYPE state);
+  /*************************************************************************//*!
+     \brief  The CheckStateExistance method test if the state exist
+     \param[in]  state
+     \throw  OMX_ErrorBadParameter if the state doesn't exist
+  *****************************************************************************/
+  static void CheckStateExistance(const OMX_STATETYPE state);
 
   /*************************************************************************//*!
      \brief  The CheckStateTransition method test if the transition between old state
             and new state can be done
      \param[in]  curState Current component's state
      \param[in]  newState New component's state
-     \return OMX_ErrorNone if transition can be done
-            OMX_ErrorSameState if the new state equal the current state
+     \throw OMX_ErrorSameState if the new state equal the current state
             OMX_ErrorIncorrectStateTransition otherwise
   *****************************************************************************/
-  static OMX_ERRORTYPE CheckStateTransition(const OMX_STATETYPE curState, const OMX_STATETYPE newState);
+  static void CheckStateTransition(const OMX_STATETYPE curState, const OMX_STATETYPE newState);
 
   /*************************************************************************//*!
      \brief  The CheckNotNull method test if the parameter send is not null
      \param[in]  ptr Pointer
-     \return OMX_ErrorNone if ptr is not null
-            OMX_ErrorBadParameter otherwise
+     \throw OMX_ErrorBadParameter if ptr is null
   *****************************************************************************/
   template<typename T>
   static
   inline
-  OMX_ERRORTYPE CheckNotNull(T const ptr)
+  void CheckNotNull(T const ptr)
   {
     if(!ptr)
-      return OMX_ErrorBadParameter;
-    return OMX_ErrorNone;
+      throw OMX_ErrorBadParameter;
   };
 
   /*************************************************************************//*!
-     \brief  The CheckIsEqual method test if the parameters send are equal
-     \param[in]  param1
-     \param[in]  param2
-     \return OMX_ErrorNone if param1 equal param2
-            OMX_ErrorBadParameter otherwise
+     \brief  The CheckNull method test if the parameter send is null
+     \param[in]  ptr Pointer
+     \throw OMX_ErrorBadParameter if ptr is not null
   *****************************************************************************/
   template<typename T>
   static
   inline
-  OMX_ERRORTYPE CheckIsEqual(const T param1, const T param2)
+  void CheckNull(T const ptr)
   {
-    if(param1 != param2)
-      return OMX_ErrorBadParameter;
-    return OMX_ErrorNone;
+    if(ptr)
+      throw OMX_ErrorBadParameter;
   };
 
   /*************************************************************************//*!
@@ -145,16 +139,14 @@ public:
   /*************************************************************************//*!
      \brief  The CheckHeader method check if the header is at the omx-il version used
      \param[in]  version
-     \return OMX_ErrorVersionMismatch if version != OMX_VERSION
-             OMX_ErrorNone otherwise
+     \throw OMX_ErrorVersionMismatch if version != OMX_VERSION
   *****************************************************************************/
   static
   inline
-  OMX_ERRORTYPE CheckHeaderVersion(OMX_VERSIONTYPE const version)
+  void CheckHeaderVersion(OMX_VERSIONTYPE const version)
   {
     if(version.nVersion != OMX_VERSION)
-      return OMX_ErrorVersionMismatch;
-    return OMX_ErrorNone;
+      throw OMX_ErrorVersionMismatch;
   };
 };
 

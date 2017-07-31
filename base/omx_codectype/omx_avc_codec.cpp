@@ -44,6 +44,11 @@
 
 #include <assert.h>
 
+extern "C"
+{
+#include "lib_common_dec/DecDpbMode.h"
+}
+
 static VideoProfileLevelType SupportedAVCProfileLevels[] =
 {
   {
@@ -92,7 +97,16 @@ static VideoProfileLevelType SupportedAVCProfileLevels[] =
     OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel51
   },
   {
-    OMX_VIDEO_AVCProfileBaseline, OMX_VIDEO_AVCLevel52
+    OMX_VIDEO_AVCProfileBaseline, OMX_ALG_VIDEO_AVCLevel52
+  },
+  {
+    OMX_VIDEO_AVCProfileBaseline, OMX_ALG_VIDEO_AVCLevel60
+  },
+  {
+    OMX_VIDEO_AVCProfileBaseline, OMX_ALG_VIDEO_AVCLevel61
+  },
+  {
+    OMX_VIDEO_AVCProfileBaseline, OMX_ALG_VIDEO_AVCLevel62
   },
 
   {
@@ -141,7 +155,16 @@ static VideoProfileLevelType SupportedAVCProfileLevels[] =
     OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel51
   },
   {
-    OMX_VIDEO_AVCProfileMain, OMX_VIDEO_AVCLevel52
+    OMX_VIDEO_AVCProfileMain, OMX_ALG_VIDEO_AVCLevel52
+  },
+  {
+    OMX_VIDEO_AVCProfileMain, OMX_ALG_VIDEO_AVCLevel60
+  },
+  {
+    OMX_VIDEO_AVCProfileMain, OMX_ALG_VIDEO_AVCLevel61
+  },
+  {
+    OMX_VIDEO_AVCProfileMain, OMX_ALG_VIDEO_AVCLevel62
   },
 
   {
@@ -190,7 +213,16 @@ static VideoProfileLevelType SupportedAVCProfileLevels[] =
     OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel51
   },
   {
-    OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel52
+    OMX_VIDEO_AVCProfileHigh, OMX_ALG_VIDEO_AVCLevel52
+  },
+  {
+    OMX_VIDEO_AVCProfileHigh, OMX_ALG_VIDEO_AVCLevel60
+  },
+  {
+    OMX_VIDEO_AVCProfileHigh, OMX_ALG_VIDEO_AVCLevel61
+  },
+  {
+    OMX_VIDEO_AVCProfileHigh, OMX_ALG_VIDEO_AVCLevel62
   },
 
   {
@@ -239,7 +271,16 @@ static VideoProfileLevelType SupportedAVCProfileLevels[] =
     OMX_VIDEO_AVCProfileHigh10, OMX_VIDEO_AVCLevel51
   },
   {
-    OMX_VIDEO_AVCProfileHigh10, OMX_VIDEO_AVCLevel52
+    OMX_VIDEO_AVCProfileHigh10, OMX_ALG_VIDEO_AVCLevel52
+  },
+  {
+    OMX_VIDEO_AVCProfileHigh10, OMX_ALG_VIDEO_AVCLevel60
+  },
+  {
+    OMX_VIDEO_AVCProfileHigh10, OMX_ALG_VIDEO_AVCLevel61
+  },
+  {
+    OMX_VIDEO_AVCProfileHigh10, OMX_ALG_VIDEO_AVCLevel62
   },
 
   {
@@ -288,9 +329,19 @@ static VideoProfileLevelType SupportedAVCProfileLevels[] =
     OMX_VIDEO_AVCProfileHigh422, OMX_VIDEO_AVCLevel51
   },
   {
-    OMX_VIDEO_AVCProfileHigh422, OMX_VIDEO_AVCLevel52
+    OMX_VIDEO_AVCProfileHigh422, OMX_ALG_VIDEO_AVCLevel52
+  },
+  {
+    OMX_VIDEO_AVCProfileHigh422, OMX_ALG_VIDEO_AVCLevel60
+  },
+  {
+    OMX_VIDEO_AVCProfileHigh422, OMX_ALG_VIDEO_AVCLevel61
+  },
+  {
+    OMX_VIDEO_AVCProfileHigh422, OMX_ALG_VIDEO_AVCLevel62
   },
 };
+
 AVCCodec::AVCCodec()
 {
   OMXChecker::SetHeaderVersion(m_ParameterVideoCodec);
@@ -318,6 +369,7 @@ AVCCodec::AVCCodec()
   m_ParameterVideoCodec.bDirectSpatialTemporal = OMX_TRUE; /* Read-only */
   m_ParameterVideoCodec.nCabacInitIdc = CABACINITIDC;
   m_ParameterVideoCodec.eLoopFilterMode = OMX_VIDEO_AVCLoopFilterEnable;
+  m_bLowBW = false;
 };
 
 AVCCodec::~AVCCodec()
@@ -378,46 +430,53 @@ OMX_BOOL AVCCodec::CheckIndexParamVideoCodec(OMX_INDEXTYPE nParamIndex)
 
 OMX_ERRORTYPE AVCCodec::GetIndexParamVideoCodec(OMX_PTR pParam, OMX_PARAM_PORTDEFINITIONTYPE PortDef)
 {
-  OMX_ERRORTYPE eRet = OMX_ErrorNone;
-
-  auto port = (OMX_VIDEO_PARAM_AVCTYPE*)pParam;
-
-  eRet = OMXChecker::CheckHeaderVersion(port->nVersion);
-
-  if(eRet == OMX_ErrorNone)
+  try
   {
+    auto port = (OMX_VIDEO_PARAM_AVCTYPE*)pParam;
+
+    OMXChecker::CheckHeaderVersion(port->nVersion);
+
     if(port->nPortIndex == PortDef.nPortIndex)
     {
       *port = m_ParameterVideoCodec;
       port->nPortIndex = PortDef.nPortIndex;
     }
     else
-      eRet = OMX_ErrorBadPortIndex;
+      return OMX_ErrorBadPortIndex;
+    return OMX_ErrorNone;
   }
-  return eRet;
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 };
 
-OMX_ERRORTYPE AVCCodec::SetIndexParamVideoCodec(OMX_INOUT OMX_PTR pParam, OMX_IN OMX_PARAM_PORTDEFINITIONTYPE const CodecPortDef, OMX_OUT OMX_PARAM_PORTDEFINITIONTYPE& PortDef)
+OMX_ERRORTYPE AVCCodec::SetIndexParamVideoCodec(OMX_INOUT OMX_PTR pParam, OMX_IN OMX_PARAM_PORTDEFINITIONTYPE& CodecPortDef, OMX_OUT OMX_PARAM_PORTDEFINITIONTYPE& PortDef)
 {
-  OMX_ERRORTYPE eRet = OMX_ErrorNone;
-
-  auto port = (OMX_VIDEO_PARAM_AVCTYPE*)pParam;
-
-  eRet = OMXChecker::CheckHeaderVersion(port->nVersion);
-
-  if(eRet == OMX_ErrorNone)
+  try
   {
+    auto port = (OMX_VIDEO_PARAM_AVCTYPE*)pParam;
+
+    OMXChecker::CheckHeaderVersion(port->nVersion);
+
     if(port->nPortIndex == CodecPortDef.nPortIndex)
     {
       m_ParameterVideoCodec = *port;
       auto iBFrames = (m_ParameterVideoCodec.nBFrames / (m_ParameterVideoCodec.nPFrames + 1));
       PortDef.nBufferCountMin = iBFrames + 2;
       PortDef.nBufferCountActual = PortDef.nBufferCountMin;
+
+      CodecPortDef.nBufferCountMin = iBFrames + 4;
+      CodecPortDef.nBufferCountActual = CodecPortDef.nBufferCountMin;
     }
     else
-      eRet = OMX_ErrorBadPortIndex;
+      return OMX_ErrorBadPortIndex;
+    return OMX_ErrorNone;
   }
-  return eRet;
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 };
 
 OMX_U32 AVCCodec::ConvertLevel(int level)
@@ -440,9 +499,13 @@ OMX_U32 AVCCodec::ConvertLevel(int level)
   case 42: return OMX_VIDEO_AVCLevel42;
   case 50: return OMX_VIDEO_AVCLevel5;
   case 51: return OMX_VIDEO_AVCLevel51;
-  case 52: return OMX_VIDEO_AVCLevel52;
+  case 52: return OMX_ALG_VIDEO_AVCLevel52;
+  case 60: return OMX_ALG_VIDEO_AVCLevel60;
+  case 61: return OMX_ALG_VIDEO_AVCLevel61;
+  case 62: return OMX_ALG_VIDEO_AVCLevel62;
   default:
     assert(0);
+    return 0;
   }
 };
 
@@ -466,9 +529,13 @@ int AVCCodec::ConvertLevel(OMX_U32 level)
   case OMX_VIDEO_AVCLevel42: return 42;
   case OMX_VIDEO_AVCLevel5:  return 50;
   case OMX_VIDEO_AVCLevel51: return 51;
-  case OMX_VIDEO_AVCLevel52: return 52;
+  case OMX_ALG_VIDEO_AVCLevel52: return 52;
+  case OMX_ALG_VIDEO_AVCLevel60: return 60;
+  case OMX_ALG_VIDEO_AVCLevel61: return 61;
+  case OMX_ALG_VIDEO_AVCLevel62: return 62;
   default:
     assert(0);
+    return 0;
   }
 };
 
@@ -484,6 +551,7 @@ AL_EProfile AVCCodec::ConvertProfile(OMX_U32 profile)
   case OMX_VIDEO_AVCProfileHigh422:  return AL_PROFILE_AVC_HIGH_422;
   default:
     assert(0);
+    return AL_PROFILE_AVC_BASELINE;
   }
 };
 
@@ -499,6 +567,7 @@ OMX_U32 AVCCodec::ConvertProfile(AL_EProfile profile)
   case AL_PROFILE_AVC_HIGH_422: return OMX_VIDEO_AVCProfileHigh422;
   default:
     assert(0);
+    return 0;
   }
 };
 
@@ -535,4 +604,30 @@ AL_EChEncOption AVCCodec::GetCodecOptions()
 
   return (AL_EChEncOption)opt;
 };
+
+void AVCCodec::SetProfileLevel(VideoProfileLevelType proflevel)
+{
+  m_ParameterVideoCodec.eProfile = (OMX_VIDEO_AVCPROFILETYPE)proflevel.eProfile;
+  m_ParameterVideoCodec.eLevel = (OMX_VIDEO_AVCLEVELTYPE)proflevel.eLevel;
+}
+
+int AVCCodec::DPBSize(int width, int height)
+{
+  return AL_AVC_GetMaxDPBSize(ConvertLevel((OMX_U32)m_ParameterVideoCodec.eLevel), width, height);
+}
+
+bool AVCCodec::IsCAVLC()
+{
+  return !m_ParameterVideoCodec.bEntropyCodingCABAC;
+}
+
+void AVCCodec::EnableLowBandwidth(bool shouldBeEnabled)
+{
+  m_bLowBW = shouldBeEnabled;
+}
+
+int AVCCodec::GetBandwidth()
+{
+  return m_bLowBW ? 8 : 16;
+}
 

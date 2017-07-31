@@ -97,188 +97,172 @@ void OMXVideoCodec::CreateRole(OMX_STRING role)
 
 OMX_ERRORTYPE OMXVideoCodec::SendCommand(OMX_IN OMX_COMMANDTYPE cmd, OMX_IN OMX_U32 param, OMX_IN OMX_PTR data)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-
-  auto ret = OMXChecker::CheckStateOperation(AL_SendCommand, process->GetState());
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  if(cmd == OMX_CommandStateSet)
+  try
   {
-    ret = OMXChecker::CheckStateTransition(process->GetState(), (OMX_STATETYPE)param);
+    std::lock_guard<std::mutex> lock(mutex);
 
-    if(ret != OMX_ErrorNone)
-      return ret;
+    OMXChecker::CheckStateOperation(AL_SendCommand, process->GetState());
 
-    ret = process->SetState(param);
-    return ret;
+    if(cmd == OMX_CommandStateSet)
+    {
+      OMXChecker::CheckStateTransition(process->GetState(), (OMX_STATETYPE)param);
+      return process->SetState(param);
+    }
+
+    return process->SendCommand(cmd, param, data);
   }
-
-  ret = process->SendCommand(cmd, param, data);
-
-  return ret;
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_ERRORTYPE OMXVideoCodec::GetState(OMX_OUT OMX_STATETYPE* state)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  try
+  {
+    std::lock_guard<std::mutex> lock(mutex);
 
-  auto ret = OMXChecker::CheckNotNull<OMX_STATETYPE*>(state);
+    OMXChecker::CheckNotNull<OMX_STATETYPE*>(state);
 
-  if(ret != OMX_ErrorNone)
-    return ret;
+    *state = process->GetState();
 
-  *state = process->GetState();
-
-  return ret;
+    return OMX_ErrorNone;
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_ERRORTYPE OMXVideoCodec::SetCallbacks(OMX_IN OMX_CALLBACKTYPE* callbacks, OMX_IN OMX_PTR app)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  try
+  {
+    std::lock_guard<std::mutex> lock(mutex);
 
-  auto ret = OMXChecker::CheckNotNull<OMX_CALLBACKTYPE*>(callbacks);
+    OMXChecker::CheckNotNull<OMX_CALLBACKTYPE*>(callbacks);
+    OMXChecker::CheckStateOperation(AL_SetCallbacks, process->GetState());
 
-  if(ret != OMX_ErrorNone)
-    return ret;
+    process->SetCallBack(callbacks);
+    process->SetAppData(app);
 
-  ret = OMXChecker::CheckStateOperation(AL_SetCallbacks, process->GetState());
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  process->SetCallBack(callbacks);
-  process->SetAppData(app);
-
-  return ret;
+    return OMX_ErrorNone;
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_ERRORTYPE OMXVideoCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR param)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  try
+  {
+    std::lock_guard<std::mutex> lock(mutex);
 
-  auto ret = OMXChecker::CheckNotNull(param);
+    OMXChecker::CheckNotNull(param);
 
-  if(ret != OMX_ErrorNone)
+    auto ret = process->GetParameter(index, param);
     return ret;
-
-  ret = OMXChecker::CheckStateOperation(AL_GetParameter, process->GetState());
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = process->GetParameter(index, param);
-  return ret;
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_ERRORTYPE OMXVideoCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  try
+  {
+    std::lock_guard<std::mutex> lock(mutex);
 
-  auto ret = OMXChecker::CheckNotNull(param);
+    OMXChecker::CheckNotNull(param);
 
-  if(ret != OMX_ErrorNone)
+    auto ret = process->SetParameter(index, param);
     return ret;
-
-  ret = OMXChecker::CheckStateOperation(AL_SetParameter, process->GetState());
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = process->SetParameter(index, param);
-  return ret;
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_ERRORTYPE OMXVideoCodec::UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 indexIndex, OMX_IN OMX_PTR app, OMX_IN OMX_U32 nSizeBytes, OMX_IN OMX_U8* pBuffer)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  try
+  {
+    std::lock_guard<std::mutex> lock(mutex);
 
-  auto ret = OMXChecker::CheckNotNull(header);
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = OMXChecker::CheckNotNull(pBuffer);
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = OMXChecker::CheckStateOperation(AL_UseBuffer, process->GetState());
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = process->UseBuffer(header, indexIndex, app, nSizeBytes, pBuffer);
-  return ret;
+    OMXChecker::CheckNotNull(header);
+    OMXChecker::CheckNotNull(pBuffer);
+    OMXChecker::CheckStateOperation(AL_UseBuffer, process->GetState());
+    return process->UseBuffer(header, indexIndex, app, nSizeBytes, pBuffer);
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_ERRORTYPE OMXVideoCodec::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 indexIndex, OMX_IN OMX_PTR app, OMX_IN OMX_U32 nSizeBytes)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  try
+  {
+    std::lock_guard<std::mutex> lock(mutex);
 
-  auto ret = OMXChecker::CheckNotNull(header);
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = OMXChecker::CheckStateOperation(AL_AllocateBuffer, process->GetState());
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = process->AllocateBuffer(header, indexIndex, app, nSizeBytes);
-  return ret;
+    OMXChecker::CheckNotNull(header);
+    OMXChecker::CheckStateOperation(AL_AllocateBuffer, process->GetState());
+    return process->AllocateBuffer(header, indexIndex, app, nSizeBytes);
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_ERRORTYPE OMXVideoCodec::FreeBuffer(OMX_IN OMX_U32 indexIndex, OMX_IN OMX_BUFFERHEADERTYPE* header)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-
-  auto ret = OMXChecker::CheckNotNull(header);
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = OMXChecker::CheckStateOperation(AL_FreeBuffer, process->GetState());
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = process->FreeBuffer(indexIndex, header);
-  return ret;
+  try
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    OMXChecker::CheckNotNull(header);
+    OMXChecker::CheckStateOperation(AL_FreeBuffer, process->GetState());
+    return process->FreeBuffer(indexIndex, header);
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_ERRORTYPE OMXVideoCodec::EmptyThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* pInputBuf)
 {
-  auto ret = OMXChecker::CheckNotNull(pInputBuf);
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = OMXChecker::CheckStateOperation(AL_EmptyThisBuffer, process->GetState());
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = process->EmptyThisBuffer(pInputBuf);
-  return ret;
+  try
+  {
+    OMXChecker::CheckNotNull(pInputBuf);
+    OMXChecker::CheckStateOperation(AL_EmptyThisBuffer, process->GetState());
+    return process->EmptyThisBuffer(pInputBuf);
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_ERRORTYPE OMXVideoCodec::FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
 {
-  auto ret = OMXChecker::CheckNotNull(header);
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = OMXChecker::CheckStateOperation(AL_FillThisBuffer, process->GetState());
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = process->FillThisBuffer(header);
-  return ret;
+  try
+  {
+    OMXChecker::CheckNotNull(header);
+    OMXChecker::CheckStateOperation(AL_FillThisBuffer, process->GetState());
+    return process->FillThisBuffer(header);
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 void OMXVideoCodec::ComponentDeInit()
@@ -289,33 +273,25 @@ void OMXVideoCodec::ComponentDeInit()
 
 OMX_ERRORTYPE OMXVideoCodec::GetComponentVersion(OMX_OUT OMX_STRING name, OMX_OUT OMX_VERSIONTYPE* version, OMX_OUT OMX_VERSIONTYPE* spec)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  try
+  {
+    std::lock_guard<std::mutex> lock(mutex);
 
-  auto ret = OMXChecker::CheckNotNull(name);
+    OMXChecker::CheckNotNull(name);
+    OMXChecker::CheckNotNull(version);
+    OMXChecker::CheckNotNull(spec);
+    OMXChecker::CheckStateOperation(AL_GetComponentVersion, process->GetState());
 
-  if(ret != OMX_ErrorNone)
-    return ret;
+    strncpy(name, GetComponentName(), OMX_MAX_STRINGNAME_SIZE);
+    *version = GetComponentVersion();
+    *spec = GetSpecificationVersion();
 
-  ret = OMXChecker::CheckNotNull(version);
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = OMXChecker::CheckNotNull(spec);
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = OMXChecker::CheckStateOperation(AL_GetComponentVersion, process->GetState());
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  strncpy(name, GetComponentName(), OMX_MAX_STRINGNAME_SIZE);
-  *version = GetComponentVersion();
-  *spec = GetSpecificationVersion();
-
-  return ret;
+    return OMX_ErrorNone;
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_ERRORTYPE OMXVideoCodec::GetConfig(OMX_IN OMX_INDEXTYPE /* index */, OMX_INOUT OMX_PTR /* config*/)
@@ -332,44 +308,37 @@ OMX_ERRORTYPE OMXVideoCodec::SetConfig(OMX_IN OMX_INDEXTYPE /* index */, OMX_IN 
 
 OMX_ERRORTYPE OMXVideoCodec::GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_INDEXTYPE* index)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  try
+  {
+    std::lock_guard<std::mutex> lock(mutex);
 
-  auto ret = OMXChecker::CheckNotNull(name);
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = OMXChecker::CheckNotNull(index);
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = OMXChecker::CheckStateOperation(AL_GetExtensionIndex, process->GetState());
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = process->GetExtensionIndex(name, index);
-
-  return ret;
+    OMXChecker::CheckNotNull(name);
+    OMXChecker::CheckNotNull(index);
+    OMXChecker::CheckStateOperation(AL_GetExtensionIndex, process->GetState());
+    return process->GetExtensionIndex(name, index);
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_ERRORTYPE OMXVideoCodec::ComponentTunnelRequest(OMX_IN OMX_U32 index, OMX_IN OMX_HANDLETYPE comp, OMX_IN OMX_U32 tunneledIndex, OMX_INOUT OMX_TUNNELSETUPTYPE* setup)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  try
+  {
+    std::lock_guard<std::mutex> lock(mutex);
 
-  auto ret = OMXChecker::CheckNotNull(comp);
+    OMXChecker::CheckNotNull(comp);
+    OMXChecker::CheckNotNull(setup);
 
-  if(ret != OMX_ErrorNone)
+    auto ret = process->ComponentTunnelRequest(index, comp, tunneledIndex, setup);
     return ret;
-
-  ret = OMXChecker::CheckNotNull(setup);
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  ret = process->ComponentTunnelRequest(index, comp, tunneledIndex, setup);
-  return ret;
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_ERRORTYPE OMXVideoCodec::UseEGLImage(OMX_INOUT OMX_BUFFERHEADERTYPE** /* header */, OMX_IN OMX_U32 /* index */, OMX_IN OMX_PTR /* app */, OMX_IN void* /* eglImage*/)
@@ -380,24 +349,24 @@ OMX_ERRORTYPE OMXVideoCodec::UseEGLImage(OMX_INOUT OMX_BUFFERHEADERTYPE** /* hea
 
 OMX_ERRORTYPE OMXVideoCodec::ComponentRoleEnum(OMX_OUT OMX_U8* role, OMX_IN OMX_U32 index)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  try
+  {
+    std::lock_guard<std::mutex> lock(mutex);
 
-  auto ret = OMXChecker::CheckNotNull(role);
+    OMXChecker::CheckNotNull(role);
+    OMXChecker::CheckStateOperation(AL_ComponentRoleEnum, process->GetState());
 
-  if(ret != OMX_ErrorNone)
-    return ret;
+    if(index == 0)
+      strncpy((OMX_STRING)role, GetComponentRole(), OMX_MAX_STRINGNAME_SIZE);
+    else
+      return OMX_ErrorNoMore;
 
-  ret = OMXChecker::CheckStateOperation(AL_ComponentRoleEnum, process->GetState());
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  if(index == 0)
-    strncpy((OMX_STRING)role, GetComponentRole(), OMX_MAX_STRINGNAME_SIZE);
-  else
-    ret = OMX_ErrorNoMore;
-
-  return ret;
+    return OMX_ErrorNone;
+  }
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 }
 
 OMX_STRING OMXVideoCodec::GetComponentName()

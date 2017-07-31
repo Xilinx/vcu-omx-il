@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2017 Allegro DVT2.  All rights reserved.
  * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -21,13 +22,13 @@
  *
  */
 
-/** OMX_ComponentExt.h - OpenMax IL version 1.1.2
- * The OMX_ComponentExt header file contains extensions to the definitions used
+/** OMX_ComponentAlg.h - OpenMax IL version 1.1.2
+ * The OMX_ComponentAlg header file contains extensions to the definitions used
  * by both the application and the component to access common items.
  */
 
-#ifndef OMX_ComponentExt_h
-#define OMX_ComponentExt_h
+#ifndef OMX_ComponentAlg_h
+#define OMX_ComponentAlg_h
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,27 +38,36 @@ extern "C" {
  * header to compile without errors.  The includes below are required
  * for this header file to compile successfully
  */
-#include <OMX_Types.h>
-#include <OMX_ComponentAlg.h>
 
-/** Set/query the commit mode */
-typedef struct OMX_CONFIG_COMMITMODETYPE
+
+/** Enum buffers modes */
+typedef enum OMX_ALG_BUFFER_MODE
+{
+  OMX_ALG_BUF_NORMAL = 0x0,
+  OMX_ALG_BUF_DMA = 0x1,
+  OMX_ALG_BUF_MAX = 0x7FFFFFFF,
+}OMX_ALG_BUFFER_MODE;
+
+/** Port buffers configuration */
+typedef struct OMX_ALG_PORT_PARAM_BUFFER_MODE
 {
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
-  OMX_BOOL bDeferred;
-}OMX_CONFIG_COMMITMODETYPE;
+  OMX_U32 nPortIndex;
+  OMX_ALG_BUFFER_MODE eMode;
+}OMX_ALG_PORT_PARAM_BUFFER_MODE;
 
-/** Explicit commit */
-typedef struct OMX_CONFIG_COMMITTYPE
+/** Component Latency */
+typedef struct OMX_ALG_PARAM_REPORTED_LATENCY
 {
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
-}OMX_CONFIG_COMMITTYPE;
+  OMX_U32 nLatency; // Number of frame latency frame
+}OMX_ALG_PARAM_REPORTED_LATENCY;
 
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
 
-#endif /* OMX_ComponentExt_h */
+#endif /* OMX_ComponentAlg_h */
 

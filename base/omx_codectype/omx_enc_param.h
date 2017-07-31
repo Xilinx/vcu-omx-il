@@ -53,6 +53,12 @@ struct Quantization
   int PBDeltaQP;
 };
 
+struct QuantizationExt
+{
+  int minQP;
+  int maxQP;
+};
+
 class EncodingParameters
 {
 public:
@@ -67,6 +73,8 @@ public:
   void setL2CacheSize(int size);
   int getBitrate();
   void setBitrate(int bitrate);
+  int getMaxBitrate();
+  void setMaxBitrate(int maxBitrate);
   int getNumSlices();
   void setNumSlices(int number);
   int getLevel();
@@ -79,37 +87,45 @@ public:
   void setRCOptions(AL_ERateCtrlOption opt);
   Quantization getQuantization();
   void setQuantization(Quantization const quant);
-  void setGopMode(OMX_AL_EGopCtrlMode mode);
-  OMX_AL_EGopCtrlMode getGopMode();
-  void setQpMode(OMX_AL_EQpCtrlMode mode);
-  OMX_AL_EQpCtrlMode getQpMode();
-  void setGdrMode(OMX_AL_EGdrMode mode);
-  OMX_AL_EGdrMode getGdrMode();
-  void setScalingListMode(OMX_AL_EScalingList mode);
-  OMX_AL_EScalingList getScalingListMode();
-
-protected:
-  /* Variables */
-
-  /* Methods */
+  QuantizationExt getQuantizationExt();
+  void setQuantizationExtension(QuantizationExt const quantExt);
+  void setGopMode(OMX_ALG_EGopCtrlMode mode);
+  OMX_ALG_EGopCtrlMode getGopMode();
+  void setQpMode(OMX_ALG_EQpCtrlMode mode);
+  OMX_ALG_EQpCtrlMode getQpMode();
+  void setGdrMode(OMX_ALG_EGdrMode mode);
+  OMX_ALG_EGdrMode getGdrMode();
+  void setScalingListMode(OMX_ALG_EScalingList mode);
+  OMX_ALG_EScalingList getScalingListMode();
+  void setDependentSlices(bool const isDependent);
+  bool getDependentSlices();
+  void setSlicesSize(int const size);
+  int getSlicesSize();
+  void setAspectRatio(OMX_ALG_EAspectRatio const aspect);
+  OMX_ALG_EAspectRatio getAspectRatio();
+  void setIDRFreq(uint32_t const freq);
+  uint32_t getIDRFreq();
 
 private:
-  /* Variables */
-  OMX_AL_EGopCtrlMode gop;
-  OMX_AL_EGdrMode gdr;
-  OMX_AL_EScalingList sclist;
+  OMX_ALG_EGopCtrlMode gop;
+  OMX_ALG_EGdrMode gdr;
+  OMX_ALG_EScalingList sclist;
   Quantization quant;
-  OMX_AL_EQpCtrlMode qpMode;
+  QuantizationExt quantExt;
+  OMX_ALG_EQpCtrlMode qpMode;
   int bitrate;
+  int maxBitrate;
   int numSlices;
+  int slicesSize;
+  bool dependentSlices;
   int l2CacheSize;
   int cpbSize;
   int initialRemovalDelay;
   AL_ERateCtrlMode rc;
   AL_ERateCtrlOption rcOptions;
   AL_EProfile profile;
+  OMX_ALG_EAspectRatio aspectRatio;
   int level;
-
-  /* Methods */
+  uint32_t idrFreq;
 };
 

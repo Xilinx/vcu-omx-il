@@ -77,6 +77,16 @@ void EncodingParameters::setBitrate(int bitrate)
   this->bitrate = bitrate;
 }
 
+int EncodingParameters::getMaxBitrate()
+{
+  return maxBitrate;
+}
+
+void EncodingParameters::setMaxBitrate(int maxBitrate)
+{
+  this->maxBitrate = maxBitrate;
+}
+
 int EncodingParameters::getNumSlices()
 {
   return numSlices;
@@ -137,43 +147,93 @@ void EncodingParameters::setQuantization(Quantization const quant)
   this->quant = quant;
 }
 
-void EncodingParameters::setGopMode(OMX_AL_EGopCtrlMode const mode)
+QuantizationExt EncodingParameters::getQuantizationExt()
+{
+  return quantExt;
+}
+
+void EncodingParameters::setQuantizationExtension(QuantizationExt const quantExt)
+{
+  this->quantExt = quantExt;
+}
+
+void EncodingParameters::setGopMode(OMX_ALG_EGopCtrlMode const mode)
 {
   this->gop = mode;
 }
 
-OMX_AL_EGopCtrlMode EncodingParameters::getGopMode()
+OMX_ALG_EGopCtrlMode EncodingParameters::getGopMode()
 {
   return gop;
 }
 
-void EncodingParameters::setQpMode(OMX_AL_EQpCtrlMode const mode)
+void EncodingParameters::setQpMode(OMX_ALG_EQpCtrlMode const mode)
 {
   this->qpMode = mode;
 }
 
-OMX_AL_EQpCtrlMode EncodingParameters::getQpMode()
+OMX_ALG_EQpCtrlMode EncodingParameters::getQpMode()
 {
   return qpMode;
 }
 
-void EncodingParameters::setGdrMode(OMX_AL_EGdrMode const mode)
+void EncodingParameters::setGdrMode(OMX_ALG_EGdrMode const mode)
 {
   this->gdr = mode;
 }
 
-OMX_AL_EGdrMode EncodingParameters::getGdrMode()
+OMX_ALG_EGdrMode EncodingParameters::getGdrMode()
 {
   return gdr;
 }
 
-void EncodingParameters::setScalingListMode(OMX_AL_EScalingList const mode)
+void EncodingParameters::setScalingListMode(OMX_ALG_EScalingList const mode)
 {
   this->sclist = mode;
 }
 
-OMX_AL_EScalingList EncodingParameters::getScalingListMode()
+OMX_ALG_EScalingList EncodingParameters::getScalingListMode()
 {
   return sclist;
+}
+
+void EncodingParameters::setDependentSlices(bool const isDependent)
+{
+  this->dependentSlices = isDependent;
+}
+
+bool EncodingParameters::getDependentSlices()
+{
+  return dependentSlices;
+}
+
+void EncodingParameters::setSlicesSize(int const size)
+{
+  this->slicesSize = size;
+}
+
+int EncodingParameters::getSlicesSize()
+{
+  return this->slicesSize;
+}
+
+void EncodingParameters::setAspectRatio(OMX_ALG_EAspectRatio const aspect)
+{
+  this->aspectRatio = aspect;
+}
+
+OMX_ALG_EAspectRatio EncodingParameters::getAspectRatio()
+{
+  return aspectRatio;
+}
+
+void EncodingParameters::setIDRFreq(uint32_t const freq)
+{
+  this->idrFreq = freq;
+}
+
+uint32_t EncodingParameters::getIDRFreq()
+{
+  return idrFreq;
 }
 

@@ -103,10 +103,9 @@ static OMX_COLOR_FORMATTYPE chroma = OMX_COLOR_FormatYUV420SemiPlanar;
 static bool use_avc = false;
 static bool bDMAIn = false;
 static bool bDMAOut = false;
-static OMX_BUFFERMODE eDMAIn = OMX_BUF_NORMAL;
-static OMX_BUFFERMODE eDMAOut = OMX_BUF_NORMAL;
+static OMX_ALG_BUFFER_MODE eDMAIn = OMX_ALG_BUF_NORMAL;
+static OMX_ALG_BUFFER_MODE eDMAOut = OMX_ALG_BUF_NORMAL;
 
-static OMX_HWMODE boardMode = OMX_HW_MCU;
 
 void displayUsage()
 {
@@ -189,25 +188,21 @@ void parseCommandLine(int argc, char** argv)
         else if(!strncmp(user_chroma.c_str(), "NV16", strlen(user_chroma.c_str())))
           chroma = OMX_COLOR_FormatYUV422SemiPlanar;
         else if(!strncmp(user_chroma.c_str(), "RX0A", strlen(user_chroma.c_str())))
-          chroma = (OMX_COLOR_FORMATTYPE)OMX_COLOR_FormatYUV420SemiPlanar10bitPacked;
+          chroma = (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked;
         else if(!strncmp(user_chroma.c_str(), "RX2A", strlen(user_chroma.c_str())))
-          chroma = (OMX_COLOR_FORMATTYPE)OMX_COLOR_FormatYUV422SemiPlanar10bitPacked;
+          chroma = (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
         else
           assert(0);
-      }
-      else if(word == "-mcu")
-      {
-        boardMode = OMX_HW_MCU;
       }
       else if(word == "-dma-in")
       {
         bDMAIn = true;
-        eDMAIn = OMX_BUF_DMA;
+        eDMAIn = OMX_ALG_BUF_DMA;
       }
       else if(word == "-dma-out")
       {
         bDMAOut = true;
-        eDMAOut = OMX_BUF_DMA;
+        eDMAOut = OMX_ALG_BUF_DMA;
       }
     }
   }
@@ -260,7 +255,7 @@ static OMX_U32 getMinBufferAlloc(OMX_U32 nPortIndex)
 
   OMX_CALL(OMX_GetParameter(appPriv.hDecoder, OMX_IndexParamPortDefinition, &sPortParam));
 
-  return sPortParam.nBufferCountMin;
+  return sPortParam.nBufferCountActual;
 };
 static auto numberOfAllocatedInputBuffer = 0;
 static auto numberOfAllocatedOutputBuffer = 0;
@@ -277,7 +272,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf)
   if(isSupplier(nPortIndex))
   {
     // Allocate buffer
-    LOGV("Component port (%lu) is supplier", nPortIndex);
+    LOGV("Component port (%u) is supplier", nPortIndex);
 
     for(decltype(minBuf)nbBuf = 0; nbBuf < minBuf; nbBuf++)
     {
@@ -300,7 +295,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf)
   else
   {
     // Use Buffer
-    LOGV("Component port (%lu) is not supplier", nPortIndex);
+    LOGV("Component port (%u) is not supplier", nPortIndex);
 
     for(decltype(minBuf)nbBuf = 0; nbBuf < minBuf; nbBuf++)
     {
@@ -347,7 +342,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf)
 
 static OMX_ERRORTYPE freeBuffers(OMX_U32 nPortIndex)
 {
-  LOGV("Port (%lu)", nPortIndex);
+  LOGV("Port (%u)", nPortIndex);
 
   // Check if port is supplier
   if(isSupplier(nPortIndex))
@@ -422,6 +417,8 @@ OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE /*hComponent*/, OMX_PTR /*pAppData
     initHeader(paramPort);
     paramPort.nPortIndex = 1;
     OMX_CALL(OMX_GetParameter(appPriv.hDecoder, OMX_IndexParamPortDefinition, &paramPort));
+    paramPort.nBufferCountActual++;
+    OMX_CALL(OMX_SetParameter(appPriv.hDecoder, OMX_IndexParamPortDefinition, &paramPort));
     freeBuffers(outportIndex);
     allocBuffers(outportIndex, bDMAOut);
 
@@ -429,10 +426,10 @@ OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE /*hComponent*/, OMX_PTR /*pAppData
       OMX_CALL(OMX_FillThisBuffer(appPriv.hDecoder, pBuf));
   }
   else if(eEvent == OMX_EventError)
-    LOGI("Event error: 0x%.8lX", Data1);
+    LOGI("Event error: 0x%.8X", Data1);
   else
   {
-    LOGI("Param1 is %lu, Param2 is %lu", Data1, Data2);
+    LOGI("Param1 is %u, Param2 is %u", Data1, Data2);
   }
   return OMX_ErrorNone;
 }
@@ -450,8 +447,6 @@ static OMX_ERRORTYPE setPortParameters()
   OMX_CALL(OMX_SetParameter(appPriv.hDecoder, OMX_IndexParamVideoPortFormat, &outParamFormat));
 
   Setters setter(&appPriv.hDecoder);
-  auto isBoardModeSetted = setter.SetBoardMode(boardMode);
-  assert(isBoardModeSetted);
 
   auto isBufModeSetted = setter.SetBufferMode(inportIndex, eDMAIn);
   assert(isBufModeSetted);
@@ -585,7 +580,7 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   OMX_CALL(OMX_GetComponentVersion(appPriv.hDecoder, (OMX_STRING)name, &compType, &ilType, nullptr));
 
-  LOGI("Component : %s (v.%lu) made for OMX_IL client : %u.%u.%u", name, compType.nVersion, ilType.s.nVersionMajor, ilType.s.nVersionMinor, ilType.s.nRevision);
+  LOGI("Component : %s (v.%u) made for OMX_IL client : %u.%u.%u", name, compType.nVersion, ilType.s.nVersionMajor, ilType.s.nVersionMinor, ilType.s.nRevision);
 
   free(name);
 

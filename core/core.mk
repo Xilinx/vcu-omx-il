@@ -3,7 +3,6 @@
 #------------------------------------------------------------------------------
 
 CORE_DIR?=.
-BIN?=bin
 
 -include $(CORE_DIR)/core_version.mk
 -include $(CORE_DIR)/unittests.mk
@@ -25,8 +24,7 @@ $(LIB_OMX_CORE_SO):
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(LDFLAGS) -shared -Wl,-soname,libOMX.allegro.core.so.$(CORE_MAJOR) -o "$@" $^ -ldl
 	@echo "LD $@"
-	rm -f "$(BIN)/libOMX.allegro.core.so.$(CORE_MAJOR)"
-	ln -s "libOMX.allegro.core.so.$(CORE_VERSION)" "$(BIN)/libOMX.allegro.core.so"
+	ln -fs "libOMX.allegro.core.so.$(CORE_VERSION)" "$(BIN)/libOMX.allegro.core.so.$(CORE_MAJOR)"
 
 lib_omx_core: $(TARGETS_OMX_CORE)
 

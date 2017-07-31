@@ -61,6 +61,7 @@ extern "C"
 #include <OMX_Video.h>
 #include <OMX_VideoExt.h>
 #include <OMX_ComponentExt.h>
+#include <OMX_IndexExt.h>
 }
 
 #include "base/omx_utils/locked_queue.h"
@@ -102,19 +103,19 @@ static Application appPriv;
 static string input_file;
 static string output_file;
 
-static OMX_HWMODE boardMode = OMX_HW_MCU;
 
 static bool use_avc = false;
 static bool bDMAIn = false;
 static bool bDMAOut = false;
-static OMX_BUFFERMODE eDMAIn = OMX_BUF_NORMAL;
-static OMX_BUFFERMODE eDMAOut = OMX_BUF_NORMAL;
+static OMX_ALG_BUFFER_MODE eDMAIn = OMX_ALG_BUF_NORMAL;
+static OMX_ALG_BUFFER_MODE eDMAOut = OMX_ALG_BUF_NORMAL;
 static ifstream infile;
 static ofstream outfile;
 static OMX_U32 in_width = 176;
 static OMX_U32 in_height = 144;
 static OMX_U32 frame_rate = 1 << 16; // Q16 format
 static OMX_COLOR_FORMATTYPE chroma = OMX_COLOR_FormatYUV420SemiPlanar;
+static int user_slice = 0;
 
 static OMX_PARAM_PORTDEFINITIONTYPE paramPort;
 
@@ -132,6 +133,7 @@ static void displayUsage()
   cout << "\t" << "-avc : load AVC encoder" << endl;
   cout << "\t" << "-dma-in : use dmabufs for input port" << endl;
   cout << "\t" << "-dma-out : use dmabufs for output port" << endl;
+  cout << "\t" << "-subframe <4 ||  8 || 16> : activate subframe latency " << endl;
 }
 
 static OMX_ERRORTYPE setPortParameters()
@@ -158,15 +160,28 @@ static OMX_ERRORTYPE setPortParameters()
   OMX_CALL(OMX_GetParameter(appPriv.hEncoder, OMX_IndexParamPortDefinition, &paramPort));
 
   Setters setter(&appPriv.hEncoder);
-  auto isBoardModeSetted = setter.SetBoardMode(boardMode);
-  assert(isBoardModeSetted);
 
   auto isBufModeSetted = setter.SetBufferMode(inportIndex, eDMAIn);
   assert(isBufModeSetted);
   isBufModeSetted = setter.SetBufferMode(outportIndex, eDMAOut);
   assert(isBufModeSetted);
 
-  LOGV("Input picture: %lux%lu", in_width, in_height);
+  if(user_slice)
+  {
+    OMX_ALG_VIDEO_PARAM_SLICES slices;
+    initHeader(slices);
+    slices.nPortIndex = 1;
+    slices.nNumSlices = user_slice;
+    OMX_SetParameter(appPriv.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSlices), &slices);
+
+    OMX_ALG_VIDEO_PARAM_SUBFRAME sub;
+    initHeader(sub);
+    sub.nPortIndex = 1;
+    sub.bEnableSubframe = OMX_TRUE;
+    OMX_SetParameter(appPriv.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSubframe), &sub);
+  }
+
+  LOGV("Input picture: %ux%u", in_width, in_height);
   return OMX_ErrorNone;
 };
 
@@ -241,9 +256,9 @@ static void parseCommandLine(int argc, char** argv)
         else if(!strncmp(user_chroma.c_str(), "NV16", strlen(user_chroma.c_str())))
           chroma = OMX_COLOR_FormatYUV422SemiPlanar;
         else if(!strncmp(user_chroma.c_str(), "RX0A", strlen(user_chroma.c_str())))
-          chroma = (OMX_COLOR_FORMATTYPE)OMX_COLOR_FormatYUV420SemiPlanar10bitPacked;
+          chroma = (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked;
         else if(!strncmp(user_chroma.c_str(), "RX2A", strlen(user_chroma.c_str())))
-          chroma = (OMX_COLOR_FORMATTYPE)OMX_COLOR_FormatYUV422SemiPlanar10bitPacked;
+          chroma = (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
         else
           assert(0);
       }
@@ -255,19 +270,20 @@ static void parseCommandLine(int argc, char** argv)
       {
         use_avc = true;
       }
-      else if(word == "-mcu")
-      {
-        boardMode = OMX_HW_MCU;
-      }
       else if(word == "-dma-in")
       {
         bDMAIn = true;
-        eDMAIn = OMX_BUF_DMA;
+        eDMAIn = OMX_ALG_BUF_DMA;
       }
       else if(word == "-dma-out")
       {
         bDMAOut = true;
-        eDMAOut = OMX_BUF_DMA;
+        eDMAOut = OMX_ALG_BUF_DMA;
+      }
+      else if(word == "-subframe")
+      {
+        user_slice = popInt(args);
+        assert(user_slice == 4 || user_slice == 8 || user_slice == 16);
       }
     }
   }
@@ -312,7 +328,7 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE /*hComponent*/, OMX_PTR /*p
     }
     else if(Data1 == OMX_CommandFlush)
     {
-      LOGI("Port %lu flushed", Data2);
+      LOGI("Port %u flushed", Data2);
       appPriv.encoderEventSem.notify();
     }
   }
@@ -320,13 +336,13 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE /*hComponent*/, OMX_PTR /*p
     LOGI("Port settings change");
   else if(eEvent == OMX_EventError)
   {
-    LOGI("Event error: 0x%.8lX", Data1);
+    LOGI("Event error: 0x%.8X", Data1);
     return OMX_ErrorUndefined;
   }
   else if(eEvent == OMX_EventBufferFlag)
-    LOGI("Event BufferFlag (%lu) on port : %lu", Data2, Data1);
+    LOGI("Event BufferFlag (%u) on port : %u", Data2, Data1);
   else
-    LOGI("Param1 is %lu, Param2 is %lu", Data1, Data2);
+    LOGI("Param1 is %u, Param2 is %u", Data1, Data2);
 
   return OMX_ErrorNone;
 }
@@ -425,7 +441,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf)
   if(isSupplier(nPortIndex))
   {
     // Allocate buffer
-    LOGV("Component port (%lu) is supplier", nPortIndex);
+    LOGV("Component port (%u) is supplier", nPortIndex);
 
     for(decltype(minBuf)nbBuf = 0; nbBuf < minBuf; nbBuf++)
     {
@@ -445,7 +461,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf)
   else
   {
     // Use Buffer
-    LOGV("Component port (%lu) is not supplier", nPortIndex);
+    LOGV("Component port (%u) is not supplier", nPortIndex);
 
     for(decltype(minBuf)nbBuf = 0; nbBuf < minBuf; nbBuf++)
     {
@@ -491,7 +507,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf)
 
 static OMX_ERRORTYPE freeBuffers(OMX_U32 nPortIndex)
 {
-  LOGV("Port (%lu)", nPortIndex);
+  LOGV("Port (%u)", nPortIndex);
   // Get MinBuffer
   auto minBuf = getMinBufferAlloc(nPortIndex);
 
@@ -623,7 +639,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   OMX_CALL(OMX_GetComponentVersion(appPriv.hEncoder, (OMX_STRING)name, &compType, &ilType, nullptr));
 
-  LOGI("Component : %s (v.%lu) made for OMX_IL client : %u.%u.%u", name, compType.nVersion, ilType.s.nVersionMajor, ilType.s.nVersionMinor, ilType.s.nRevision);
+  LOGI("Component : %s (v.%u) made for OMX_IL client : %u.%u.%u", name, compType.nVersion, ilType.s.nVersionMajor, ilType.s.nVersionMinor, ilType.s.nRevision);
 
   free(name);
 
@@ -664,8 +680,8 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
     if((paramPort.format.video.eColorFormat != OMX_COLOR_FormatYUV420SemiPlanar) &&
        (paramPort.format.video.eColorFormat != OMX_COLOR_FormatYUV422SemiPlanar) &&
-       (paramPort.format.video.eColorFormat != (OMX_COLOR_FORMATTYPE)OMX_COLOR_FormatYUV420SemiPlanar10bitPacked) &&
-       (paramPort.format.video.eColorFormat != (OMX_COLOR_FORMATTYPE)OMX_COLOR_FormatYUV422SemiPlanar10bitPacked))
+       (paramPort.format.video.eColorFormat != (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked) &&
+       (paramPort.format.video.eColorFormat != (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked))
     {
       LOGE("Unsupported color format : 0X%.8X", paramPort.format.video.eColorFormat);
       return OMX_ErrorUnsupportedSetting;

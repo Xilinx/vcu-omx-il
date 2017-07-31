@@ -80,10 +80,11 @@ public:
   }
 };
 
-unique_ptr<CIpDevice> CreateIpDevice(bool bUseVCU, int iSchedulerType)
+unique_ptr<CIpDevice> CreateIpDevice(bool bUseVCU, int iSchedulerType, AL_EDecUnit eDecUnit)
 {
   unique_ptr<CIpDevice> pIpDevice;
   (void)bUseVCU;
+  (void)eDecUnit;
 
   if(iSchedulerType == SCHEDULER_TYPE_CPU)
   {

@@ -50,14 +50,14 @@ Getters::Getters(OMX_HANDLETYPE* component) : component(component)
 
 int Getters::GetLatency()
 {
-  OMX_PARAM_LATENCY lat;
+  OMX_ALG_PARAM_REPORTED_LATENCY lat;
   initHeader(lat);
 
-  auto err = OMX_GetParameter(*component, static_cast<OMX_INDEXTYPE>(OMX_IndexParamLatency), &lat);
+  auto err = OMX_GetParameter(*component, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamReportedLatency), &lat);
 
   if(err != OMX_ErrorNone)
     return -1;
 
-  return lat.nBuffersLatency;
+  return lat.nLatency;
 }
 

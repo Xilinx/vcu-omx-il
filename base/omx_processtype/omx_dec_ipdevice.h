@@ -38,6 +38,11 @@
 #pragma once
 #include <memory>
 
+extern "C"
+{
+#include <lib_common_dec/DecChanParam.h>
+}
+
 typedef struct AL_t_Allocator AL_TAllocator;
 typedef struct AL_t_IDecChannel AL_TIDecChannel;
 
@@ -51,5 +56,5 @@ struct CIpDevice
   AL_TIDecChannel* m_pScheduler;
 };
 
-std::unique_ptr<CIpDevice> CreateIpDevice(bool bUseVCU, int iSchedulerType);
+std::unique_ptr<CIpDevice> CreateIpDevice(bool bUseVCU, int iSchedulerType, AL_EDecUnit eDecUnit);
 

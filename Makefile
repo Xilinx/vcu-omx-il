@@ -1,13 +1,9 @@
 .PHONY: clean
 
-BIN:=bin
-
-TARGETS:=
-
-EXTERNAL_LIB:=CtrlSW
-EXTERNAL_LIB_PATH:=..
-
-OMX_HEADER:=omx_header
+BIN?=$(shell pwd)/bin
+EXTERNAL_LIB?=$(shell pwd)/../CtrlSW
+EXTERNAL_BIN?=$(shell pwd)/../CtrlSW/bin
+OMX_HEADER?=$(shell pwd)/omx_header
 
 ##############################################################
 # Enabling FLAGS
@@ -16,6 +12,7 @@ ENABLE_64BIT?=1
 ENABLE_VCU?=1
 ENABLE_MCU?=1
 STATIC?=0
+LINK_SHARED_CTRLSW?=0
 
 ifeq ($(ENABLE_VCU), 1)
 	CFLAGS+=-DAL_USE_VCU
@@ -157,7 +154,7 @@ $(BIN)/%.exe:
 ##############################################################
 clean:
 	rm -rf $(BIN)
-	rm -rf $(EXTERNAL_LIB_PATH)/$(EXTERNAL_LIB)/bin
+	rm -rf $(EXTERNAL_BIN)
 
 true_all: $(TARGETS)
 

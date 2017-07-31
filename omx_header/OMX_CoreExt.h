@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Khronos Group Inc.
+ * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -38,6 +38,7 @@ extern "C" {
  * for this header file to compile successfully
  */
 #include <OMX_Core.h>
+#include <OMX_CoreAlg.h>
 
 /** Extensions to the standard IL errors. */
 typedef enum OMX_ERROREXTTYPE

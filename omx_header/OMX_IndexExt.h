@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Khronos Group Inc.
+ * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -38,10 +38,11 @@ extern "C" {
  * for this header file to compile successfully
  */
 #include <OMX_Index.h>
+#include <OMX_IndexAlg.h>
 
-/** Khronos
+/** Khronos standard extension indices.
 
-   This enum lists the current Khronos & Vendor extension indices to OpenMAX IL.
+   This enum lists the current Khronos extension indices to OpenMAX IL.
  */
 typedef enum OMX_INDEXEXTTYPE
 {
@@ -77,24 +78,6 @@ typedef enum OMX_INDEXEXTTYPE
 
   /* Time configurations */
   OMX_IndexExtTimeStartUnused = OMX_IndexKhronosExtensions + 0x00900000,
-
-  /** Vendor configurations */
-  /* Component parameters and configurations */
-  OMX_IndexVendorComponentStartUnused = OMX_IndexVendorStartUnused + 0x00100000,
-  OMX_IndexParamBoard,                            /**< reference: OMX_PARAM_BOARD */
-  OMX_IndexParamLatency,                          /**< reference: OMX_PARAM_LATENCY */
-
-  /* Port parameters and configurations */
-  OMX_IndexVendorPortStartUnused = OMX_IndexVendorStartUnused + 0x00200000,
-  OMX_IndexPortParamBufferMode,                    /**< reference: OMX_PORT_PARAM_BUFFERMODE */
-
-  /* Vendor Video parameters and configrations */
-  OMX_IndexVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00300000,
-  OMX_IndexParamVideoHevc,                        /**< reference: OMX_VIDEO_PARAM_HEVCTYPE */
-  OMX_IndexParamVideoVp9,                         /**< reference: OMX_VIDEO_PARAM_VP9TYPE */
-  OMX_IndexParamVideoGopControl,                  /**< reference: OMX_VIDEO_PARAM_GOPCONTROL */
-  OMX_IndexParamVideoEncoderChannel,              /**< reference: OMX_VIDEO_PARAM_ENCODER_CHANNEL */
-  OMX_IndexParamVideoDecoderChannel,              /**< reference: OMX_VIDEO_PARAM_DECODER_CHANNEL */
 
   OMX_IndexExtMax = 0x7FFFFFFF
 }OMX_INDEXEXTTYPE;

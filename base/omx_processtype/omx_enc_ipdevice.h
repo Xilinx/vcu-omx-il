@@ -58,5 +58,5 @@ struct CIpDevice
   TScheduler* m_pScheduler;
 };
 
-std::unique_ptr<CIpDevice> CreateIpDevice(bool bUseRefSoftware, int iSchedulerType, AL_TEncSettings& Settings);
+std::unique_ptr<CIpDevice> CreateIpDevice(bool bUseRefSoftware, int iSchedulerType, AL_TEncSettings const& Settings);
 

@@ -37,9 +37,11 @@
 
 #include "omx_enc_process.h"
 #include <assert.h>
+#include <cmath>
 
 #include <OMX_ComponentExt.h>
 #include <OMX_VideoExt.h>
+#include <OMX_CoreExt.h>
 
 #include "base/omx_utils/omx_log.h"
 #include "base/omx_utils/omx_setup.h"
@@ -62,15 +64,8 @@ static int RoundUp(int iVal, int iRnd)
   return (iVal + iRnd - 1) & (~(iRnd - 1));
 }
 
-#define CUSTOMPARAM_GOP_CONTROL "OMX.allegro.encoder.gopControl"
-#define CUSTOMPARAM_CHANNEL "OMX.allegro.encoder.channel"
-
 static CustomParam AL_CustomParam[] =
 {
-  { CUSTOMPARAM_BOARD, OMX_IndexParamBoard },
-  { CUSTOMPARAM_BUFFERMODE, OMX_IndexPortParamBufferMode },
-  { CUSTOMPARAM_GOP_CONTROL, OMX_IndexParamVideoGopControl },
-  { CUSTOMPARAM_CHANNEL, OMX_IndexParamVideoEncoderChannel },
 };
 
 static void ReplaceMetaData(AL_TBuffer* pBuf, AL_TMetaData* pMeta, AL_EMetaType eType)
@@ -153,18 +148,20 @@ static void WriteStream(OMX_BUFFERHEADERTYPE* pOutputBuf, AL_TBuffer* bitstream)
 
       WriteOneSection(end, bitstream, i);
       pOutputBuf->nFilledLen += (OMX_U32)(end - start);
-      LOGV("Section[%u] -- Length : %lu -- Flags : %.8X", i, (OMX_U32)(end - start), (pStreamMeta->pSections[i]).uFlags);
+      LOGV("Section[%u] -- Length : %u -- Flags : %.8X", i, (OMX_U32)(end - start), (pStreamMeta->pSections[i]).uFlags);
       pBitstreamIndexData = end;
       ++iNumSectionWritten;
       ++i;
     }
   }
+
+  pOutputBuf->nFlags |= OMX_ALG_BUFFERFLAG_ENDOFSUBFRAME;
 }
 
 static inline bool is422Format(OMX_COLOR_FORMATTYPE format)
 {
   OMX_U32 extendedFormat = format;
-  return extendedFormat == OMX_COLOR_FormatYUV422SemiPlanar || extendedFormat == OMX_COLOR_FormatYUV422SemiPlanar10bitPacked;
+  return extendedFormat == OMX_COLOR_FormatYUV422SemiPlanar || extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
 }
 
 void RedirectionFrameEncode(void* pUserParam, AL_TBuffer* pStream, AL_TBuffer const* const pSrc)
@@ -215,7 +212,7 @@ void ProcessEncode::FrameEncode(AL_TBuffer* pStream, AL_TBuffer const* const pSr
   pHeader->hMarkTargetComponent = pHeaderSrc->hMarkTargetComponent;
   pHeader->pMarkData = pHeaderSrc->pMarkData;
   pHeader->nTimeStamp = pHeaderSrc->nTimeStamp;
-  pHeader->nFlags = pHeaderSrc->nFlags;
+  pHeader->nFlags |= pHeaderSrc->nFlags;
 
   // UseBuffer when (AL_TBuffer*)pPlatformPrivate->pData != pBuffer;
   if(!outPort.useFileDescriptor())
@@ -341,6 +338,7 @@ ProcessEncode::ProcessEncode(OMX_HANDLETYPE hComponent, CodecType* pCodec)
   {
     this
   };
+  m_bSubframe = false;
 
   m_iSchedulerType = AL_USE_MCU ? SCHEDULER_TYPE_MCU : SCHEDULER_TYPE_CPU;
 
@@ -404,348 +402,483 @@ void ProcessEncode::SetAppData(OMX_PTR pAppData)
 OMX_U32 inline ProcessEncode::ComputeLatency()
 {
   auto const b = (m_pCodec->GetCodecBFrames() / (m_pCodec->GetCodecPFrames() + 1));
-  return b + 2;
+  auto const framerate = (inPort.getVideoDefinition().xFramerate >> 16) + ((inPort.getVideoDefinition().xFramerate & 0x0000FFFF) * (2 ^ -16)); // Q16 format
+  auto time = ((b + 1) / (framerate)) * 1000;
+
+  if(m_bSubframe)
+    time /= m_VideoParameters.getNumSlices();
+
+  return m_bSubframe ? std::ceil(time) : b + 1;
 }
 
 OMX_ERRORTYPE ProcessEncode::GetParameter(OMX_IN OMX_INDEXTYPE nParamIndex, OMX_INOUT OMX_PTR pParam)
 {
-  if(!pParam && (*((OMX_U32*)pParam) / sizeof(pParam) < 2))
-    return OMX_ErrorBadParameter;
-
-  auto eRet = OMXChecker::CheckHeaderVersion(*(((OMX_VERSIONTYPE*)pParam) + 1));
-
-  if(eRet != OMX_ErrorNone)
-    return eRet;
-
-  auto const nIndex = static_cast<OMX_U32>(nParamIndex);
-
-  if(nIndex == OMX_IndexParamVideoInit)
+  try
   {
-    LOGV("_ %s _ : OMX_IndexParamVideoInit", __func__);
-    auto port = (OMX_PORT_PARAM_TYPE*)pParam;
-    *port = GetPortParameter();
-    return OMX_ErrorNone;
-  }
-  else if(nIndex == OMX_IndexParamLatency)
-  {
-    LOGV("_ %s _: OMX_IndexParamLatency", __func__);
-    auto port = (OMX_PARAM_LATENCY*)pParam;
-    port->nBuffersLatency = ComputeLatency();
-    return OMX_ErrorNone;
-  }
+    if(pParam && (*((OMX_U32*)pParam) / sizeof(pParam) < 1))
+      return OMX_ErrorBadParameter;
 
-  auto const nPortIndex = *(((OMX_U32*)pParam) + 2);
-  auto port = GetPort(nPortIndex);
+    OMXChecker::CheckHeaderVersion(*(((OMX_VERSIONTYPE*)pParam) + 1));
+    auto eRet = OMX_ErrorNone;
 
-  if(!port)
-    return OMX_ErrorBadPortIndex;
-  switch(nIndex)
-  {
-  case OMX_IndexParamPortDefinition:
-  {
-    LOGV("_ %s _ : OMX_IndexParamPortDefinition (%lu)", __func__, nPortIndex);
-    auto param = (OMX_PARAM_PORTDEFINITIONTYPE*)pParam;
-    *param = port->getDefinition();
-    break;
-  }
-  case OMX_IndexParamCompBufferSupplier:
-  {
-    LOGV("_ %s _ : OMX_IndexParamCompBufferSupplier (%lu)", __func__, nPortIndex);
-    auto param = (OMX_PARAM_BUFFERSUPPLIERTYPE*)pParam;
-    *param = port->getSupplier();
-    break;
-  }
-  case OMX_IndexParamVideoPortFormat:
-  {
-    LOGV("_ %s _ : OMX_IndexParamVideoPortFormat (%lu)", __func__, nPortIndex);
-    auto param = (OMX_VIDEO_PARAM_PORTFORMATTYPE*)pParam;
+    auto const nIndex = static_cast<OMX_U32>(nParamIndex);
 
-    if(param->nIndex == 0)
-      *param = port->getVideoFormat();
-    else
-      eRet = OMX_ErrorNoMore;
-    break;
-  }
-  case OMX_IndexParamVideoProfileLevelQuerySupported:
-  {
-    LOGV("_ %s _ : OMX_IndexParamVideoProfileLevelQuerySupported (%lu)", __func__, nPortIndex);
-    auto param = (OMX_VIDEO_PARAM_PROFILELEVELTYPE*)pParam;
-
-    if(param->nPortIndex == inPort.getDefinition().nPortIndex)
-      eRet = OMX_ErrorBadPortIndex;
-    else
+    if(nIndex == OMX_IndexParamVideoInit)
     {
-      if(param->nProfileIndex < m_pCodec->GetSupportedProfileLevelSize())
-      {
-        param->eProfile = m_pCodec->GeteProfile(param->nProfileIndex);
-        param->eLevel = m_pCodec->GeteLevel(param->nProfileIndex);
-      }
+      LOGV("_ %s _ : OMX_IndexParamVideoInit", __func__);
+      auto port = (OMX_PORT_PARAM_TYPE*)pParam;
+      *port = GetPortParameter();
+      return OMX_ErrorNone;
+    }
+    else if(nIndex == OMX_ALG_IndexParamReportedLatency)
+    {
+      LOGV("_ %s _: OMX_IndexParamLatency", __func__);
+      auto port = (OMX_ALG_PARAM_REPORTED_LATENCY*)pParam;
+      port->nLatency = ComputeLatency();
+      return OMX_ErrorNone;
+    }
+
+    auto const nPortIndex = *(((OMX_U32*)pParam) + 2);
+    auto port = GetPort(nPortIndex);
+
+    if(!port)
+      return OMX_ErrorBadPortIndex;
+    switch(nIndex)
+    {
+    case OMX_IndexParamPortDefinition:
+    {
+      LOGV("_ %s _ : OMX_IndexParamPortDefinition (%u)", __func__, nPortIndex);
+      auto param = (OMX_PARAM_PORTDEFINITIONTYPE*)pParam;
+      *param = port->getDefinition();
+      break;
+    }
+    case OMX_IndexParamCompBufferSupplier:
+    {
+      LOGV("_ %s _ : OMX_IndexParamCompBufferSupplier (%u)", __func__, nPortIndex);
+      auto param = (OMX_PARAM_BUFFERSUPPLIERTYPE*)pParam;
+      *param = port->getSupplier();
+      break;
+    }
+    case OMX_IndexParamVideoPortFormat:
+    {
+      LOGV("_ %s _ : OMX_IndexParamVideoPortFormat (%u)", __func__, nPortIndex);
+      auto param = (OMX_VIDEO_PARAM_PORTFORMATTYPE*)pParam;
+
+      if(param->nIndex == 0)
+        *param = port->getVideoFormat();
       else
         eRet = OMX_ErrorNoMore;
+      break;
     }
-    break;
-  }
-  case OMX_IndexParamVideoProfileLevelCurrent:
-  {
-    LOGV("_ %s _ : OMX_IndexParamVideoProfileLevelCurrent (%lu)", __func__, nPortIndex);
-    auto param = (OMX_VIDEO_PARAM_PROFILELEVELTYPE*)pParam;
-
-    if(param->nPortIndex == inPort.getDefinition().nPortIndex)
-      eRet = OMX_ErrorBadPortIndex;
-    else
+    case OMX_IndexParamVideoProfileLevelQuerySupported:
     {
-      OMX_VIDEO_PARAM_PROFILELEVELTYPE profLvl;
-      OMXChecker::SetHeaderVersion(profLvl);
-      profLvl.nPortIndex = param->nPortIndex;
-      profLvl.eProfile = m_pCodec->ConvertProfile(m_VideoParameters.getProfile());
-      profLvl.eLevel = m_pCodec->ConvertLevel(m_VideoParameters.getLevel());
-      // profLvl.nProfileIndex is ignored here
-      *param = profLvl;
-    }
-    break;
-  }
-  case OMX_IndexParamVideoQuantization:
-  {
-    LOGV("_ %s _ : OMX_IndexParamVideoQuantization (%lu)", __func__, nPortIndex);
-    auto param = (OMX_VIDEO_PARAM_QUANTIZATIONTYPE*)pParam;
+      LOGV("_ %s _ : OMX_IndexParamVideoProfileLevelQuerySupported (%u)", __func__, nPortIndex);
+      auto param = (OMX_VIDEO_PARAM_PROFILELEVELTYPE*)pParam;
 
-    if(param->nPortIndex == inPort.getDefinition().nPortIndex)
-      eRet = OMX_ErrorBadPortIndex;
-    else
+      if(param->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+      {
+        if(param->nProfileIndex < m_pCodec->GetSupportedProfileLevelSize())
+        {
+          param->eProfile = m_pCodec->GeteProfile(param->nProfileIndex);
+          param->eLevel = m_pCodec->GeteLevel(param->nProfileIndex);
+        }
+        else
+          eRet = OMX_ErrorNoMore;
+      }
+      break;
+    }
+    case OMX_IndexParamVideoProfileLevelCurrent:
     {
-      OMX_VIDEO_PARAM_QUANTIZATIONTYPE quant;
-      OMXChecker::SetHeaderVersion(quant);
-      quant.nPortIndex = param->nPortIndex;
-      auto const qp = m_VideoParameters.getQuantization();
-      quant.nQpI = qp.initialQP;
-      quant.nQpP = qp.initialQP + qp.IPDeltaQP;
-      quant.nQpB = qp.initialQP + qp.PBDeltaQP;
-      *param = quant;
-    }
-    break;
-  }
-  case OMX_IndexParamVideoBitrate:
-  {
-    LOGV("_ %s _ : OMX_IndexParamVideoBitrate (%lu)", __func__, nPortIndex);
-    auto param = (OMX_VIDEO_PARAM_BITRATETYPE*)pParam;
+      LOGV("_ %s _ : OMX_IndexParamVideoProfileLevelCurrent (%u)", __func__, nPortIndex);
+      auto param = (OMX_VIDEO_PARAM_PROFILELEVELTYPE*)pParam;
 
-    if(param->nPortIndex == inPort.getDefinition().nPortIndex)
-      eRet = OMX_ErrorBadPortIndex;
-    else
+      if(param->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+      {
+        OMX_VIDEO_PARAM_PROFILELEVELTYPE profLvl;
+        OMXChecker::SetHeaderVersion(profLvl);
+        profLvl.nPortIndex = param->nPortIndex;
+        profLvl.eProfile = m_pCodec->ConvertProfile(m_VideoParameters.getProfile());
+        profLvl.eLevel = m_pCodec->ConvertLevel(m_VideoParameters.getLevel());
+        // profLvl.nProfileIndex is ignored here
+        *param = profLvl;
+      }
+      break;
+    }
+    case OMX_IndexParamVideoQuantization:
     {
-      OMX_VIDEO_PARAM_BITRATETYPE bitrate;
-      OMXChecker::SetHeaderVersion(bitrate);
-      bitrate.nPortIndex = param->nPortIndex;
-      bitrate.nTargetBitrate = m_VideoParameters.getBitrate();
-      bitrate.eControlRate = ConvertRCMode(m_VideoParameters.getRCMode());
-      *param = bitrate;
+      LOGV("_ %s _ : OMX_IndexParamVideoQuantization (%u)", __func__, nPortIndex);
+      auto param = (OMX_VIDEO_PARAM_QUANTIZATIONTYPE*)pParam;
+
+      if(param->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+      {
+        OMX_VIDEO_PARAM_QUANTIZATIONTYPE quant;
+        OMXChecker::SetHeaderVersion(quant);
+        quant.nPortIndex = param->nPortIndex;
+        auto const qp = m_VideoParameters.getQuantization();
+        quant.nQpI = qp.initialQP;
+        quant.nQpP = qp.initialQP + qp.IPDeltaQP;
+        quant.nQpB = qp.initialQP + qp.PBDeltaQP;
+        *param = quant;
+      }
+      break;
     }
-    break;
-  }
+    case OMX_IndexParamVideoBitrate:
+    {
+      LOGV("_ %s _ : OMX_IndexParamVideoBitrate (%u)", __func__, nPortIndex);
+      auto param = (OMX_VIDEO_PARAM_BITRATETYPE*)pParam;
 
-  default:
+      if(param->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+      {
+        OMX_VIDEO_PARAM_BITRATETYPE bitrate;
+        OMXChecker::SetHeaderVersion(bitrate);
+        bitrate.nPortIndex = param->nPortIndex;
+        bitrate.nTargetBitrate = m_VideoParameters.getBitrate();
+        bitrate.eControlRate = ConvertRCMode(m_VideoParameters.getRCMode());
+        *param = bitrate;
+      }
+      break;
+    }
+
+    default:
+    {
+      LOGV("_ %s _ : default", __func__);
+
+      if(m_pCodec->CheckIndexParamVideoCodec(nParamIndex))
+        eRet = m_pCodec->GetIndexParamVideoCodec(pParam, outPort.getDefinition());
+      else
+        eRet = OMX_ErrorUnsupportedIndex;
+    }
+    }
+
+    return eRet;
+  }
+  catch(OMX_ERRORTYPE e)
   {
-    LOGV("_ %s _ : default", __func__);
-
-    if(m_pCodec->CheckIndexParamVideoCodec(nParamIndex))
-      eRet = m_pCodec->GetIndexParamVideoCodec(pParam, outPort.getDefinition());
-    else
-      eRet = OMX_ErrorUnsupportedIndex;
+    return e;
   }
-  }
-
-  return eRet;
 }
 
 OMX_ERRORTYPE ProcessEncode::SetParameter(OMX_IN OMX_INDEXTYPE nIndex, OMX_IN OMX_PTR pParam)
 {
-  if(!pParam && (*((OMX_U32*)pParam) / sizeof(pParam) < 2))
-    return OMX_ErrorBadParameter;
-
-  auto eRet = OMXChecker::CheckHeaderVersion(*(((OMX_VERSIONTYPE*)pParam) + 1));
-
-  if(eRet != OMX_ErrorNone)
-    return eRet;
-
-  if(nIndex == OMX_IndexParamStandardComponentRole)
+  try
   {
-    LOGV("_ %s _ : OMX_IndexParamStandardComponentRole", __func__);
-    auto param = (OMX_PARAM_COMPONENTROLETYPE*)pParam;
-    LOGV("Role: %s", (OMX_STRING)param->cRole);
-    char role[OMX_MAX_STRINGNAME_SIZE] =
-    {
-      0
-    };
-
-    if(strlen(GetRole()) + strlen(".") + strlen(m_pCodec->GetRole()) > OMX_MAX_STRINGNAME_SIZE)
-      return OMX_ErrorOverflow;
-
-    strncat(role, GetRole(), strlen(GetRole()));
-    strncat(role, ".", strlen("."));
-    strncat(role, m_pCodec->GetRole(), strlen(m_pCodec->GetRole()));
-
-    if(!strncmp((OMX_STRING)param->cRole, role, OMX_MAX_STRINGNAME_SIZE))
-      return SetStandardParameterComponentRole(*param);
-    else
+    if(pParam && (*((OMX_U32*)pParam) / sizeof(pParam) < 1))
       return OMX_ErrorBadParameter;
-  }
 
-  if(nIndex == (OMX_U32)OMX_IndexParamBoard)
-  {
-    LOGV("_ %s _ : OMX_IndexParamBoard", __func__);
-    auto port = (OMX_PARAM_BOARD*)pParam;
-    switch(port->eMode)
+    OMXChecker::CheckHeaderVersion(*(((OMX_VERSIONTYPE*)pParam) + 1));
+
+    auto eRet = OMX_ErrorNone;
+
+    if(nIndex == OMX_IndexParamStandardComponentRole)
     {
-    case OMX_HW_MCU:
-    {
-      LOGV("Use MCU");
-      m_bUseVCU = true;
-      m_iSchedulerType = SCHEDULER_TYPE_MCU;
-      break;
-    }
-    default:
-      return OMX_ErrorBadParameter;
-    }
-
-    return OMX_ErrorNone;
-  }
-
-  OMX_U32 const nPortIndex = *(((OMX_U32*)pParam) + 2);
-  auto port = GetPort(nPortIndex);
-
-  if(!port)
-    return OMX_ErrorBadPortIndex;
-  switch((OMX_U32)nIndex)
-  {
-  case OMX_IndexParamPortDefinition:
-  {
-    LOGV("_ %s _ : OMX_IndexParamPortDefinition (%lu)", __func__, nPortIndex);
-    auto port = (OMX_PARAM_PORTDEFINITIONTYPE*)pParam;
-
-    if(port->nPortIndex == inPort.getDefinition().nPortIndex)
-      eRet = SetInParameterPortDefinition(*port);
-    else
-      eRet = SetOutParameterPortDefinition(*port);
-    break;
-  }
-  case OMX_IndexParamCompBufferSupplier:
-  {
-    LOGV("_ %s _ : OMX_IndexParamCompBufferSupplier (%lu)", __func__, nPortIndex);
-    auto param = (OMX_PARAM_BUFFERSUPPLIERTYPE*)pParam;
-    eRet = port->setSupplier(*param);
-    break;
-  }
-  case OMX_IndexParamVideoPortFormat:
-  {
-    LOGV("_ %s _ : OMX_IndexParamVideoPortFormat (%lu)", __func__, nPortIndex);
-    auto port = (OMX_VIDEO_PARAM_PORTFORMATTYPE*)pParam;
-
-    if(port->nPortIndex == inPort.getDefinition().nPortIndex)
-      eRet = SetYUVVideoParameterPortFormat(*port);
-    else
-      eRet = SetVideoParameterPortFormat(*port);
-    break;
-  }
-  case OMX_IndexParamVideoProfileLevelCurrent:
-  {
-    LOGV("_ %s _ : OMX_IndexParamVideoProfileLevelCurrent (%lu)", __func__, nPortIndex);
-    auto port = (OMX_VIDEO_PARAM_PROFILELEVELTYPE*)pParam;
-
-    if(port->nPortIndex == inPort.getDefinition().nPortIndex)
-      eRet = OMX_ErrorBadPortIndex;
-    else
-      eRet = SetVideoParameterProfileLevel(*port);
-    break;
-  }
-  case OMX_IndexParamVideoQuantization:
-  {
-    LOGV("_ %s _ : OMX_IndexParamVideoQuantization (%lu)", __func__, nPortIndex);
-    auto port = (OMX_VIDEO_PARAM_QUANTIZATIONTYPE*)pParam;
-
-    if(port->nPortIndex == inPort.getDefinition().nPortIndex)
-      eRet = OMX_ErrorBadPortIndex;
-    else
-    {
-      int const initialQP = port->nQpI;
-      int const IPDeltaQP = port->nQpP - port->nQpI;
-      int const PBDeltaQP = port->nQpB - port->nQpP;
-      Quantization quant =
+      LOGV("_ %s _ : OMX_IndexParamStandardComponentRole", __func__);
+      auto param = (OMX_PARAM_COMPONENTROLETYPE*)pParam;
+      LOGV("Role: %s", (OMX_STRING)param->cRole);
+      char role[OMX_MAX_STRINGNAME_SIZE] =
       {
-        initialQP, IPDeltaQP, PBDeltaQP
+        0
       };
 
-      m_VideoParameters.setQuantization(quant);
+      if(strlen(GetRole()) + strlen(".") + strlen(m_pCodec->GetRole()) > OMX_MAX_STRINGNAME_SIZE)
+        return OMX_ErrorOverflow;
+
+      strncat(role, GetRole(), strlen(GetRole()));
+      strncat(role, ".", strlen("."));
+      strncat(role, m_pCodec->GetRole(), strlen(m_pCodec->GetRole()));
+
+      if(!strncmp((OMX_STRING)param->cRole, role, OMX_MAX_STRINGNAME_SIZE))
+        return SetStandardParameterComponentRole(*param);
+      else
+        return OMX_ErrorBadParameter;
     }
-    break;
-  }
-  case OMX_IndexParamVideoBitrate:
-  {
-    LOGV("_ %s _ : OMX_IndexParamVideoBitrate (%lu)", __func__, nPortIndex);
-    auto port = (OMX_VIDEO_PARAM_BITRATETYPE*)pParam;
 
-    if(port->nPortIndex == inPort.getDefinition().nPortIndex)
-      eRet = OMX_ErrorBadPortIndex;
-    else
-      eRet = SetVideoParameterRateControl(*port);
-    break;
-  }
 
-  case OMX_IndexPortParamBufferMode:
-  {
-    auto bufMode = (OMX_PORT_PARAM_BUFFERMODE*)pParam;
+    OMX_U32 const nPortIndex = *(((OMX_U32*)pParam) + 2);
+    auto port = GetPort(nPortIndex);
 
-    if(bufMode->nPortIndex == inPort.getDefinition().nPortIndex)
-      m_bUseInputFileDescriptor = (bufMode->eMode == OMX_BUF_DMA);
-    else
-      m_bUseOutputFileDescriptor = (bufMode->eMode == OMX_BUF_DMA);
-    break;
-  }
-  case OMX_IndexParamVideoGopControl:
-  {
-    auto gop = (OMX_VIDEO_PARAM_GOPCONTROL*)pParam;
-
-    if(gop->nPortIndex == inPort.getDefinition().nPortIndex)
-      eRet = OMX_ErrorBadPortIndex;
-    else
+    if(!port)
+      return OMX_ErrorBadPortIndex;
+    switch((OMX_U32)nIndex)
     {
-      m_VideoParameters.setGopMode(gop->eGopControlMode);
-      m_VideoParameters.setGdrMode(gop->eGdrMode);
-    }
-    break;
-  }
-  case OMX_IndexParamVideoEncoderChannel:
-  {
-    auto chan = (OMX_VIDEO_PARAM_ENCODER_CHANNEL*)pParam;
-
-    if(chan->nPortIndex == inPort.getDefinition().nPortIndex)
-      eRet = OMX_ErrorBadPortIndex;
-    else
+    case OMX_IndexParamPortDefinition:
     {
-      m_VideoParameters.setNumSlices(chan->nNumSlices);
-      m_VideoParameters.setL2CacheSize(chan->nL2CacheSize);
-      m_VideoParameters.setQpMode(chan->eQpControlMode);
-      m_VideoParameters.setCPBSize(chan->nCodedPictureBufferSize);
-      m_VideoParameters.setInitialRemovalDelay(chan->nInitialRemovalDelay);
-      m_VideoParameters.setScalingListMode(chan->eScalingListMode);
+      LOGV("_ %s _ : OMX_IndexParamPortDefinition (%u)", __func__, nPortIndex);
+      auto port = (OMX_PARAM_PORTDEFINITIONTYPE*)pParam;
 
-      if(chan->bDisableSceneChangeVersatility)
-        m_VideoParameters.setRCOptions(AL_RC_OPT_NONE);
+      if(port->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = SetInParameterPortDefinition(*port);
+      else
+        eRet = SetOutParameterPortDefinition(*port);
+      break;
     }
-    break;
-  }
+    case OMX_IndexParamCompBufferSupplier:
+    {
+      LOGV("_ %s _ : OMX_IndexParamCompBufferSupplier (%u)", __func__, nPortIndex);
+      auto param = (OMX_PARAM_BUFFERSUPPLIERTYPE*)pParam;
+      eRet = port->setSupplier(*param);
+      break;
+    }
+    case OMX_IndexParamVideoPortFormat:
+    {
+      LOGV("_ %s _ : OMX_IndexParamVideoPortFormat (%u)", __func__, nPortIndex);
+      auto port = (OMX_VIDEO_PARAM_PORTFORMATTYPE*)pParam;
 
-  default:
+      if(port->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = SetYUVVideoParameterPortFormat(*port);
+      else
+        eRet = SetVideoParameterPortFormat(*port);
+      break;
+    }
+    case OMX_IndexParamVideoProfileLevelCurrent:
+    {
+      LOGV("_ %s _ : OMX_IndexParamVideoProfileLevelCurrent (%u)", __func__, nPortIndex);
+      auto port = (OMX_VIDEO_PARAM_PROFILELEVELTYPE*)pParam;
+
+      if(port->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+        eRet = SetVideoParameterProfileLevel(*port);
+      break;
+    }
+    case OMX_IndexParamVideoQuantization:
+    {
+      LOGV("_ %s _ : OMX_IndexParamVideoQuantization (%u)", __func__, nPortIndex);
+      auto port = (OMX_VIDEO_PARAM_QUANTIZATIONTYPE*)pParam;
+
+      if(port->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+      {
+        int const initialQP = port->nQpI;
+        int const IPDeltaQP = port->nQpP - port->nQpI;
+        int const PBDeltaQP = port->nQpB - port->nQpP;
+        Quantization quant =
+        {
+          initialQP, IPDeltaQP, PBDeltaQP
+        };
+
+        m_VideoParameters.setQuantization(quant);
+      }
+      break;
+    }
+    case OMX_ALG_IndexParamVideoQuantizationExtension:
+    {
+      LOGV("_ %s _ : OMX_IndexParamVideoQuantizationExtension (%u)", __func__, nPortIndex);
+      auto port = (OMX_ALG_VIDEO_PARAM_QUANTIZATION_EXTENSION*)pParam;
+
+      if(port->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+      {
+        QuantizationExt quantExt = { port->nQpMin, port->nQpMax };
+        m_VideoParameters.setQuantizationExtension(quantExt);
+      }
+      break;
+    }
+    case OMX_IndexParamVideoBitrate:
+    {
+      LOGV("_ %s _ : OMX_IndexParamVideoBitrate (%u)", __func__, nPortIndex);
+      auto port = (OMX_VIDEO_PARAM_BITRATETYPE*)pParam;
+
+      if(port->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+        eRet = SetVideoParameterRateControl(*port);
+      break;
+    }
+    case OMX_ALG_IndexParamVideoAspectRatio:
+    {
+      LOGV("_ %s _ : OMX_ALG_IndexParamVideoAspectRatio (%u)", __func__, nPortIndex);
+      auto aspect = (OMX_ALG_VIDEO_PARAM_ASPECT_RATIO*)pParam;
+
+      if(aspect->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+        m_VideoParameters.setAspectRatio(aspect->eAspectRatio);
+      break;
+    }
+
+    case OMX_ALG_IndexParamVideoLowBandwidth:
+    {
+      auto bw = (OMX_ALG_VIDEO_PARAM_LOW_BANDWIDTH*)pParam;
+
+      if(bw->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+        m_pCodec->EnableLowBandwidth(bw->bEnableLowBandwidth);
+
+      break;
+    }
+    case OMX_ALG_IndexPortParamBufferMode:
+    {
+      auto bufMode = (OMX_ALG_PORT_PARAM_BUFFER_MODE*)pParam;
+
+      if(bufMode->nPortIndex == inPort.getDefinition().nPortIndex)
+        m_bUseInputFileDescriptor = (bufMode->eMode == OMX_ALG_BUF_DMA);
+      else
+        m_bUseOutputFileDescriptor = (bufMode->eMode == OMX_ALG_BUF_DMA);
+      break;
+    }
+    case OMX_ALG_IndexParamVideoGopControl:
+    {
+      auto gop = (OMX_ALG_VIDEO_PARAM_GOP_CONTROL*)pParam;
+
+      if(gop->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+      {
+        m_VideoParameters.setGopMode(gop->eGopControlMode);
+        m_VideoParameters.setGdrMode(gop->eGdrMode);
+      }
+      break;
+    }
+    case OMX_ALG_IndexParamVideoSlices:
+    {
+      auto slices = (OMX_ALG_VIDEO_PARAM_SLICES*)pParam;
+
+      if(slices->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+      {
+        m_VideoParameters.setNumSlices(slices->nNumSlices);
+        m_VideoParameters.setSlicesSize(slices->nSlicesSize);
+        m_VideoParameters.setDependentSlices(slices->bDependentSlices);
+
+        auto& def = outPort.getDefinition();
+        def.nBufferSize = GetOutputBufferSize(GetPictureFormat());
+        def.nBufferCountMin = def.nBufferCountActual = GetOutputBufferCount();
+      }
+      break;
+    }
+    case OMX_ALG_IndexParamVideoSceneChangeResilience:
+    {
+      auto res = (OMX_ALG_VIDEO_PARAM_SCENE_CHANGE_RESILIENCE*)pParam;
+
+      if(res->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+      {
+        if(res->bDisableSceneChangeResilience)
+          m_VideoParameters.setRCOptions(AL_RC_OPT_NONE);
+      }
+      break;
+    }
+    case OMX_ALG_IndexParamVideoPrefetchBuffer:
+    {
+      auto pref = (OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER*)pParam;
+
+      if(pref->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+        m_VideoParameters.setL2CacheSize(pref->nPrefetchBufferSize);
+      break;
+    }
+    case OMX_ALG_IndexParamVideoCodedPictureBuffer:
+    {
+      auto cp = (OMX_ALG_VIDEO_PARAM_CODED_PICTURE_BUFFER*)pParam;
+
+      if(cp->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+      {
+        m_VideoParameters.setCPBSize(cp->nCodedPictureBufferSize);
+        m_VideoParameters.setInitialRemovalDelay(cp->nInitialRemovalDelay);
+      }
+      break;
+    }
+    case OMX_ALG_IndexParamVideoQuantizationControl:
+    {
+      auto q = (OMX_ALG_VIDEO_PARAM_QUANTIZATION_CONTROL*)pParam;
+
+      if(q->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+        m_VideoParameters.setQpMode(q->eQpControlMode);
+      break;
+    }
+    case OMX_ALG_IndexParamVideoScalingList:
+    {
+      auto scl = (OMX_ALG_VIDEO_PARAM_SCALING_LIST*)pParam;
+
+      if(scl->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+        m_VideoParameters.setScalingListMode(scl->eScalingListMode);
+      break;
+    }
+    case OMX_ALG_IndexParamVideoSubframe:
+    {
+      auto sub = (OMX_ALG_VIDEO_PARAM_SUBFRAME*)pParam;
+
+      if(sub->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+      {
+        fprintf(stderr, "Subframe is disable\n");
+        m_bSubframe = false;
+        auto& def = outPort.getDefinition();
+        def.nBufferSize = GetOutputBufferSize(GetPictureFormat());
+        def.nBufferCountMin = def.nBufferCountActual = GetOutputBufferCount();
+      }
+
+      break;
+    }
+    case OMX_ALG_IndexParamVideoInstantaneousDecodingRefresh:
+    {
+      auto idr = (OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH*)pParam;
+
+      if(idr->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+        m_VideoParameters.setIDRFreq(idr->nInstantaneousDecodingRefreshFrequency);
+
+      break;
+    }
+    case OMX_ALG_IndexParamVideoMaxBitrate:
+    {
+      auto mbr = (OMX_ALG_VIDEO_PARAM_MAX_BITRATE*)pParam;
+
+      if(mbr->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+        m_VideoParameters.setMaxBitrate(mbr->nMaxBitrate);
+
+      break;
+    }
+
+    default:
+    {
+      LOGV("_ %s _ : default", __func__);
+
+      if(m_pCodec->CheckIndexParamVideoCodec(nIndex))
+      {
+        eRet = m_pCodec->SetIndexParamVideoCodec(pParam, outPort.getDefinition(), inPort.getDefinition());
+
+        if(eRet == OMX_ErrorNone)
+        {
+          auto& def = outPort.getDefinition();
+          def.nBufferCountMin = def.nBufferCountActual = GetOutputBufferCount();
+        }
+      }
+      else
+        eRet = OMX_ErrorUnsupportedIndex;
+    }
+    }
+
+    return eRet;
+  }
+  catch(OMX_ERRORTYPE e)
   {
-    LOGV("_ %s _ : default", __func__);
-
-    if(m_pCodec->CheckIndexParamVideoCodec(nIndex))
-      eRet = m_pCodec->SetIndexParamVideoCodec(pParam, outPort.getDefinition(), const_cast<OMX_PARAM_PORTDEFINITIONTYPE &>(inPort.getDefinition()));
-    else
-      eRet = OMX_ErrorUnsupportedIndex;
+    return e;
   }
-  }
-
-  return eRet;
 }
 
 void ProcessEncode::SetStandardPortParameter()
@@ -807,8 +940,7 @@ void ProcessEncode::SetStandardOutParameterPortDefinition()
   def.nBufferCountActual = 4;
   assert(def.nBufferCountActual >= def.nBufferCountMin);
 
-  auto const videoDef = outPort.getVideoDefinition();
-  def.nBufferSize = GetMaxNalSize(videoDef.nFrameWidth, videoDef.nFrameHeight, AL_GET_CHROMA_MODE(AL_420_8BITS));
+  def.nBufferSize = GetOutputBufferSize(AL_420_8BITS);
 
   def.bBuffersContiguous = OMX_TRUE;
   def.nBufferAlignment = 32;
@@ -870,8 +1002,8 @@ void ProcessEncode::SetStandardVideoPortDefinition()
 
 void ProcessEncode::ResetEncodingParameters()
 {
-  m_VideoParameters.setGopMode(OMX_AL_GOP_MODE_DEFAULT);
-  m_VideoParameters.setGdrMode(OMX_AL_GDR_OFF);
+  m_VideoParameters.setGopMode(OMX_ALG_GOP_MODE_DEFAULT);
+  m_VideoParameters.setGdrMode(OMX_ALG_GDR_OFF);
 
   Quantization quant =
   {
@@ -879,14 +1011,19 @@ void ProcessEncode::ResetEncodingParameters()
   };
 
   m_VideoParameters.setQuantization(quant);
-  m_VideoParameters.setQpMode(OMX_AUTO_QP);
+  m_VideoParameters.setQuantizationExtension({ 0, 51 });
+  m_VideoParameters.setQpMode(OMX_ALG_AUTO_QP);
   m_VideoParameters.setBitrate(0);
+  m_VideoParameters.setMaxBitrate(0);
 
   auto& videoDef = outPort.getVideoDefinition();
   videoDef.nBitrate = m_VideoParameters.getBitrate();
 
   m_VideoParameters.setNumSlices(1);
+  m_VideoParameters.setSlicesSize(0);
+  m_VideoParameters.setDependentSlices(false);
   m_VideoParameters.setL2CacheSize(0);
+  m_VideoParameters.setIDRFreq(0x7FFFFFFF);
 
   m_VideoParameters.setRCMode(AL_RC_CBR);
   m_VideoParameters.setRCOptions(AL_RC_OPT_SCN_CHG_RES);
@@ -897,7 +1034,8 @@ void ProcessEncode::ResetEncodingParameters()
   m_VideoParameters.setCPBSize(0);
   m_VideoParameters.setInitialRemovalDelay(0);
 
-  m_VideoParameters.setScalingListMode(OMX_AL_DEFAULT);
+  m_VideoParameters.setScalingListMode(OMX_ALG_SCL_DEFAULT);
+  m_VideoParameters.setAspectRatio(OMX_ALG_ASPECT_RATIO_AUTO);
 }
 
 OMX_PORT_PARAM_TYPE ProcessEncode::GetPortParameter()
@@ -914,7 +1052,7 @@ OMX_ERRORTYPE ProcessEncode::SetInParameterPortDefinition(OMX_PARAM_PORTDEFINITI
      ((int)videoParam.nStride < (int)videoParam.nFrameWidth))
   {
     OMX_S32 newStride = RoundUp((int)videoParam.nFrameWidth, 32);
-    LOGI("Changing input port stride (%li) to %li (port width is %li)", videoParam.nStride, newStride, videoParam.nFrameWidth);
+    LOGI("Changing input port stride (%i) to %i (port width is %i)", videoParam.nStride, newStride, videoParam.nFrameWidth);
     videoParam.nStride = newStride;
   }
 
@@ -922,7 +1060,7 @@ OMX_ERRORTYPE ProcessEncode::SetInParameterPortDefinition(OMX_PARAM_PORTDEFINITI
      ((int)videoParam.nSliceHeight < (int)videoParam.nFrameHeight))
   {
     OMX_S32 newSliceHeight = videoParam.nFrameHeight;
-    LOGI("Changing input port slice height (%li) to %li (port height is %li)", videoParam.nSliceHeight, newSliceHeight, videoParam.nFrameHeight);
+    LOGI("Changing input port slice height (%i) to %i (port height is %i)", videoParam.nSliceHeight, newSliceHeight, videoParam.nFrameHeight);
     videoParam.nSliceHeight = newSliceHeight;
   }
 
@@ -936,7 +1074,7 @@ OMX_ERRORTYPE ProcessEncode::SetInParameterPortDefinition(OMX_PARAM_PORTDEFINITI
   outVideoDef.nSliceHeight = videoParam.nSliceHeight;
 
   auto& def = outPort.getDefinition();
-  def.nBufferSize = GetMaxNalSize(videoParam.nFrameWidth, videoParam.nFrameHeight, AL_GET_CHROMA_MODE(GetPictureFormat()));
+  def.nBufferSize = GetOutputBufferSize(GetPictureFormat());
 
   return OMX_ErrorNone;
 }
@@ -950,7 +1088,7 @@ OMX_ERRORTYPE ProcessEncode::SetOutParameterPortDefinition(OMX_PARAM_PORTDEFINIT
      ((int)videoParam.nStride < (int)videoParam.nFrameWidth))
   {
     OMX_S32 newStride = RoundUp((int)videoParam.nFrameWidth, 32);
-    LOGI("Changing output port stride (%li) to %li (port width is %li)", videoParam.nStride, newStride, videoParam.nFrameWidth);
+    LOGI("Changing output port stride (%i) to %i (port width is %i)", videoParam.nStride, newStride, videoParam.nFrameWidth);
     videoParam.nStride = newStride;
   }
 
@@ -958,11 +1096,11 @@ OMX_ERRORTYPE ProcessEncode::SetOutParameterPortDefinition(OMX_PARAM_PORTDEFINIT
      ((int)videoParam.nSliceHeight < (int)videoParam.nFrameHeight))
   {
     OMX_S32 newSliceHeight = videoParam.nFrameHeight;
-    LOGI("Changing output port slice height (%li) to %li (port height is %li)", videoParam.nSliceHeight, newSliceHeight, videoParam.nFrameHeight);
+    LOGI("Changing output port slice height (%i) to %i (port height is %i)", videoParam.nSliceHeight, newSliceHeight, videoParam.nFrameHeight);
     videoParam.nSliceHeight = newSliceHeight;
   }
 
-  param.nBufferSize = GetMaxNalSize(videoParam.nFrameWidth, videoParam.nFrameHeight, AL_GET_CHROMA_MODE(GetPictureFormat()));
+  param.nBufferSize = GetOutputBufferSize(GetPictureFormat());
   outPort.setDefinition(param);
 
   return OMX_ErrorNone;
@@ -989,7 +1127,7 @@ OMX_ERRORTYPE ProcessEncode::SetVideoParameterPortFormat(OMX_VIDEO_PARAM_PORTFOR
   videoDef.xFramerate = format.xFramerate;
 
   auto& def = outPort.getDefinition();
-  def.nBufferSize = GetMaxNalSize(videoDef.nFrameWidth, videoDef.nFrameHeight, AL_GET_CHROMA_MODE(GetPictureFormat()));
+  def.nBufferSize = GetOutputBufferSize(GetPictureFormat());
   return OMX_ErrorNone;
 }
 
@@ -1039,7 +1177,7 @@ OMX_ERRORTYPE ProcessEncode::SendCommand(OMX_COMMANDTYPE Cmd, OMX_U32 nPortIndex
   {
     auto ThreadTask = new ComponentThreadTask;
 
-    ThreadTask->data = (uintptr_t*)nPortIndex;
+    ThreadTask->data = reinterpret_cast<uintptr_t*>(nPortIndex);
     ThreadTask->opt = pCmdData;
     switch(Cmd)
     {
@@ -1051,13 +1189,13 @@ OMX_ERRORTYPE ProcessEncode::SendCommand(OMX_COMMANDTYPE Cmd, OMX_U32 nPortIndex
     }
     case OMX_CommandPortDisable:
     {
-      LOGV("Port Disable : %lu", nPortIndex);
+      LOGV("Port Disable : %u", nPortIndex);
       ThreadTask->cmd = ProcessStopPort;
       break;
     }
     case OMX_CommandPortEnable:
     {
-      LOGV("Port Enable : %lu", nPortIndex);
+      LOGV("Port Enable : %u", nPortIndex);
       ThreadTask->cmd = ProcessRestartPort;
       break;
     }
@@ -1068,8 +1206,11 @@ OMX_ERRORTYPE ProcessEncode::SendCommand(OMX_COMMANDTYPE Cmd, OMX_U32 nPortIndex
       break;
     }
     default:
+    {
+      delete ThreadTask;
       eRet = OMX_ErrorBadParameter;
       return eRet;
+    }
     }
 
     SendTask(ThreadTask);
@@ -1089,7 +1230,7 @@ OMX_ERRORTYPE ProcessEncode::SetState(OMX_U32 newState)
     return OMX_ErrorInsufficientResources;
 
   ThreadTask->cmd = ProcessSetComponentState;
-  ThreadTask->data = (uintptr_t*)newState;
+  ThreadTask->data = reinterpret_cast<uintptr_t*>(newState);
   ThreadTask->opt = nullptr;
 
   SendTask(ThreadTask);
@@ -1130,7 +1271,7 @@ void ProcessEncode::BufferHeaderUpdate(OMX_BUFFERHEADERTYPE* pHeader, OMX_U32 nP
 
 OMX_ERRORTYPE ProcessEncode::UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_IN OMX_U32 nPortIndex, OMX_IN OMX_PTR pAppPrivate, OMX_IN OMX_U32 nSizeBytes, OMX_IN OMX_U8* pBuffer)
 {
-  LOGV("_ %s _,\nnPortIndex = %lu\npAppPrivate = %p\nnSizeBytes = %lu\npBuffer = %p", __func__,
+  LOGV("_ %s _,\nnPortIndex = %u\npAppPrivate = %p\nnSizeBytes = %u\npBuffer = %p", __func__,
        nPortIndex,
        pAppPrivate,
        nSizeBytes,
@@ -1169,7 +1310,7 @@ OMX_ERRORTYPE ProcessEncode::UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** ppBufferHd
 
 OMX_ERRORTYPE ProcessEncode::AllocateBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_IN OMX_U32 nPortIndex, OMX_IN OMX_PTR pAppPrivate, OMX_IN OMX_U32 nSizeBytes)
 {
-  LOGV("_ %s _ \nnPortIndex = %lu\npAppPrivate = %p\nnSizeBytes = %lu", __func__,
+  LOGV("_ %s _ \nnPortIndex = %u\npAppPrivate = %p\nnSizeBytes = %u", __func__,
        nPortIndex,
        pAppPrivate,
        nSizeBytes
@@ -1255,7 +1396,7 @@ void ProcessEncode::ThreadComponent()
       auto nPortIndex = (OMX_U32)((uintptr_t)(ThreadTask->data));
       auto PortIsIn = (nPortIndex == inPort.getDefinition().nPortIndex);
 
-      LOGI("Flush %lu", (OMX_U32)nPortIndex);
+      LOGI("Flush %u", (OMX_U32)nPortIndex);
 
       auto port = PortIsIn ? &inPort : &outPort;
 
@@ -1402,10 +1543,11 @@ AL_EPicFormat ProcessEncode::GetPictureFormat()
   {
   case OMX_COLOR_FormatYUV420SemiPlanar: return AL_420_8BITS;
   case OMX_COLOR_FormatYUV422SemiPlanar: return AL_422_8BITS;
-  case OMX_COLOR_FormatYUV420SemiPlanar10bitPacked: return AL_420_10BITS;
-  case OMX_COLOR_FormatYUV422SemiPlanar10bitPacked: return AL_422_10BITS;
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked: return AL_420_10BITS;
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked: return AL_422_10BITS;
   default:
     assert(0);
+    return AL_420_8BITS;
   }
 }
 
@@ -1426,25 +1568,21 @@ void ProcessEncode::SetEncoderSettings()
   AL_Settings_SetDefaultParam(&m_EncSettings);
 
   m_EncSettings.eQpCtrlMode = (AL_EQpCtrlMode)m_VideoParameters.getQpMode();
-  m_EncSettings.iCacheLevel2 = m_VideoParameters.getL2CacheSize();
+  m_EncSettings.iPrefetchLevel2 = m_VideoParameters.getL2CacheSize() * 1024;
   m_EncSettings.eScalingList = (AL_EScalingList)m_VideoParameters.getScalingListMode();
+  m_EncSettings.bDependentSlice = m_VideoParameters.getDependentSlices();
+  m_EncSettings.eAspectRatio = (AL_EAspectRatio)m_VideoParameters.getAspectRatio();
 
   chanParam.uWidth = videoDef.nFrameWidth;
   chanParam.uHeight = videoDef.nFrameHeight;
   chanParam.uLevel = m_VideoParameters.getLevel();
   chanParam.ePicFormat = GetPictureFormat();
+  chanParam.pMeRange[SLICE_P][1] = m_pCodec->GetBandwidth();
+  chanParam.bSubframeLatency = m_bSubframe;
 
   auto const framerate = inPort.getVideoDefinition().xFramerate;
-
-  if(framerate == 0)
-  {
-    chanParam.tRCParam.uFrameRate = FRAMERATE >> 16;
-    chanParam.tRCParam.uClkRatio = 1000;
-  }
-  else
-    chanParam.tRCParam.uFrameRate = framerate >> 16;
-
-  chanParam.tRCParam.uClkRatio = ((!(framerate & 0x0000FFFF)) && (!framerate)) ? 1001 : 1000;
+  chanParam.tRCParam.uClkRatio = (framerate & 0x0000FFFF) ? 1001 : 1000;
+  chanParam.tRCParam.uFrameRate = 1 + ((framerate - 1) * (2 ^ -16)); // Q16 format
 
   chanParam.tRCParam.eRCMode = m_VideoParameters.getRCMode();
   chanParam.tRCParam.eOptions = m_VideoParameters.getRCOptions();
@@ -1457,39 +1595,49 @@ void ProcessEncode::SetEncoderSettings()
 
   chanParam.tRCParam.uIPDelta = videoQuant.IPDeltaQP;
   chanParam.tRCParam.uPBDelta = videoQuant.PBDeltaQP;
+  auto quantExt = m_VideoParameters.getQuantizationExt();
+  chanParam.tRCParam.iMinQP = quantExt.minQP;
+  chanParam.tRCParam.iMaxQP = quantExt.maxQP;
 
   if(m_VideoParameters.getBitrate() == 0)
   {
     auto const resolutionFramerate = chanParam.uWidth * chanParam.uHeight * chanParam.tRCParam.uFrameRate;
     auto const bitrate_coef = (resolutionFramerate <= 1920 * 1080 * 60) ? 0.2 : 0.125;
-    m_VideoParameters.setBitrate(resolutionFramerate * bitrate_coef);
+    m_VideoParameters.setBitrate(resolutionFramerate * bitrate_coef / 1000);
   }
 
-  chanParam.tRCParam.uTargetBitRate = m_VideoParameters.getBitrate();
-  chanParam.tRCParam.uMaxBitRate = chanParam.tRCParam.uTargetBitRate;
+  if(m_VideoParameters.getMaxBitrate() == 0)
+    m_VideoParameters.setMaxBitrate(m_VideoParameters.getBitrate());
+
+  chanParam.tRCParam.uTargetBitRate = m_VideoParameters.getBitrate() * 1000;
+  chanParam.tRCParam.uMaxBitRate = m_VideoParameters.getMaxBitrate() * 1000;
 
   if(m_VideoParameters.getCPBSize() != 0)
-    chanParam.tRCParam.uCPBSize = m_VideoParameters.getCPBSize();
+    chanParam.tRCParam.uCPBSize = m_VideoParameters.getCPBSize() * 90; // User specified this value in milliseconds, CtrlSW need ticks
 
   if(m_VideoParameters.getInitialRemovalDelay() != 0)
-    chanParam.tRCParam.uInitialRemDelay = m_VideoParameters.getInitialRemovalDelay();
+    chanParam.tRCParam.uInitialRemDelay = m_VideoParameters.getInitialRemovalDelay() * 90; // User specified this value in milliseconds, CtrlSW need ticks
 
   chanParam.tGopParam.eMode = (AL_EGopCtrlMode)m_VideoParameters.getGopMode();
   chanParam.tGopParam.eGdrMode = (AL_EGdrMode)m_VideoParameters.getGdrMode();
 
   chanParam.tGopParam.uGopLength = (m_pCodec->GetCodecPFrames() + m_pCodec->GetCodecBFrames() + 1);
   chanParam.tGopParam.uNumB = (m_pCodec->GetCodecBFrames() / (m_pCodec->GetCodecPFrames() + 1));
+  chanParam.tGopParam.uFreqIDR = m_VideoParameters.getIDRFreq();
 
+  chanParam.eEntropyMode = m_pCodec->IsCAVLC() ? AL_MODE_CAVLC : AL_MODE_CABAC;
   chanParam.uTier = m_pCodec->GetCodecTier();
   chanParam.eOptions = m_pCodec->GetCodecOptions();
   chanParam.uNumSlices = m_VideoParameters.getNumSlices();
+  chanParam.uSliceSize = m_VideoParameters.getSlicesSize();
 
   m_tFourCC = AL_GetSrcFourCC(AL_GET_CHROMA_MODE(chanParam.ePicFormat), AL_GET_BITDEPTH(chanParam.ePicFormat));
-  LOGV("\nWidth : %u\nHeight : %u\nLevel : %u\nFramerate : %u\nGopLength : %u\nNumB : %u\nEPicFormat: 0x%.8x",
+  LOGI("\nWidth : %u\nHeight : %u\nLevel : %u\nFramerate : %u\nClkRatio : %u\nGopLength : %u\nNumB : %u\nEPicFormat: 0x%.8x",
        chanParam.uWidth,
        chanParam.uHeight,
        chanParam.uLevel,
        chanParam.tRCParam.uFrameRate,
+       chanParam.tRCParam.uClkRatio,
        chanParam.tGopParam.uGopLength,
        chanParam.tGopParam.uNumB,
        chanParam.ePicFormat
@@ -1564,9 +1712,10 @@ AL_ERateCtrlMode ProcessEncode::ConvertRCMode(OMX_VIDEO_CONTROLRATETYPE mode)
   case OMX_Video_ControlRateDisable: return AL_RC_CONST_QP;
   case OMX_Video_ControlRateVariable: return AL_RC_VBR;
   case OMX_Video_ControlRateConstant: return AL_RC_CBR;
-  case OMX_Video_ControlRateLowLatency: return AL_RC_LOW_LATENCY;
+  case OMX_ALG_Video_ControlRateLowLatency: return AL_RC_LOW_LATENCY;
   default:
     assert(0);
+    return AL_RC_CONST_QP;
   }
 }
 
@@ -1577,9 +1726,10 @@ OMX_VIDEO_CONTROLRATETYPE ProcessEncode::ConvertRCMode(AL_ERateCtrlMode mode)
   case AL_RC_CONST_QP: return OMX_Video_ControlRateDisable;
   case AL_RC_VBR: return OMX_Video_ControlRateVariable;
   case AL_RC_CBR: return OMX_Video_ControlRateConstant;
-  case AL_RC_LOW_LATENCY: return (OMX_VIDEO_CONTROLRATETYPE)OMX_Video_ControlRateLowLatency;
+  case AL_RC_LOW_LATENCY: return (OMX_VIDEO_CONTROLRATETYPE)OMX_ALG_Video_ControlRateLowLatency;
   default:
     assert(0);
+    return OMX_Video_ControlRateDisable;
   }
 }
 
@@ -1641,5 +1791,30 @@ void ProcessEncode::SourceBufferIsDone(OMX_BUFFERHEADERTYPE* pBufHdr)
 void ProcessEncode::StreamBufferIsDone(OMX_BUFFERHEADERTYPE* pBufHdr)
 {
   m_pCallback->FillBufferDone(m_hComponent, m_pAppData, pBufHdr);
+}
+
+int ProcessEncode::GetOutputBufferSize(AL_EPicFormat format)
+{
+  auto& videoDef = outPort.getVideoDefinition();
+  auto size = GetMaxNalSize(videoDef.nFrameWidth, videoDef.nFrameHeight, AL_GET_CHROMA_MODE(format));
+
+  if(m_bSubframe)
+  {
+    size /= m_VideoParameters.getNumSlices();
+    size += 4095 * 2; /* we need space for the headers on each slice */
+    size = (size + 31) & ~31; /* stream size is required to be 32 bits aligned */
+  }
+  return size;
+}
+
+int ProcessEncode::GetOutputBufferCount()
+{
+  auto& def = outPort.getDefinition();
+  auto count = def.nBufferCountMin;
+
+  if(m_bSubframe)
+    count *= m_VideoParameters.getNumSlices();
+
+  return count;
 }
 

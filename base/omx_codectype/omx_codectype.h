@@ -70,11 +70,13 @@ public:
   virtual OMX_VIDEO_CODINGTYPE GetCompressionFormat() = 0;
   virtual OMX_U32 GeteProfile(OMX_U32 /* nProfileIndex */) = 0;
   virtual OMX_U32 GeteLevel(OMX_U32 /* nProfileIndex */) = 0;
+  virtual void SetProfileLevel(VideoProfileLevelType /* proflevel */) = 0;
+  virtual int DPBSize(int width, int height) = 0;
   virtual OMX_U32 GetSupportedProfileLevelSize() = 0;
 
   virtual OMX_BOOL CheckIndexParamVideoCodec(OMX_INDEXTYPE /* nParamIndex */) = 0;
   virtual OMX_ERRORTYPE GetIndexParamVideoCodec(OMX_INOUT OMX_PTR /* pParam */, OMX_PARAM_PORTDEFINITIONTYPE /* PortDef */) = 0;
-  virtual OMX_ERRORTYPE SetIndexParamVideoCodec(OMX_INOUT OMX_PTR /* pParam */, OMX_PARAM_PORTDEFINITIONTYPE const /* InPortDef */, OMX_OUT OMX_PARAM_PORTDEFINITIONTYPE & /* OutPortDef */) = 0;
+  virtual OMX_ERRORTYPE SetIndexParamVideoCodec(OMX_INOUT OMX_PTR /* pParam */, OMX_PARAM_PORTDEFINITIONTYPE & /* InPortDef */, OMX_OUT OMX_PARAM_PORTDEFINITIONTYPE & /* OutPortDef */) = 0;
   virtual OMX_U32 GetCodecPFrames() = 0;
   virtual int ConvertLevel(OMX_U32 level) = 0;
   virtual OMX_U32 ConvertLevel(int level) = 0;
@@ -82,6 +84,12 @@ public:
   virtual OMX_U32 ConvertProfile(AL_EProfile profile) = 0;
   virtual OMX_U32 GetCodecBFrames() = 0;
   virtual OMX_U32 GetCodecTier() = 0;
+  virtual bool IsCAVLC() = 0;
   virtual AL_EChEncOption GetCodecOptions() = 0;
+  virtual void EnableLowBandwidth(bool shouldBeEnabled) = 0;
+  virtual int GetBandwidth() = 0;
+
+protected:
+  bool m_bLowBW;
 };
 

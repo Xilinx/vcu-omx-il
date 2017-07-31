@@ -43,368 +43,298 @@
 #include "base/omx_checker/omx_checker.h"
 #include "omx_hevc_codec.h"
 
+extern "C"
+{
+#include "lib_common_dec/DecDpbMode.h"
+}
+
 static VideoProfileLevelType SupportedHEVCProfileLevels[] =
 {
   {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel1
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCMainTierLevel1
   },
   {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel2
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCMainTierLevel2
   },
   {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel21
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCMainTierLevel21
   },
   {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel3
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCMainTierLevel3
   },
   {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel31
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCMainTierLevel31
   },
   {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel4
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCMainTierLevel4
   },
   {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel41
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCMainTierLevel41
   },
   {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel5
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCMainTierLevel5
   },
   {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel51
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCMainTierLevel51
   },
   {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel52
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCMainTierLevel52
   },
   {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel6
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCMainTierLevel6
   },
   {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel61
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCMainTierLevel61
   },
   {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel62
-  },
-
-  {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCMainTierLevel1
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCMainTierLevel2
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCMainTierLevel21
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCMainTierLevel3
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCMainTierLevel31
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCMainTierLevel4
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCMainTierLevel41
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCMainTierLevel5
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCMainTierLevel51
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCMainTierLevel52
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCMainTierLevel6
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCMainTierLevel61
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCMainTierLevel62
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCMainTierLevel62
   },
 
   {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCMainTierLevel1
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCMainTierLevel1
   },
   {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCMainTierLevel2
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCMainTierLevel2
   },
   {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCMainTierLevel21
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCMainTierLevel21
   },
   {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCMainTierLevel3
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCMainTierLevel3
   },
   {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCMainTierLevel31
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCMainTierLevel31
   },
   {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCMainTierLevel4
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCMainTierLevel4
   },
   {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCMainTierLevel41
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCMainTierLevel41
   },
   {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCMainTierLevel5
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCMainTierLevel5
   },
   {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCMainTierLevel51
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCMainTierLevel51
   },
   {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCMainTierLevel52
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCMainTierLevel52
   },
   {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCMainTierLevel6
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCMainTierLevel6
   },
   {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCMainTierLevel61
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCMainTierLevel61
   },
   {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCMainTierLevel62
-  },
-
-  {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCMainTierLevel1
-  },
-  {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCMainTierLevel2
-  },
-  {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCMainTierLevel21
-  },
-  {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCMainTierLevel3
-  },
-  {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCMainTierLevel31
-  },
-  {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCMainTierLevel4
-  },
-  {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCMainTierLevel41
-  },
-  {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCMainTierLevel5
-  },
-  {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCMainTierLevel51
-  },
-  {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCMainTierLevel52
-  },
-  {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCMainTierLevel6
-  },
-  {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCMainTierLevel61
-  },
-  {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCMainTierLevel62
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCHighTierLevel1
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCHighTierLevel2
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCHighTierLevel21
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCHighTierLevel3
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCHighTierLevel31
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCHighTierLevel4
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCHighTierLevel41
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCHighTierLevel5
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCHighTierLevel51
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCHighTierLevel52
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCHighTierLevel6
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCHighTierLevel61
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCHighTierLevel62
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCMainTierLevel62
   },
 
   {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCHighTierLevel1
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCMainTierLevel1
   },
   {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCHighTierLevel2
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCMainTierLevel2
   },
   {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCHighTierLevel21
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCMainTierLevel21
   },
   {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCHighTierLevel3
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCMainTierLevel3
   },
   {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCHighTierLevel31
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCMainTierLevel31
   },
   {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCHighTierLevel4
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCMainTierLevel4
   },
   {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCHighTierLevel41
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCMainTierLevel41
   },
   {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCHighTierLevel5
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCMainTierLevel5
   },
   {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCHighTierLevel51
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCMainTierLevel51
   },
   {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCHighTierLevel52
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCMainTierLevel52
   },
   {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCHighTierLevel6
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCMainTierLevel6
   },
   {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCHighTierLevel61
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCMainTierLevel61
   },
   {
-    OMX_VIDEO_HEVCProfileMain10, OMX_VIDEO_HEVCHighTierLevel62
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCHighTierLevel1
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCHighTierLevel2
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCHighTierLevel21
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCHighTierLevel3
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCHighTierLevel31
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCHighTierLevel4
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCHighTierLevel41
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCHighTierLevel5
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCHighTierLevel51
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCHighTierLevel52
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCHighTierLevel6
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCHighTierLevel61
-  },
-  {
-    OMX_VIDEO_HEVCProfileMain422, OMX_VIDEO_HEVCHighTierLevel62
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCMainTierLevel62
   },
 
   {
-    OMX_VIDEO_HEVCProfileMain422_10, OMX_VIDEO_HEVCHighTierLevel1
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCMainTierLevel1
   },
   {
-    OMX_VIDEO_HEVCProfileMain422_10, OMX_VIDEO_HEVCHighTierLevel2
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCMainTierLevel2
   },
   {
-    OMX_VIDEO_HEVCProfileMain422_10, OMX_VIDEO_HEVCHighTierLevel21
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCMainTierLevel21
   },
   {
-    OMX_VIDEO_HEVCProfileMain422_10, OMX_VIDEO_HEVCHighTierLevel3
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCMainTierLevel3
   },
   {
-    OMX_VIDEO_HEVCProfileMain422_10, OMX_VIDEO_HEVCHighTierLevel31
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCMainTierLevel31
   },
   {
-    OMX_VIDEO_HEVCProfileMain422_10, OMX_VIDEO_HEVCHighTierLevel4
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCMainTierLevel4
   },
   {
-    OMX_VIDEO_HEVCProfileMain422_10, OMX_VIDEO_HEVCHighTierLevel41
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCMainTierLevel41
   },
   {
-    OMX_VIDEO_HEVCProfileMain422_10, OMX_VIDEO_HEVCHighTierLevel5
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCMainTierLevel5
   },
   {
-    OMX_VIDEO_HEVCProfileMain422_10, OMX_VIDEO_HEVCHighTierLevel51
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCMainTierLevel51
   },
   {
-    OMX_VIDEO_HEVCProfileMain422_10, OMX_VIDEO_HEVCHighTierLevel52
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCMainTierLevel52
   },
   {
-    OMX_VIDEO_HEVCProfileMain422_10, OMX_VIDEO_HEVCHighTierLevel6
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCMainTierLevel6
   },
   {
-    OMX_VIDEO_HEVCProfileMain422_10, OMX_VIDEO_HEVCHighTierLevel61
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCMainTierLevel61
   },
   {
-    OMX_VIDEO_HEVCProfileMain422_10, OMX_VIDEO_HEVCHighTierLevel62
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCMainTierLevel62
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCHighTierLevel4
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCHighTierLevel41
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCHighTierLevel5
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCHighTierLevel51
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCHighTierLevel52
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCHighTierLevel6
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCHighTierLevel61
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain, OMX_ALG_VIDEO_HEVCHighTierLevel62
   },
 
   {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCHighTierLevel1
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCHighTierLevel4
   },
   {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCHighTierLevel2
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCHighTierLevel41
   },
   {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCHighTierLevel21
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCHighTierLevel5
   },
   {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCHighTierLevel3
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCHighTierLevel51
   },
   {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCHighTierLevel31
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCHighTierLevel52
   },
   {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCHighTierLevel4
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCHighTierLevel6
   },
   {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCHighTierLevel41
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCHighTierLevel61
   },
   {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCHighTierLevel5
+    OMX_ALG_VIDEO_HEVCProfileMain10, OMX_ALG_VIDEO_HEVCHighTierLevel62
   },
   {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCHighTierLevel51
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCHighTierLevel4
   },
   {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCHighTierLevel52
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCHighTierLevel41
   },
   {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCHighTierLevel6
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCHighTierLevel5
   },
   {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCHighTierLevel61
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCHighTierLevel51
   },
   {
-    OMX_VIDEO_HEVCProfileMainStill, OMX_VIDEO_HEVCHighTierLevel62
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCHighTierLevel52
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCHighTierLevel6
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCHighTierLevel61
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain422, OMX_ALG_VIDEO_HEVCHighTierLevel62
+  },
+
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain422_10, OMX_ALG_VIDEO_HEVCHighTierLevel4
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain422_10, OMX_ALG_VIDEO_HEVCHighTierLevel41
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain422_10, OMX_ALG_VIDEO_HEVCHighTierLevel5
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain422_10, OMX_ALG_VIDEO_HEVCHighTierLevel51
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain422_10, OMX_ALG_VIDEO_HEVCHighTierLevel52
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain422_10, OMX_ALG_VIDEO_HEVCHighTierLevel6
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain422_10, OMX_ALG_VIDEO_HEVCHighTierLevel61
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMain422_10, OMX_ALG_VIDEO_HEVCHighTierLevel62
+  },
+
+  {
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCHighTierLevel4
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCHighTierLevel41
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCHighTierLevel5
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCHighTierLevel51
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCHighTierLevel52
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCHighTierLevel6
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCHighTierLevel61
+  },
+  {
+    OMX_ALG_VIDEO_HEVCProfileMainStill, OMX_ALG_VIDEO_HEVCHighTierLevel62
   },
 };
 
-static OMX_BOOL IsMainTier(OMX_VIDEO_HEVCLEVELTYPE eLevel)
+static OMX_BOOL IsMainTier(OMX_ALG_VIDEO_HEVCLEVELTYPE eLevel)
 {
   if(eLevel % 2 == 0)
     return OMX_FALSE;
@@ -414,15 +344,15 @@ static OMX_BOOL IsMainTier(OMX_VIDEO_HEVCLEVELTYPE eLevel)
 HEVCCodec::HEVCCodec()
 {
   OMXChecker::SetHeaderVersion(m_ParameterVideoCodec);
-  m_ParameterVideoCodec.eProfile = OMX_VIDEO_HEVCProfileMain;
-  m_ParameterVideoCodec.eLevel = OMX_VIDEO_HEVCMainTierLevel1;
+  m_ParameterVideoCodec.eProfile = OMX_ALG_VIDEO_HEVCProfileMain;
+  m_ParameterVideoCodec.eLevel = OMX_ALG_VIDEO_HEVCMainTierLevel1;
   m_ParameterVideoCodec.nPFrames = (GOPLENGTH - 1) / (BFRAMES + 1);
   m_ParameterVideoCodec.nBFrames = BFRAMES;
-  m_ParameterVideoCodec.bconstIpred = OMX_FALSE;
-  m_ParameterVideoCodec.nCabacInitIdc = CABACINITIDC;
-  m_ParameterVideoCodec.eLoopFilterMode = OMX_VIDEO_HEVCLoopFilterEnable;
+  m_ParameterVideoCodec.bConstIpred = OMX_FALSE;
+  m_ParameterVideoCodec.eLoopFilterMode = OMX_ALG_VIDEO_HEVCLoopFilterEnable;
 
   m_bIsMainTier = OMX_TRUE;
+  m_bLowBW = false;
 };
 
 HEVCCodec::~HEVCCodec()
@@ -456,7 +386,7 @@ OMX_U32 HEVCCodec::GetCurLevel()
 
 OMX_VIDEO_CODINGTYPE HEVCCodec::GetCompressionFormat()
 {
-  return (OMX_VIDEO_CODINGTYPE)OMX_VIDEO_CodingHEVC;
+  return (OMX_VIDEO_CODINGTYPE)OMX_ALG_VIDEO_CodingHEVC;
 };
 
 OMX_U32 HEVCCodec::GeteProfile(OMX_IN OMX_U32 nProfileIndex)
@@ -478,40 +408,40 @@ OMX_U32 HEVCCodec::GetSupportedProfileLevelSize()
 
 OMX_BOOL HEVCCodec::CheckIndexParamVideoCodec(OMX_INDEXTYPE nParamIndex)
 {
-  return (((OMX_U32)nParamIndex) == OMX_IndexParamVideoHevc) ? OMX_TRUE : OMX_FALSE;
+  return (((OMX_U32)nParamIndex) == OMX_ALG_IndexParamVideoHevc) ? OMX_TRUE : OMX_FALSE;
 };
 
 OMX_ERRORTYPE HEVCCodec::GetIndexParamVideoCodec(OMX_PTR pParam, OMX_PARAM_PORTDEFINITIONTYPE PortDef)
 {
-  OMX_ERRORTYPE eRet = OMX_ErrorNone;
-
-  auto port = (OMX_VIDEO_PARAM_HEVCTYPE*)pParam;
-
-  eRet = OMXChecker::CheckHeaderVersion(port->nVersion);
-
-  if(eRet == OMX_ErrorNone)
+  try
   {
+    auto port = (OMX_ALG_VIDEO_PARAM_HEVCTYPE*)pParam;
+
+    OMXChecker::CheckHeaderVersion(port->nVersion);
+
     if(port->nPortIndex == PortDef.nPortIndex)
     {
       *port = m_ParameterVideoCodec;
       port->nPortIndex = PortDef.nPortIndex;
     }
     else
-      eRet = OMX_ErrorBadPortIndex;
+      return OMX_ErrorBadPortIndex;
+    return OMX_ErrorNone;
   }
-  return eRet;
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 };
 
-OMX_ERRORTYPE HEVCCodec::SetIndexParamVideoCodec(OMX_INOUT OMX_PTR pParam, OMX_IN OMX_PARAM_PORTDEFINITIONTYPE const CodecPortDef, OMX_OUT OMX_PARAM_PORTDEFINITIONTYPE& PortDef)
+OMX_ERRORTYPE HEVCCodec::SetIndexParamVideoCodec(OMX_INOUT OMX_PTR pParam, OMX_IN OMX_PARAM_PORTDEFINITIONTYPE& CodecPortDef, OMX_OUT OMX_PARAM_PORTDEFINITIONTYPE& PortDef)
 {
-  OMX_ERRORTYPE eRet = OMX_ErrorNone;
-
-  auto port = (OMX_VIDEO_PARAM_HEVCTYPE*)pParam;
-
-  eRet = OMXChecker::CheckHeaderVersion(port->nVersion);
-
-  if(eRet == OMX_ErrorNone)
+  try
   {
+    auto port = (OMX_ALG_VIDEO_PARAM_HEVCTYPE*)pParam;
+
+    OMXChecker::CheckHeaderVersion(port->nVersion);
+
     if(port->nPortIndex == CodecPortDef.nPortIndex)
     {
       m_ParameterVideoCodec = *port;
@@ -519,11 +449,18 @@ OMX_ERRORTYPE HEVCCodec::SetIndexParamVideoCodec(OMX_INOUT OMX_PTR pParam, OMX_I
       auto const iBFrames = (m_ParameterVideoCodec.nBFrames / (m_ParameterVideoCodec.nPFrames + 1));
       PortDef.nBufferCountMin = iBFrames + 2;
       PortDef.nBufferCountActual = PortDef.nBufferCountMin;
+
+      CodecPortDef.nBufferCountMin = iBFrames + 4;
+      CodecPortDef.nBufferCountActual = CodecPortDef.nBufferCountMin;
     }
     else
-      eRet = OMX_ErrorBadPortIndex;
+      return OMX_ErrorBadPortIndex;
+    return OMX_ErrorNone;
   }
-  return eRet;
+  catch(OMX_ERRORTYPE e)
+  {
+    return e;
+  }
 };
 
 OMX_U32 HEVCCodec::ConvertLevel(int level)
@@ -531,31 +468,31 @@ OMX_U32 HEVCCodec::ConvertLevel(int level)
   OMX_U32 uLevel;
   switch(level)
   {
-  case 10: uLevel = m_bIsMainTier ? OMX_VIDEO_HEVCMainTierLevel1 : OMX_VIDEO_HEVCHighTierLevel1;
+  case 10: uLevel = OMX_ALG_VIDEO_HEVCMainTierLevel1;
     break;
-  case 20: uLevel = m_bIsMainTier ? OMX_VIDEO_HEVCMainTierLevel2 : OMX_VIDEO_HEVCHighTierLevel2;
+  case 20: uLevel = OMX_ALG_VIDEO_HEVCMainTierLevel2;
     break;
-  case 21: uLevel = m_bIsMainTier ? OMX_VIDEO_HEVCMainTierLevel21 : OMX_VIDEO_HEVCHighTierLevel21;
+  case 21: uLevel = OMX_ALG_VIDEO_HEVCMainTierLevel21;
     break;
-  case 30: uLevel = m_bIsMainTier ? OMX_VIDEO_HEVCMainTierLevel3 : OMX_VIDEO_HEVCHighTierLevel3;
+  case 30: uLevel = OMX_ALG_VIDEO_HEVCMainTierLevel3;
     break;
-  case 31: uLevel = m_bIsMainTier ? OMX_VIDEO_HEVCMainTierLevel31 : OMX_VIDEO_HEVCHighTierLevel31;
+  case 31: uLevel = OMX_ALG_VIDEO_HEVCMainTierLevel31;
     break;
-  case 40: uLevel = m_bIsMainTier ? OMX_VIDEO_HEVCMainTierLevel4 : OMX_VIDEO_HEVCHighTierLevel4;
+  case 40: uLevel = m_bIsMainTier ? OMX_ALG_VIDEO_HEVCMainTierLevel4 : OMX_ALG_VIDEO_HEVCHighTierLevel4;
     break;
-  case 41: uLevel = m_bIsMainTier ? OMX_VIDEO_HEVCMainTierLevel41 : OMX_VIDEO_HEVCHighTierLevel41;
+  case 41: uLevel = m_bIsMainTier ? OMX_ALG_VIDEO_HEVCMainTierLevel41 : OMX_ALG_VIDEO_HEVCHighTierLevel41;
     break;
-  case 50: uLevel = m_bIsMainTier ? OMX_VIDEO_HEVCMainTierLevel5 : OMX_VIDEO_HEVCHighTierLevel5;
+  case 50: uLevel = m_bIsMainTier ? OMX_ALG_VIDEO_HEVCMainTierLevel5 : OMX_ALG_VIDEO_HEVCHighTierLevel5;
     break;
-  case 51: uLevel = m_bIsMainTier ? OMX_VIDEO_HEVCMainTierLevel51 : OMX_VIDEO_HEVCHighTierLevel51;
+  case 51: uLevel = m_bIsMainTier ? OMX_ALG_VIDEO_HEVCMainTierLevel51 : OMX_ALG_VIDEO_HEVCHighTierLevel51;
     break;
-  case 52: uLevel = m_bIsMainTier ? OMX_VIDEO_HEVCMainTierLevel52 : OMX_VIDEO_HEVCHighTierLevel52;
+  case 52: uLevel = m_bIsMainTier ? OMX_ALG_VIDEO_HEVCMainTierLevel52 : OMX_ALG_VIDEO_HEVCHighTierLevel52;
     break;
-  case 60: uLevel = m_bIsMainTier ? OMX_VIDEO_HEVCMainTierLevel6 : OMX_VIDEO_HEVCHighTierLevel6;
+  case 60: uLevel = m_bIsMainTier ? OMX_ALG_VIDEO_HEVCMainTierLevel6 : OMX_ALG_VIDEO_HEVCHighTierLevel6;
     break;
-  case 61: uLevel = m_bIsMainTier ? OMX_VIDEO_HEVCMainTierLevel61 : OMX_VIDEO_HEVCHighTierLevel61;
+  case 61: uLevel = m_bIsMainTier ? OMX_ALG_VIDEO_HEVCMainTierLevel61 : OMX_ALG_VIDEO_HEVCHighTierLevel61;
     break;
-  case 62: uLevel = m_bIsMainTier ? OMX_VIDEO_HEVCMainTierLevel62 : OMX_VIDEO_HEVCHighTierLevel62;
+  case 62: uLevel = m_bIsMainTier ? OMX_ALG_VIDEO_HEVCMainTierLevel62 : OMX_ALG_VIDEO_HEVCHighTierLevel62;
     break;
   default:
     assert(0);
@@ -568,47 +505,42 @@ int HEVCCodec::ConvertLevel(OMX_U32 level)
 {
   switch(level)
   {
-  case OMX_VIDEO_HEVCMainTierLevel1:
-  case OMX_VIDEO_HEVCHighTierLevel1:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel1:
     return 10;
-  case OMX_VIDEO_HEVCMainTierLevel2:
-  case OMX_VIDEO_HEVCHighTierLevel2:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel2:
     return 20;
-  case OMX_VIDEO_HEVCMainTierLevel21:
-  case OMX_VIDEO_HEVCHighTierLevel21:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel21:
     return 21;
-  case OMX_VIDEO_HEVCMainTierLevel3:
-  case OMX_VIDEO_HEVCHighTierLevel3:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel3:
     return 30;
-  case OMX_VIDEO_HEVCMainTierLevel31:
-  case OMX_VIDEO_HEVCHighTierLevel31:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel31:
     return 31;
-  case OMX_VIDEO_HEVCMainTierLevel4:
-  case OMX_VIDEO_HEVCHighTierLevel4:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel4:
     return 40;
-  case OMX_VIDEO_HEVCMainTierLevel41:
-  case OMX_VIDEO_HEVCHighTierLevel41:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel41:
+  case OMX_ALG_VIDEO_HEVCHighTierLevel41:
     return 41;
-  case OMX_VIDEO_HEVCMainTierLevel5:
-  case OMX_VIDEO_HEVCHighTierLevel5:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel5:
+  case OMX_ALG_VIDEO_HEVCHighTierLevel5:
     return 50;
-  case OMX_VIDEO_HEVCMainTierLevel51:
-  case OMX_VIDEO_HEVCHighTierLevel51:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel51:
+  case OMX_ALG_VIDEO_HEVCHighTierLevel51:
     return 51;
-  case OMX_VIDEO_HEVCMainTierLevel52:
-  case OMX_VIDEO_HEVCHighTierLevel52:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel52:
+  case OMX_ALG_VIDEO_HEVCHighTierLevel52:
     return 52;
-  case OMX_VIDEO_HEVCMainTierLevel6:
-  case OMX_VIDEO_HEVCHighTierLevel6:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel6:
+  case OMX_ALG_VIDEO_HEVCHighTierLevel6:
     return 60;
-  case OMX_VIDEO_HEVCMainTierLevel61:
-  case OMX_VIDEO_HEVCHighTierLevel61:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel61:
+  case OMX_ALG_VIDEO_HEVCHighTierLevel61:
     return 61;
-  case OMX_VIDEO_HEVCMainTierLevel62:
-  case OMX_VIDEO_HEVCHighTierLevel62:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel62:
+  case OMX_ALG_VIDEO_HEVCHighTierLevel62:
     return 62;
   default:
     assert(0);
+    return 0;
   }
 };
 
@@ -616,13 +548,14 @@ AL_EProfile HEVCCodec::ConvertProfile(OMX_U32 profile)
 {
   switch(profile)
   {
-  case OMX_VIDEO_HEVCProfileMain:      return AL_PROFILE_HEVC_MAIN;
-  case OMX_VIDEO_HEVCProfileMain10:    return AL_PROFILE_HEVC_MAIN10;
-  case OMX_VIDEO_HEVCProfileMainStill: return AL_PROFILE_HEVC_MAIN_STILL;
-  case OMX_VIDEO_HEVCProfileMain422:   return AL_PROFILE_HEVC_MAIN_422;
-  case OMX_VIDEO_HEVCProfileMain422_10: return AL_PROFILE_HEVC_MAIN_422_10;
+  case OMX_ALG_VIDEO_HEVCProfileMain:      return AL_PROFILE_HEVC_MAIN;
+  case OMX_ALG_VIDEO_HEVCProfileMain10:    return AL_PROFILE_HEVC_MAIN10;
+  case OMX_ALG_VIDEO_HEVCProfileMainStill: return AL_PROFILE_HEVC_MAIN_STILL;
+  case OMX_ALG_VIDEO_HEVCProfileMain422:   return AL_PROFILE_HEVC_MAIN_422;
+  case OMX_ALG_VIDEO_HEVCProfileMain422_10: return AL_PROFILE_HEVC_MAIN_422_10;
   default:
     assert(0);
+    return AL_PROFILE_HEVC_MAIN;
   }
 };
 
@@ -630,13 +563,14 @@ OMX_U32 HEVCCodec::ConvertProfile(AL_EProfile profile)
 {
   switch(profile)
   {
-  case AL_PROFILE_HEVC_MAIN:       return OMX_VIDEO_HEVCProfileMain;
-  case AL_PROFILE_HEVC_MAIN10:     return OMX_VIDEO_HEVCProfileMain10;
-  case AL_PROFILE_HEVC_MAIN_STILL: return OMX_VIDEO_HEVCProfileMainStill;
-  case AL_PROFILE_HEVC_MAIN_422:   return OMX_VIDEO_HEVCProfileMain422;
-  case AL_PROFILE_HEVC_MAIN_422_10: return OMX_VIDEO_HEVCProfileMain422_10;
+  case AL_PROFILE_HEVC_MAIN:       return OMX_ALG_VIDEO_HEVCProfileMain;
+  case AL_PROFILE_HEVC_MAIN10:     return OMX_ALG_VIDEO_HEVCProfileMain10;
+  case AL_PROFILE_HEVC_MAIN_STILL: return OMX_ALG_VIDEO_HEVCProfileMainStill;
+  case AL_PROFILE_HEVC_MAIN_422:   return OMX_ALG_VIDEO_HEVCProfileMain422;
+  case AL_PROFILE_HEVC_MAIN_422_10: return OMX_ALG_VIDEO_HEVCProfileMain422_10;
   default:
     assert(0);
+    return 0;
   }
 };
 
@@ -661,21 +595,47 @@ AL_EChEncOption HEVCCodec::GetCodecOptions()
 
   switch(m_ParameterVideoCodec.eLoopFilterMode)
   {
-  case OMX_VIDEO_HEVCLoopFilterEnable: opt = AL_OPT_LF_X_SLICE | AL_OPT_LF_X_TILE;
+  case OMX_ALG_VIDEO_HEVCLoopFilterEnable: opt = AL_OPT_LF_X_SLICE | AL_OPT_LF_X_TILE;
     break;
-  case OMX_VIDEO_HEVCLoopFilterDisableCrossSlice: opt = AL_OPT_LF | AL_OPT_LF_X_TILE;
+  case OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossSlice: opt = AL_OPT_LF | AL_OPT_LF_X_TILE;
     break;
-  case OMX_VIDEO_HEVCLoopFilterDisableCrossTile: opt = AL_OPT_LF | AL_OPT_LF_X_SLICE;
+  case OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossTile: opt = AL_OPT_LF | AL_OPT_LF_X_SLICE;
     break;
-  case OMX_VIDEO_HEVCLoopFilterDisableCrossSliceAndTile: opt = AL_OPT_LF;
+  case OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossSliceAndTile: opt = AL_OPT_LF;
     break;
   default: // disable
     opt = 0;
   }
 
-  if(m_ParameterVideoCodec.bconstIpred)
+  if(m_ParameterVideoCodec.bConstIpred)
     opt |= AL_OPT_CONST_INTRA_PRED;
 
   return (AL_EChEncOption)opt;
 };
+
+void HEVCCodec::SetProfileLevel(VideoProfileLevelType proflevel)
+{
+  m_ParameterVideoCodec.eProfile = (OMX_ALG_VIDEO_HEVCPROFILETYPE)proflevel.eProfile;
+  m_ParameterVideoCodec.eLevel = (OMX_ALG_VIDEO_HEVCLEVELTYPE)proflevel.eLevel;
+}
+
+int HEVCCodec::DPBSize(int width, int height)
+{
+  return AL_HEVC_GetMaxDPBSize(ConvertLevel((OMX_U32)m_ParameterVideoCodec.eLevel), width, height);
+}
+
+bool HEVCCodec::IsCAVLC()
+{
+  return true;
+}
+
+void HEVCCodec::EnableLowBandwidth(bool shouldBeEnabled)
+{
+  m_bLowBW = shouldBeEnabled;
+}
+
+int HEVCCodec::GetBandwidth()
+{
+  return m_bLowBW ? 16 : 32;
+}
 

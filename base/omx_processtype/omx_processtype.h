@@ -50,13 +50,10 @@ extern "C"
 #include "lib_fpga/DmaAlloc.h"
 }
 
-#define CUSTOMPARAM_BOARD "OMX.allegro.board"
-#define CUSTOMPARAM_BUFFERMODE "OMX.allegro.bufferMode"
-
 struct CustomParam
 {
   OMX_U8 cName[OMX_MAX_STRINGNAME_SIZE];
-  OMX_INDEXEXTTYPE nIndexType;
+  OMX_ALG_INDEXTYPE nIndexType;
 };
 
 enum ComponentThreadCommand

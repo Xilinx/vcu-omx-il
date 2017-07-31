@@ -77,7 +77,7 @@ public:
   }
 };
 
-unique_ptr<CIpDevice> CreateIpDevice(bool bUseVCU, int iSchedulerType, AL_TEncSettings& tSettings)
+unique_ptr<CIpDevice> CreateIpDevice(bool bUseVCU, int iSchedulerType, AL_TEncSettings const& tSettings)
 {
   (void)tSettings;
   (void)bUseVCU;
