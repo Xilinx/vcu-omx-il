@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 #include <dlfcn.h>
 #include <iostream>
 
@@ -66,15 +67,15 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_Init(void)
   {
     0
   };
-  char* env = getenv("OMX_ALLEGRO_PATH");
+  std::string env = "/usr/lib";
 
-  if(!env)
+  if(getenv("OMX_ALLEGRO_PATH"))
   {
-    std::cerr << "OMX_ALLEGRO_PATH is not defined" << std::endl;
-    return OMX_ErrorUndefined;
+    env = getenv("OMX_ALLEGRO_PATH");
+    std::cout << "using libraries at OMX_ALLEGRO_PATH=\"" << env << "\"" << std::endl;
   }
 
-  strncpy(path, env, OMX_MAX_STRINGNAME_SIZE);
+  strncpy(path, env.c_str(), OMX_MAX_STRINGNAME_SIZE);
   strncat(path, "/", strlen("/"));
 
   auto uNumLibraryLoad = 0;
