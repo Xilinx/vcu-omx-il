@@ -50,6 +50,9 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexVendorComponentStartUnused = OMX_IndexVendorStartUnused + 0x00100000,
   OMX_ALG_IndexParamReportedLatency,                  /**< reference: OMX_ALG_PARAM_REPORTED_LATENCY */
 
+  /* Component soles parameters and configurations */
+  OMX_ALG_IndexSoleVendorComponentStartUnused = OMX_IndexVendorStartUnused + 0x00180000,
+
   /* Port parameters and configurations */
   OMX_ALG_IndexVendorPortStartUnused = OMX_IndexVendorStartUnused + 0x00200000,
   OMX_ALG_IndexPortParamBufferMode,                   /**< reference: OMX_ALG_PORT_PARAM_BUFFER_MODE */
@@ -73,6 +76,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamVideoSubframe,                    /**< reference: OMX_ALG_VIDEO_PARAM_SUBFRAME */
   OMX_ALG_IndexParamVideoInstantaneousDecodingRefresh,/**< reference: OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH */
   OMX_ALG_IndexParamVideoMaxBitrate,                  /**< reference: OMX_ALG_VIDEO_PARAM_MAX_BITRATE */
+  OMX_ALG_IndexParamVideoFillerData,                  /**< reference: OMX_ALG_VIDEO_PARAM_FILLER_DATA */
 
   OMX_ALG_IndexMax = 0x7FFFFFFF
 } OMX_ALG_INDEXTYPE;

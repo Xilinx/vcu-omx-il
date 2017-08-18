@@ -858,6 +858,17 @@ OMX_ERRORTYPE ProcessEncode::SetParameter(OMX_IN OMX_INDEXTYPE nIndex, OMX_IN OM
 
       break;
     }
+    case OMX_ALG_IndexParamVideoFillerData:
+    {
+      auto filler = (OMX_ALG_VIDEO_PARAM_FILLER_DATA*)pParam;
+
+      if(filler->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+        m_VideoParameters.setDisableFillerData(filler->bDisableFillerData);
+
+      break;
+    }
 
     default:
     {
@@ -1041,6 +1052,7 @@ void ProcessEncode::ResetEncodingParameters()
 
   m_VideoParameters.setScalingListMode(OMX_ALG_SCL_DEFAULT);
   m_VideoParameters.setAspectRatio(OMX_ALG_ASPECT_RATIO_AUTO);
+  m_VideoParameters.setDisableFillerData(false); // enable by default
 }
 
 OMX_PORT_PARAM_TYPE ProcessEncode::GetPortParameter()
@@ -1577,6 +1589,7 @@ void ProcessEncode::SetEncoderSettings()
   m_EncSettings.eScalingList = (AL_EScalingList)m_VideoParameters.getScalingListMode();
   m_EncSettings.bDependentSlice = m_VideoParameters.getDependentSlices();
   m_EncSettings.eAspectRatio = (AL_EAspectRatio)m_VideoParameters.getAspectRatio();
+  m_EncSettings.bEnableFillerData = !(m_VideoParameters.getDisableFillerData());
 
   chanParam.uWidth = videoDef.nFrameWidth;
   chanParam.uHeight = videoDef.nFrameHeight;

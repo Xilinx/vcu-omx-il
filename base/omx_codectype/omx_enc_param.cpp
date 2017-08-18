@@ -237,3 +237,13 @@ uint32_t EncodingParameters::getIDRFreq()
   return idrFreq;
 }
 
+void EncodingParameters::setDisableFillerData(bool disable)
+{
+  this->disableFillerData = disable;
+}
+
+bool EncodingParameters::getDisableFillerData()
+{
+  return this->disableFillerData;
+}
+

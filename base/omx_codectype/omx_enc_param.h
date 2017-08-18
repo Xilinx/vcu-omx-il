@@ -105,6 +105,8 @@ public:
   OMX_ALG_EAspectRatio getAspectRatio();
   void setIDRFreq(uint32_t const freq);
   uint32_t getIDRFreq();
+  void setDisableFillerData(bool disable);
+  bool getDisableFillerData();
 
 private:
   OMX_ALG_EGopCtrlMode gop;
@@ -127,5 +129,6 @@ private:
   OMX_ALG_EAspectRatio aspectRatio;
   int level;
   uint32_t idrFreq;
+  bool disableFillerData;
 };
 
