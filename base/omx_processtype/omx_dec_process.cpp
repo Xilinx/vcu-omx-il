@@ -349,7 +349,10 @@ OMX_ERRORTYPE ProcessDecode::GetParameter(OMX_IN OMX_INDEXTYPE nParamIndex, OMX_
 {
   try
   {
-    if(!pParam && (*((OMX_U32*)pParam) / sizeof(pParam) < 1))
+    if(!pParam)
+      return OMX_ErrorBadParameter;
+
+    if((*((OMX_U32*)pParam) / sizeof(pParam) < 1))
       return OMX_ErrorBadParameter;
 
     OMXChecker::CheckHeaderVersion(*(((OMX_VERSIONTYPE*)pParam) + 1));
@@ -458,7 +461,10 @@ OMX_ERRORTYPE ProcessDecode::SetParameter(OMX_IN OMX_INDEXTYPE nIndex, OMX_IN OM
 {
   try
   {
-    if(!pParam && (*((OMX_U32*)pParam) / sizeof(pParam) < 1))
+    if(!pParam)
+      return OMX_ErrorBadParameter;
+
+    if((*((OMX_U32*)pParam) / sizeof(pParam) < 1))
       return OMX_ErrorBadParameter;
 
     OMXChecker::CheckHeaderVersion(*(((OMX_VERSIONTYPE*)pParam) + 1));
@@ -574,10 +580,7 @@ OMX_ERRORTYPE ProcessDecode::SetParameter(OMX_IN OMX_INDEXTYPE nIndex, OMX_IN OM
       auto sub = (OMX_ALG_VIDEO_PARAM_SUBFRAME*)pParam;
 
       if(sub->nPortIndex == inPort.getDefinition().nPortIndex)
-      {
-        fprintf(stderr, "Subframe is disable");
         m_eSettings.eDecUnit = AL_AU_UNIT;
-      }
       else
         eRet = OMX_ErrorBadPortIndex;
 
@@ -1219,20 +1222,15 @@ OMX_ERRORTYPE ProcessDecode::EmptyThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* pBuffe
 void ProcessDecode::SetSettings(AL_TDecSettings& settings)
 {
   auto framerate = inPort.getVideoDefinition().xFramerate;
-  auto clkRatio = ((!(framerate & 0x0000FFFF)) && (!framerate)) ? 1001 : 1000;
-
-  if(framerate == 0)
-  {
-    framerate = FRAMERATE;
-    clkRatio = 1000;
-  }
+  auto const f = std::ceil(framerate / 65536.0);
+  auto const clkRatio = std::rint((f * 1000.0 * 65536.0) / framerate);
 
 
   if(!strncmp("avc", m_pCodec->GetRole(), OMX_MAX_STRINGNAME_SIZE))
     settings.bIsAvc = true;
 
   settings.iBitDepth = HW_IP_BIT_DEPTH;
-  settings.uFrameRate = framerate >> 16;
+  settings.uFrameRate = f;
   settings.uClkRatio = clkRatio;
 
   if(m_eSettings.iStackSize < 1)
@@ -1379,7 +1377,7 @@ void ProcessDecode::FrameDisplay(AL_TBuffer* pDisplayedFrame, AL_TInfoDecode con
   pOutputBuf->nFilledLen = AL_GetAllocSize_Frame({ (int)videoParam.nFrameWidth, (int)videoParam.nFrameHeight }, AL_GetChromaMode(m_tFourCC), AL_GetBitDepth(m_tFourCC), false, AL_FB_RASTER);
 
   if(isCopyNeeded(outPort.useFileDescriptor()))
-    copy((char*)AL_Buffer_GetBufferData(pDisplayedFrame), 0, (char*)pOutputBuf->pBuffer, pOutputBuf->nOffset, AL_Buffer_GetSizeData(pDisplayedFrame));
+    copy((char*)pDisplayedFrame->pData, 0, (char*)pOutputBuf->pBuffer, pOutputBuf->nOffset, pDisplayedFrame->zSize);
 
   m_pCallback->FillBufferDone(m_hComponent, m_pAppData, pOutputBuf);
 }
@@ -1401,7 +1399,7 @@ void ProcessDecode::SendToDecoder(OMX_BUFFERHEADERTYPE* pInputBuf)
   m_PropagatingDataQueue.push(PropData);
 
   if(isCopyNeeded(inPort.useFileDescriptor()))
-    copy((char*)pInputBuf->pBuffer, pInputBuf->nOffset, (char*)AL_Buffer_GetBufferData(pBufStream), 0, pInputBuf->nFilledLen);
+    copy((char*)pInputBuf->pBuffer, pInputBuf->nOffset, (char*)pBufStream->pData, 0, pInputBuf->nFilledLen);
 
   AL_Buffer_Ref(pBufStream);
   auto bRet = AL_Decoder_PushBuffer(m_hDecoder, pBufStream, pInputBuf->nFilledLen, AL_BUF_MODE_BLOCK);
@@ -1476,11 +1474,11 @@ void ProcessDecode::StreamBufferIsDone(OMX_BUFFERHEADERTYPE* pBufHdr)
   m_pCallback->FillBufferDone(m_hComponent, m_pAppData, pBufHdr);
 }
 
-OMX_U32 inline ProcessDecode::ComputeLatency()
+OMX_U32 ProcessDecode::ComputeLatency()
 {
   auto const videoDef = inPort.getVideoDefinition();
   double bufsCount = m_eSettings.iStackSize + ((m_eSettings.eDpbMode == (AL_EDpbMode)OMX_ALG_DPB_LOW_REF) ? 2 : m_pCodec->DPBSize(videoDef.nFrameWidth, videoDef.nFrameHeight));
-  auto const framerate = ((videoDef.xFramerate) >> 16) + (videoDef.xFramerate & 0x0000FFFF) * (2 ^ -16);
-  return m_eSettings.eDecUnit == AL_AU_UNIT ? bufsCount : std::ceil((bufsCount / framerate) * 1000);
+  auto const f = std::ceil(videoDef.xFramerate / 65536.0);
+  return (m_eSettings.eDecUnit == AL_AU_UNIT) ? bufsCount : std::ceil((bufsCount * 1000.0) / f);
 }
 

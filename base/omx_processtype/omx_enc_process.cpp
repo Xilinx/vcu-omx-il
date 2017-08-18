@@ -108,19 +108,19 @@ static void WriteOneSection(uint8_t*& dst, AL_TBuffer* bitstream, int iSection)
 
     if(uRemSize < (pStreamMeta->pSections[iSection]).uLength)
     {
-      AppendBuffer(dst, (AL_Buffer_GetBufferData(bitstream) + (pStreamMeta->pSections[iSection]).uOffset), uRemSize);
-      AppendBuffer(dst, AL_Buffer_GetBufferData(bitstream), (pStreamMeta->pSections[iSection]).uLength - uRemSize);
+      AppendBuffer(dst, (bitstream->pData + (pStreamMeta->pSections[iSection]).uOffset), uRemSize);
+      AppendBuffer(dst, bitstream->pData, (pStreamMeta->pSections[iSection]).uLength - uRemSize);
     }
     else
     {
-      AppendBuffer(dst, (AL_Buffer_GetBufferData(bitstream) + (pStreamMeta->pSections[iSection]).uOffset), (pStreamMeta->pSections[iSection]).uLength);
+      AppendBuffer(dst, (bitstream->pData + (pStreamMeta->pSections[iSection]).uOffset), (pStreamMeta->pSections[iSection]).uLength);
     }
   }
 }
 
 static void WriteStream(OMX_BUFFERHEADERTYPE* pOutputBuf, AL_TBuffer* bitstream)
 {
-  auto const pBitstreamOrigData = AL_Buffer_GetBufferData(bitstream);
+  auto const pBitstreamOrigData = bitstream->pData;
   auto pBitstreamIndexData = pBitstreamOrigData;
   int iNumSectionWritten = 0;
   static unsigned int uNumFrame = 0;
@@ -217,8 +217,8 @@ void ProcessEncode::FrameEncode(AL_TBuffer* pStream, AL_TBuffer const* const pSr
   // UseBuffer when (AL_TBuffer*)pPlatformPrivate->pData != pBuffer;
   if(!outPort.useFileDescriptor())
   {
-    if(AL_Buffer_GetBufferData(pStream) != pHeader->pBuffer)
-      memcpy(pHeader->pBuffer, (AL_Buffer_GetBufferData(pStream) + pHeader->nOffset), pHeader->nFilledLen);
+    if(pStream->pData != pHeader->pBuffer)
+      memcpy(pHeader->pBuffer, (pStream->pData + pHeader->nOffset), pHeader->nFilledLen);
   }
 
   auto const pHeaderFlags = pHeader->nFlags;
@@ -402,20 +402,23 @@ void ProcessEncode::SetAppData(OMX_PTR pAppData)
 OMX_U32 inline ProcessEncode::ComputeLatency()
 {
   auto const b = (m_pCodec->GetCodecBFrames() / (m_pCodec->GetCodecPFrames() + 1));
-  auto const framerate = (inPort.getVideoDefinition().xFramerate >> 16) + ((inPort.getVideoDefinition().xFramerate & 0x0000FFFF) * (2 ^ -16)); // Q16 format
-  auto time = ((b + 1) / (framerate)) * 1000;
+  if(!m_bSubframe)
+    return b + 1;
 
-  if(m_bSubframe)
-    time /= m_VideoParameters.getNumSlices();
-
-  return m_bSubframe ? std::ceil(time) : b + 1;
+  auto const framerate = std::ceil(inPort.getVideoDefinition().xFramerate / 65536.0);
+  auto time = ((b + 1) * 1000.0) / (framerate);
+  time /= m_VideoParameters.getNumSlices();
+  return std::ceil(time);
 }
 
 OMX_ERRORTYPE ProcessEncode::GetParameter(OMX_IN OMX_INDEXTYPE nParamIndex, OMX_INOUT OMX_PTR pParam)
 {
   try
   {
-    if(pParam && (*((OMX_U32*)pParam) / sizeof(pParam) < 1))
+    if(!pParam)
+      return OMX_ErrorBadParameter;
+
+    if((*((OMX_U32*)pParam) / sizeof(pParam) < 1))
       return OMX_ErrorBadParameter;
 
     OMXChecker::CheckHeaderVersion(*(((OMX_VERSIONTYPE*)pParam) + 1));
@@ -570,7 +573,10 @@ OMX_ERRORTYPE ProcessEncode::SetParameter(OMX_IN OMX_INDEXTYPE nIndex, OMX_IN OM
 {
   try
   {
-    if(pParam && (*((OMX_U32*)pParam) / sizeof(pParam) < 1))
+    if(!pParam)
+      return OMX_ErrorBadParameter;
+
+    if((*((OMX_U32*)pParam) / sizeof(pParam) < 1))
       return OMX_ErrorBadParameter;
 
     OMXChecker::CheckHeaderVersion(*(((OMX_VERSIONTYPE*)pParam) + 1));
@@ -822,7 +828,6 @@ OMX_ERRORTYPE ProcessEncode::SetParameter(OMX_IN OMX_INDEXTYPE nIndex, OMX_IN OM
         eRet = OMX_ErrorBadPortIndex;
       else
       {
-        fprintf(stderr, "Subframe is disable\n");
         m_bSubframe = false;
         auto& def = outPort.getDefinition();
         def.nBufferSize = GetOutputBufferSize(GetPictureFormat());
@@ -1581,8 +1586,8 @@ void ProcessEncode::SetEncoderSettings()
   chanParam.bSubframeLatency = m_bSubframe;
 
   auto const framerate = inPort.getVideoDefinition().xFramerate;
-  chanParam.tRCParam.uClkRatio = (framerate & 0x0000FFFF) ? 1001 : 1000;
-  chanParam.tRCParam.uFrameRate = 1 + ((framerate - 1) * (2 ^ -16)); // Q16 format
+  chanParam.tRCParam.uFrameRate = std::ceil(framerate / 65536.0);
+  chanParam.tRCParam.uClkRatio = std::rint((chanParam.tRCParam.uFrameRate * 1000.0 * 65536.0) / framerate);
 
   chanParam.tRCParam.eRCMode = m_VideoParameters.getRCMode();
   chanParam.tRCParam.eOptions = m_VideoParameters.getRCOptions();
@@ -1672,11 +1677,10 @@ void ProcessEncode::SendToEncoder(OMX_BUFFERHEADERTYPE* pInputBuf)
 
   ReplaceMetaData(frame, pMeta, AL_META_TYPE_SOURCE);
 
-  // UseBuffer when (AL_TBuffer*)pPlatformPrivate->pData != pBuffer;
   if(!inPort.useFileDescriptor())
   {
-    if(AL_Buffer_GetBufferData(frame) != pInputBuf->pBuffer)
-      memcpy(AL_Buffer_GetBufferData(frame), (pInputBuf->pBuffer + pInputBuf->nOffset), pInputBuf->nFilledLen);
+    if(frame->pData != pInputBuf->pBuffer)
+      memcpy(frame->pData, (pInputBuf->pBuffer + pInputBuf->nOffset), pInputBuf->nFilledLen);
   }
 
   AL_Buffer_Ref(frame);
