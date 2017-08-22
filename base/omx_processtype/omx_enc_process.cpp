@@ -526,7 +526,7 @@ OMX_ERRORTYPE ProcessEncode::GetParameter(OMX_IN OMX_INDEXTYPE nParamIndex, OMX_
         auto const qp = m_VideoParameters.getQuantization();
         quant.nQpI = qp.initialQP;
         quant.nQpP = qp.initialQP + qp.IPDeltaQP;
-        quant.nQpB = qp.initialQP + qp.PBDeltaQP;
+        quant.nQpB = quant.nQpP + qp.PBDeltaQP;
         *param = quant;
       }
       break;
