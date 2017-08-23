@@ -549,7 +549,24 @@ OMX_ERRORTYPE ProcessEncode::GetParameter(OMX_IN OMX_INDEXTYPE nParamIndex, OMX_
       }
       break;
     }
+    case OMX_ALG_IndexParamVideoSlices:
+    {
+      auto slices = (OMX_ALG_VIDEO_PARAM_SLICES*)pParam;
 
+      if(slices->nPortIndex == inPort.getDefinition().nPortIndex)
+        eRet = OMX_ErrorBadPortIndex;
+      else
+      {
+        OMX_ALG_VIDEO_PARAM_SLICES s;
+        OMXChecker::SetHeaderVersion(s);
+        s.nPortIndex = slices->nPortIndex;
+        s.nNumSlices = m_VideoParameters.getNumSlices();
+        s.nSlicesSize = m_VideoParameters.getSlicesSize();
+        s.bDependentSlices = m_VideoParameters.getDependentSlices() ? OMX_TRUE : OMX_FALSE;
+        *slices = s;
+      }
+      break;
+    }
     default:
     {
       LOGV("_ %s _ : default", __func__);
