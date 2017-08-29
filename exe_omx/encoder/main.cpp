@@ -49,7 +49,7 @@
 #include <iomanip>
 #include <fstream>
 #include <vector>
-
+#include <unistd.h>
 
 using namespace std;
 
@@ -477,7 +477,8 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf)
           LOGE("Failed to allocate Buffer for dma");
           assert(0);
         }
-        pBufData = (OMX_U8*)(uintptr_t)AL_LinuxDmaAllocator_ExportToFd((AL_TLinuxDmaAllocator*)(appPriv.pAllocator), hBuf);
+        auto fd = AL_LinuxDmaAllocator_ExportToFd((AL_TLinuxDmaAllocator*)(appPriv.pAllocator), hBuf);
+        pBufData = (OMX_U8*)(uintptr_t)dup(fd);
 
         if(!pBufData)
         {
