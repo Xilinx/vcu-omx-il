@@ -44,6 +44,7 @@ typedef enum
   OMX_ALG_GOP_FLAG_LOW_DELAY = 0x80,
   OMX_ALG_GOP_MODE_LOW_DELAY_P = OMX_ALG_GOP_FLAG_LOW_DELAY | 0x00,
   OMX_ALG_GOP_MODE_LOW_DELAY_B = OMX_ALG_GOP_FLAG_LOW_DELAY | 0x01,
+  OMX_ALG_GOP_MODE_MAX,
 }OMX_ALG_EGopCtrlMode;
 
 /*************************************************************************//*!
@@ -56,6 +57,7 @@ typedef enum
   OMX_ALG_GDR_ON = 0x02,
   OMX_ALG_GDR_VERTICAL = OMX_ALG_GDR_ON |0x00,
   OMX_ALG_GDR_HORIZONTAL = OMX_ALG_GDR_ON |0x01,
+  OMX_ALG_GDR_MAX,
 }OMX_ALG_EGdrMode;
 
 /*************************************************************************//*!
@@ -65,6 +67,7 @@ typedef enum
 {
   OMX_ALG_SCL_FLAT = 0x00,
   OMX_ALG_SCL_DEFAULT = 0x01,
+  OMX_ALG_SCL_MAX,
 }OMX_ALG_EScalingList;
 
 /*************************************************************************//*!
@@ -74,6 +77,7 @@ typedef enum
 {
   OMX_ALG_UNIFORM_QP = 0x000, /*!< default behaviour */
   OMX_ALG_AUTO_QP = 0x400, /*!< compute Qp by MB on the fly */
+  OMX_ALG_MAX_QP,
 }OMX_ALG_EQpCtrlMode;
 
 /*************************************************************************//*!
@@ -85,6 +89,7 @@ typedef enum
   OMX_ALG_ASPECT_RATIO_4_3 = 0x01,
   OMX_ALG_ASPECT_RATIO_16_9 = 0x02,
   OMX_ALG_ASPECT_RATIO_NONE = 0x03,
+  OMX_ALG_ASPECT_RATIO_MAX,
 }OMX_ALG_EAspectRatio;
 
 /*************************************************************************//*!

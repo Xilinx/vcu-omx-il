@@ -40,6 +40,7 @@ extern "C" {
  */
 #include <OMX_Core.h>
 #include <OMX_VideoAlg.h>
+#include <OMX_VideoHEVCAndroid.h>
 
 /** NALU Formats */
 typedef enum OMX_NALUFORMATSTYPE
