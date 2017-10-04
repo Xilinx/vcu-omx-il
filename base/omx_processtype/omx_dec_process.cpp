@@ -1044,6 +1044,9 @@ void ProcessDecode::ThreadComponent()
         m_bForceStop = true;
       }
 
+      while(!m_PropagatingDataQueue.empty())
+        m_PropagatingDataQueue.pop();
+
       m_pCallback->EventHandler(m_hComponent, m_pAppData, OMX_EventCmdComplete, OMX_CommandFlush, nPortIndex, nullptr);
       break;
     }
