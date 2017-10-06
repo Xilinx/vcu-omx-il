@@ -220,14 +220,17 @@ void RedirectionFrameDisplay(AL_TBuffer* pDisplayedFrame, AL_TInfoDecode const t
   processDecode->FrameDisplay(pDisplayedFrame, tInfo);
 }
 
+#include <stdlib.h> // for exit
 void RedirectionFrameDecode(AL_TBuffer* pDecodedFrame, void* pParam)
 {
-  auto decodeParam = static_cast<DecodeParam*>(pParam);
+  /* TODO handle this error */
+  if(!pDecodedFrame)
+    exit(99);
 
+  auto decodeParam = static_cast<DecodeParam*>(pParam);
   assert(decodeParam);
 
   auto processDecode = static_cast<ProcessDecode*>(decodeParam->pProcess);
-
   assert(processDecode);
 
   processDecode->FrameDecode(pDecodedFrame);
@@ -272,12 +275,13 @@ ProcessDecode::ProcessDecode(OMX_HANDLETYPE hComponent, CodecType* pCodec)
   m_iFramesDecoded = 0;
   m_bEOSReceived = false;
   m_bForceStop = false;
+  m_bRunning = false;
   m_tUserData = { this };
   initSettings(m_eSettings);
   m_bIsDPBFull = false;
   m_pEOSHeader = nullptr;
   m_bUseVCU = AL_USE_VCU;
-  m_iSchedulerType = AL_USE_MCU ? SCHEDULER_TYPE_MCU : SCHEDULER_TYPE_CPU;
+  m_iSchedulerType = AL_USE_MCU ? SCHEDULER_MCU : SCHEDULER_CPU;
 
   m_bUseInputFileDescriptor = false;
   m_bUseOutputFileDescriptor = false;
@@ -1032,7 +1036,7 @@ void ProcessDecode::ThreadComponent()
     {
       auto nPortIndex = (OMX_U32)((uintptr_t)(ThreadTask->data));
 
-      if(!m_bEOSReceived && !m_bForceStop)
+      if(!m_bEOSReceived && !m_bForceStop && m_bRunning)
       {
         LOGV("ForceStop %u", (OMX_U32)nPortIndex);
         AL_Decoder_ForceStop(m_hDecoder);
@@ -1136,7 +1140,7 @@ void ProcessDecode::CreateDecoder()
        (m_eSettings.bIsAvc) ? "AVC" : "HEVC"
        );
 
-  m_hDecoder = AL_Decoder_Create(m_IpDevice->m_pScheduler, m_IpDevice->m_pAllocator, &m_eSettings, &m_CallBacks);
+  AL_Decoder_Create(&m_hDecoder, m_IpDevice->m_pScheduler, m_IpDevice->m_pAllocator, &m_eSettings, &m_CallBacks);
 
   if(!m_hDecoder)
     throw std::runtime_error("Can't create AL_Decoder");
@@ -1247,7 +1251,7 @@ static inline std::string FourCCToString(TFourCC tFourCC)
   return ss.str();
 }
 
-static void DisplayResolution(int const iWidth, int const iHeight, AL_TCropInfo const tCropInfo, TFourCC const tFourCC)
+static void DisplayResolution(int const iWidth, int const iHeight, AL_TCropInfo const tCropInfo, TFourCC const tFourCC, int const iLatency)
 {
   int const uCropWidth = tCropInfo.uCropOffsetLeft + tCropInfo.uCropOffsetRight;
   int const uCropHeight = tCropInfo.uCropOffsetTop + tCropInfo.uCropOffsetBottom;
@@ -1260,14 +1264,16 @@ static void DisplayResolution(int const iWidth, int const iHeight, AL_TCropInfo 
        "Crop left    : %u\n"
        "Crop right   : %u\n"
        "Display Resolution : %i x %i\n"
-       "FourCC : %s",
+       "FourCC : %s\n"
+       "Latency : %u ms",
        iWidth, iHeight,
        tCropInfo.uCropOffsetTop,
        tCropInfo.uCropOffsetBottom,
        tCropInfo.uCropOffsetLeft,
        tCropInfo.uCropOffsetRight,
        iWidth - uCropWidth, iHeight - uCropHeight,
-       tFourCCInString
+       tFourCCInString,
+       iLatency
        );
 }
 
@@ -1287,7 +1293,7 @@ void ProcessDecode::ResolutionFound(int const iBuffersNeeded, int const zBufferS
   m_tFourCC = tFourCC;
   auto iTotalBuffersNeeded = iBuffersNeeded + 1;
 
-  DisplayResolution(iWidth, iHeight, tCropInfo, m_tFourCC);
+  DisplayResolution(iWidth, iHeight, tCropInfo, m_tFourCC, ComputeLatency());
   DisplayBuffersNeeded(iTotalBuffersNeeded, zBufferSize);
 
   auto& def = outPort.getDefinition();
@@ -1318,6 +1324,7 @@ void ProcessDecode::ResolutionFound(int const iBuffersNeeded, int const zBufferS
   }
 
   LOGV("END Resolution");
+  m_bRunning = true;
 }
 
 void ProcessDecode::SetPropagatingData(OMX_BUFFERHEADERTYPE* const pBufferHeader)
@@ -1377,7 +1384,7 @@ void ProcessDecode::FrameDisplay(AL_TBuffer* pDisplayedFrame, AL_TInfoDecode con
   pOutputBuf->nFilledLen = AL_GetAllocSize_Frame({ (int)videoParam.nFrameWidth, (int)videoParam.nFrameHeight }, AL_GetChromaMode(m_tFourCC), AL_GetBitDepth(m_tFourCC), false, AL_FB_RASTER);
 
   if(isCopyNeeded(outPort.useFileDescriptor()))
-    copy((char*)pDisplayedFrame->pData, 0, (char*)pOutputBuf->pBuffer, pOutputBuf->nOffset, pDisplayedFrame->zSize);
+    copy((char*)AL_Buffer_GetData(pDisplayedFrame), 0, (char*)pOutputBuf->pBuffer, pOutputBuf->nOffset, pDisplayedFrame->zSize);
 
   m_pCallback->FillBufferDone(m_hComponent, m_pAppData, pOutputBuf);
 }
@@ -1399,7 +1406,7 @@ void ProcessDecode::SendToDecoder(OMX_BUFFERHEADERTYPE* pInputBuf)
   m_PropagatingDataQueue.push(PropData);
 
   if(isCopyNeeded(inPort.useFileDescriptor()))
-    copy((char*)pInputBuf->pBuffer, pInputBuf->nOffset, (char*)pBufStream->pData, 0, pInputBuf->nFilledLen);
+    copy((char*)pInputBuf->pBuffer, pInputBuf->nOffset, (char*)AL_Buffer_GetData(pBufStream), 0, pInputBuf->nFilledLen);
 
   AL_Buffer_Ref(pBufStream);
   auto bRet = AL_Decoder_PushBuffer(m_hDecoder, pBufStream, pInputBuf->nFilledLen, AL_BUF_MODE_BLOCK);
@@ -1474,11 +1481,16 @@ void ProcessDecode::StreamBufferIsDone(OMX_BUFFERHEADERTYPE* pBufHdr)
   m_pCallback->FillBufferDone(m_hComponent, m_pAppData, pBufHdr);
 }
 
-OMX_U32 ProcessDecode::ComputeLatency()
+OMX_U32 inline ProcessDecode::ComputeLatency()
 {
   auto const videoDef = inPort.getVideoDefinition();
-  double bufsCount = m_eSettings.iStackSize + ((m_eSettings.eDpbMode == (AL_EDpbMode)OMX_ALG_DPB_LOW_REF) ? 2 : m_pCodec->DPBSize(videoDef.nFrameWidth, videoDef.nFrameHeight));
+  double bufsCount = 0;
+
+  if(m_eSettings.eDpbMode == AL_DPB_LOW_REF)
+    bufsCount = 1;
+  else
+    bufsCount = m_eSettings.iStackSize + m_pCodec->DPBSize(videoDef.nFrameWidth, videoDef.nFrameHeight, (OMX_ALG_EDpbMode)m_eSettings.eDpbMode);
   auto const f = std::ceil(videoDef.xFramerate / 65536.0);
-  return (m_eSettings.eDecUnit == AL_AU_UNIT) ? bufsCount : std::ceil((bufsCount * 1000.0) / f);
+  return std::ceil((bufsCount * 1000.0) / f);
 }
 

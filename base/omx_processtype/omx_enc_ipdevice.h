@@ -41,8 +41,8 @@
 
 extern "C"
 {
-#include "lib_encode/lib_encoder.h"
-#include "lib_common_enc/Settings.h"
+#include <lib_encode/lib_encoder.h>
+#include <lib_common_enc/Settings.h>
 }
 
 typedef struct AL_t_Allocator AL_TAllocator;

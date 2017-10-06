@@ -38,7 +38,7 @@
 #pragma once
 
 #include <OMX_Core.h>
-#include <OMX_Video.h>
+#include <OMX_VideoExt.h>
 #include <OMX_Component.h>
 
 extern "C"
@@ -71,7 +71,7 @@ public:
   virtual OMX_U32 GeteProfile(OMX_U32 /* nProfileIndex */) = 0;
   virtual OMX_U32 GeteLevel(OMX_U32 /* nProfileIndex */) = 0;
   virtual void SetProfileLevel(VideoProfileLevelType /* proflevel */) = 0;
-  virtual int DPBSize(int width, int height) = 0;
+  virtual int DPBSize(int width, int height, OMX_ALG_EDpbMode mode) = 0;
   virtual OMX_U32 GetSupportedProfileLevelSize() = 0;
 
   virtual OMX_BOOL CheckIndexParamVideoCodec(OMX_INDEXTYPE /* nParamIndex */) = 0;

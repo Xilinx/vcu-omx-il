@@ -313,6 +313,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf)
           assert(0);
         }
         auto fd = AL_LinuxDmaAllocator_ExportToFd((AL_TLinuxDmaAllocator*)(appPriv.pAllocator), hBuf);
+
         pBufData = (OMX_U8*)(uintptr_t)dup(fd);
 
         if((int)(uintptr_t)pBufData <= 0)

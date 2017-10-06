@@ -48,9 +48,8 @@ extern "C" {
 
 using namespace std;
 
-class CMcuIpDevice : public CIpDevice
+struct CMcuIpDevice : public CIpDevice
 {
-public:
   CMcuIpDevice()
   {
     m_pAllocator = DmaAlloc_Create("/dev/allegroIP");
@@ -83,11 +82,11 @@ unique_ptr<CIpDevice> CreateIpDevice(bool bUseVCU, int iSchedulerType, AL_TEncSe
   (void)bUseVCU;
   unique_ptr<CIpDevice> pIpDevice;
 
-  if(iSchedulerType == SCHEDULER_TYPE_CPU)
+  if(iSchedulerType == SCHEDULER_CPU)
   {
     throw runtime_error("No support for on-CPU scheduling");
   }
-  else if(iSchedulerType == SCHEDULER_TYPE_MCU)
+  else if(iSchedulerType == SCHEDULER_MCU)
     pIpDevice.reset(new CMcuIpDevice());
 
   if(!pIpDevice)

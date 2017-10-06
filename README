@@ -14,3 +14,6 @@ $ make CROSS_COMPILE=aarch64-linux-gnu-
 
 *Compile in static*
 $ make STATIC=1
+
+*Compile modules*
+$ make -f makefile.module

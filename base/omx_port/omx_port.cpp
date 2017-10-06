@@ -155,7 +155,7 @@ OMX_BUFFERHEADERTYPE* Port::allocateBuffer(int size, void* userData)
   auto codecData = allocator->CreateBuffer(size, userData);
   assert(codecData);
   header->pPlatformPrivate = codecData;
-  header->pBuffer = allocator->IsFileDescriptor() ? (uint8_t*)(uintptr_t)allocator->GetBufferFileDescriptor(codecData) : AL_Buffer_GetBufferData(codecData);
+  header->pBuffer = allocator->IsFileDescriptor() ? (uint8_t*)(uintptr_t)allocator->GetBufferFileDescriptor(codecData) : AL_Buffer_GetData(codecData);
 
   bufferManager.addInAllocated(header);
 

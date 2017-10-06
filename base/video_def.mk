@@ -15,6 +15,6 @@ OMX_HEADER?=../omx_header
 INCLUDES+=-I$(OMX_HEADER)
 INCLUDES+=-I$(EXTERNAL_LIB)
 INCLUDES+=-I$(EXTERNAL_LIB)/include
-INCLUDES+=-include $(EXTERNAL_LIB)/include/config.h
+INCLUDES+=-include $(EXTERNAL_CONFIG)
 
 -include $(BASE_DIR)/unittests.mk

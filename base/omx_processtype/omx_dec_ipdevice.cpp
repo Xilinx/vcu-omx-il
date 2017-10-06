@@ -55,9 +55,8 @@ extern "C"
 {
 AL_TIDecChannel* AL_DecChannelMcu_Create();
 }
-class CMcuIpDevice : public CIpDevice
+struct CMcuIpDevice : public CIpDevice
 {
-public:
   CMcuIpDevice()
   {
     m_pAllocator = DmaAlloc_Create("/dev/allegroDecodeIP");
@@ -86,11 +85,11 @@ unique_ptr<CIpDevice> CreateIpDevice(bool bUseVCU, int iSchedulerType, AL_EDecUn
   (void)bUseVCU;
   (void)eDecUnit;
 
-  if(iSchedulerType == SCHEDULER_TYPE_CPU)
+  if(iSchedulerType == SCHEDULER_CPU)
   {
     throw runtime_error("No support for on-CPU scheduling");
   }
-  else if(iSchedulerType == SCHEDULER_TYPE_MCU)
+  else if(iSchedulerType == SCHEDULER_MCU)
     pIpDevice.reset(new CMcuIpDevice());
 
   if(!pIpDevice)

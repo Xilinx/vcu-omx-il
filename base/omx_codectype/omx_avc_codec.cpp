@@ -611,9 +611,9 @@ void AVCCodec::SetProfileLevel(VideoProfileLevelType proflevel)
   m_ParameterVideoCodec.eLevel = (OMX_VIDEO_AVCLEVELTYPE)proflevel.eLevel;
 }
 
-int AVCCodec::DPBSize(int width, int height)
+int AVCCodec::DPBSize(int width, int height, OMX_ALG_EDpbMode mode)
 {
-  return AL_AVC_GetMaxDPBSize(ConvertLevel((OMX_U32)m_ParameterVideoCodec.eLevel), width, height);
+  return AL_AVC_GetMaxDPBSize(ConvertLevel((OMX_U32)m_ParameterVideoCodec.eLevel), width, height, (AL_EDpbMode)mode);
 }
 
 bool AVCCodec::IsCAVLC()

@@ -9,8 +9,9 @@ include $(BASE_DIR)/decoder_version.mk
 LIB_DECODE_A=$(EXTERNAL_BIN)/liballegro_decode.a
 LIB_OMX_DECODE_SO=$(BIN)/libOMX.allegro.video_decoder.so.$(DEC_VERSION)
 
+LIBS_DECODE_A:=
 ifneq ($(LINK_SHARED_CTRLSW), 1)
-	LIBS_OMX_DECODE+=$(LIB_DECODE_A)
+	LIBS_DECODE_A+=$(LIB_DECODE_A)
 endif
 
 -include $(BASE_DIR)/ref_dec.mk
@@ -19,7 +20,7 @@ $(LIB_OMX_DECODE_SO):
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(LDFLAGS) $(INCLUDES) -shared -Wl,-soname,libOMX.allegro.video_decoder.so.$(DEC_MAJOR) -o "$@" $^ $(LIBS)
 	@echo "LD $@"
-	ln -fs "libOMX.allegro.video_decoder.so.$(DEC_VERSION)" "$(BIN)/libOMX.allegro.video_decoder.so"
+	ln -fs "libOMX.allegro.video_decoder.so.$(DEC_VERSION)" "$(BIN)/libOMX.allegro.video_decoder.so.$(DEC_MAJOR)"
 
 TARGETS_OMX_DEC+=$(LIB_OMX_DECODE_SO)
 
@@ -28,6 +29,7 @@ $(LIB_DECODE_A):
 	ENABLE_64BIT=$(ENABLE_64BIT) \
 	CROSS_COMPILE=$(CROSS_COMPILE) \
 	ENABLE_STATIC=$(STATIC) \
+	CONFIG=$(EXTERNAL_CONFIG) \
 	BIN=$(EXTERNAL_BIN) \
 	$(MAKE) -C $(EXTERNAL_LIB) liballegro_decode
 endif
@@ -49,7 +51,7 @@ LIB_OMX_DECODE_SRC:=\
 
 LIB_OMX_DECODE_OBJ:=$(LIB_OMX_DECODE_SRC:%.cpp=$(BIN)/%.cpp.o)
 
-$(LIB_OMX_DECODE_SO): $(LIB_OMX_DECODE_OBJ) $(LIBS_OMX_DECODE)
+$(LIB_OMX_DECODE_SO): $(LIB_OMX_DECODE_OBJ) $(LIBS_DECODE_A)
 
 TARGETS_OMX_DEC+=$(LIB_OMX_DECODE_SO)
 

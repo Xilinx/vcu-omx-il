@@ -10,8 +10,9 @@ include $(BASE_DIR)/encoder_version.mk
 LIB_ENCODE_A=$(EXTERNAL_BIN)/liballegro_encode.a
 LIB_OMX_ENCODE_SO=$(BIN)/libOMX.allegro.video_encoder.so.$(ENC_VERSION)
 
+LIBS_ENCODE_A:=
 ifneq ($(LINK_SHARED_CTRLSW), 1)
-	LIBS_OMX_ENCODE+=$(LIB_ENCODE_A)
+	LIBS_ENCODE_A+=$(LIB_ENCODE_A)
 endif
 
 -include $(BASE_DIR)/ref_enc.mk
@@ -20,7 +21,7 @@ $(LIB_OMX_ENCODE_SO):
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(LDFLAGS) $(INCLUDES) -shared -Wl,-soname,libOMX.allegro.video_encoder.so.$(ENC_MAJOR) -o "$@" $^ $(LIBS)
 	@echo "LD $@"
-	ln -fs "libOMX.allegro.video_encoder.so.$(ENC_VERSION)" "$(BIN)/libOMX.allegro.video_encoder.so"
+	ln -fs "libOMX.allegro.video_encoder.so.$(ENC_VERSION)" "$(BIN)/libOMX.allegro.video_encoder.so.$(ENC_MAJOR)"
 
 TARGETS_OMX_ENC+=$(LIB_OMX_ENCODE_SO)
 
@@ -29,6 +30,7 @@ $(LIB_ENCODE_A):
 	ENABLE_64BIT=$(ENABLE_64BIT) \
 	CROSS_COMPILE=$(CROSS_COMPILE) \
 	ENABLE_STATIC=$(STATIC) \
+	CONFIG=$(EXTERNAL_CONFIG) \
 	BIN=$(EXTERNAL_BIN) \
 	$(MAKE) -C $(EXTERNAL_LIB) liballegro_encode
 endif
@@ -49,11 +51,9 @@ LIB_OMX_ENCODE_SRC:=\
 	$(BASE_DIR)/omx_codectype/omx_avc_codec.cpp\
 	$(BASE_DIR)/omx_codectype/omx_enc_param.cpp\
 
--include $(BASE_DIR)/module_enc.mk
-
 LIB_OMX_ENCODE_OBJ:=$(LIB_OMX_ENCODE_SRC:%.cpp=$(BIN)/%.cpp.o)
 
-$(LIB_OMX_ENCODE_SO): $(LIB_OMX_ENCODE_OBJ) $(LIBS_OMX_ENCODE)
+$(LIB_OMX_ENCODE_SO): $(LIB_OMX_ENCODE_OBJ) $(LIBS_ENCODE_A)
 
 TARGETS_OMX_ENC+=$(LIB_OMX_ENCODE_SO)
 

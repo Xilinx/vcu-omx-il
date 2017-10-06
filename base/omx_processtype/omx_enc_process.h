@@ -80,7 +80,7 @@ public:
 private:
   AL_HANDLE m_hEncoder;
   EncBufferUserData m_tUserData;
-  ThreadSafeMap<OMX_BUFFERHEADERTYPE*, OMX_BUFFERHEADERTYPE*> map;
+  OMX_BUFFERHEADERTYPE* m_pEOS;
   std::unique_ptr<CIpDevice> m_IpDevice;
   AL_TEncSettings m_EncSettings;
   OMX_U32 m_EOSFlags;

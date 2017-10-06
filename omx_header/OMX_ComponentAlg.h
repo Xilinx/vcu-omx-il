@@ -38,6 +38,7 @@ extern "C" {
  * header to compile without errors.  The includes below are required
  * for this header file to compile successfully
  */
+#include <OMX_Component.h>
 
 
 /** Enum buffers modes */
@@ -62,7 +63,7 @@ typedef struct OMX_ALG_PARAM_REPORTED_LATENCY
 {
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
-  OMX_U32 nLatency; // Number of frame latency frame
+  OMX_U32 nLatency; // Computed in milliseconds
 }OMX_ALG_PARAM_REPORTED_LATENCY;
 
 #ifdef __cplusplus

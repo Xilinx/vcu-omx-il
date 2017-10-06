@@ -61,3 +61,49 @@ int Getters::GetLatency()
   return lat.nLatency;
 }
 
+int Getters::GetBuffersSize(int const& index)
+{
+  OMX_PARAM_PORTDEFINITIONTYPE p;
+  initHeader(p);
+  p.nPortIndex = index;
+  OMX_GetParameter(*component, OMX_IndexParamPortDefinition, &p);
+  return p.nBufferSize;
+}
+
+int Getters::GetBuffersCount(int const& index)
+{
+  OMX_PARAM_PORTDEFINITIONTYPE p;
+  initHeader(p);
+  p.nPortIndex = index;
+  OMX_GetParameter(*component, OMX_IndexParamPortDefinition, &p);
+  return p.nBufferCountMin;
+}
+
+static inline bool IsInputSupplier(OMX_DIRTYPE const& dir, OMX_BUFFERSUPPLIERTYPE const& sup)
+{
+  return (dir == OMX_DirInput) && (sup == OMX_BufferSupplyInput);
+}
+
+static inline bool IsOutputSupplier(OMX_DIRTYPE const& dir, OMX_BUFFERSUPPLIERTYPE const& sup)
+{
+  return (dir == OMX_DirOutput) && (sup == OMX_BufferSupplyOutput);
+}
+
+bool Getters::IsComponentSupplier(int const& index)
+{
+  OMX_PARAM_PORTDEFINITIONTYPE p;
+  initHeader(p);
+  p.nPortIndex = index;
+  OMX_GetParameter(*component, OMX_IndexParamPortDefinition, &p);
+  auto dir = p.eDir;
+  OMX_PARAM_BUFFERSUPPLIERTYPE s;
+  initHeader(s);
+  s.nPortIndex = index;
+  OMX_GetParameter(*component, OMX_IndexParamCompBufferSupplier, &s);
+
+  if(IsInputSupplier(dir, s.eBufferSupplier) || IsOutputSupplier(dir, s.eBufferSupplier))
+    return true;
+
+  return false;
+}
+

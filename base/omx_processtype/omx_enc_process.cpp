@@ -108,19 +108,19 @@ static void WriteOneSection(uint8_t*& dst, AL_TBuffer* bitstream, int iSection)
 
     if(uRemSize < (pStreamMeta->pSections[iSection]).uLength)
     {
-      AppendBuffer(dst, (bitstream->pData + (pStreamMeta->pSections[iSection]).uOffset), uRemSize);
-      AppendBuffer(dst, bitstream->pData, (pStreamMeta->pSections[iSection]).uLength - uRemSize);
+      AppendBuffer(dst, (AL_Buffer_GetData(bitstream) + (pStreamMeta->pSections[iSection]).uOffset), uRemSize);
+      AppendBuffer(dst, AL_Buffer_GetData(bitstream), (pStreamMeta->pSections[iSection]).uLength - uRemSize);
     }
     else
     {
-      AppendBuffer(dst, (bitstream->pData + (pStreamMeta->pSections[iSection]).uOffset), (pStreamMeta->pSections[iSection]).uLength);
+      AppendBuffer(dst, (AL_Buffer_GetData(bitstream) + (pStreamMeta->pSections[iSection]).uOffset), (pStreamMeta->pSections[iSection]).uLength);
     }
   }
 }
 
 static void WriteStream(OMX_BUFFERHEADERTYPE* pOutputBuf, AL_TBuffer* bitstream)
 {
-  auto const pBitstreamOrigData = bitstream->pData;
+  auto const pBitstreamOrigData = AL_Buffer_GetData(bitstream);
   auto pBitstreamIndexData = pBitstreamOrigData;
   int iNumSectionWritten = 0;
   static unsigned int uNumFrame = 0;
@@ -177,30 +177,32 @@ void RedirectionFrameEncode(void* pUserParam, AL_TBuffer* pStream, AL_TBuffer co
   processEncode->FrameEncode(pStream, pSrc);
 }
 
+static bool isEOS(AL_TBuffer* pStream, AL_TBuffer const* pSrc)
+{
+  return !pStream && !pSrc;
+}
+
+static bool isReleaseStream(AL_TBuffer* pStream, AL_TBuffer const* pSrc)
+{
+  return pStream && !pSrc;
+}
+
 void ProcessEncode::FrameEncode(AL_TBuffer* pStream, AL_TBuffer const* const pSrc)
 {
-  if(!pStream)
+  if(isReleaseStream(pStream, pSrc))
   {
-    OMX_BUFFERHEADERTYPE* out = nullptr;
+    AL_Buffer_Unref(pStream);
+    return;
+  }
 
-    while(1)
-    {
-      out = outPort.getBuffer();
-
-      if(!out)
-        continue;
-
-      if(map.Exist(out))
-        break;
-    }
-
-    map.Remove(out);
-    out->nFilledLen = 0;
-    out->nFlags = m_EOSFlags;
-
-    m_pCallback->FillBufferDone(m_hComponent, m_pAppData, out);
+  if(isEOS(pStream, pSrc))
+  {
+    m_pEOS->nFilledLen = 0;
+    m_pEOS->nFlags = m_EOSFlags;
+    m_pCallback->FillBufferDone(m_hComponent, m_pAppData, m_pEOS);
 
     FlushEncoder(m_EOSFlags);
+    m_pEOS = nullptr;
     return;
   }
 
@@ -217,13 +219,12 @@ void ProcessEncode::FrameEncode(AL_TBuffer* pStream, AL_TBuffer const* const pSr
   // UseBuffer when (AL_TBuffer*)pPlatformPrivate->pData != pBuffer;
   if(!outPort.useFileDescriptor())
   {
-    if(pStream->pData != pHeader->pBuffer)
-      memcpy(pHeader->pBuffer, (pStream->pData + pHeader->nOffset), pHeader->nFilledLen);
+    if(AL_Buffer_GetData(pStream) != pHeader->pBuffer)
+      memcpy(pHeader->pBuffer, (AL_Buffer_GetData(pStream) + pHeader->nOffset), pHeader->nFilledLen);
   }
 
   auto const pHeaderFlags = pHeader->nFlags;
 
-  map.Remove(pHeader);
   AL_Buffer_Unref(pStream);
 
   if(pHeaderFlags & OMX_BUFFERFLAG_EOS)
@@ -328,6 +329,7 @@ ProcessEncode::ProcessEncode(OMX_HANDLETYPE hComponent, CodecType* pCodec)
 
   m_hComponent = hComponent;
   m_pCodec = pCodec;
+  m_pEOS = nullptr;
 
   m_hEncoder = NULL;
   m_EOSFlags = 0;
@@ -340,7 +342,7 @@ ProcessEncode::ProcessEncode(OMX_HANDLETYPE hComponent, CodecType* pCodec)
   };
   m_bSubframe = false;
 
-  m_iSchedulerType = AL_USE_MCU ? SCHEDULER_TYPE_MCU : SCHEDULER_TYPE_CPU;
+  m_iSchedulerType = AL_USE_MCU ? SCHEDULER_MCU : SCHEDULER_CPU;
 
   SetStandardPortParameter();
   SetStandardInParameterPortDefinition();
@@ -402,12 +404,12 @@ void ProcessEncode::SetAppData(OMX_PTR pAppData)
 OMX_U32 inline ProcessEncode::ComputeLatency()
 {
   auto const b = (m_pCodec->GetCodecBFrames() / (m_pCodec->GetCodecPFrames() + 1));
-  if(!m_bSubframe)
-    return b + 1;
-
   auto const framerate = std::ceil(inPort.getVideoDefinition().xFramerate / 65536.0);
   auto time = ((b + 1) * 1000.0) / (framerate);
-  time /= m_VideoParameters.getNumSlices();
+
+  if(m_bSubframe)
+    time /= m_VideoParameters.getNumSlices();
+
   return std::ceil(time);
 }
 
@@ -1516,8 +1518,8 @@ bool ProcessEncode::CreateEncoder()
       this
     };
 
-    m_hEncoder = AL_Encoder_Create(m_IpDevice->m_pScheduler, m_IpDevice->m_pAllocator, &m_EncSettings, { RedirectionFrameEncode, &m_tEncodeParam });
     LOGI("Create Encoder");
+    AL_Encoder_Create(&m_hEncoder, m_IpDevice->m_pScheduler, m_IpDevice->m_pAllocator, &m_EncSettings, { RedirectionFrameEncode, &m_tEncodeParam });
 
     if(!m_hEncoder)
     {
@@ -1535,12 +1537,18 @@ OMX_ERRORTYPE ProcessEncode::FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* pBuffer
 {
   auto eRet = OMX_ErrorNone;
 
+  if(!m_pEOS)
+  {
+    m_pEOS = pBufferHdr;
+    return OMX_ErrorNone;
+  }
+
   assert(pBufferHdr->nFilledLen == 0);
 
   auto pStream = static_cast<AL_TBuffer*>(pBufferHdr->pPlatformPrivate);
   assert(pStream);
 
-  auto pMeta = (AL_TMetaData*)(AL_StreamMetaData_Create(AL_MAX_SECTION, pBufferHdr->nAllocLen));
+  auto pMeta = (AL_TMetaData*)(AL_StreamMetaData_Create(AL_MAX_SECTION));
 
   if(!pStream || !pMeta)
     return OMX_ErrorInsufficientResources;
@@ -1549,9 +1557,7 @@ OMX_ERRORTYPE ProcessEncode::FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* pBuffer
 
   {
     AL_Buffer_Ref(pStream);
-    map.Add(pBufferHdr, pBufferHdr);
     AL_Encoder_PutStreamBuffer(m_hEncoder, pStream);
-    AL_Buffer_Unref(pStream);
   }
 
   return eRet;
@@ -1665,9 +1671,8 @@ void ProcessEncode::SetEncoderSettings()
   chanParam.eOptions = m_pCodec->GetCodecOptions();
   chanParam.uNumSlices = m_VideoParameters.getNumSlices();
   chanParam.uSliceSize = m_VideoParameters.getSlicesSize();
-
   m_tFourCC = AL_GetSrcFourCC(AL_GET_CHROMA_MODE(chanParam.ePicFormat), AL_GET_BITDEPTH(chanParam.ePicFormat));
-  LOGI("\nWidth : %u\nHeight : %u\nLevel : %u\nFramerate : %u\nClkRatio : %u\nGopLength : %u\nNumB : %u\nEPicFormat: 0x%.8x",
+  LOGI("\nWidth : %u\nHeight : %u\nLevel : %u\nFramerate : %u\nClkRatio : %u\nGopLength : %u\nNumB : %u\nEPicFormat: 0x%.8x\nLatency : %u ms",
        chanParam.uWidth,
        chanParam.uHeight,
        chanParam.uLevel,
@@ -1675,7 +1680,8 @@ void ProcessEncode::SetEncoderSettings()
        chanParam.tRCParam.uClkRatio,
        chanParam.tGopParam.uGopLength,
        chanParam.tGopParam.uNumB,
-       chanParam.ePicFormat
+       chanParam.ePicFormat,
+       ComputeLatency()
        );
 }
 
@@ -1709,8 +1715,8 @@ void ProcessEncode::SendToEncoder(OMX_BUFFERHEADERTYPE* pInputBuf)
 
   if(!inPort.useFileDescriptor())
   {
-    if(frame->pData != pInputBuf->pBuffer)
-      memcpy(frame->pData, (pInputBuf->pBuffer + pInputBuf->nOffset), pInputBuf->nFilledLen);
+    if(AL_Buffer_GetData(frame) != pInputBuf->pBuffer)
+      memcpy(AL_Buffer_GetData(frame), (pInputBuf->pBuffer + pInputBuf->nOffset), pInputBuf->nFilledLen);
   }
 
   AL_Buffer_Ref(frame);

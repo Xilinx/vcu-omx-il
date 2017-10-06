@@ -196,7 +196,6 @@ OMX_ERRORTYPE OMXVideoCodec::UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OM
     std::lock_guard<std::mutex> lock(mutex);
 
     OMXChecker::CheckNotNull(header);
-    OMXChecker::CheckNotNull(pBuffer);
     OMXChecker::CheckStateOperation(AL_UseBuffer, process->GetState());
     return process->UseBuffer(header, indexIndex, app, nSizeBytes, pBuffer);
   }

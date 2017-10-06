@@ -152,6 +152,7 @@ private:
   AL_TDecSettings m_eSettings;
   bool m_bEOSReceived;
   bool m_bForceStop;
+  bool m_bRunning;
   AL_EVENT m_hFinished;
 
   void SetStandardPortParameter();
@@ -184,7 +185,7 @@ private:
   void InitCallBacks();
   void AddDPBMetaData(OMX_BUFFERHEADERTYPE* pBufferHeader);
   void UpdateDPB();
-  OMX_U32 ComputeLatency();
+  OMX_U32 inline ComputeLatency();
   void SetPropagatingData(OMX_BUFFERHEADERTYPE* const pBufferHeader);
   OMX_BUFFERHEADERTYPE* GetOMXBufferHeader(AL_TBuffer const* const pBuf);
   void BufferHeaderUpdate(OMX_BUFFERHEADERTYPE* /* pHeader */, OMX_U32 /* nPortIndex */, OMX_PTR /* pAppPrivate */, OMX_U32 /* nSizeBytes */);

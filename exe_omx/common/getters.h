@@ -44,6 +44,9 @@ class Getters
 public:
   Getters(OMX_HANDLETYPE* component);
   int GetLatency();
+  int GetBuffersSize(int const& index);
+  int GetBuffersCount(int const& index);
+  bool IsComponentSupplier(int const& index);
 
 private:
   OMX_HANDLETYPE* component;

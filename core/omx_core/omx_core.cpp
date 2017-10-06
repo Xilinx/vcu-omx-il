@@ -100,7 +100,10 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_Init(void)
   }
 
   if(uNumLibraryLoad == 0)
+  {
+    std::cout << "No library found ! Did you set OMX_ALLEGRO_PATH ?" << std::endl;
     return OMX_ErrorUndefined;
+  }
 
   return OMX_ErrorNone;
 }

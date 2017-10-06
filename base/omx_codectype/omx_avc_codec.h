@@ -52,7 +52,7 @@ public:
   OMX_VIDEO_CODINGTYPE GetCompressionFormat();
   OMX_U32 GeteProfile(OMX_IN OMX_U32 /* nProfileIndex */);
   OMX_U32 GeteLevel(OMX_IN OMX_U32 /* nProfileIndex */);
-  int DPBSize(int width, int height);
+  int DPBSize(int width, int height, OMX_ALG_EDpbMode mode);
   OMX_U32 GetSupportedProfileLevelSize();
   void SetProfileLevel(VideoProfileLevelType /* proflevel */);
   OMX_BOOL CheckIndexParamVideoCodec(OMX_IN OMX_INDEXTYPE /* nParamIndex */);

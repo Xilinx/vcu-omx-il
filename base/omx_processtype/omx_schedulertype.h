@@ -35,9 +35,11 @@
 *
 ******************************************************************************/
 
-enum SCHEDULER_TYPE
+#pragma once
+
+enum SchedulerType
 {
-  SCHEDULER_TYPE_CPU,
-  SCHEDULER_TYPE_MCU,
+  SCHEDULER_CPU,
+  SCHEDULER_MCU,
 };
 

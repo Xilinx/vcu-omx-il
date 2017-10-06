@@ -42,17 +42,26 @@
 
 typedef struct
 {
-  const char name[OMX_MAX_STRINGNAME_SIZE];   // Component name
-  void* pLibHandle;                           // Library Handle
-  const char* pSoLibName;                     // Dynamic Library Name
-  const int nRoles;                  // Number of roles
-  const char* roles[OMX_MAX_COMP_ROLES];      // Component roles
+  const char name[OMX_MAX_STRINGNAME_SIZE];
+  void* pLibHandle;
+  const char* pSoLibName;
+  const int nRoles;
+  const char* roles[OMX_MAX_COMP_ROLES];
 }omx_comp_type;
 
 static omx_comp_type AL_COMP_LIST[] =
 {
   {
     "OMX.allegro.h265.encoder",
+    NULL,
+    "libOMX.allegro.video_encoder.so",
+    1,
+    {
+      "video_encoder.hevc",
+    }
+  },
+  {
+    "OMX.allegro.h265.hardware.encoder",
     NULL,
     "libOMX.allegro.video_encoder.so",
     1,
@@ -70,7 +79,25 @@ static omx_comp_type AL_COMP_LIST[] =
     }
   },
   {
+    "OMX.allegro.h264.hardware.encoder",
+    NULL,
+    "libOMX.allegro.video_encoder.so",
+    1,
+    {
+      "video_encoder.avc",
+    }
+  },
+  {
     "OMX.allegro.h265.decoder",
+    NULL,
+    "libOMX.allegro.video_decoder.so",
+    1,
+    {
+      "video_decoder.hevc",
+    }
+  },
+  {
+    "OMX.allegro.h265.hardware.decoder",
     NULL,
     "libOMX.allegro.video_decoder.so",
     1,
@@ -86,7 +113,16 @@ static omx_comp_type AL_COMP_LIST[] =
     {
       "video_decoder.avc",
     }
-  }
+  },
+  {
+    "OMX.allegro.h264.hardware.decoder",
+    NULL,
+    "libOMX.allegro.video_decoder.so",
+    1,
+    {
+      "video_decoder.avc",
+    }
+  },
 };
 
 const int NB_OF_COMP = sizeof(AL_COMP_LIST) / sizeof(omx_comp_type);

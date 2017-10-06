@@ -1,8 +1,13 @@
 .PHONY: clean
 
+define get-my-dir
+$(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))
+endef
+
 BIN?=$(shell pwd)/bin
 EXTERNAL_LIB?=$(shell pwd)/../CtrlSW
 EXTERNAL_BIN?=$(shell pwd)/../CtrlSW/bin
+EXTERNAL_CONFIG?=$(EXTERNAL_LIB)/include/config.h
 OMX_HEADER?=$(shell pwd)/omx_header
 
 ##############################################################
@@ -12,7 +17,7 @@ ENABLE_64BIT?=1
 ENABLE_VCU?=1
 ENABLE_MCU?=1
 STATIC?=0
-LINK_SHARED_CTRLSW?=1
+LINK_SHARED_CTRLSW?=0
 
 ifeq ($(ENABLE_VCU), 1)
 	CFLAGS+=-DAL_USE_VCU
@@ -63,6 +68,7 @@ endif
 ##############################################################
 CFLAGS+=-O3
 CFLAGS+=-g3
+CFLAGS+=-Wno-missing-field-initializers
 LDFLAGS+=-g3
 
 ##############################################################
