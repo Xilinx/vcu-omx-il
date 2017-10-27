@@ -21,7 +21,7 @@ $(LIB_OMX_ENCODE_SO):
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(LDFLAGS) $(INCLUDES) -shared -Wl,-soname,libOMX.allegro.video_encoder.so.$(ENC_MAJOR) -o "$@" $^ $(LIBS)
 	@echo "LD $@"
-	ln -fs "libOMX.allegro.video_encoder.so.$(ENC_VERSION)" "$(BIN)/libOMX.allegro.video_encoder.so.$(ENC_MAJOR)"
+	ln -fs "libOMX.allegro.video_encoder.so.$(ENC_VERSION)" "$(BIN)/libOMX.allegro.video_encoder.so"
 
 TARGETS_OMX_ENC+=$(LIB_OMX_ENCODE_SO)
 
