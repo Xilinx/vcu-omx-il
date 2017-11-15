@@ -42,7 +42,7 @@
 extern "C"
 {
 #include "lib_fpga/DmaAlloc.h"
-#include "lib_decode/I_DecChannel.h"
+#include "lib_decode/lib_decode.h"
 }
 
 #include "omx_dec_ipdevice.h"
