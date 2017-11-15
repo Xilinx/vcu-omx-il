@@ -207,7 +207,7 @@ private:
   friend void RedirectionFrameDisplay(AL_TBuffer* pDisplayedFrame, AL_TInfoDecode const tInfo, void* pParam);
   void FrameDisplay(AL_TBuffer* pDisplayedFrame, AL_TInfoDecode const tInfo);
 
-  friend void RedirectionResolutionFound(int const iBuffersNeeded, int const iBufferSize, int const iWidth, int const iHeight, AL_TCropInfo const tCropInfo, TFourCC const tFourCC, void* pParam);
+  friend void RedirectionResolutionFound(int const iBuffersNeeded, int const iBufferSize, AL_TDimension const tDim, AL_TCropInfo const tCropInfo, TFourCC const tFourCC, void* pParam);
   void ResolutionFound(int const BufferNumber, int const BufferSize, int const iWidth, int const iHeight, AL_TCropInfo const tCropInfo, TFourCC const tFourCC);
 };
 

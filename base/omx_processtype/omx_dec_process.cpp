@@ -55,6 +55,9 @@ extern "C"
 #include <sstream>
 #include <cmath>
 
+#ifndef HW_IP_BIT_DEPTH
+#define HW_IP_BIT_DEPTH 10
+#endif
 
 static CustomParam AL_CustomParam[] =
 {
@@ -236,7 +239,7 @@ void RedirectionFrameDecode(AL_TBuffer* pDecodedFrame, void* pParam)
   processDecode->FrameDecode(pDecodedFrame);
 }
 
-void RedirectionResolutionFound(int const iBufferNeeded, int const iBufferSize, int const iWidth, int const iHeight, AL_TCropInfo const tCropInfo, TFourCC const tFourCC, void* pParam)
+void RedirectionResolutionFound(int const iBufferNeeded, int const iBufferSize, AL_TDimension const tDim, AL_TCropInfo const tCropInfo, TFourCC const tFourCC, void* pParam)
 {
   auto resolutionFoundParam = static_cast<ResolutionFoundParam*>(pParam);
 
@@ -246,7 +249,7 @@ void RedirectionResolutionFound(int const iBufferNeeded, int const iBufferSize, 
 
   assert(processDecode);
 
-  processDecode->ResolutionFound(iBufferNeeded, iBufferSize, iWidth, iHeight, tCropInfo, tFourCC);
+  processDecode->ResolutionFound(iBufferNeeded, iBufferSize, tDim.iWidth, tDim.iHeight, tCropInfo, tFourCC);
 }
 
 static void initSettings(AL_TDecSettings& settings)
@@ -584,7 +587,7 @@ OMX_ERRORTYPE ProcessDecode::SetParameter(OMX_IN OMX_INDEXTYPE nIndex, OMX_IN OM
       auto sub = (OMX_ALG_VIDEO_PARAM_SUBFRAME*)pParam;
 
       if(sub->nPortIndex == inPort.getDefinition().nPortIndex)
-        m_eSettings.eDecUnit = AL_AU_UNIT;
+        m_eSettings.eDecUnit = sub->bEnableSubframe ? AL_VCL_NAL_UNIT : AL_AU_UNIT;
       else
         eRet = OMX_ErrorBadPortIndex;
 
@@ -627,7 +630,7 @@ void ProcessDecode::SetStandardInParameterPortDefinition()
   assert(def.nBufferCountActual >= def.nBufferCountMin);
   def.nBufferSize = 8 * 1024 * 1024;
   def.bBuffersContiguous = OMX_TRUE;
-  def.nBufferAlignment = 64;
+  def.nBufferAlignment = 0;
 }
 
 void ProcessDecode::SetStandardOutParameterPortDefinition()
@@ -646,7 +649,7 @@ void ProcessDecode::SetStandardOutParameterPortDefinition()
 
   def.nBufferSize = 0;
   def.bBuffersContiguous = OMX_TRUE;
-  def.nBufferAlignment = AL_ALIGN_FRM_BUF;
+  def.nBufferAlignment = 256;
 }
 
 void ProcessDecode::SetStandardInParameterBufferSupplier()
@@ -676,13 +679,13 @@ void ProcessDecode::SetStandardYUVVideoPortDefinition()
   videoDef.pNativeRender = NULL;
   videoDef.nFrameWidth = WIDTH;
   videoDef.nFrameHeight = HEIGHT;
-  videoDef.nSliceHeight = RndHeight(videoDef.nFrameHeight);
+  videoDef.nSliceHeight = AL_Decoder_RoundHeight(videoDef.nFrameHeight);
   videoDef.nBitrate = 0;
   videoDef.xFramerate = FRAMERATE;
   videoDef.bFlagErrorConcealment = OMX_FALSE;
   videoDef.eCompressionFormat = OMX_VIDEO_CodingUnused;
   videoDef.eColorFormat = OMX_COLOR_FormatYUV420SemiPlanar;
-  videoDef.nStride = RndPitch(videoDef.nFrameWidth, getBitDepth(videoDef.eColorFormat));
+  videoDef.nStride = AL_Decoder_RoundPitch(videoDef.nFrameWidth, getBitDepth(videoDef.eColorFormat), AL_FB_RASTER);
   videoDef.pNativeWindow = NULL;
   m_tFourCC = getFourCC(videoDef.eColorFormat);
 }
@@ -715,7 +718,7 @@ OMX_ERRORTYPE ProcessDecode::SetInParameterPortDefinition(OMX_PARAM_PORTDEFINITI
 
   if(((videoParam.nStride % AL_ALIGN_PITCH) != 0) || videoParam.nStride == 0)
   {
-    OMX_S32 newStride = RndPitch(videoParam.nFrameWidth, getBitDepth(videoParam.eColorFormat));
+    OMX_S32 newStride = AL_Decoder_RoundPitch(videoParam.nFrameWidth, getBitDepth(videoParam.eColorFormat), AL_FB_RASTER);
     LOGI("Changing input port stride (%i) to %i (port width is %i)", videoParam.nStride, newStride, videoParam.nFrameWidth);
     videoParam.nStride = newStride;
   }
@@ -724,7 +727,7 @@ OMX_ERRORTYPE ProcessDecode::SetInParameterPortDefinition(OMX_PARAM_PORTDEFINITI
      (videoParam.nSliceHeight == 0) ||
      ((int)videoParam.nSliceHeight < (int)videoParam.nFrameHeight))
   {
-    OMX_S32 newSliceHeight = RndHeight(videoParam.nFrameHeight);
+    OMX_S32 newSliceHeight = AL_Decoder_RoundHeight(videoParam.nFrameHeight);
     LOGI("Changing input port slice height (%i) to %i (port height is %i)", videoParam.nSliceHeight, newSliceHeight, videoParam.nFrameHeight);
     videoParam.nSliceHeight = newSliceHeight;
   }
@@ -735,8 +738,8 @@ OMX_ERRORTYPE ProcessDecode::SetInParameterPortDefinition(OMX_PARAM_PORTDEFINITI
   auto& videoDef = outPort.getVideoDefinition();
   videoDef.nFrameWidth = videoParam.nFrameWidth;
   videoDef.nFrameHeight = videoParam.nFrameHeight;
-  videoDef.nStride = RndPitch(videoParam.nFrameWidth, getBitDepth(videoDef.eColorFormat));
-  videoDef.nSliceHeight = RndHeight(videoParam.nFrameHeight);
+  videoDef.nStride = AL_Decoder_RoundPitch(videoParam.nFrameWidth, getBitDepth(videoDef.eColorFormat), AL_FB_RASTER);
+  videoDef.nSliceHeight = AL_Decoder_RoundHeight(videoParam.nFrameHeight);
 
   auto& def = outPort.getDefinition();
   def.nBufferSize = AL_GetAllocSize_Frame({ (int)videoDef.nFrameWidth, (int)videoDef.nFrameHeight }, AL_GetChromaMode(m_tFourCC), AL_GetBitDepth(m_tFourCC), false, AL_FB_RASTER);
@@ -751,7 +754,7 @@ OMX_ERRORTYPE ProcessDecode::SetOutParameterPortDefinition(OMX_PARAM_PORTDEFINIT
 
   if(((videoParam.nStride % AL_ALIGN_PITCH) != 0) || videoParam.nStride == 0)
   {
-    OMX_S32 newStride = RndPitch(videoParam.nFrameWidth, getBitDepth(videoParam.eColorFormat));
+    OMX_S32 newStride = AL_Decoder_RoundPitch(videoParam.nFrameWidth, getBitDepth(videoParam.eColorFormat), AL_FB_RASTER);
     LOGI("Changing output port stride (%i) to %i (port width is %i)", videoParam.nStride, newStride, videoParam.nFrameWidth);
     videoParam.nStride = newStride;
   }
@@ -760,7 +763,7 @@ OMX_ERRORTYPE ProcessDecode::SetOutParameterPortDefinition(OMX_PARAM_PORTDEFINIT
      (videoParam.nSliceHeight == 0) ||
      ((int)videoParam.nSliceHeight < (int)videoParam.nFrameHeight))
   {
-    OMX_S32 newSliceHeight = RndHeight(videoParam.nFrameHeight);
+    OMX_S32 newSliceHeight = AL_Decoder_RoundHeight(videoParam.nFrameHeight);
     LOGI("Changing output port slice height (%i) to %i (port height is %i)", videoParam.nSliceHeight, newSliceHeight, videoParam.nFrameHeight);
     videoParam.nSliceHeight = newSliceHeight;
   }
@@ -1039,7 +1042,7 @@ void ProcessDecode::ThreadComponent()
       if(!m_bEOSReceived && !m_bForceStop && m_bRunning)
       {
         LOGV("ForceStop %u", (OMX_U32)nPortIndex);
-        AL_Decoder_ForceStop(m_hDecoder);
+        DestroyDecoder();
         Rtos_WaitEvent(m_hFinished, AL_WAIT_FOREVER);
         m_bForceStop = true;
       }
@@ -1076,8 +1079,12 @@ void ProcessDecode::ThreadComponent()
 
 void ProcessDecode::DestroyDecoder()
 {
-  AL_Decoder_Destroy(m_hDecoder);
-  DeinitCallBacksParam();
+  if(m_hDecoder)
+  {
+    AL_Decoder_Destroy(m_hDecoder);
+    DeinitCallBacksParam();
+    m_hDecoder = nullptr;
+  }
 }
 
 void ProcessDecode::DeinitCallBacksParam()
@@ -1178,7 +1185,7 @@ void ProcessDecode::AddDPBMetaData(OMX_BUFFERHEADERTYPE* pBufferHeader)
   {
     0, 0
   };
-  auto const pSrcMeta = (AL_TMetaData*)AL_SrcMetaData_Create(videoDef.nFrameWidth, videoDef.nFrameHeight, tPitches, tOffsetYC, m_tFourCC);
+  auto const pSrcMeta = (AL_TMetaData*)AL_SrcMetaData_Create({ (int)videoDef.nFrameWidth, (int)videoDef.nFrameHeight }, tPitches, tOffsetYC, m_tFourCC);
   assert(pSrcMeta);
   AL_Buffer_AddMetaData(pBuffer, pSrcMeta);
 
@@ -1205,7 +1212,7 @@ OMX_ERRORTYPE ProcessDecode::FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* pBuffer
     return OMX_ErrorNone;
 
   if(m_bIsDPBFull)
-    AL_Decoder_ReleaseDecPict(m_hDecoder, pBuffer);
+    AL_Decoder_PutDisplayPicture(m_hDecoder, pBuffer);
   else
   {
     AddDPBMetaData(pBufferHdr);
@@ -1229,8 +1236,8 @@ OMX_ERRORTYPE ProcessDecode::EmptyThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* pBuffe
 void ProcessDecode::SetSettings(AL_TDecSettings& settings)
 {
   auto framerate = inPort.getVideoDefinition().xFramerate;
-  auto const f = std::ceil(framerate / 65536.0);
-  auto const clkRatio = std::rint((f * 1000.0 * 65536.0) / framerate);
+  auto const f = std::ceil(framerate / 65536.0) * 1000.0;
+  auto const clkRatio = std::rint((f * 65536.0) / framerate);
 
 
   if(!strncmp("avc", m_pCodec->GetRole(), OMX_MAX_STRINGNAME_SIZE))
@@ -1245,6 +1252,8 @@ void ProcessDecode::SetSettings(AL_TDecSettings& settings)
     LOGI("Set Buffering to 5");
     settings.iStackSize = 5;
   }
+
+  settings.tStream.eChroma = CHROMA_MAX_ENUM;
 }
 
 static inline std::string FourCCToString(TFourCC tFourCC)
@@ -1258,7 +1267,7 @@ static void DisplayResolution(int const iWidth, int const iHeight, AL_TCropInfo 
 {
   int const uCropWidth = tCropInfo.uCropOffsetLeft + tCropInfo.uCropOffsetRight;
   int const uCropHeight = tCropInfo.uCropOffsetTop + tCropInfo.uCropOffsetBottom;
-  auto const tFourCCInString = FourCCToString(tFourCC).c_str();
+  auto const tFourCCInString = FourCCToString(tFourCC);
 
   LOGI("\n"
        "Input Resolution   : %i x %i\n"
@@ -1275,7 +1284,7 @@ static void DisplayResolution(int const iWidth, int const iHeight, AL_TCropInfo 
        tCropInfo.uCropOffsetLeft,
        tCropInfo.uCropOffsetRight,
        iWidth - uCropWidth, iHeight - uCropHeight,
-       tFourCCInString,
+       tFourCCInString.c_str(),
        iLatency
        );
 }
@@ -1305,8 +1314,8 @@ void ProcessDecode::ResolutionFound(int const iBuffersNeeded, int const zBufferS
   def.nBufferSize = zBufferSize;
   auto& videoDef = outPort.getVideoDefinition();
   videoDef.eColorFormat = getColorFormat(tFourCC);
-  videoDef.nStride = RndPitch(iWidth, getBitDepth(videoDef.eColorFormat));
-  videoDef.nSliceHeight = RndHeight(iHeight);
+  videoDef.nStride = AL_Decoder_RoundPitch(iWidth, getBitDepth(videoDef.eColorFormat), AL_FB_RASTER);
+  videoDef.nSliceHeight = AL_Decoder_RoundHeight(iHeight);
 
   int const iCropWidth = tCropInfo.uCropOffsetLeft + tCropInfo.uCropOffsetRight;
   int const iCropHeight = tCropInfo.uCropOffsetTop + tCropInfo.uCropOffsetBottom;
@@ -1323,7 +1332,7 @@ void ProcessDecode::ResolutionFound(int const iBuffersNeeded, int const zBufferS
     assert(pBufferHeader);
     auto pDPBBuffer = static_cast<AL_TBuffer*>(pBufferHeader->pPlatformPrivate);
     assert(pDPBBuffer);
-    AL_Decoder_PutDecPict(m_hDecoder, pDPBBuffer);
+    AL_Decoder_PutDisplayPicture(m_hDecoder, pDPBBuffer);
   }
 
   LOGV("END Resolution");
@@ -1490,7 +1499,7 @@ OMX_U32 inline ProcessDecode::ComputeLatency()
   double bufsCount = 0;
 
   if(m_eSettings.eDpbMode == AL_DPB_LOW_REF)
-    bufsCount = 1;
+    bufsCount = 3;
   else
     bufsCount = m_eSettings.iStackSize + m_pCodec->DPBSize(videoDef.nFrameWidth, videoDef.nFrameHeight, (OMX_ALG_EDpbMode)m_eSettings.eDpbMode);
   auto const f = std::ceil(videoDef.xFramerate / 65536.0);

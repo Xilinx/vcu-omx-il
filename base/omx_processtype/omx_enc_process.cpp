@@ -52,6 +52,7 @@ extern "C"
 {
 #include "lib_encode/lib_encoder.h"
 
+#include "lib_common/StreamBuffer.h"
 #include "lib_common/BufferStreamMeta.h"
 #include "lib_common/BufferSrcMeta.h"
 #include "lib_common_enc/EncBuffers.h"
@@ -124,13 +125,11 @@ static void WriteStream(OMX_BUFFERHEADERTYPE* pOutputBuf, AL_TBuffer* bitstream)
   auto pBitstreamIndexData = pBitstreamOrigData;
   int iNumSectionWritten = 0;
   static unsigned int uNumFrame = 0;
-  unsigned i = 0; // For now we skip filler
-
   AL_TStreamMetaData* pStreamMeta = (AL_TStreamMetaData*)AL_Buffer_GetMetaData(bitstream, AL_META_TYPE_STREAM);
 
   LOGV("Frame (%u)", uNumFrame);
 
-  while(i < pStreamMeta->uNumSection && ((pStreamMeta->pSections[i]).uFlags & SECTION_COMPLETE_FLAG))
+  for(auto i = 0; i < pStreamMeta->uNumSection; i++)
   {
     if((pStreamMeta->pSections[i]).uFlags & SECTION_END_FRAME_FLAG)
     {
@@ -151,7 +150,6 @@ static void WriteStream(OMX_BUFFERHEADERTYPE* pOutputBuf, AL_TBuffer* bitstream)
       LOGV("Section[%u] -- Length : %u -- Flags : %.8X", i, (OMX_U32)(end - start), (pStreamMeta->pSections[i]).uFlags);
       pBitstreamIndexData = end;
       ++iNumSectionWritten;
-      ++i;
     }
   }
 
@@ -847,7 +845,7 @@ OMX_ERRORTYPE ProcessEncode::SetParameter(OMX_IN OMX_INDEXTYPE nIndex, OMX_IN OM
         eRet = OMX_ErrorBadPortIndex;
       else
       {
-        m_bSubframe = false;
+        m_bSubframe = sub->bEnableSubframe;
         auto& def = outPort.getDefinition();
         def.nBufferSize = GetOutputBufferSize(GetPictureFormat());
         def.nBufferCountMin = def.nBufferCountActual = GetOutputBufferCount();
@@ -1519,11 +1517,11 @@ bool ProcessEncode::CreateEncoder()
     };
 
     LOGI("Create Encoder");
-    AL_Encoder_Create(&m_hEncoder, m_IpDevice->m_pScheduler, m_IpDevice->m_pAllocator, &m_EncSettings, { RedirectionFrameEncode, &m_tEncodeParam });
+    auto errorCode = AL_Encoder_Create(&m_hEncoder, m_IpDevice->m_pScheduler, m_IpDevice->m_pAllocator, &m_EncSettings, { RedirectionFrameEncode, &m_tEncodeParam });
 
     if(!m_hEncoder)
     {
-      LOGE("Failed to create Encoder");
+      LOGE("Failed to create Encoder: %d", errorCode);
       return false;
     }
   }
@@ -1671,7 +1669,7 @@ void ProcessEncode::SetEncoderSettings()
   chanParam.eOptions = m_pCodec->GetCodecOptions();
   chanParam.uNumSlices = m_VideoParameters.getNumSlices();
   chanParam.uSliceSize = m_VideoParameters.getSlicesSize();
-  m_tFourCC = AL_GetSrcFourCC(AL_GET_CHROMA_MODE(chanParam.ePicFormat), AL_GET_BITDEPTH(chanParam.ePicFormat));
+  m_tFourCC = AL_GetSrcFourCC({ AL_GET_CHROMA_MODE(chanParam.ePicFormat), AL_GET_BITDEPTH(chanParam.ePicFormat) });
   LOGI("\nWidth : %u\nHeight : %u\nLevel : %u\nFramerate : %u\nClkRatio : %u\nGopLength : %u\nNumB : %u\nEPicFormat: 0x%.8x\nLatency : %u ms",
        chanParam.uWidth,
        chanParam.uHeight,
@@ -1691,7 +1689,12 @@ void ProcessEncode::SendToEncoder(OMX_BUFFERHEADERTYPE* pInputBuf)
   auto const videoDef = inPort.getVideoDefinition();
   auto const chanParam = m_EncSettings.tChParam;
 
+#if HW_IP_SRC_RXxA
   auto sizePixel = 1;
+#else
+  auto bitDepth = AL_GET_BITDEPTH(chanParam.ePicFormat);
+  auto sizePixel = bitDepth > 8 ? 2 : 1;
+#endif
 
   AL_TOffsetYC const offsetYC =
   {
@@ -1703,7 +1706,7 @@ void ProcessEncode::SendToEncoder(OMX_BUFFERHEADERTYPE* pInputBuf)
     (int)videoDef.nStride, (int)videoDef.nStride
   };
 
-  AL_TMetaData* const pMeta = (AL_TMetaData*)AL_SrcMetaData_Create(chanParam.uWidth, chanParam.uHeight, pitches, offsetYC, m_tFourCC);
+  AL_TMetaData* const pMeta = (AL_TMetaData*)AL_SrcMetaData_Create({ chanParam.uWidth, chanParam.uHeight }, pitches, offsetYC, m_tFourCC);
 
   if(!frame || !pMeta)
   {
@@ -1836,7 +1839,7 @@ void ProcessEncode::StreamBufferIsDone(OMX_BUFFERHEADERTYPE* pBufHdr)
 int ProcessEncode::GetOutputBufferSize(AL_EPicFormat format)
 {
   auto& videoDef = outPort.getVideoDefinition();
-  auto size = GetMaxNalSize(videoDef.nFrameWidth, videoDef.nFrameHeight, AL_GET_CHROMA_MODE(format));
+  auto size = AL_GetMaxNalSize({ (int)videoDef.nFrameWidth, (int)videoDef.nFrameHeight }, AL_GET_CHROMA_MODE(format));
 
   if(m_bSubframe)
   {

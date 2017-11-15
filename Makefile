@@ -17,7 +17,7 @@ ENABLE_64BIT?=1
 ENABLE_VCU?=1
 ENABLE_MCU?=1
 STATIC?=0
-LINK_SHARED_CTRLSW?=1
+LINK_SHARED_CTRLSW?=0
 
 ifeq ($(ENABLE_VCU), 1)
 	CFLAGS+=-DAL_USE_VCU
@@ -30,6 +30,8 @@ ifeq ($(ENABLE_MCU), 1)
 else
 	CFLAGS+=-DAL_USE_MCU=0
 endif
+
+CFLAGS+=-DAL_USE_MODULE=0
 
 ##############################################################
 # Master rule
