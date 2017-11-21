@@ -39,10 +39,12 @@ extern "C" {
  * for this header file to compile successfully
  */
 
-#define OMX_ALG_BUFFERFLAG_TIMESTAMPINVALID 0x00000100
-#define OMX_ALG_BUFFERFLAG_READONLY 0x00000200
-#define OMX_ALG_BUFFERFLAG_ENDOFSUBFRAME 0x00000400
-#define OMX_ALG_BUFFERFLAG_SKIPFRAME 0x00000800
+// This buffer already exist in OpenMax IL version 1.2 (3.7.3.7.1)
+// Keep there names and values
+#define OMX_BUFFERFLAG_TIMESTAMPINVALID 0x00000100
+#define OMX_BUFFERFLAG_READONLY 0x00000200
+#define OMX_BUFFERFLAG_ENDOFSUBFRAME 0x00000400
+#define OMX_BUFFERFLAG_SKIPFRAME 0x00000800
 
 #ifdef __cplusplus
 }

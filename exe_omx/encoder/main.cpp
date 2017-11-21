@@ -52,6 +52,12 @@
 #include <atomic>
 #include <unistd.h>
 
+#if __ANDROID_API__
+#define LOG_NDEBUG 0
+#define LOG_TAG "AL_OMX_MAIN_EXE"
+#include <android/log.h>
+#include "HardwareAPI.h"
+#endif
 
 using namespace std;
 
@@ -164,7 +170,6 @@ static string output_file;
 
 static ifstream infile;
 static ofstream outfile;
-static int user_slice = 0;
 
 static OMX_PARAM_PORTDEFINITIONTYPE paramPort;
 
@@ -182,6 +187,7 @@ static void displayUsage()
   cout << "\t" << "-avc : load AVC encoder" << endl;
   cout << "\t" << "-dma-in : use dmabufs for input port" << endl;
   cout << "\t" << "-dma-out : use dmabufs for output port" << endl;
+  cout << "\t" << "-subframe <4 || 8 || 16> : activate subframe latency " << endl;
 }
 
 static OMX_ERRORTYPE setPortParameters(Application& app)
@@ -208,26 +214,10 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   OMX_CALL(OMX_GetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPort));
 
   Setters setter(&app.hEncoder);
-
   auto isBufModeSetted = setter.SetBufferMode(app.input.index, GetBufferMode(app.input.isDMA));
   assert(isBufModeSetted);
   isBufModeSetted = setter.SetBufferMode(app.output.index, GetBufferMode(app.output.isDMA));
   assert(isBufModeSetted);
-
-  if(user_slice)
-  {
-    OMX_ALG_VIDEO_PARAM_SLICES slices;
-    initHeader(slices);
-    slices.nPortIndex = 1;
-    slices.nNumSlices = user_slice;
-    OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSlices), &slices);
-
-    OMX_ALG_VIDEO_PARAM_SUBFRAME sub;
-    initHeader(sub);
-    sub.nPortIndex = 1;
-    sub.bEnableSubframe = OMX_TRUE;
-    OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSubframe), &sub);
-  }
 
   LOGV("Input picture: %ux%u", app.settings.width, app.settings.height);
   return OMX_ErrorNone;

@@ -98,7 +98,8 @@ typedef enum
 typedef enum
 {
   OMX_ALG_DPB_NORMAL,
-  OMX_ALG_DPB_LOW_REF
+  OMX_ALG_DPB_LOW_REF,
+  OMX_ALG_DPB_MAX,
 }OMX_ALG_EDpbMode;
 
 #ifdef __cplusplus

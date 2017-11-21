@@ -67,6 +67,10 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_Init(void)
   {
     0
   };
+#if __ANDROID_API__
+
+  strncpy(path, "/system/lib/", OMX_MAX_STRINGNAME_SIZE);
+#else
   std::string env = "/usr/lib";
 
   if(getenv("OMX_ALLEGRO_PATH"))
@@ -77,6 +81,7 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_Init(void)
 
   strncpy(path, env.c_str(), OMX_MAX_STRINGNAME_SIZE);
   strncat(path, "/", strlen("/"));
+#endif /* __ANDROID_API__ */
 
   auto uNumLibraryLoad = 0;
 

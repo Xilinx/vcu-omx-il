@@ -38,9 +38,15 @@
 #pragma once
 
 #include <stdio.h>
-#define ENABLE_LOG 0
+#define ENABLE_LOG 1
 #define VERBOSE 0
 
+#if __ANDROID_API__
+#define AllegroLOGV ALOGV
+#define AllegroLOGI ALOGI
+#define AllegroLOGW ALOGW
+#define AllegroLOGE ALOGE
+#else
 
 #define LOG(err, fmt, ...) \
   do { \
@@ -65,4 +71,5 @@
 #define LOGI(fmt, ...) LOG("I", fmt, ## __VA_ARGS__)
 #define LOGW(fmt, ...) LOG("W", fmt, ## __VA_ARGS__)
 #define LOGE(fmt, ...) LOG("E", fmt, ## __VA_ARGS__)
+#endif
 

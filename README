@@ -21,4 +21,4 @@ $ make -f makefile.module
 *Compile against lib_encode / lib_decode you built*
 
 $ ctrlsw_root=/your_path/ctrlsw-src
-$ EXTERNAL_LIB=$ctrlsw_root EXTERNAL_BIN=$ctrlsw_root/bin EXTERNAL_CONFIG=$EXTERNAL_LIB/include/config.h make
+$ EXTERNAL_INCLUDE=$ctrlsw_root/include EXTERNAL_LIB=$ctrlsw_root/bin make -j8

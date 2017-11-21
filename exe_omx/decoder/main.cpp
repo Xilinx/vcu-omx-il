@@ -450,7 +450,6 @@ static OMX_ERRORTYPE setPortParameters()
   OMX_CALL(OMX_SetParameter(appPriv.hDecoder, OMX_IndexParamVideoPortFormat, &outParamFormat));
 
   Setters setter(&appPriv.hDecoder);
-
   auto isBufModeSetted = setter.SetBufferMode(inportIndex, eDMAIn);
   assert(isBufModeSetted);
   isBufModeSetted = setter.SetBufferMode(outportIndex, eDMAOut);

@@ -1,46 +1,28 @@
-.PHONY: clean
-
 define get-my-dir
 $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))
 endef
 
-BIN?=$(shell pwd)/bin
-EXTERNAL_LIB?=$(shell pwd)/../CtrlSW
-EXTERNAL_BIN?=$(shell pwd)/../CtrlSW/bin
-EXTERNAL_CONFIG?=$(EXTERNAL_LIB)/include/config.h
-OMX_HEADER?=$(shell pwd)/omx_header
+THIS:=$(call get-my-dir)
 
-##############################################################
-# Enabling FLAGS
-##############################################################
-ENABLE_64BIT?=1
-ENABLE_VCU?=1
-ENABLE_MCU?=1
-STATIC?=0
-LINK_SHARED_CTRLSW?=0
-
-ifeq ($(ENABLE_VCU), 1)
-	CFLAGS+=-DAL_USE_VCU
-else
-	CFLAGS+=-DAL_USE_VCU=0
-endif
-
-ifeq ($(ENABLE_MCU), 1)
-	CFLAGS+=-DAL_USE_MCU
-else
-	CFLAGS+=-DAL_USE_MCU=0
-endif
-
-CFLAGS+=-DAL_USE_MODULE=0
-
-##############################################################
-# Master rule
-##############################################################
 all: true_all
 
-##############################################################
-# Cross build
-##############################################################
+PWD:=$(shell pwd)
+BIN?=$(PWD)/bin
+OMX_HEADERS?=$(PWD)/omx_header
+EXTERNAL_INCLUDE?=$(PWD)/../CtrlSW/include
+EXTERNAL_LIB?=$(PWD)/../CtrlSW/bin
+EXTERNAL_CTRLSW?=$(PWD)/../CtrlSW
+EXTERNAL_CONFIG=$(EXTERNAL_INCLUDE)/config.h
+TARGET?=$(shell $(CC) -dumpmachine)
+
+CFLAGS+=-O3
+CFLAGS+=-g3
+LDFLAGS+=-g3
+
+ENABLE_VCU?=1
+ENABLE_MCU?=1
+ENABLE_64BIT?=1
+
 CROSS_COMPILE?=
 
 CXX:=$(CROSS_COMPILE)g++
@@ -55,7 +37,17 @@ RANLIB:=$(CROSS_COMPILE)ranlib
 STRIP:=$(CROSS_COMPILE)strip
 SIZE:=$(CROSS_COMPILE)size
 
-TARGET:=$(shell $(CC) -dumpmachine)
+ifeq ($(ENABLE_VCU), 1)
+	CFLAGS+=-DAL_USE_VCU
+else
+	CFLAGS+=-DAL_USE_VCU=0
+endif
+ifeq ($(ENABLE_MCU), 1)
+	CFLAGS+=-DAL_USE_MCU
+else
+	CFLAGS+=-DAL_USE_MCU=0
+endif
+
 ifeq ($(ENABLE_64BIT),0)
   # force 32 bit compilation
   ifneq (,$(findstring x86_64,$(TARGET)))
@@ -65,104 +57,38 @@ ifeq ($(ENABLE_64BIT),0)
   endif
 endif
 
-##############################################################
-# Debug flags
-##############################################################
-CFLAGS+=-O3
-CFLAGS+=-g3
-CFLAGS+=-Wno-missing-field-initializers
-LDFLAGS+=-g3
+include $(THIS)/builder.mk
 
-##############################################################
-# Basic flags
-##############################################################
-CFLAGS+=-Wall -Wextra -Werror -fPIC
-LDFLAGS+=-fPIC
-LDFLAGS+=-ldl
-LDFLAGS+=-lpthread
 INCLUDES+=-I.
+INCLUDES+=-I$(OMX_HEADERS)
+INCLUDES+=-I$(EXTERNAL_INCLUDE)
+INCLUDES+=-include $(EXTERNAL_CONFIG)
 
-##############################################################
-# Miscellaneous
-##############################################################
+-include $(THIS)/get_external.mk
 
+include $(THIS)/core/project.mk
 
-##############################################################
-# Base component
-##############################################################
-BASE_DIR:=base
-include $(BASE_DIR)/base.mk
+include $(THIS)/base/project_common.mk
+-include $(THIS)/base/project_enc.mk
+-include $(THIS)/base/project_copy.mk
+-include $(THIS)/base/project_dec.mk
 
-##############################################################
-# Core component
-##############################################################
-CORE_DIR:=core
-include $(CORE_DIR)/core.mk
+include $(THIS)/exe_omx/project_common.mk
+-include $(THIS)/exe_omx/project_enc.mk
+-include $(THIS)/exe_omx/project_dec.mk
 
-##############################################################
-# Tests Applications component
-##############################################################
-APP_DIR:=exe_omx
-include $(APP_DIR)/encoder.mk
-include $(APP_DIR)/decoder.mk
--include $(APP_DIR)/unittests.mk
+-include $(THIS)/conformance/project.mk
+-include $(THIS)/unittests.mk
 
-##############################################################
-# Regression tests
-##############################################################
-TEST_SRC_DIR:=unittests
--include ./unittests.mk
-
-
-##############################################################
-# Conformance tests
-##############################################################
-CONF_DIR:=conformance
--include ./conformance/conformance.mk
-
-##############################################################
-# Build
-##############################################################
-.SUFFIXES:
-
-V?=0
-
-ifeq ($(V),0)
-	Q=@
-else
-	Q=
-endif
-
-LINK_COMPAT:=
-
-ifneq ($(findstring mingw,$(TARGET)),mingw)
-    LINK_COMPAT+=-Wl,--hash-style=both
-endif
-
-
-$(BIN)/%.cpp.o: %.cpp
-	@mkdir -p $(dir $@)
-	$(Q)$(CXX) $(CFLAGS) $(INCLUDES) -std=c++11 -o $@ -c $<
-	@$(CXX) -MM "$<" -MT "$@" -o "$(BIN)/$*_cpp.deps" $(INCLUDES) $(CFLAGS) -std=c++11
-	@echo "CXX $<"
-
-$(BIN)/%.c.o: %.c
-	@mkdir -p $(dir $@)
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -std=gnu99 -o $@ -c $<
-	@$(CC) -MM "$<" -MT "$@" -o "$(BIN)/$*_c.deps" $(INCLUDES) $(CFLAGS) -std=gnu99
-	@echo "CC $<"
-
-$(BIN)/%.exe:
-	@mkdir -p $(dir $@)
-	$(Q)$(CXX) -o $@ $^ $(LINK_COMPAT) $(LDFLAGS)
-	@echo "CXX $@"
-
-##############################################################
-# Clean
-##############################################################
+.PHONY: clean
 clean:
-	rm -rf $(BIN)
-	rm -rf $(EXTERNAL_BIN)
+	$(Q)rm -rf $(BIN)
+	@echo "CLEAN $(BIN)"
+
+.PHONY: distclean
+distclean: clean
+	@echo "CLEAN $(EXTERNAL_LIB)"
+	$(Q)rm -rf $(EXTERNAL_LIB)
 
 true_all: $(TARGETS)
 

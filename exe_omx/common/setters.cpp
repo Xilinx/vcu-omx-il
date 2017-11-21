@@ -47,7 +47,6 @@ Setters::Setters(OMX_HANDLETYPE* component) : component(component)
   assert(component);
 }
 
-
 bool Setters::SetBufferMode(OMX_U32 const port, OMX_ALG_BUFFER_MODE const mode)
 {
   switch(mode)
