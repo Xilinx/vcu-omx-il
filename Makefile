@@ -9,10 +9,13 @@ all: true_all
 PWD:=$(shell pwd)
 BIN?=$(PWD)/bin
 OMX_HEADERS?=$(PWD)/omx_header
-EXTERNAL_INCLUDE?=$(PWD)/../CtrlSW/include
-EXTERNAL_LIB?=$(PWD)/../CtrlSW/bin
-EXTERNAL_CTRLSW?=$(PWD)/../CtrlSW
+
+EXTERNAL_CTRLSW?=$(PWD)/../allegro-vcu-ctrl-sw
+
+EXTERNAL_INCLUDE?=$(EXTERNAL_CTRLSW)/include
+EXTERNAL_LIB?=$(EXTERNAL_CTRLSW)/bin
 EXTERNAL_CONFIG=$(EXTERNAL_INCLUDE)/config.h
+
 TARGET?=$(shell $(CC) -dumpmachine)
 
 CFLAGS+=-O3
@@ -22,6 +25,7 @@ LDFLAGS+=-g3
 ENABLE_VCU?=1
 ENABLE_MCU?=1
 ENABLE_64BIT?=1
+
 LINK_SHARED_CTRLSW?=1
 
 CROSS_COMPILE?=
