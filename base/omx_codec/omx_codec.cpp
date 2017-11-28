@@ -491,6 +491,19 @@ static bool SetVideoPortFormat(OMX_VIDEO_PARAM_PORTFORMATTYPE const& format, Mod
   return true;
 }
 
+static bool SetPortExpectedBuffer(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port& port, ModuleInterface const& module)
+{
+  auto const min = IsInputPort(settings.nPortIndex) ? module.GetBuffersRequirements().input.min : module.GetBuffersRequirements().output.min;
+  auto const actual = static_cast<int>(settings.nBufferCountActual);
+
+  if(actual < min)
+    return false;
+
+  port.expected = actual;
+
+  return true;
+}
+
 OMX_ERRORTYPE Codec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param)
 {
   OMX_TRY();
@@ -516,6 +529,9 @@ OMX_ERRORTYPE Codec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR par
     CheckPortIndex(index);
     auto const settings = static_cast<OMX_PARAM_PORTDEFINITIONTYPE*>(param);
     auto const rollback = ConstructPortDefinition(*GetPort(index), *module);
+
+    if(!SetPortExpectedBuffer(*settings, *GetPort(index), *module))
+      throw OMX_ErrorBadParameter;
 
     if(!SetPortDefinition(*settings, *module))
     {

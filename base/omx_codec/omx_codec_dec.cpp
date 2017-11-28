@@ -511,6 +511,19 @@ static bool SetVideoSubframe(OMX_ALG_VIDEO_PARAM_SUBFRAME const& subframe, Port 
   return true;
 }
 
+static bool SetPortExpectedBuffer(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port& port, DecModule const& module)
+{
+  auto const min = IsInputPort(settings.nPortIndex) ? module.GetBuffersRequirements().input.min : module.GetBuffersRequirements().output.min;
+  auto const actual = static_cast<int>(settings.nBufferCountActual);
+
+  if(actual < min)
+    return false;
+
+  port.expected = actual;
+
+  return true;
+}
+
 OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param)
 {
   OMX_TRY();
@@ -540,6 +553,9 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   {
     auto const port = getCurrentPort(param);
     auto const settings = static_cast<OMX_PARAM_PORTDEFINITIONTYPE*>(param);
+
+    if(!SetPortExpectedBuffer(*settings, const_cast<Port &>(*port), ToDecModule(*module)))
+      throw OMX_ErrorBadParameter;
 
     if(!SetPortDefinition(*settings, *port, ToDecModule(*module)))
       throw OMX_ErrorBadParameter;

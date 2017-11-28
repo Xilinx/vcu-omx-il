@@ -985,6 +985,19 @@ static bool SetPortBufferMode(OMX_ALG_PORT_PARAM_BUFFER_MODE const& portBufferMo
   return true;
 }
 
+static bool SetPortExpectedBuffer(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port& port, EncModule const& module)
+{
+  auto const min = IsInputPort(settings.nPortIndex) ? module.GetBuffersRequirements().input.min : module.GetBuffersRequirements().output.min;
+  auto const actual = static_cast<int>(settings.nBufferCountActual);
+
+  if(actual < min)
+    return false;
+
+  port.expected = actual;
+
+  return true;
+}
+
 OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param)
 {
   OMX_TRY();
@@ -1014,6 +1027,9 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   {
     auto const port = getCurrentPort(param);
     auto const settings = static_cast<OMX_PARAM_PORTDEFINITIONTYPE*>(param);
+
+    if(!SetPortExpectedBuffer(*settings, const_cast<Port &>(*port), ToEncModule(*module)))
+      throw OMX_ErrorBadParameter;
 
     if(!SetPortDefinition(*settings, *port, ToEncModule(*module)))
       throw OMX_ErrorBadParameter;
