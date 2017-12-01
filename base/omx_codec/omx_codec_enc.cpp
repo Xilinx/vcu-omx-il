@@ -1003,7 +1003,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   OMX_TRY();
   OMXChecker::CheckNotNull(param);
   OMXChecker::CheckHeaderVersion(GetVersion(param));
-  OMXChecker::CheckStateOperation(AL_SetParameter, state);
 
   auto const getCurrentPort = [=](OMX_PTR param) -> Port const*
                               {
@@ -1014,6 +1013,7 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   {
   case OMX_IndexParamStandardComponentRole:
   {
+  OMXChecker::CheckStateOperation(AL_SetParameter, state);
     auto p = (OMX_PARAM_COMPONENTROLETYPE*)param;
 
     if(!strncmp((char*)role, (char*)p->cRole, strlen((char*)role)))
@@ -1026,6 +1026,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_IndexParamPortDefinition:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const settings = static_cast<OMX_PARAM_PORTDEFINITIONTYPE*>(param);
 
     if(!SetPortExpectedBuffer(*settings, const_cast<Port &>(*port), ToEncModule(*module)))
@@ -1037,14 +1041,21 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_IndexParamCompBufferSupplier:
   {
-    auto const index = *(((OMX_U32*)param) + 2);
-    CheckPortIndex(index);
+    auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     // Do nothing
     return OMX_ErrorNone;
   }
   case OMX_IndexParamVideoPortFormat:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const format = static_cast<OMX_VIDEO_PARAM_PORTFORMATTYPE*>(param);
 
     if(!SetVideoPortFormat(*format, *port, ToEncModule(*module)))
@@ -1055,6 +1066,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   {
     auto const port = getCurrentPort(param);
 
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     if(!expertise->SetProfileLevel(param, *port, ToEncModule(*module)))
       throw OMX_ErrorBadParameter;
     return OMX_ErrorNone;
@@ -1062,6 +1077,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_IndexParamVideoQuantization:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const quantization = static_cast<OMX_VIDEO_PARAM_QUANTIZATIONTYPE*>(param);
 
     if(!SetVideoQuantization(*quantization, *port, ToEncModule(*module)))
@@ -1071,6 +1090,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_IndexParamVideoBitrate:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const bitrate = static_cast<OMX_VIDEO_PARAM_BITRATETYPE*>(param);
 
     if(!SetVideoBitrate(*bitrate, *port, ToEncModule(*module)))
@@ -1082,6 +1105,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   {
     auto const port = getCurrentPort(param);
 
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
+
     if(!expertise->SetExpertise(param, *port, ToEncModule(*module)))
       throw OMX_ErrorBadParameter;
     return OMX_ErrorNone;
@@ -1089,6 +1116,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexParamVideoQuantizationControl:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const quantizationControl = static_cast<OMX_ALG_VIDEO_PARAM_QUANTIZATION_CONTROL*>(param);
 
     if(!SetVideoQuantizationControl(*quantizationControl, *port, ToEncModule(*module)))
@@ -1098,6 +1129,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexParamVideoQuantizationExtension:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const quantizationExtension = static_cast<OMX_ALG_VIDEO_PARAM_QUANTIZATION_EXTENSION*>(param);
 
     if(!SetVideoQuantizationExtension(*quantizationExtension, *port, ToEncModule(*module)))
@@ -1107,6 +1142,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexParamVideoAspectRatio:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const aspectRatio = static_cast<OMX_ALG_VIDEO_PARAM_ASPECT_RATIO*>(param);
 
     if(!SetVideoAspectRatio(*aspectRatio, *port, ToEncModule(*module)))
@@ -1116,6 +1155,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexParamVideoMaxBitrate:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const maxBitrate = static_cast<OMX_ALG_VIDEO_PARAM_MAX_BITRATE*>(param);
 
     if(!SetVideoMaxBitrate(*maxBitrate, *port, ToEncModule(*module)))
@@ -1125,6 +1168,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexParamVideoLowBandwidth:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const lowBandwidth = static_cast<OMX_ALG_VIDEO_PARAM_LOW_BANDWIDTH*>(param);
 
     if(!SetVideoLowBandwidth(*lowBandwidth, *port, ToEncModule(*module)))
@@ -1134,6 +1181,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexParamVideoGopControl:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const gopControl = static_cast<OMX_ALG_VIDEO_PARAM_GOP_CONTROL*>(param);
 
     if(!SetVideoGopControl(*gopControl, *port, ToEncModule(*module)))
@@ -1143,6 +1194,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexParamVideoSceneChangeResilience:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const sceneChangeResilience = static_cast<OMX_ALG_VIDEO_PARAM_SCENE_CHANGE_RESILIENCE*>(param);
 
     if(!SetVideoSceneChangeResilience(*sceneChangeResilience, *port, ToEncModule(*module)))
@@ -1152,6 +1207,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexParamVideoInstantaneousDecodingRefresh:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const instantaneousDecodingRefresh = static_cast<OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH*>(param);
 
     if(!SetVideoInstantaneousDecodingRefresh(*instantaneousDecodingRefresh, *port, ToEncModule(*module)))
@@ -1161,6 +1220,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexParamVideoCodedPictureBuffer:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const codedPictureBuffer = static_cast<OMX_ALG_VIDEO_PARAM_CODED_PICTURE_BUFFER*>(param);
 
     if(!SetVideoCodedPictureBuffer(*codedPictureBuffer, *port, ToEncModule(*module)))
@@ -1170,6 +1233,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexParamVideoPrefetchBuffer:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const prefetchBuffer = static_cast<OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER*>(param);
 
     if(!SetVideoPrefetchBuffer(*prefetchBuffer, *port, ToEncModule(*module)))
@@ -1179,6 +1246,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexParamVideoScalingList:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const scalingList = static_cast<OMX_ALG_VIDEO_PARAM_SCALING_LIST*>(param);
 
     if(!SetVideoScalingList(*scalingList, *port, ToEncModule(*module)))
@@ -1188,6 +1259,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexParamVideoFillerData:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const fillerData = static_cast<OMX_ALG_VIDEO_PARAM_FILLER_DATA*>(param);
 
     if(!SetVideoFillerData(*fillerData, *port, ToEncModule(*module)))
@@ -1197,6 +1272,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexParamVideoSlices:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const slices = static_cast<OMX_ALG_VIDEO_PARAM_SLICES*>(param);
 
     if(!SetVideoSlices(*slices, *port, ToEncModule(*module)))
@@ -1206,6 +1285,10 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexPortParamBufferMode:
   {
     auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
     auto const portBufferMode = static_cast<OMX_ALG_PORT_PARAM_BUFFER_MODE*>(param);
 
     if(!SetPortBufferMode(*portBufferMode, *port, ToEncModule(*module)))
