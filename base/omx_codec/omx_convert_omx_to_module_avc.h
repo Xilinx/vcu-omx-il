@@ -38,7 +38,7 @@
 #pragma once
 
 #include <OMX_VideoExt.h>
-#include "base/omx_mediatype/omx_mediatype_structs.h"
+#include "base/omx_mediatype/omx_mediatype_interface_structs.h"
 
 ProfileLevelType ConvertToModuleAVCProfileLevel(OMX_VIDEO_AVCPROFILETYPE const& profile, OMX_VIDEO_AVCLEVELTYPE const& level);
 

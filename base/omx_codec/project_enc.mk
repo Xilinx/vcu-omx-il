@@ -11,4 +11,4 @@ OMX_CODEC_ENC_SRCS+=\
 	$(THIS.omx_codec_enc)/omx_convert_omx_to_module_enc_avc.cpp\
 	$(THIS.omx_codec_enc)/omx_convert_omx_to_module_enc_hevc.cpp\
 
-
+UNITTESTS+=$(OMX_CODEC_ENC_SRCS)

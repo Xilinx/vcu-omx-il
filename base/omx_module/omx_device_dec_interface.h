@@ -37,6 +37,8 @@
 
 #pragma once
 
+#include "omx_device_codec_structs.h"
+
 extern "C"
 {
 #include <lib_decode/lib_decode.h>
@@ -51,5 +53,6 @@ struct DecDevice
   };
   virtual AL_TIDecChannel* Init(AL_EDecUnit const& decoderUnit, AL_TAllocator const& allocator) = 0;
   virtual void Deinit() = 0;
+  virtual AllocationRequirements GetAllocationRequirements() = 0;
 };
 

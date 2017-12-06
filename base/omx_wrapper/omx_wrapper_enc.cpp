@@ -50,36 +50,50 @@
 #include <memory>
 #include <functional>
 
+#include <stdexcept>
+using namespace std;
+
 extern "C" {
 #include "lib_fpga/DmaAlloc.h"
 }
 
+static AL_TAllocator* createDmaAlloc(string deviceName)
+{
+  auto alloc = DmaAlloc_Create(deviceName.c_str());
+
+  if(alloc == nullptr)
+    throw runtime_error(string("Couldnt allocate dma allocator (tried using ") + deviceName + string(")"));
+  return alloc;
+}
+
+
 #include "base/omx_codec/omx_expertise_enc_avc.h"
 #include "base/omx_mediatype/omx_mediatype_enc_avc.h"
 
+
 static EncCodec* GenerateAvcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
-  std::unique_ptr<EncMediatypeAVC> mediatype(new EncMediatypeAVC);
-  std::unique_ptr<EncDeviceHardwareMcu> device(new EncDeviceHardwareMcu);
-  deleted_unique_ptr<AL_TAllocator> allocator(DmaAlloc_Create("/dev/allegroIP"), [](AL_TAllocator* allocator) {
+  unique_ptr<EncMediatypeAVC> mediatype(new EncMediatypeAVC);
+  unique_ptr<EncDeviceHardwareMcu> device(new EncDeviceHardwareMcu);
+  deleted_unique_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroIP"), [](AL_TAllocator* allocator) {
     AL_Allocator_Destroy(allocator);
   });
-  std::unique_ptr<EncModule> module(new EncModule(std::move(mediatype), std::move(device), std::move(allocator)));
-  std::unique_ptr<EncExpertiseAVC> expertise(new EncExpertiseAVC);
-  return new EncCodec(hComponent, std::move(module), cComponentName, cRole, std::move(expertise));
+  unique_ptr<EncModule> module(new EncModule(move(mediatype), move(device), move(allocator)));
+  unique_ptr<EncExpertiseAVC> expertise(new EncExpertiseAVC);
+  return new EncCodec(hComponent, move(module), cComponentName, cRole, move(expertise));
 }
 
 
 static EncCodec* GenerateHevcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
-  std::unique_ptr<EncMediatypeHEVC> mediatype(new EncMediatypeHEVC);
-  std::unique_ptr<EncDeviceHardwareMcu> device(new EncDeviceHardwareMcu);
-  deleted_unique_ptr<AL_TAllocator> allocator(DmaAlloc_Create("/dev/allegroIP"), [](AL_TAllocator* allocator) {
+  unique_ptr<EncMediatypeHEVC> mediatype(new EncMediatypeHEVC);
+  unique_ptr<EncDeviceHardwareMcu> device(new EncDeviceHardwareMcu);
+  deleted_unique_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroIP"), [](AL_TAllocator* allocator) {
     AL_Allocator_Destroy(allocator);
   });
-  std::unique_ptr<EncModule> module(new EncModule(std::move(mediatype), std::move(device), std::move(allocator)));
-  std::unique_ptr<EncExpertiseHEVC> expertise(new EncExpertiseHEVC);
-  return new EncCodec(hComponent, std::move(module), cComponentName, cRole, std::move(expertise));
+  unique_ptr<EncModule> module(new EncModule(move(mediatype), move(device), move(allocator)));
+  unique_ptr<EncExpertiseHEVC> expertise(new EncExpertiseHEVC);
+  return new EncCodec(hComponent, move(module), cComponentName, cRole, move(expertise));
 }
 
 

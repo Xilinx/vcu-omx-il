@@ -54,6 +54,7 @@ void EncMediatypeHEVC::Reset()
   auto& chan = settings.tChParam;
   chan.eProfile = AL_PROFILE_HEVC_MAIN;
   AL_Settings_SetDefaultParam(&settings);
+  chan.uLevel = 10;
 }
 
 CompressionType EncMediatypeHEVC::Compression() const

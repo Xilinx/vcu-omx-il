@@ -80,6 +80,7 @@ extern "C"
 #include "../common/helpers.h"
 #include "../common/setters.h"
 #include "../common/getters.h"
+#include "../common/CommandLineParser.h"
 
 extern "C"
 {
@@ -170,25 +171,9 @@ static string output_file;
 
 static ifstream infile;
 static ofstream outfile;
+static int user_slice = 0;
 
 static OMX_PARAM_PORTDEFINITIONTYPE paramPort;
-
-static void displayUsage()
-{
-  cout << "Usage: omx_encoder.exe FILE [OPTION]" << endl;
-  cout << "Options:" << endl;
-  cout << "\t" << "-help help" << endl;
-  cout << "\t" << "-o outfile: Output compressed file name" << endl;
-  cout << "\t" << "-w <input width>" << endl;
-  cout << "\t" << "-h <input height>" << endl;
-  cout << "\t" << "-r <input fps>" << endl;
-  cout << "\t" << "-chroma <NV12 || RX0A || NV16 || RX2A> ('NV12' default)" << endl;
-  cout << "\t" << "-hevc: load HEVC encoder (default)" << endl;
-  cout << "\t" << "-avc : load AVC encoder" << endl;
-  cout << "\t" << "-dma-in : use dmabufs for input port" << endl;
-  cout << "\t" << "-dma-out : use dmabufs for output port" << endl;
-  cout << "\t" << "-subframe <4 || 8 || 16> : activate subframe latency " << endl;
-}
 
 static OMX_ERRORTYPE setPortParameters(Application& app)
 {
@@ -219,100 +204,100 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   isBufModeSetted = setter.SetBufferMode(app.output.index, GetBufferMode(app.output.isDMA));
   assert(isBufModeSetted);
 
+  if(user_slice)
+  {
+    OMX_ALG_VIDEO_PARAM_SLICES slices;
+    initHeader(slices);
+    slices.nPortIndex = 1;
+    slices.nNumSlices = user_slice;
+    OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSlices), &slices);
+
+    OMX_ALG_VIDEO_PARAM_SUBFRAME sub;
+    initHeader(sub);
+    sub.nPortIndex = 1;
+    sub.bEnableSubframe = OMX_TRUE;
+    OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSubframe), &sub);
+  }
+
   LOGV("Input picture: %ux%u", app.settings.width, app.settings.height);
   return OMX_ErrorNone;
 };
 
-static string popArg(queue<string>& args)
+static void Usage(CommandLineParser const& opt, char* ExeName)
 {
-  if(args.empty())
-  {
-    cerr << "Invalid command line" << endl;
-    displayUsage();
-    return "";
-  }
-  auto const word = args.front();
-  args.pop();
-  return word;
-};
+  cerr << "Usage: " << ExeName << " <InputFile> [options]" << endl;
+  cerr << "Options:" << endl;
 
-static int popInt(queue<string>& args)
-{
-  auto const word = popArg(args);
-  return atoi(word.c_str());
-};
+  for(auto& name : opt.displayOrder)
+  {
+    auto& o = opt.options.at(name);
+    cerr << "  " << o.desc << endl;
+  }
+}
 
 static void parseCommandLine(int argc, char** argv, Application& app)
 {
-  queue<string> args;
   Settings& settings = app.settings;
+  string user_chroma = "NV12";
+  bool help = false;
 
-  for(int i = 1; i < argc; ++i)
-    args.push(argv[i]);
+  auto opt = CommandLineParser();
+  opt.addFlag("--help,-help,-h", &help, "Show this help");
+  opt.addInt("--width,-w", &settings.width, "Input width");
+  opt.addInt("--height,-h", &settings.height, "Input height");
+  opt.addInt("--framerate,-r", &settings.framerate, "Input fps");
+  opt.addString("--out,-o", &output_file, "Output compressed file name");
+  opt.addString("--chroma,-chroma", &user_chroma, "<NV12 || RX0A || NV16 || RX2A> ('NV12' default)");
+  opt.addFlag("--hevc,-hevc", &settings.codec, "", HEVC);
+  opt.addFlag("--avc,-avc", &settings.codec, "", AVC);
+  opt.addFlag("--hevc_hard,-hevc_hard", &settings.codec, "Use hard hevc decoder", HEVC_HARD);
+  opt.addFlag("--avc_hard,-hevc_hard", &settings.codec, "Use hard avc decoder", AVC_HARD);
+  opt.addFlag("--dma-in,-dma-in", &app.input.isDMA, "Use dmabufs for input port");
+  opt.addFlag("--dma-out,-dma-out", &app.output.isDMA, "Use dmabufs for output port");
+  opt.addInt("--subframe,-subframe", &user_slice, "<4 || 8 || 16>: activate subframe latency");
 
-  if(args.empty())
+  if(argc < 2)
   {
-    displayUsage();
+    Usage(opt, argv[0]);
+    exit(1);
+  }
+
+  input_file = string(argv[1]);
+  opt.parse(argc - 1, &argv[1]);
+
+  if(help)
+  {
+    Usage(opt, argv[0]);
     exit(0);
   }
 
-  auto const word = popArg(args);
-  input_file = word;
-
-  while(!args.empty())
+  if(user_chroma == "NV12")
+    settings.format = OMX_COLOR_FormatYUV420SemiPlanar;
+  else if(user_chroma == "NV16")
+    settings.format = OMX_COLOR_FormatYUV422SemiPlanar;
+  else if(user_chroma == "RX0A")
+    settings.format = (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked;
+  else if(user_chroma == "RX2A")
+    settings.format = (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
+  else
   {
-    auto const word = popArg(args);
+    Usage(opt, argv[0]);
+    cerr << "[Error] chroma parameter was incorrectly set" << endl;
+    exit(1);
+  }
 
-    if(!word.empty() && word[0] == '-')
-    {
-      if(word == "-help")
-      {
-        displayUsage();
-        exit(0);
-      }
-      else if(word == "-w")
-        settings.width = popInt(args);
-      else if(word == "-h")
-        settings.height = popInt(args);
-      else if(word == "-r")
-        settings.framerate = popInt(args);
-      else if(word == "-o")
-        output_file = popArg(args);
-      else if(word == "-chroma")
-      {
-        const string user_chroma = popArg(args);
-
-        if(!strncmp(user_chroma.c_str(), "NV12", strlen(user_chroma.c_str())))
-          settings.format = OMX_COLOR_FormatYUV420SemiPlanar;
-        else if(!strncmp(user_chroma.c_str(), "NV16", strlen(user_chroma.c_str())))
-          settings.format = OMX_COLOR_FormatYUV422SemiPlanar;
-        else if(!strncmp(user_chroma.c_str(), "RX0A", strlen(user_chroma.c_str())))
-          settings.format = (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked;
-        else if(!strncmp(user_chroma.c_str(), "RX2A", strlen(user_chroma.c_str())))
-          settings.format = (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
-        else
-          assert(0);
-      }
-      else if(word == "-hevc_hard")
-        settings.codec = HEVC_HARD;
-      else if(word == "-avc_hard")
-        settings.codec = AVC_HARD;
-
-      else if(word == "-hevc")
-        settings.codec = HEVC;
-      else if(word == "-avc")
-        settings.codec = AVC;
-      else if(word == "-dma-in")
-        app.input.isDMA = true;
-      else if(word == "-dma-out")
-        app.output.isDMA = true;
-    }
+  if(!(user_slice == 0 || user_slice == 4 || user_slice == 8 || user_slice == 16))
+  {
+    Usage(opt, argv[0]);
+    cerr << "[Error] subframe parameter was incorrectly set" << endl;
+    exit(1);
   }
 
   if(input_file == "")
   {
-    cerr << "No input file found" << endl;
-    exit(0);
+    Usage(opt, argv[0]);
+    cerr << "[Error] No input file found" << endl;
+    exit(1);
   }
 
   if(output_file == "")
@@ -600,6 +585,23 @@ static void freeAllocBuffers(OMX_U32 nPortIndex, Application& app)
   }
 }
 
+string chooseComponent(EncCodec codec)
+{
+  switch(codec)
+  {
+  case AVC:
+    return "OMX.allegro.h264.encoder";
+  case AVC_HARD:
+    return "OMX.allegro.h264.hardware.encoder";
+  case HEVC:
+    return "OMX.allegro.h265.encoder";
+  case HEVC_HARD:
+    return "OMX.allegro.h265.hardware.encoder";
+  default:
+    assert(0);
+  }
+}
+
 static OMX_ERRORTYPE safeMain(int argc, char** argv)
 {
   Application app;
@@ -624,25 +626,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   OMX_CALL(OMX_Init());
 
-  string component;
-  switch(app.settings.codec)
-  {
-  case AVC:
-    component = "OMX.allegro.h264.encoder";
-    break;
-  case AVC_HARD:
-    component = "OMX.allegro.h264.hardware.encoder";
-    break;
-  case HEVC:
-    component = "OMX.allegro.h265.encoder";
-    break;
-  case HEVC_HARD:
-    component = "OMX.allegro.h265.hardware.encoder";
-    break;
-
-  default:
-    assert(0);
-  }
+  auto component = chooseComponent(app.settings.codec);
 
   OMX_CALLBACKTYPE const videoEncoderCallbacks =
   {
@@ -669,8 +653,21 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   if(ret != OMX_ErrorNone)
     return ret;
 
-  /** Allocate Buffers **/
-  app.pAllocator = DmaAlloc_Create("/dev/allegroIP");
+  app.pAllocator = nullptr;
+
+  if(app.input.isDMA || app.output.isDMA)
+  {
+    auto constexpr deviceName = "/dev/allegroIP";
+    app.pAllocator = DmaAlloc_Create(deviceName);
+
+    if(!app.pAllocator)
+      throw runtime_error(string("Couldn't create dma allocator (using ") + deviceName + string(")"));
+  }
+
+  auto scopeAlloc = scopeExit([&]() {
+    if(app.pAllocator)
+      AL_Allocator_Destroy(app.pAllocator);
+  });
 
   Getters get(&app.hEncoder);
 
@@ -747,9 +744,6 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   OMX_FreeHandle(app.hEncoder);
   OMX_Deinit();
 
-  if(app.pAllocator)
-    AL_Allocator_Destroy(app.pAllocator);
-
   infile.close();
   outfile.close();
   return OMX_ErrorNone;
@@ -758,14 +752,23 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 int main(int argc, char** argv)
 {
   OMX_ERRORTYPE ret;
-  ret = safeMain(argc, argv);
 
-  if(ret == OMX_ErrorNone)
-    return 0;
-  else
+  try
   {
-    cerr << "Fatal error" << endl;
-    return -1;
+    ret = safeMain(argc, argv);
+
+    if(ret == OMX_ErrorNone)
+      return 0;
+    else
+    {
+      cerr << "Fatal error" << endl;
+      return 1;
+    }
+  }
+  catch(runtime_error const& error)
+  {
+    cerr << endl << "Exception caught: " << error.what() << endl;
+    return 1;
   }
 }
 

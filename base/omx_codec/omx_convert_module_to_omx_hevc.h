@@ -38,7 +38,7 @@
 #pragma once
 
 #include <OMX_VideoExt.h>
-#include "base/omx_mediatype/omx_mediatype_structs.h"
+#include "base/omx_mediatype/omx_mediatype_interface_structs.h"
 
 OMX_ALG_VIDEO_HEVCPROFILETYPE ConvertToOMXHEVCProfile(ProfileLevelType const& profileLevel);
 OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertToOMXHEVCLevel(ProfileLevelType const& profileLevel);

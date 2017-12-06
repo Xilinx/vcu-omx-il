@@ -38,11 +38,11 @@
 #pragma once
 #include "omx_module_interface.h"
 #include "omx_device_dec_interface.h"
-#include "omx_module_enums_dec.h"
+#include "omx_module_dec_enums.h"
+#include "omx_module_codec_structs.h"
 
 #include <vector>
 #include <queue>
-#include <condition_variable>
 
 #include "base/omx_mediatype/omx_mediatype_dec_interface.h"
 #include "base/omx_utils/threadsafe_map.h"
@@ -100,26 +100,12 @@ public:
   bool Empty(uint8_t* handle, int offset, int size);
   bool Fill(uint8_t* handle, int offset, int size);
 
-  bool Run();
+  bool Run(bool shouldPrealloc);
   bool Pause();
   bool Flush();
   void Stop();
 
 private:
-  struct EOSHandles
-  {
-    EOSHandles() : input(nullptr), output(nullptr), eosSent(false), eosReiceive(false)
-    {
-    }
-
-    AL_TBuffer* input;
-    AL_TBuffer* output;
-    bool eosSent;
-    bool eosReiceive;
-    std::condition_variable cv;
-    std::mutex mutex;
-  };
-
   std::unique_ptr<DecMediatypeInterface> media;
   std::unique_ptr<DecDevice> device;
   deleted_unique_ptr<AL_TAllocator> allocator;
@@ -138,7 +124,7 @@ private:
   AL_HDecoder decoder;
 
   EOSHandles eosHandles;
-  bool CreateDecoder();
+  bool CreateDecoder(bool shouldPrealloc);
   bool DestroyDecoder();
   bool isSettingsOk;
 
@@ -159,12 +145,12 @@ private:
   };
   void Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info);
 
-  static void RedirectionResolutionFound(int buffersNumber, int bufferSize, AL_TDimension dim, AL_TCropInfo crop, TFourCC fourCC, void* userParam)
+  static void RedirectionResolutionFound(int buffersNumber, int bufferSize, AL_TStreamSettings const* settings, AL_TCropInfo const* crop, void* userParam)
   {
     auto pThis = static_cast<DecModule*>(userParam);
-    pThis->ResolutionFound(buffersNumber, bufferSize, dim, crop, fourCC);
+    pThis->ResolutionFound(buffersNumber, bufferSize, *settings, *crop);
   };
-  void ResolutionFound(int const& bufferNumber, int const& bufferSize, AL_TDimension const& dim, AL_TCropInfo const& crop, TFourCC const& fourCC);
+  void ResolutionFound(int const& bufferNumber, int const& bufferSize, AL_TStreamSettings const& settings, AL_TCropInfo const& crop);
 
   static void RedirectionInputBufferDestroy(AL_TBuffer* input)
   {

@@ -41,8 +41,8 @@ extern "C"
 {
 #include <lib_common/SliceConsts.h>
 }
+#include "base/omx_mediatype/omx_mediatype_interface_enums.h"
 
-#include "base/omx_mediatype/omx_mediatype_enums.h"
-
+AL_EChromaMode ConvertToSoftChroma(ColorType const& color);
 ColorType ConvertToModuleColor(AL_EChromaMode const& chroma);
 

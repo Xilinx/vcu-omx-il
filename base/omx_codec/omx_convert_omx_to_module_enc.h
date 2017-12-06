@@ -38,9 +38,9 @@
 #pragma once
 
 #include <OMX_VideoExt.h>
-#include "base/omx_mediatype/omx_mediatype_enums_enc.h"
-#include "base/omx_module/omx_module_enums_enc.h"
-#include "base/omx_module/omx_module_structs_enc.h"
+#include "base/omx_mediatype/omx_mediatype_enc_enums.h"
+#include "base/omx_module/omx_module_enc_enums.h"
+#include "base/omx_module/omx_module_enc_structs.h"
 
 int ConvertToModuleBFrames(OMX_U32 const& bFrames, OMX_U32 const& pFrames);
 int ConvertToModuleGopLength(OMX_U32 const& bFrames, OMX_U32 const& pFrames);

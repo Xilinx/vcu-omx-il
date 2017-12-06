@@ -58,7 +58,7 @@ void DecMediatypeHEVC::Reset()
   settings.tStream.tDim = { 176, 144 };
   settings.tStream.eChroma = CHROMA_4_2_0;
   settings.tStream.iBitDepth = 8;
-  settings.tStream.iLevel = 51;
+  settings.tStream.iLevel = 10;
   settings.tStream.iProfileIdc = AL_PROFILE_HEVC_MAIN;
   tier = 0;
 }
@@ -118,6 +118,7 @@ static HEVCProfileType ToHighProfile(AL_EProfile const& profile)
   case AL_PROFILE_HEVC_MAIN: return HEVC_PROFILE_MAIN_HIGH_TIER;
   case AL_PROFILE_HEVC_MAIN10: return HEVC_PROFILE_MAIN10_HIGH_TIER;
   case AL_PROFILE_HEVC_MAIN_422: return HEVC_PROFILE_MAIN422_HIGH_TIER;
+  case AL_PROFILE_HEVC_MAIN_422_10: return HEVC_PROFILE_MAIN422_10_HIGH_TIER;
   case AL_PROFILE_HEVC_MAIN_STILL: return HEVC_PROFILE_MAINSTILL_HIGH_TIER;
   default:
     return HEVC_PROFILE_MAX;
@@ -135,6 +136,7 @@ static HEVCProfileType ToMainProfile(AL_EProfile const& profile)
   case AL_PROFILE_HEVC_MAIN: return HEVC_PROFILE_MAIN;
   case AL_PROFILE_HEVC_MAIN10: return HEVC_PROFILE_MAIN10;
   case AL_PROFILE_HEVC_MAIN_422: return HEVC_PROFILE_MAIN422;
+  case AL_PROFILE_HEVC_MAIN_422_10: return HEVC_PROFILE_MAIN422_10;
   case AL_PROFILE_HEVC_MAIN_STILL: return HEVC_PROFILE_MAINSTILL;
   default:
     return HEVC_PROFILE_MAX;
@@ -161,6 +163,8 @@ static AL_EProfile ToProfile(HEVCProfileType const& profile)
   case HEVC_PROFILE_MAIN10_HIGH_TIER: return AL_PROFILE_HEVC_MAIN10;
   case HEVC_PROFILE_MAIN422:
   case HEVC_PROFILE_MAIN422_HIGH_TIER: return AL_PROFILE_HEVC_MAIN_422;
+  case HEVC_PROFILE_MAIN422_10:
+  case HEVC_PROFILE_MAIN422_10_HIGH_TIER: return AL_PROFILE_HEVC_MAIN_422_10;
   case HEVC_PROFILE_MAINSTILL:
   case HEVC_PROFILE_MAINSTILL_HIGH_TIER: return AL_PROFILE_HEVC_MAIN_STILL;
   default: return AL_PROFILE_HEVC;

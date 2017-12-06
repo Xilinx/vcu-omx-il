@@ -22,13 +22,12 @@ CFLAGS+=-O3
 CFLAGS+=-g3
 LDFLAGS+=-g3
 
+CFLAGS+=-Wall -Wextra
+#CFLAGS+=-Werror
+
 ENABLE_VCU?=1
 ENABLE_MCU?=1
 ENABLE_64BIT?=1
-
-# Makes the assumption that the external ctrlsw is installed on the machine
-# disable this if you want compilation to work with a non installed ctrlsw
-LINK_SHARED_CTRLSW?=1
 
 CROSS_COMPILE?=
 
@@ -43,6 +42,8 @@ OBJCOPY:=$(CROSS_COMPILE)objcopy
 RANLIB:=$(CROSS_COMPILE)ranlib
 STRIP:=$(CROSS_COMPILE)strip
 SIZE:=$(CROSS_COMPILE)size
+
+-include compiler.mk
 
 ifeq ($(ENABLE_VCU), 1)
 	CFLAGS+=-DAL_USE_VCU

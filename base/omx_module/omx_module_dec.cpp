@@ -49,10 +49,8 @@ extern "C"
 #include <lib_common/FourCC.h>
 }
 
-#include "omx_convert_soft_to_module.h"
-#include "omx_convert_soft_to_module_dec.h"
-#include "omx_convert_module_to_soft.h"
-#include "omx_convert_module_to_soft_dec.h"
+#include "omx_convert_module_soft.h"
+#include "omx_convert_module_soft_dec.h"
 
 DecModule::DecModule(std::unique_ptr<DecMediatypeInterface>&& media, std::unique_ptr<DecDevice>&& device, deleted_unique_ptr<AL_TAllocator>&& allocator) :
   media(std::move(media)),
@@ -80,14 +78,14 @@ BuffersRequirements DecModule::GetBuffersRequirements() const
   auto& input = b.input;
   input.min = 2; // We need 2 NALUs to detect the first one
   input.size = AL_GetMaxNalSize(streamSettings.tDim, streamSettings.eChroma);
-  input.bytesAlignment = 0;
-  input.contiguous = false;
+  input.bytesAlignment = device->GetAllocationRequirements().input.bytesAlignment;
+  input.contiguous = device->GetAllocationRequirements().input.contiguous;
 
   auto& output = b.output;
   output.min = media->GetRequiredOutputBuffers() + 1; // 1 for eos
   output.size = AL_GetAllocSize_Frame(streamSettings.tDim, streamSettings.eChroma, streamSettings.iBitDepth, false, media->settings.eFBStorageMode);
-  output.bytesAlignment = 32;
-  output.contiguous = true;
+  output.bytesAlignment = device->GetAllocationRequirements().output.bytesAlignment;
+  output.contiguous = device->GetAllocationRequirements().output.contiguous;
 
   return b;
 }
@@ -154,9 +152,9 @@ int DecModule::GetLatency() const
   auto const settings = media->settings;
   auto const bufsCount = media->GetRequiredOutputBuffers() - settings.iStackSize;
 
-  double const realFramerate = (settings.uFrameRate / settings.uClkRatio);
+  auto const realFramerate = (static_cast<double>(settings.uFrameRate) / static_cast<double>(settings.uClkRatio));
 
-  auto const timeInMilliseconds = ((bufsCount * 1000.0) / realFramerate);
+  auto const timeInMilliseconds = (static_cast<double>(bufsCount * 1000.0) / realFramerate);
 
   return std::ceil(timeInMilliseconds);
 }
@@ -262,12 +260,16 @@ bool DecModule::SetEnableSubframe(bool const& enableSubframe)
 
 void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
 {
-  assert(decodedFrame);
+  if(!decodedFrame)
+  {
+    callbacks.event(CALLBACK_EVENT_ERROR, nullptr);
+    return;
+  }
+
   auto const handleOut = translateOut.Get(decodedFrame);
   assert(handleOut);
 
-  if(callbacks.associate)
-    callbacks.associate(nullptr, handleOut);
+  callbacks.associate(nullptr, handleOut);
 }
 
 void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
@@ -281,8 +283,7 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
     dpb.Remove(handleOut);
     translateOut.Remove(frameToDisplay);
 
-    if(callbacks.filled)
-      callbacks.filled(handleOut, 0, 0);
+    callbacks.release(false, handleOut);
 
     AL_Buffer_Unref(frameToDisplay);
     return;
@@ -303,21 +304,14 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
 
     if(eosIsSent)
     {
-      assert(handleIn);
-      translateIn.Remove(eosHandles.input);
-
-      if(callbacks.emptied)
-        callbacks.emptied(handleIn, 0, 0);
-
-      if(callbacks.associate)
-        callbacks.associate(handleIn, handleOut);
+      callbacks.associate(handleIn, handleOut);
+      AL_Buffer_Unref(eosHandles.input);
     }
 
-    if(callbacks.filled)
-      callbacks.filled(handleOut, 0, 0);
+    callbacks.filled(handleOut, 0, 0);
 
     std::lock_guard<std::mutex> lock(eosHandles.mutex);
-    eosHandles.eosReiceive = true;
+    eosHandles.eosReceive = true;
     eosHandles.cv.notify_one();
 
     AL_Buffer_Unref(eosHandles.output);
@@ -338,20 +332,22 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
   assert(handleOut);
   translateOut.Remove(frameToDisplay);
 
-  if(callbacks.filled)
-    callbacks.filled(handleOut, 0, size);
+  callbacks.filled(handleOut, 0, size);
 }
 
-void DecModule::ResolutionFound(int const& bufferNumber, int const& bufferSize, AL_TDimension const& dim, AL_TCropInfo const& crop, TFourCC const& fourCC)
+void DecModule::ResolutionFound(int const& bufferNumber, int const& bufferSize, AL_TStreamSettings const& settings, AL_TCropInfo const& crop)
 {
   (void)bufferNumber;
   (void)bufferSize;
-  (void)dim;
   (void)crop;
-  (void)fourCC;
+
+  media->settings.tStream = settings;
+
+  if(callbacks.event)
+    callbacks.event(CALLBACK_EVENT_RESOLUTION_CHANGE, nullptr);
 }
 
-bool DecModule::CreateDecoder()
+bool DecModule::CreateDecoder(bool shouldPrealloc)
 {
   if(decoder)
   {
@@ -371,7 +367,11 @@ bool DecModule::CreateDecoder()
     fprintf(stderr, "Failed to create Decoder: %d\n", errorCode);
     return false;
   }
-  return AL_Decoder_PreallocateBuffers(decoder);
+
+  if(shouldPrealloc)
+    AL_Decoder_PreallocateBuffers(decoder);
+
+  return true;
 }
 
 bool DecModule::DestroyDecoder()
@@ -475,12 +475,10 @@ int DecModule::AllocateDMA(int size)
 
 bool DecModule::SetCallbacks(Callbacks callbacks)
 {
-  if(!callbacks.emptied || !callbacks.associate || !callbacks.filled)
+  if(!callbacks.emptied || !callbacks.associate || !callbacks.filled || !callbacks.release)
     return false;
 
-  this->callbacks.emptied = callbacks.emptied;
-  this->callbacks.associate = callbacks.associate;
-  this->callbacks.filled = callbacks.filled;
+  this->callbacks = callbacks;
   return true;
 }
 
@@ -492,8 +490,7 @@ void DecModule::InputBufferDestroy(AL_TBuffer* input)
 
   AL_Buffer_Destroy(input);
 
-  if(callbacks.emptied)
-    callbacks.emptied(handleIn, 0, 0);
+  callbacks.emptied(handleIn, 0, 0);
 }
 
 AL_TBuffer* DecModule::CreateInputBuffer(uint8_t* buffer, int const& size)
@@ -529,6 +526,7 @@ AL_TBuffer* DecModule::CreateInputBuffer(uint8_t* buffer, int const& size)
     return nullptr;
 
   AL_Buffer_SetUserData(input, this);
+  AL_Buffer_Ref(input);
 
   return input;
 }
@@ -560,12 +558,15 @@ bool DecModule::Empty(uint8_t* buffer, int offset, int size)
     return true;
   }
 
-  return AL_Decoder_PushBuffer(decoder, input, size, AL_BUF_MODE_BLOCK);
+  auto const pushed = AL_Decoder_PushBuffer(decoder, input, size, AL_BUF_MODE_BLOCK);
+  AL_Buffer_Unref(input);
+
+  return pushed;
 }
 
 static AL_TMetaData* CreateSourceMeta(AL_TStreamSettings const& streamSettings, Resolution const& resolution)
 {
-  auto const fourCC = AL_GetSrcFourCC({ streamSettings.eChroma, static_cast<uint8_t>(streamSettings.iBitDepth) });
+  auto const fourCC = AL_GetSrcFourCC({ streamSettings.eChroma, static_cast<uint8_t>(streamSettings.iBitDepth), AL_FB_RASTER });
   AL_TPitches const pitches = { 0, 0 };
   AL_TOffsetYC const offsetYC = { 0, 0 };
   return (AL_TMetaData*)(AL_SrcMetaData_Create({ resolution.width, resolution.height }, pitches, offsetYC, fourCC));
@@ -668,7 +669,7 @@ bool DecModule::Fill(uint8_t* buffer, int offset, int size)
   return true;
 }
 
-bool DecModule::Run()
+bool DecModule::Run(bool shouldPrealloc)
 {
   if(decoder)
   {
@@ -686,15 +687,21 @@ bool DecModule::Run()
   eosHandles.input = nullptr;
   eosHandles.output = nullptr;
   eosHandles.eosSent = false;
-  eosHandles.eosReiceive = false;
+  eosHandles.eosReceive = false;
 
-  return CreateDecoder();
+  return CreateDecoder(shouldPrealloc);
 }
 
 bool DecModule::Pause()
 {
   if(!decoder)
     return false;
+
+  DestroyDecoder();
+
+  return false;
+
+  // This is not fully supported yet
 
   if(!eosHandles.eosSent)
   {
@@ -704,7 +711,7 @@ bool DecModule::Pause()
   }
 
   std::unique_lock<std::mutex> lock(eosHandles.mutex);
-  eosHandles.cv.wait(lock, [&] { return eosHandles.eosReiceive == true;
+  eosHandles.cv.wait(lock, [&] { return eosHandles.eosReceive == true;
                      });
   return DestroyDecoder();
 }
@@ -715,8 +722,7 @@ bool DecModule::Flush()
     return false;
 
   Stop();
-  Run();
-  return true;
+  return Run(true);
 }
 
 void DecModule::Stop()
@@ -733,8 +739,7 @@ void DecModule::Stop()
     dpb.Remove(handleOut);
     translateOut.Remove(eosHandles.output);
 
-    if(callbacks.filled)
-      callbacks.filled(handleOut, 0, 0);
+    callbacks.filled(handleOut, 0, 0);
 
     AL_Buffer_Unref(eosHandles.output);
     eosHandles.output = nullptr;

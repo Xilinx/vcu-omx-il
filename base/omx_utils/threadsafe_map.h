@@ -43,45 +43,36 @@ template<class K, class V>
 class ThreadSafeMap
 {
 public:
-  void Add(K key, V value);
-  void Remove(K key);
-  bool Exist(K key);
-  V Get(K key);
+  void Add(K const& key, V value)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    map.insert(std::pair<K, V>(key, value));
+  }
+
+  void Remove(K const& key)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    map.erase(key);
+  }
+
+  V Get(K const& key)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return map[key];
+  }
+
+  bool Exist(K const& key)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+
+    if(map.find(key) != map.end())
+      return true;
+
+    return false;
+  }
 
 private:
   std::mutex mutex;
   std::map<K, V> map;
 };
-
-template<class K, class V>
-void ThreadSafeMap<K, V>::Add(K key, V value)
-{
-  std::lock_guard<std::mutex> lock(mutex);
-  map.insert(std::pair<K, V>(key, value));
-}
-
-template<class K, class V>
-void ThreadSafeMap<K, V>::Remove(K key)
-{
-  std::lock_guard<std::mutex> lock(mutex);
-  map.erase(key);
-}
-
-template<class K, class V>
-V ThreadSafeMap<K, V>::Get(K key)
-{
-  std::lock_guard<std::mutex> lock(mutex);
-  return map[key];
-}
-
-template<class K, class V>
-bool ThreadSafeMap<K, V>::Exist(K key)
-{
-  std::lock_guard<std::mutex> lock(mutex);
-
-  if(map.find(key) != map.end())
-    return true;
-
-  return false;
-}
 

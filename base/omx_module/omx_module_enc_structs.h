@@ -35,77 +35,43 @@
 *
 ******************************************************************************/
 
-#include "omx_module_interface.h"
-#include "base/omx_utils/threadsafe_map.h"
-#include "base/omx_utils/processor_fifo.h"
+#pragma once
 
-#include <queue>
-#include <mutex>
-#include <condition_variable>
+#include "base/omx_module/omx_module_enc_enums.h"
 
-struct CopyBuffer
+struct Gop
 {
-  void* buffer;
-  int copy;
-  int size;
+  int b;
+  int length;
+  int idrFrequency;
+  GopControlType mode;
+  GdrType gdr;
 };
 
-class CopyModule : public ModuleInterface
+struct QPs
 {
-public:
-  CopyModule();
-  ~CopyModule()
-  {
-  }
+  int initial;
+  int deltaIP;
+  int deltaPB;
+  int min;
+  int max;
+  QPControlType mode;
+};
 
-  void ResetRequirements();
-  BuffersRequirements GetBuffersRequirements() const;
+struct Bitrates
+{
+  int target; // In kbits
+  int max; // In kbits
+  int cpb; // CPB in milliseconds
+  int ird; // InitialRemovalDelay in milliseconds
+  RateControlType mode;
+  RateControlOptionType option;
+};
 
-  Resolutions GetResolutions() const;
-  Clocks GetClocks() const;
-  Formats GetFormats() const;
-
-  bool SetResolutions(Resolutions const& resolutions);
-  bool SetClocks(Clocks const& clocks);
-  bool SetFormats(Formats const& formats);
-
-  bool SetCallbacks(Callbacks callbacks);
-
-  bool Create();
-  void Destroy();
-
-  void Free(void* buffer);
-  void* Allocate(size_t size);
-
-  bool Empty(uint8_t* handle, int offset, int size);
-  bool Fill(uint8_t* handle, int offset, int size);
-
-  bool Run();
-  bool Pause();
-  bool Flush();
-  void Stop();
-
-private:
-  std::queue<uint8_t*> input;
-  std::queue<uint8_t*> output;
-  std::mutex mutex;
-  bool eos;
-  std::condition_variable cv;
-
-  BuffersRequirements reqBuf;
-  Resolutions resolutions;
-  Formats formats;
-  Clocks clocks;
-  Callbacks callbacks;
-  ThreadSafeMap<void*, CopyBuffer*> buffers;
-  bool isCreated;
-
-  void CreateOneCopyTask();
-  void AddBuffer(void* handle, void* buffer, int size);
-  void RemoveBuffer(void* buffer);
-
-  std::unique_ptr<ProcessorFifo> processor;
-  void _Process(void* data);
-  void _Delete(void* data);
+struct Slices
+{
+  int num;
+  int size;
+  bool dependent;
 };
 

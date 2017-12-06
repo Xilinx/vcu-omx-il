@@ -39,7 +39,7 @@
 
 #include <OMX_VideoExt.h>
 #include <OMX_ComponentAlg.h>
-#include "base/omx_module/omx_module_structs.h"
+#include "base/omx_module/omx_module_interface_structs.h"
 
 OMX_COLOR_FORMATTYPE ConvertToOMXColor(ColorType const& color, int const& bitdepth);
 OMX_VIDEO_CODINGTYPE ConvertToOMXCompression(CompressionType const& compression);

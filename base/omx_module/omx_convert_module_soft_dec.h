@@ -37,93 +37,17 @@
 
 #pragma once
 
-#include "base/omx_mediatype/omx_mediatype_enums.h"
-#include <string>
-
-struct BufferDefinitions
+extern "C"
 {
-  int min;
-  int size;
-  int bytesAlignment;
-  bool contiguous;
-};
+#include <lib_common_dec/DecDpbMode.h>
+#include <lib_common_dec/DecChanParam.h>
+}
 
-struct BuffersRequirements
-{
-  BufferDefinitions input;
-  BufferDefinitions output;
-};
+#include "omx_module_dec_enums.h"
 
-struct Resolution
-{
-  int width;
-  int height;
-  int stride;
-  int sliceHeight;
+AL_EDpbMode ConvertToSoftDecodedPictureBuffer(DecodedPictureBufferType const& mode);
+AL_EDecUnit ConvertToSoftDecodeUnit(DecodeUnitType const& unit);
 
-  bool operator != (Resolution const& resolution) const
-  {
-    if(resolution.width != width)
-      return true;
-
-    if(resolution.height != height)
-      return true;
-
-    if(resolution.stride != stride)
-      return true;
-
-    if(resolution.sliceHeight != sliceHeight)
-      return true;
-
-    return false;
-  }
-};
-
-struct Resolutions
-{
-  Resolution input;
-  Resolution output;
-};
-
-struct Clock
-{
-  int framerate;
-  int clockratio;
-
-  bool operator != (Clock const& clock) const
-  {
-    if(clock.framerate != framerate)
-      return true;
-
-    if(clock.clockratio != clockratio)
-      return true;
-    return false;
-  }
-};
-
-struct Clocks
-{
-  Clock input;
-  Clock output;
-};
-
-struct Format
-{
-  std::string mime;
-  CompressionType compression;
-  ColorType color;
-  int bitdepth;
-};
-
-struct Formats
-{
-  Format input;
-  Format output;
-};
-
-struct FileDescriptors
-{
-  bool input;
-  bool output;
-};
+DecodedPictureBufferType ConvertToModuleDecodedPictureBuffer(AL_EDpbMode const& mode);
+DecodeUnitType ConvertToModuleDecodeUnit(AL_EDecUnit const& unit);
 

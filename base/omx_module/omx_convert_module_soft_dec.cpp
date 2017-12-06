@@ -35,20 +35,57 @@
 *
 ******************************************************************************/
 
-#pragma once
+#include "omx_convert_module_soft_dec.h"
+#include <assert.h>
 
-extern "C"
+AL_EDpbMode ConvertToSoftDecodedPictureBuffer(DecodedPictureBufferType const& mode)
 {
-#include <lib_common_enc/EncChanParam.h>
-#include <lib_common_enc/Settings.h>
-}
-#include "omx_module_enums_enc.h"
+  switch(mode)
+  {
+  case DECODED_PICTURE_BUFFER_NORMAL: return AL_DPB_NORMAL;
+  case DECODED_PICTURE_BUFFER_LOW_REFERENCE: return AL_DPB_LOW_REF;
+  case DECODED_PICTURE_BUFFER_MAX: // fallthrough
+  default: return AL_DPB_MAX_ENUM;
+  }
 
-AL_ERateCtrlMode ConvertToSoftRateControl(RateControlType const& mode);
-AL_EAspectRatio ConvertToSoftAspectRatio(AspectRatioType const& aspectRatio);
-AL_EGopCtrlMode ConvertToSoftGopControl(GopControlType const& mode);
-AL_EScalingList ConvertToSoftScalingList(ScalingListType const& scalingList);
-AL_EGdrMode ConvertToSoftGdr(GdrType const& gdr);
-AL_ERateCtrlOption ConvertToSoftRateControlOption(RateControlOptionType const& option);
-AL_EQpCtrlMode ConvertToSoftQPControl(QPControlType const& mode);
+  return AL_DPB_MAX_ENUM;
+}
+
+AL_EDecUnit ConvertToSoftDecodeUnit(DecodeUnitType const& unit)
+{
+  switch(unit)
+  {
+  case DECODE_UNIT_FRAME: return AL_AU_UNIT;
+  case DECODE_UNIT_SLICE: return AL_VCL_NAL_UNIT;
+  case DECODE_UNIT_MAX: // fallthrough
+  default: assert(0);
+  }
+
+  assert(0);
+}
+
+DecodedPictureBufferType ConvertToModuleDecodedPictureBuffer(AL_EDpbMode const& mode)
+{
+  switch(mode)
+  {
+  case AL_DPB_NORMAL: return DECODED_PICTURE_BUFFER_NORMAL;
+  case AL_DPB_LOW_REF: return DECODED_PICTURE_BUFFER_LOW_REFERENCE;
+  case AL_DPB_MAX_ENUM: // fallthrough
+  default: return DECODED_PICTURE_BUFFER_MAX;
+  }
+
+  return DECODED_PICTURE_BUFFER_MAX;
+}
+
+DecodeUnitType ConvertToModuleDecodeUnit(AL_EDecUnit const& unit)
+{
+  switch(unit)
+  {
+  case AL_AU_UNIT: return DECODE_UNIT_FRAME;
+  case AL_VCL_NAL_UNIT: return DECODE_UNIT_SLICE;
+  default: return DECODE_UNIT_MAX;
+  }
+
+  return DECODE_UNIT_MAX;
+}
 

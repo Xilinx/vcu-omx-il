@@ -43,6 +43,10 @@ extern "C"
 #include <lib_encode/hardwareDriver.h>
 }
 
+EncDeviceHardwareMcu::~EncDeviceHardwareMcu()
+{
+}
+
 TScheduler* EncDeviceHardwareMcu::Init(AL_TEncSettings const &, AL_TAllocator const& allocator)
 {
   return AL_SchedulerMcu_Create(AL_GetHardwareDriver(), &const_cast<AL_TAllocator &>(allocator));
@@ -54,7 +58,12 @@ void EncDeviceHardwareMcu::Deinit(TScheduler* scheduler)
     AL_ISchedulerEnc_Destroy(scheduler);
 }
 
-EncDeviceHardwareMcu::~EncDeviceHardwareMcu()
+AllocationRequirements EncDeviceHardwareMcu::GetAllocationRequirements()
 {
+  AllocationDefinition input = { 32, true };
+  AllocationDefinition output = { 32, true };
+  return {
+           input, output
+  };
 }
 

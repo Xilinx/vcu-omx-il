@@ -38,9 +38,9 @@
 #pragma once
 
 #include <OMX_VideoExt.h>
-#include "base/omx_mediatype/omx_mediatype_enums_enc.h"
-#include "base/omx_module/omx_module_enums_enc.h"
-#include "base/omx_module/omx_module_structs_enc.h"
+#include "base/omx_mediatype/omx_mediatype_enc_enums.h"
+#include "base/omx_module/omx_module_enc_enums.h"
+#include "base/omx_module/omx_module_enc_structs.h"
 
 OMX_BOOL ConvertToOMXEntropyCoding(EntropyCodingType const& mode);
 OMX_U32 ConvertToOMXBFrames(Gop const& gop);

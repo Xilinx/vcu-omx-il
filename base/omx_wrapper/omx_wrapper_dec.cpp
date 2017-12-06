@@ -50,18 +50,32 @@
 #include <memory>
 #include <functional>
 
+#include <stdexcept>
+using namespace std;
+
 extern "C" {
 #include "lib_fpga/DmaAlloc.h"
 }
 
+static AL_TAllocator* createDmaAlloc(string deviceName)
+{
+  auto alloc = DmaAlloc_Create(deviceName.c_str());
+
+  if(alloc == nullptr)
+    throw runtime_error(string("Couldnt allocate dma allocator (tried using ") + deviceName + string(")"));
+  return alloc;
+}
+
+
 #include "base/omx_codec/omx_expertise_dec_avc.h"
 #include "base/omx_mediatype/omx_mediatype_dec_avc.h"
+
 
 static DecCodec* GenerateAvcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
   std::unique_ptr<DecMediatypeAVC> mediatype(new DecMediatypeAVC);
   std::unique_ptr<DecDeviceHardwareMcu> device(new DecDeviceHardwareMcu);
-  deleted_unique_ptr<AL_TAllocator> allocator(DmaAlloc_Create("/dev/allegroDecodeIP"), [](AL_TAllocator* allocator) {
+  deleted_unique_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroDecodeIP"), [](AL_TAllocator* allocator) {
     AL_Allocator_Destroy(allocator);
   });
   std::unique_ptr<DecModule> module(new DecModule(std::move(mediatype), std::move(device), std::move(allocator)));
@@ -74,7 +88,7 @@ static DecCodec* GenerateHevcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING
 {
   std::unique_ptr<DecMediatypeHEVC> mediatype(new DecMediatypeHEVC);
   std::unique_ptr<DecDeviceHardwareMcu> device(new DecDeviceHardwareMcu);
-  deleted_unique_ptr<AL_TAllocator> allocator(DmaAlloc_Create("/dev/allegroDecodeIP"), [](AL_TAllocator* allocator) {
+  deleted_unique_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroDecodeIP"), [](AL_TAllocator* allocator) {
     AL_Allocator_Destroy(allocator);
   });
   std::unique_ptr<DecModule> module(new DecModule(std::move(mediatype), std::move(device), std::move(allocator)));

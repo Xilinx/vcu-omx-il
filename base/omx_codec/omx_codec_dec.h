@@ -69,6 +69,8 @@ private:
   void EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size);
   void AssociateCallBack(uint8_t* empty, uint8_t* fill);
   void FillThisBufferCallBack(uint8_t* filled, int offset, int size);
+  void EventCallBack(CallbackEventType type, void* data);
+
   void TreatEmptyBufferCommand(Task* task);
   std::unique_ptr<DecExpertise> expertise;
   std::list<PropagatedData> transmit;

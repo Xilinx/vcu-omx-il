@@ -35,5 +35,36 @@
 *
 ******************************************************************************/
 
-#pragma once
+#include "omx_convert_module_soft.h"
+
+AL_EChromaMode ConvertToSoftChroma(ColorType const& color)
+{
+  switch(color)
+  {
+  case COLOR_MONO: return CHROMA_MONO;
+  case COLOR_420: return CHROMA_4_2_0;
+  case COLOR_422: return CHROMA_4_2_2;
+  case COLOR_444: return CHROMA_4_4_4;
+  case COLOR_MAX: // fallthrough
+  default:
+    return CHROMA_MAX_ENUM;
+  }
+
+  return CHROMA_MAX_ENUM;
+}
+
+ColorType ConvertToModuleColor(AL_EChromaMode const& chroma)
+{
+  switch(chroma)
+  {
+  case CHROMA_4_0_0: return COLOR_MONO;
+  case CHROMA_4_2_0: return COLOR_420;
+  case CHROMA_4_2_2: return COLOR_422;
+  case CHROMA_4_4_4: return COLOR_444;
+  case CHROMA_MAX_ENUM: // fallthrough
+  default: return COLOR_MAX;
+  }
+
+  return COLOR_MAX;
+}
 

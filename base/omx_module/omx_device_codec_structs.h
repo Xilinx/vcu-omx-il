@@ -37,11 +37,15 @@
 
 #pragma once
 
-extern "C"
+struct AllocationDefinition
 {
-#include <lib_common/SliceConsts.h>
-}
-#include "base/omx_mediatype/omx_mediatype_enums.h"
+  int bytesAlignment;
+  bool contiguous;
+};
 
-AL_EChromaMode ConvertToSoftChroma(ColorType const& color);
+struct AllocationRequirements
+{
+  AllocationDefinition input;
+  AllocationDefinition output;
+};
 

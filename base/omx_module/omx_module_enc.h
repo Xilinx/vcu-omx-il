@@ -37,13 +37,12 @@
 
 #pragma once
 #include "omx_module_interface.h"
-#include "omx_module_structs_enc.h"
+#include "omx_module_enc_structs.h"
 #include "omx_device_enc_interface.h"
+#include "omx_module_codec_structs.h"
 
 #include <string.h>
 #include <vector>
-#include <condition_variable>
-#include <mutex>
 
 #include "base/omx_utils/threadsafe_map.h"
 #include "base/omx_mediatype/omx_mediatype_enc_interface.h"
@@ -55,7 +54,8 @@ extern "C"
 
 struct Flags
 {
-  Flags() : isConfig(false), isSync(false), isEndOfSlice(false), isEndOfFrame(false)
+  Flags() :
+    isConfig(false), isSync(false), isEndOfSlice(false), isEndOfFrame(false)
   {
   };
   bool isConfig;
@@ -63,9 +63,6 @@ struct Flags
   bool isEndOfSlice;
   bool isEndOfFrame;
 };
-
-template<typename T>
-using deleted_unique_ptr = std::unique_ptr<T, std::function<void(T*)>>;
 
 class EncModule : public ModuleInterface
 {
@@ -136,7 +133,7 @@ public:
   bool Fill(uint8_t* handle, int offset, int size);
   Flags GetFlags(void* handle);
 
-  bool Run();
+  bool Run(bool shouldPrealloc);
   bool Pause();
   bool Flush();
   void Stop();
@@ -144,24 +141,6 @@ public:
 private:
   bool Use(void* handle, uint8_t* buffer, int size);
   void Unuse(void* handle);
-  struct EOSHandles
-  {
-    EOSHandles()
-    {
-      input = nullptr;
-      output = nullptr;
-      eosSent = false;
-      eosReiceive = false;
-    }
-
-    AL_TBuffer* input;
-    AL_TBuffer* output;
-    bool eosSent;
-    bool eosReiceive;
-    std::condition_variable cv;
-    std::mutex mutex;
-  };
-
   std::unique_ptr<EncMediatypeInterface> media;
   std::unique_ptr<EncDevice> device;
   deleted_unique_ptr<AL_TAllocator> allocator;
@@ -175,6 +154,7 @@ private:
   bool CreateEncoder();
   bool DestroyEncoder();
   bool isSettingsOk;
+  void ReleaseBuf(AL_TBuffer const* buf, bool isDma, bool isSrc);
 
   static void RedirectionEndEncoding(void* userParam, AL_TBuffer* pStream, AL_TBuffer const* pSource)
   {
@@ -187,6 +167,6 @@ private:
   ThreadSafeMap<int, AL_HANDLE> allocatedDMA;
   ThreadSafeMap<AL_TBuffer*, AL_VADDR> shouldBeCopied;
   ThreadSafeMap<void*, AL_TBuffer*> pool;
-  ThreadSafeMap<AL_TBuffer*, uint8_t*> translate;
+  ThreadSafeMap<AL_TBuffer const*, uint8_t*> translate;
 };
 

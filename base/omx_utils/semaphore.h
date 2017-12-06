@@ -49,7 +49,8 @@ std::unique_lock<L> Lock(L& lockMe)
 class semaphore
 {
 public:
-  semaphore() : m_Count(0),
+  semaphore() :
+    m_Count(0),
     m_cancelWait(false)
   {
   }

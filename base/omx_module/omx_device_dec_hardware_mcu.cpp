@@ -42,6 +42,10 @@ extern "C"
 AL_TIDecChannel* AL_DecChannelMcu_Create();
 }
 
+DecDeviceHardwareMcu::~DecDeviceHardwareMcu()
+{
+}
+
 AL_TIDecChannel* DecDeviceHardwareMcu::Init(AL_EDecUnit const &, AL_TAllocator const &)
 {
   return AL_DecChannelMcu_Create();
@@ -51,7 +55,12 @@ void DecDeviceHardwareMcu::Deinit()
 {
 }
 
-DecDeviceHardwareMcu::~DecDeviceHardwareMcu()
+AllocationRequirements DecDeviceHardwareMcu::GetAllocationRequirements()
 {
+  AllocationDefinition input = { 0, false };
+  AllocationDefinition output = { 32, true };
+  return {
+           input, output
+  };
 }
 

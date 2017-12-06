@@ -38,7 +38,7 @@
 #pragma once
 
 #include <stdio.h>
-#define ENABLE_LOG 1
+#define ENABLE_LOG 0
 #define VERBOSE 0
 
 #if __ANDROID_API__

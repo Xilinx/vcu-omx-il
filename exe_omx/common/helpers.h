@@ -95,3 +95,27 @@ void Buffer_FreeData(char* data, bool use_dmabuf);
 char* Buffer_MapData(char* data, size_t zSize, bool use_dmabuf);
 void Buffer_UnmapData(char* data, size_t zSize, bool use_dmabuf);
 
+template<typename Lambda>
+class ScopeExitClass
+{
+public:
+  ScopeExitClass(Lambda fn) :
+    m_fn(fn)
+  {
+  }
+
+  ~ScopeExitClass()
+  {
+    m_fn();
+  }
+
+private:
+  Lambda m_fn;
+};
+
+template<typename Lambda>
+ScopeExitClass<Lambda> scopeExit(Lambda fn)
+{
+  return ScopeExitClass<Lambda>(fn);
+}
+

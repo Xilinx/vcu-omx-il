@@ -35,7 +35,105 @@
 *
 ******************************************************************************/
 
-#include "omx_convert_module_to_soft_enc.h"
+#include "omx_convert_module_soft_enc.h"
+
+RateControlType ConvertToModuleRateControl(AL_ERateCtrlMode const& mode)
+{
+  switch(mode)
+  {
+  case AL_RC_CONST_QP: return RATE_CONTROL_CONSTANT_QUANTIZATION;
+  case AL_RC_CBR: return RATE_CONTROL_CONSTANT_BITRATE;
+  case AL_RC_VBR: return RATE_CONTROL_VARIABLE_BITRATE;
+  case AL_RC_LOW_LATENCY: return RATE_CONTROL_LOW_LATENCY;
+  case AL_RC_MAX_ENUM: // fallthrough
+  default: return RATE_CONTROL_MAX;
+  }
+
+  return RATE_CONTROL_MAX;
+}
+
+AspectRatioType ConvertToModuleAspectRatio(AL_EAspectRatio const& aspectRatio)
+{
+  switch(aspectRatio)
+  {
+  case AL_ASPECT_RATIO_NONE: return ASPECT_RATIO_NONE;
+  case AL_ASPECT_RATIO_4_3: return ASPECT_RATIO_4_3;
+  case AL_ASPECT_RATIO_16_9: return ASPECT_RATIO_16_9;
+  case AL_ASPECT_RATIO_AUTO: return ASPECT_RATIO_AUTO;
+  case AL_ASPECT_RATIO_MAX_ENUM: // fallthrough
+  default: return ASPECT_RATIO_MAX;
+  }
+
+  return ASPECT_RATIO_MAX;
+}
+
+GopControlType ConvertToModuleGopControl(AL_EGopCtrlMode const& mode)
+{
+  switch(mode)
+  {
+  case AL_GOP_MODE_DEFAULT: return GOP_CONTROL_DEFAULT;
+  case AL_GOP_MODE_PYRAMIDAL: return GOP_CONTROL_PYRAMIDAL;
+  case AL_GOP_MODE_LOW_DELAY_P: return GOP_CONTROL_LOW_DELAY_P;
+  case AL_GOP_MODE_LOW_DELAY_B: return GOP_CONTROL_LOW_DELAY_B;
+  case AL_GOP_MODE_MAX_ENUM: // fallthrough
+  default: return GOP_CONTROL_MAX;
+  }
+
+  return GOP_CONTROL_MAX;
+}
+
+GdrType ConvertToModuleGdr(AL_EGdrMode const& gdr)
+{
+  switch(gdr)
+  {
+  case AL_GDR_OFF: return GDR_OFF;
+  case AL_GDR_VERTICAL: return GDR_VERTICAL;
+  case AL_GDR_HORIZONTAL: return GDR_HORTIZONTAL;
+  case AL_GDR_MAX_ENUM: // fallthrough
+  default: return GDR_MAX;
+  }
+
+  return GDR_MAX;
+}
+
+RateControlOptionType ConvertToModuleRateControlOption(AL_ERateCtrlOption const& option)
+{
+  switch(option)
+  {
+  case AL_RC_OPT_NONE: return RATE_CONTROL_OPTION_NONE;
+  case AL_RC_OPT_SCN_CHG_RES: return RATE_CONTROL_OPTION_SCENE_CHANGE_RESILIENCE;
+  case AL_RC_OPT_MAX_ENUM: // fallthrough
+  default: return RATE_CONTROL_OPTION_MAX;
+  }
+
+  return RATE_CONTROL_OPTION_MAX;
+}
+
+QPControlType ConvertToModuleQPControl(AL_EQpCtrlMode const& mode)
+{
+  switch(mode)
+  {
+  case UNIFORM_QP: return QP_UNIFORM;
+  case AUTO_QP: return QP_AUTO;
+  case QP_MAX_ENUM: // fallthrough
+  default: return QP_MAX;
+  }
+
+  return QP_MAX;
+}
+
+ScalingListType ConvertToModuleScalingList(AL_EScalingList const& scalingList)
+{
+  switch(scalingList)
+  {
+  case AL_SCL_DEFAULT: return SCALING_LIST_DEFAULT;
+  case AL_SCL_FLAT: return SCALING_LIST_FLAT;
+  case AL_SCL_MAX_ENUM: // fallthrough
+  default: return SCALING_LIST_MAX;
+  }
+
+  return SCALING_LIST_MAX;
+}
 
 AL_ERateCtrlMode ConvertToSoftRateControl(RateControlType const& mode)
 {

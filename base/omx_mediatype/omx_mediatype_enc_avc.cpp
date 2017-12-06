@@ -52,6 +52,7 @@ void EncMediatypeAVC::Reset()
   auto& chan = settings.tChParam;
   chan.eProfile = AL_PROFILE_AVC_BASELINE;
   AL_Settings_SetDefaultParam(&settings);
+  chan.uLevel = 10;
 }
 
 CompressionType EncMediatypeAVC::Compression() const

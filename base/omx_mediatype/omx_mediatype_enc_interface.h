@@ -38,8 +38,8 @@
 #pragma once
 
 #include "omx_mediatype_interface.h"
-#include "omx_mediatype_enums_enc.h"
-#include "omx_mediatype_structs.h"
+#include "omx_mediatype_interface_structs.h"
+#include "omx_mediatype_enc_enums.h"
 #include <vector>
 
 extern "C"

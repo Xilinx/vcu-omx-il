@@ -53,10 +53,8 @@ extern "C"
 #include <lib_fpga/DmaAllocLinux.h>
 }
 
-#include "omx_convert_module_to_soft.h"
-#include "omx_convert_module_to_soft_enc.h"
-#include "omx_convert_soft_to_module.h"
-#include "omx_convert_soft_to_module_enc.h"
+#include "omx_convert_module_soft_enc.h"
+#include "omx_convert_module_soft.h"
 
 static inline int GetBitdepthFromFormat(AL_EPicFormat const& format)
 {
@@ -74,7 +72,7 @@ static void CheckValidity(AL_TEncSettings const& settings)
 static void LookCoherency(AL_TEncSettings& settings)
 {
   auto const chan = settings.tChParam;
-  auto const fourCC = AL_EncGetSrcFourCC({ AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat) });
+  auto const fourCC = AL_EncGetSrcFourCC({ AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER });
   AL_Settings_CheckCoherency(&settings, fourCC, stdout);
 }
 
@@ -158,7 +156,7 @@ void EncModule::Destroy()
   isSettingsOk = false;
 }
 
-bool EncModule::Run()
+bool EncModule::Run(bool)
 {
   if(encoder)
   {
@@ -189,7 +187,7 @@ bool EncModule::Pause()
   }
 
   std::unique_lock<std::mutex> lock(eosHandles.mutex);
-  eosHandles.cv.wait(lock, [&] { return eosHandles.eosReiceive == true;
+  eosHandles.cv.wait(lock, [&] { return eosHandles.eosReceive == true;
                      });
   return DestroyEncoder();
 }
@@ -207,7 +205,7 @@ void EncModule::Stop()
   }
 
   std::unique_lock<std::mutex> lock(eosHandles.mutex);
-  eosHandles.cv.wait(lock, [&] { return eosHandles.eosReiceive == true;
+  eosHandles.cv.wait(lock, [&] { return eosHandles.eosReceive == true;
                      });
   lock.unlock();
   DestroyEncoder();
@@ -235,14 +233,14 @@ BuffersRequirements EncModule::GetBuffersRequirements() const
   auto& input = b.input;
   input.min = 1 + gop.uNumB;
   input.size = GetAllocSize_Src({ chan.uWidth, chan.uHeight }, AL_GET_BITDEPTH(chan.ePicFormat), AL_GET_CHROMA_MODE(chan.ePicFormat), chan.eSrcMode);
-  input.bytesAlignment = 32;
-  input.contiguous = true;
+  input.bytesAlignment = device->GetAllocationRequirements().input.bytesAlignment;
+  input.contiguous = device->GetAllocationRequirements().input.contiguous;
 
   auto& output = b.output;
   output.min = 1 + gop.uNumB + 1; // 1 for eos
   output.size = AL_GetMaxNalSize({ chan.uWidth, chan.uHeight }, AL_GET_CHROMA_MODE(chan.ePicFormat));
-  output.bytesAlignment = 32;
-  output.contiguous = true;
+  output.bytesAlignment = device->GetAllocationRequirements().output.bytesAlignment;
+  output.contiguous = device->GetAllocationRequirements().output.contiguous;
 
   return b;
 }
@@ -254,9 +252,9 @@ int EncModule::GetLatency() const
   auto const rateCtrl = chan.tRCParam;
   auto const bufsCount = gopParam.uNumB + 1;
 
-  auto const realFramerate = ((rateCtrl.uFrameRate * rateCtrl.uClkRatio) / 1000.0);
+  auto const realFramerate = (static_cast<double>(rateCtrl.uFrameRate * rateCtrl.uClkRatio) / 1000.0);
 
-  auto timeInMilliseconds = ((bufsCount * 1000.0) / realFramerate);
+  auto timeInMilliseconds = (static_cast<double>(bufsCount * 1000.0) / realFramerate);
 
   if(chan.bSubframeLatency)
     timeInMilliseconds /= chan.uNumSlices;
@@ -266,12 +264,10 @@ int EncModule::GetLatency() const
 
 bool EncModule::SetCallbacks(Callbacks callbacks)
 {
-  if(!callbacks.emptied || !callbacks.associate || !callbacks.filled)
+  if(!callbacks.emptied || !callbacks.associate || !callbacks.filled || !callbacks.release)
     return false;
 
-  this->callbacks.emptied = callbacks.emptied;
-  this->callbacks.associate = callbacks.associate;
-  this->callbacks.filled = callbacks.filled;
+  this->callbacks = callbacks;
   return true;
 }
 
@@ -279,10 +275,9 @@ bool EncModule::Flush()
 {
   if(!encoder)
     return false;
+
   Stop();
-  auto const created = CreateEncoder();
-  assert(created);
-  return true;
+  return Run(true);
 }
 
 void EncModule::Free(void* buffer)
@@ -437,7 +432,7 @@ void EncModule::UnuseDMA(void* handle)
 
 static AL_TMetaData* CreateSourceMeta(AL_TEncChanParam const& chan, Resolution const& resolution)
 {
-  auto const fourCC = AL_EncGetSrcFourCC({ AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat) });
+  auto const fourCC = AL_EncGetSrcFourCC({ AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER });
   auto const stride = resolution.stride;
   auto const sliceHeight = resolution.sliceHeight;
   AL_TPitches const pitches = { stride, stride };
@@ -596,24 +591,34 @@ static int ReconstructStream(AL_TBuffer& stream)
   return size;
 }
 
+void EncModule::ReleaseBuf(AL_TBuffer const* buf, bool isDma, bool isSrc)
+{
+  auto const handle = translate.Get(buf);
+  assert(handle);
+  translate.Remove(buf);
+
+  if(isDma)
+    UnuseDMA(handle);
+  else
+    Unuse(handle);
+
+  callbacks.release(isSrc, handle);
+}
+
 void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 {
   auto const isStreamRelease = (stream && source == nullptr);
+  auto const isSrcRelease = (stream == nullptr && source);
+
+  if(isSrcRelease)
+  {
+    ReleaseBuf(source, fds.input, true);
+    return;
+  }
 
   if(isStreamRelease)
   {
-    auto const handleOut = translate.Get(stream);
-    assert(handleOut);
-    translate.Remove(stream);
-
-    if(fds.output)
-      UnuseDMA(handleOut);
-    else
-      Unuse(handleOut);
-
-    if(callbacks.filled)
-      callbacks.filled(handleOut, 0, 0);
-
+    ReleaseBuf(stream, fds.output, false);
     return;
   }
 
@@ -628,8 +633,7 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
                auto const handleOut = translate.Get(stream);
                assert(handleOut);
 
-               if(callbacks.associate)
-                 callbacks.associate(handleIn, handleOut);
+               callbacks.associate(handleIn, handleOut);
 
                translate.Remove(source);
                translate.Remove(stream);
@@ -639,29 +643,27 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
                else
                  Unuse(handleIn);
 
-               if(callbacks.emptied)
-                 callbacks.emptied(handleIn, 0, 0);
+               callbacks.emptied(handleIn, 0, 0);
 
                if(fds.output)
                  UnuseDMA(handleOut);
                else
                  Unuse(handleOut);
 
-               if(callbacks.filled)
-                 callbacks.filled(handleOut, 0, size);
+               callbacks.filled(handleOut, 0, size);
              };
 
   if(isEOS)
   {
     end(eosHandles.input, eosHandles.output, 0);
     std::lock_guard<std::mutex> lock(eosHandles.mutex);
-    eosHandles.eosReiceive = true;
+    eosHandles.eosReceive = true;
     eosHandles.cv.notify_one();
     return;
   }
 
   std::lock_guard<std::mutex> lock(eosHandles.mutex);
-  eosHandles.eosReiceive = false;
+  eosHandles.eosReceive = false;
   eosHandles.cv.notify_one();
 
   auto const size = ReconstructStream(*stream);

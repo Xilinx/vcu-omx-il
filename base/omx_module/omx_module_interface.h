@@ -39,17 +39,37 @@
 
 #include <functional>
 #include <memory>
-#include "omx_module_structs.h"
+#include "omx_module_interface_structs.h"
+#include <map>
+
+enum CallbackEventType
+{
+  CALLBACK_EVENT_ERROR,
+  CALLBACK_EVENT_RESOLUTION_CHANGE,
+  CALLBACK_EVENT_MAX,
+};
+
+static std::map<CallbackEventType, const char*> ToStringCallbackEvent
+{
+  {
+    CALLBACK_EVENT_ERROR, "CALLBACK_EVENT_ERROR"
+  },
+  {
+    CALLBACK_EVENT_RESOLUTION_CHANGE, "CALLBACK_EVENT_RESOLUTION_CHANGE"
+  },
+  {
+    CALLBACK_EVENT_MAX, "CALLBACK_EVENT_MAX"
+  },
+};
 
 typedef struct
 {
   std::function<void (uint8_t* buffer, int offset, int size)> emptied;
   std::function<void (uint8_t* const input, uint8_t* const output)> associate;
   std::function<void (uint8_t* buffer, int offset, int size)> filled;
+  std::function<void (bool isInput, uint8_t* buffer)> release;
+  std::function<void (CallbackEventType event, void* data)> event;
 }Callbacks;
-
-template<typename T>
-using deleted_unique_ptr = std::unique_ptr<T, std::function<void(T*)>>;
 
 struct ModuleInterface
 {
@@ -77,7 +97,7 @@ struct ModuleInterface
   virtual bool Empty(uint8_t* buffer, int offset, int size) = 0;
   virtual bool Fill(uint8_t* buffer, int offset, int size) = 0;
 
-  virtual bool Run() = 0;
+  virtual bool Run(bool shouldPrealloc) = 0;
   virtual bool Pause() = 0;
   virtual bool Flush() = 0;
   virtual void Stop() = 0;

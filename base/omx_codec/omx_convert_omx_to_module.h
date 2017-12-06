@@ -37,7 +37,7 @@
 
 #pragma once
 
-#include "base/omx_module/omx_module_structs.h"
+#include "base/omx_module/omx_module_interface_structs.h"
 #include <OMX_VideoExt.h>
 #include <OMX_ComponentAlg.h>
 

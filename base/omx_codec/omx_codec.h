@@ -73,7 +73,8 @@ enum TransientState
 
 struct Task
 {
-  Task() : cmd(), data(nullptr), opt(nullptr)
+  Task() :
+    cmd(), data(nullptr), opt(nullptr)
   {
   }
 
@@ -84,7 +85,8 @@ struct Task
 
 struct Port
 {
-  Port(int const& index, int const& expected) : index(index), enable(true), playable(false), isTransientToEnable(false), isTransientToDisable(false), expected(expected)
+  Port(int const& index, int const& expected) :
+    index(index), enable(true), playable(false), isTransientToEnable(false), isTransientToDisable(false), expected(expected)
   {
   };
 
@@ -212,6 +214,12 @@ protected:
   virtual void EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size);
   virtual void AssociateCallBack(uint8_t* empty, uint8_t* fill);
   virtual void FillThisBufferCallBack(uint8_t* filled, int offset, int size);
+  virtual void ReleaseCallBack(bool isInput, uint8_t* buf);
+  virtual void EventCallBack(CallbackEventType type, void* data);
+
+private:
+  void ReturnFilledBuffer(uint8_t* filled, int offset, int size);
+  void ReturnEmptiedBuffer(uint8_t* emptied);
 };
 
 inline bool IsEOSDetected(OMX_U32 flags)

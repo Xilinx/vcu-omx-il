@@ -38,7 +38,7 @@
 #pragma once
 
 #include <OMX_VideoAlg.h>
-#include "base/omx_module/omx_module_enums_dec.h"
+#include "base/omx_module/omx_module_dec_enums.h"
 
 DecodedPictureBufferType ConvertToModuleDecodedPictureBuffer(OMX_ALG_EDpbMode const& mode);
 

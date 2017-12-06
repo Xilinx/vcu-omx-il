@@ -77,7 +77,8 @@ static EncModule& ToEncModule(ModuleInterface& module)
   return dynamic_cast<EncModule &>(module);
 }
 
-EncCodec::EncCodec(OMX_HANDLETYPE component, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<EncExpertise>&& expertise) : Codec(component, std::move(module), name, role), expertise(std::move(expertise))
+EncCodec::EncCodec(OMX_HANDLETYPE component, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<EncExpertise>&& expertise) :
+  Codec(component, std::move(module), name, role), expertise(std::move(expertise))
 {
 }
 
@@ -549,6 +550,12 @@ OMX_ERRORTYPE EncCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
     *(OMX_ALG_VIDEO_PARAM_SLICES*)param = ConstructVideoSlices(*port, ToEncModule(*module));
     return OMX_ErrorNone;
   }
+  case OMX_ALG_IndexParamVideoSubframe:
+  {
+    auto const port = getCurrentPort(param);
+    *(OMX_ALG_VIDEO_PARAM_SUBFRAME*)param = ConstructVideoSubframe(*port, ToEncModule(*module));
+    return OMX_ErrorNone;
+  }
   case OMX_ALG_IndexParamReportedLatency: // GetParameter only
   {
     *(OMX_ALG_PARAM_REPORTED_LATENCY*)param = ConstructReportedLatency(ToEncModule(*module));
@@ -1013,7 +1020,7 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   {
   case OMX_IndexParamStandardComponentRole:
   {
-  OMXChecker::CheckStateOperation(AL_SetParameter, state);
+    OMXChecker::CheckStateOperation(AL_SetParameter, state);
     auto p = (OMX_PARAM_COMPONENTROLETYPE*)param;
 
     if(!strncmp((char*)role, (char*)p->cRole, strlen((char*)role)))
@@ -1066,7 +1073,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   {
     auto const port = getCurrentPort(param);
 
-
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
 
@@ -1107,7 +1113,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
 
     if(!expertise->SetExpertise(param, *port, ToEncModule(*module)))
       throw OMX_ErrorBadParameter;
@@ -1279,6 +1284,19 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
     auto const slices = static_cast<OMX_ALG_VIDEO_PARAM_SLICES*>(param);
 
     if(!SetVideoSlices(*slices, *port, ToEncModule(*module)))
+      throw OMX_ErrorBadParameter;
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamVideoSubframe:
+  {
+    auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
+    auto const subframe = static_cast<OMX_ALG_VIDEO_PARAM_SUBFRAME*>(param);
+
+    if(!SetVideoSubframe(*subframe, *port, ToEncModule(*module)))
       throw OMX_ErrorBadParameter;
     return OMX_ErrorNone;
   }

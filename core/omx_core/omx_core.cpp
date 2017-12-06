@@ -44,7 +44,9 @@
 
 #include "omx_core.h"
 #include <OMX_Component.h>
+#include <stdexcept>
 
+using namespace std;
 typedef OMX_ERRORTYPE CreateComponentFuncType (OMX_IN OMX_HANDLETYPE, OMX_IN OMX_STRING, OMX_IN OMX_STRING, OMX_IN OMX_PTR, OMX_IN OMX_CALLBACKTYPE*);
 
 static const omx_comp_type* getComp(char* cComponentName)
@@ -175,7 +177,15 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_GetHandle(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN
   if(!pComponent)
     return OMX_ErrorComponentNotFound;
 
-  *pHandle = CreateComponent(pComponent, "CreateComponent", pAppData, pCallBacks);
+  try
+  {
+    *pHandle = CreateComponent(pComponent, "CreateComponent", pAppData, pCallBacks);
+  }
+  catch(runtime_error const& e)
+  {
+    cerr << e.what() << endl;
+    return OMX_ErrorUndefined;
+  }
 
   return *pHandle ? OMX_ErrorNone : OMX_ErrorUndefined;
 }

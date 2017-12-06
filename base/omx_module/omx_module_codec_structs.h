@@ -35,32 +35,34 @@
 *
 ******************************************************************************/
 
-#include "omx_convert_module_to_soft_dec.h"
-#include <assert.h>
+#pragma once
 
-AL_EDpbMode ConvertToSoftDecodedPictureBuffer(DecodedPictureBufferType const& mode)
+#include <mutex>
+#include <condition_variable>
+
+extern "C"
 {
-  switch(mode)
-  {
-  case DECODED_PICTURE_BUFFER_NORMAL: return AL_DPB_NORMAL;
-  case DECODED_PICTURE_BUFFER_LOW_REFERENCE: return AL_DPB_LOW_REF;
-  case DECODED_PICTURE_BUFFER_MAX: // fallthrough
-  default: return AL_DPB_MAX_ENUM;
-  }
-
-  return AL_DPB_MAX_ENUM;
+#include <lib_common/BufferAPI.h>
 }
 
-AL_EDecUnit ConvertToSoftDecodeUnit(DecodeUnitType const& unit)
+template<typename T>
+using deleted_unique_ptr = std::unique_ptr<T, std::function<void(T*)>>;
+
+struct EOSHandles
 {
-  switch(unit)
+  EOSHandles() :
+    input(nullptr),
+    output(nullptr),
+    eosSent(false),
+    eosReceive(false)
   {
-  case DECODE_UNIT_FRAME: return AL_AU_UNIT;
-  case DECODE_UNIT_SLICE: return AL_VCL_NAL_UNIT;
-  case DECODE_UNIT_MAX: // fallthrough
-  default: assert(0);
   }
 
-  assert(0);
-}
+  AL_TBuffer* input;
+  AL_TBuffer* output;
+  bool eosSent;
+  bool eosReceive;
+  std::condition_variable cv;
+  std::mutex mutex;
+};
 

@@ -39,12 +39,25 @@
 
 extern "C"
 {
-#include <lib_common_dec/DecDpbMode.h>
-#include <lib_common_dec/DecChanParam.h>
+#include <lib_common_enc/EncChanParam.h>
+#include <lib_common_enc/Settings.h>
 }
 
-#include "omx_module_enums_dec.h"
+#include "omx_module_enc_enums.h"
 
-AL_EDpbMode ConvertToSoftDecodedPictureBuffer(DecodedPictureBufferType const& mode);
-AL_EDecUnit ConvertToSoftDecodeUnit(DecodeUnitType const& unit);
+RateControlType ConvertToModuleRateControl(AL_ERateCtrlMode const& mode);
+AspectRatioType ConvertToModuleAspectRatio(AL_EAspectRatio const& aspectRatio);
+GopControlType ConvertToModuleGopControl(AL_EGopCtrlMode const& mode);
+GdrType ConvertToModuleGdr(AL_EGdrMode const& gdr);
+RateControlOptionType ConvertToModuleRateControlOption(AL_ERateCtrlOption const& option);
+QPControlType ConvertToModuleQPControl(AL_EQpCtrlMode const& mode);
+ScalingListType ConvertToModuleScalingList(AL_EScalingList const& scalingList);
+
+AL_ERateCtrlMode ConvertToSoftRateControl(RateControlType const& mode);
+AL_EAspectRatio ConvertToSoftAspectRatio(AspectRatioType const& aspectRatio);
+AL_EGopCtrlMode ConvertToSoftGopControl(GopControlType const& mode);
+AL_EScalingList ConvertToSoftScalingList(ScalingListType const& scalingList);
+AL_EGdrMode ConvertToSoftGdr(GdrType const& gdr);
+AL_ERateCtrlOption ConvertToSoftRateControlOption(RateControlOptionType const& option);
+AL_EQpCtrlMode ConvertToSoftQPControl(QPControlType const& mode);
 

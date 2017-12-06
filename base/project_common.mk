@@ -1,7 +1,6 @@
 THIS.base_common:=$(call get-my-dir)
 
 include $(THIS.base_common)/omx_checker/project.mk
-
 include $(THIS.base_common)/omx_codec/project_common.mk
 include $(THIS.base_common)/omx_mediatype/project_common.mk
 include $(THIS.base_common)/omx_module/project_common.mk

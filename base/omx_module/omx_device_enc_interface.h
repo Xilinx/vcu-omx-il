@@ -37,6 +37,8 @@
 
 #pragma once
 
+#include "omx_device_codec_structs.h"
+
 extern "C"
 {
 #include <lib_encode/lib_encoder.h>
@@ -51,5 +53,6 @@ struct EncDevice
   };
   virtual TScheduler* Init(AL_TEncSettings const &, AL_TAllocator const& allocator) = 0;
   virtual void Deinit(TScheduler* scheduler) = 0;
+  virtual AllocationRequirements GetAllocationRequirements() = 0;
 };
 

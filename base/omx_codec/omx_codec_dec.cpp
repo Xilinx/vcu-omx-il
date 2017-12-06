@@ -83,7 +83,8 @@ static DecModule& ToDecModule(ModuleInterface& module)
   return dynamic_cast<DecModule &>(module);
 }
 
-DecCodec::DecCodec(OMX_HANDLETYPE component, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<DecExpertise>&& expertise) : Codec(component, std::move(module), name, role), expertise(std::move(expertise))
+DecCodec::DecCodec(OMX_HANDLETYPE component, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<DecExpertise>&& expertise) :
+  Codec(component, std::move(module), name, role), expertise(std::move(expertise))
 {
 }
 
@@ -126,7 +127,6 @@ void DecCodec::AssociateCallBack(uint8_t* empty, uint8_t* fill)
   fillHeader->hMarkTargetComponent = emptyHeader.hMarkTargetComponent;
   fillHeader->pMarkData = emptyHeader.pMarkData;
   fillHeader->nTimeStamp = emptyHeader.nTimeStamp;
-  fillHeader->nFlags = emptyHeader.nFlags;
   transmit.pop_front();
 
   if(IsEOSDetected(emptyHeader.nFlags))
@@ -151,8 +151,37 @@ void DecCodec::FillThisBufferCallBack(uint8_t* filled, int offset, int size)
   header->nOffset = offset;
   header->nFilledLen = size;
 
+  if(offset == 0 && size == 0)
+    header->nFlags = OMX_BUFFERFLAG_EOS;
+
   if(callbacks.FillBufferDone)
     callbacks.FillBufferDone(component, app, header);
+}
+
+void DecCodec::EventCallBack(CallbackEventType type, void* data)
+{
+  (void)data;
+
+  if(type > CALLBACK_EVENT_MAX)
+    assert(0);
+  switch(type)
+  {
+  case CALLBACK_EVENT_RESOLUTION_CHANGE:
+  {
+    LOGI("%s TODO", ToStringCallbackEvent.at(type));
+    break;
+  }
+  case CALLBACK_EVENT_ERROR:
+  {
+    LOGE("%s", ToStringCallbackEvent.at(type));
+
+    if(callbacks.EventHandler)
+      callbacks.EventHandler(component, app, OMX_EventError, OMX_ErrorUndefined, 0, nullptr);
+    break;
+  }
+  default:
+    LOGE("%s is unsupported", ToStringCallbackEvent.at(type));
+  }
 }
 
 static OMX_PARAM_PORTDEFINITIONTYPE ConstructPortDefinition(Port const& port, DecModule const& module)
@@ -349,6 +378,12 @@ OMX_ERRORTYPE DecCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
   {
     auto const port = getCurrentPort(param);
     *(OMX_ALG_VIDEO_PARAM_INTERNAL_ENTROPY_BUFFERS*)param = ConstructVideoInternalEntropyBuffers(*port, ToDecModule(*module));
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamVideoSubframe:
+  {
+    auto const port = getCurrentPort(param);
+    *(OMX_ALG_VIDEO_PARAM_SUBFRAME*)param = ConstructVideoSubframe(*port, ToDecModule(*module));
     return OMX_ErrorNone;
   }
   default:
@@ -571,8 +606,6 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
-    // Do nothing
     return OMX_ErrorNone;
   }
   case OMX_IndexParamVideoPortFormat:
@@ -581,7 +614,6 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const format = static_cast<OMX_VIDEO_PARAM_PORTFORMATTYPE*>(param);
 
     if(!SetVideoPortFormat(*format, *port, ToDecModule(*module)))
@@ -592,13 +624,8 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   {
     auto const port = getCurrentPort(param);
 
-
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
 
     if(!expertise->SetProfileLevel(param, *port, ToDecModule(*module)))
       throw OMX_ErrorBadParameter;
@@ -612,7 +639,6 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
 
-
     if(!expertise->SetExpertise(param, *port, ToDecModule(*module)))
       throw OMX_ErrorBadParameter;
     return OMX_ErrorNone;
@@ -623,7 +649,6 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const portBufferMode = static_cast<OMX_ALG_PORT_PARAM_BUFFER_MODE*>(param);
 
     if(!SetPortBufferMode(*portBufferMode, *port, ToDecModule(*module)))
@@ -636,7 +661,6 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const dpb = static_cast<OMX_ALG_VIDEO_PARAM_DECODED_PICTURE_BUFFER*>(param);
 
     if(!SetVideoDecodedPictureBuffer(*dpb, *port, ToDecModule(*module)))
@@ -649,10 +673,22 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const ieb = static_cast<OMX_ALG_VIDEO_PARAM_INTERNAL_ENTROPY_BUFFERS*>(param);
 
     if(!SetVideoInternalEntropyBuffers(*ieb, *port, ToDecModule(*module)))
+      throw OMX_ErrorBadParameter;
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamVideoSubframe:
+  {
+    auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
+    auto const subframe = static_cast<OMX_ALG_VIDEO_PARAM_SUBFRAME*>(param);
+
+    if(!SetVideoSubframe(*subframe, *port, ToDecModule(*module)))
       throw OMX_ErrorBadParameter;
     return OMX_ErrorNone;
   }

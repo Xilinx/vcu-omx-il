@@ -38,7 +38,7 @@
 #pragma once
 
 #include "omx_mediatype_interface.h"
-#include "omx_mediatype_structs.h"
+#include "omx_mediatype_interface_structs.h"
 
 #include <vector>
 

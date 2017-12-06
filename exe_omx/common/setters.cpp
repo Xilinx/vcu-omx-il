@@ -42,7 +42,8 @@
 #include <OMX_Component.h>
 #include <OMX_IndexExt.h>
 
-Setters::Setters(OMX_HANDLETYPE* component) : component(component)
+Setters::Setters(OMX_HANDLETYPE* component) :
+  component(component)
 {
   assert(component);
 }

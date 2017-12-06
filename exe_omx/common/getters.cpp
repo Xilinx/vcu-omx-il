@@ -43,7 +43,8 @@
 #include <OMX_ComponentExt.h>
 #include <OMX_IndexExt.h>
 
-Getters::Getters(OMX_HANDLETYPE* component) : component(component)
+Getters::Getters(OMX_HANDLETYPE* component) :
+  component(component)
 {
   assert(component);
 }

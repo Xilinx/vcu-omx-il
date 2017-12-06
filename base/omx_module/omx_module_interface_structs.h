@@ -35,21 +35,95 @@
 *
 ******************************************************************************/
 
-#include "omx_convert_module_to_soft.h"
+#pragma once
 
-AL_EChromaMode ConvertToSoftChroma(ColorType const& color)
+#include "base/omx_mediatype/omx_mediatype_interface_enums.h"
+#include <string>
+
+struct BufferDefinitions
 {
-  switch(color)
-  {
-  case COLOR_MONO: return CHROMA_MONO;
-  case COLOR_420: return CHROMA_4_2_0;
-  case COLOR_422: return CHROMA_4_2_2;
-  case COLOR_444: return CHROMA_4_4_4;
-  case COLOR_MAX: // fallthrough
-  default:
-    return CHROMA_MAX_ENUM;
-  }
+  int min;
+  int size;
+  int bytesAlignment;
+  bool contiguous;
+};
 
-  return CHROMA_MAX_ENUM;
-}
+struct BuffersRequirements
+{
+  BufferDefinitions input;
+  BufferDefinitions output;
+};
+
+struct Resolution
+{
+  int width;
+  int height;
+  int stride;
+  int sliceHeight;
+
+  bool operator != (Resolution const& resolution) const
+  {
+    if(resolution.width != width)
+      return true;
+
+    if(resolution.height != height)
+      return true;
+
+    if(resolution.stride != stride)
+      return true;
+
+    if(resolution.sliceHeight != sliceHeight)
+      return true;
+
+    return false;
+  }
+};
+
+struct Resolutions
+{
+  Resolution input;
+  Resolution output;
+};
+
+struct Clock
+{
+  int framerate;
+  int clockratio;
+
+  bool operator != (Clock const& clock) const
+  {
+    if(clock.framerate != framerate)
+      return true;
+
+    if(clock.clockratio != clockratio)
+      return true;
+    return false;
+  }
+};
+
+struct Clocks
+{
+  Clock input;
+  Clock output;
+};
+
+struct Format
+{
+  std::string mime;
+  CompressionType compression;
+  ColorType color;
+  int bitdepth;
+};
+
+struct Formats
+{
+  Format input;
+  Format output;
+};
+
+struct FileDescriptors
+{
+  bool input;
+  bool output;
+};
 

@@ -60,12 +60,10 @@
   } \
   void FORCE_SEMICOLON()
 
-void Codec::EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size)
+void Codec::ReturnEmptiedBuffer(uint8_t* emptied)
 {
   if(!emptied)
     assert(0);
-  (void)offset;
-  (void)size;
 
   auto header = map.Get(emptied);
   assert(header);
@@ -75,6 +73,11 @@ void Codec::EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size)
 
   if(callbacks.EmptyBufferDone)
     callbacks.EmptyBufferDone(component, app, header);
+}
+
+void Codec::EmptyThisBufferCallBack(uint8_t* emptied, int, int)
+{
+  ReturnEmptiedBuffer(emptied);
 }
 
 void Codec::AssociateCallBack(uint8_t* empty, uint8_t* fill)
@@ -93,7 +96,7 @@ void Codec::AssociateCallBack(uint8_t* empty, uint8_t* fill)
     callbacks.EventHandler(component, app, OMX_EventMark, 0, 0, emptyHeader->pMarkData);
 }
 
-void Codec::FillThisBufferCallBack(uint8_t* filled, int offset, int size)
+void Codec::ReturnFilledBuffer(uint8_t* filled, int offset, int size)
 {
   if(!filled)
     assert(0);
@@ -107,6 +110,40 @@ void Codec::FillThisBufferCallBack(uint8_t* filled, int offset, int size)
 
   if(callbacks.FillBufferDone)
     callbacks.FillBufferDone(component, app, header);
+}
+
+void Codec::FillThisBufferCallBack(uint8_t* filled, int offset, int size)
+{
+  ReturnFilledBuffer(filled, offset, size);
+}
+
+void Codec::ReleaseCallBack(bool isInput, uint8_t* released)
+{
+  if(isInput)
+    ReturnEmptiedBuffer(released);
+  else
+    ReturnFilledBuffer(released, 0, 0);
+}
+
+void Codec::EventCallBack(CallbackEventType type, void* data)
+{
+  (void)data;
+
+  if(type > CALLBACK_EVENT_MAX)
+    assert(0);
+  switch(type)
+  {
+  case CALLBACK_EVENT_ERROR:
+  {
+    LOGE("%s", ToStringCallbackEvent.at(type));
+
+    if(callbacks.EventHandler)
+      callbacks.EventHandler(component, app, OMX_EventError, OMX_ErrorUndefined, 0, nullptr);
+    break;
+  }
+  default:
+    LOGE("%s is unsupported", ToStringCallbackEvent.at(type));
+  }
 }
 
 void Codec::CheckPortIndex(int index)
@@ -134,7 +171,8 @@ static void AssociateSpecVersion(OMX_VERSIONTYPE& spec)
   spec.s.nStep = OMX_VERSION_STEP;
 }
 
-Codec::Codec(OMX_HANDLETYPE component, std::unique_ptr<ModuleInterface>&& module, OMX_STRING name, OMX_STRING role) : component(component), module(std::move(module)),
+Codec::Codec(OMX_HANDLETYPE component, std::unique_ptr<ModuleInterface>&& module, OMX_STRING name, OMX_STRING role) :
+  component(component), module(std::move(module)),
   input(0, this->module->GetBuffersRequirements().input.min), output(1, this->module->GetBuffersRequirements().output.min)
 {
   assert(name);
@@ -313,7 +351,9 @@ OMX_ERRORTYPE Codec::SetCallbacks(OMX_IN OMX_CALLBACKTYPE* callbacks, OMX_IN OMX
   auto empty = std::bind(&Codec::EmptyThisBufferCallBack, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
   auto associate = std::bind(&Codec::AssociateCallBack, this, std::placeholders::_1, std::placeholders::_2);
   auto filled = std::bind(&Codec::FillThisBufferCallBack, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-  auto success = module->SetCallbacks((Callbacks) {empty, associate, filled });
+  auto event = std::bind(&Codec::EventCallBack, this, std::placeholders::_1, std::placeholders::_2);
+  auto release = std::bind(&Codec::ReleaseCallBack, this, std::placeholders::_1, std::placeholders::_2);
+  auto success = module->SetCallbacks((Callbacks) {empty, associate, filled, release, event });
 
   if(!success)
     throw OMX_ErrorUndefined;
@@ -575,7 +615,7 @@ OMX_ERRORTYPE Codec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR par
 
 static OMX_BUFFERHEADERTYPE* AllocateHeader(OMX_PTR app, int size, OMX_U8* buffer, bool isBufferAllocatedByModule, int index)
 {
-  auto header = new OMX_BUFFERHEADERTYPE {};
+  auto header = new OMX_BUFFERHEADERTYPE;
   OMXChecker::SetHeaderVersion(*header);
   header->pBuffer = buffer;
   header->nAllocLen = size;
@@ -900,7 +940,7 @@ void Codec::TreatSetStateCommand(Task* task)
     }
 
     if(isTransitionToRun(state, newState))
-      module->Run();
+      module->Run(true);
 
     if(isTransitionToPause(state, newState))
       module->Pause();
