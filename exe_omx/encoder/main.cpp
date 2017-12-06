@@ -733,12 +733,13 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   OMX_CALL(OMX_SendCommand(app.hEncoder, OMX_CommandStateSet, OMX_StateIdle, nullptr));
   app.encoderEventState.wait();
 
+  /** sending command to all components to go to loaded state */
+  OMX_CALL(OMX_SendCommand(app.hEncoder, OMX_CommandStateSet, OMX_StateLoaded, nullptr));
+
   /** free buffers */
   get.IsComponentSupplier(app.input.index) ? freeAllocBuffers(app.input.index, app) : freeUseBuffers(app.input.index, app);
   get.IsComponentSupplier(app.output.index) ? freeAllocBuffers(app.input.index, app) : freeUseBuffers(app.output.index, app);
 
-  /** sending command to all components to go to loaded state */
-  OMX_CALL(OMX_SendCommand(app.hEncoder, OMX_CommandStateSet, OMX_StateLoaded, nullptr));
   app.encoderEventState.wait();
 
   OMX_FreeHandle(app.hEncoder);
