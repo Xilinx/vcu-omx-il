@@ -355,12 +355,16 @@ bool EncModule::Use(void* handle, unsigned char* buffer, int size)
   AL_TBuffer* encoderBuffer = nullptr;
 
   if(allocated.Exist(buffer))
+  {
     encoderBuffer = AL_Buffer_Create(allocator.get(), allocated.Get(buffer), size, AL_Buffer_Destroy);
-  else
+  }
+  else if(size)
   {
     encoderBuffer = AL_Buffer_Create_And_Allocate(allocator.get(), size, MyFree);
     shouldBeCopied.Add(encoderBuffer, buffer);
   }
+  else
+    encoderBuffer = AL_Buffer_Create(allocator.get(), NULL, size, AL_Buffer_Destroy);
 
   if(!encoderBuffer)
     return false;
