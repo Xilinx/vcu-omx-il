@@ -151,13 +151,15 @@ void EncCodec::FillThisBufferCallBack(uint8_t* filled, int offset, int size)
     callbacks.FillBufferDone(component, app, header);
 }
 
-static OMX_PARAM_PORTDEFINITIONTYPE ConstructPortDefinition(Port const& port, EncModule const& module)
+static OMX_PARAM_PORTDEFINITIONTYPE ConstructPortDefinition(Port& port, EncModule const& module)
 {
   OMX_PARAM_PORTDEFINITIONTYPE d;
   OMXChecker::SetHeaderVersion(d);
   d.nPortIndex = port.index;
   d.eDir = IsInputPort(d.nPortIndex) ? OMX_DirInput : OMX_DirOutput;
   auto const requirements = IsInputPort(d.nPortIndex) ? module.GetBuffersRequirements().input : module.GetBuffersRequirements().output;
+  if(port.expected < (size_t)requirements.min)
+    port.expected = requirements.min;  
   d.nBufferCountActual = port.expected;
   d.bEnabled = ConvertToOMXBool(port.enable);
   d.bPopulated = ConvertToOMXBool(port.playable);
@@ -396,11 +398,11 @@ OMX_ERRORTYPE EncCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
   OMXChecker::CheckHeaderVersion(GetVersion(param));
   OMXChecker::CheckStateOperation(AL_GetParameter, state);
 
-  auto const getCurrentPort = [=](OMX_PTR param) -> Port const*
-                              {
-                                auto const index = *(((OMX_U32*)param) + 2);
-                                return GetPort(index);
-                              };
+  auto getCurrentPort = [=](OMX_PTR param) -> Port*
+                        {
+                          auto const index = *(((OMX_U32*)param) + 2);
+                          return GetPort(index);
+                        };
   switch(static_cast<OMX_U32>(index)) // all indexes are 32u
   {
   case OMX_IndexParamVideoInit:
@@ -417,7 +419,7 @@ OMX_ERRORTYPE EncCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
   }
   case OMX_IndexParamPortDefinition:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
     *(OMX_PARAM_PORTDEFINITIONTYPE*)param = ConstructPortDefinition(*port, ToEncModule(*module));
     return OMX_ErrorNone;
   }
@@ -734,7 +736,7 @@ static bool SetOutputBufferMode(OMX_ALG_BUFFER_MODE mode, EncModule& module)
   return module.SetFileDescriptors(moduleFds);
 }
 
-static bool SetPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port const& port, EncModule& module)
+static bool SetPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port& port, EncModule& module)
 {
   auto const rollback = ConstructPortDefinition(port, module);
   auto const video = settings.format.video;
@@ -1011,11 +1013,11 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   OMXChecker::CheckNotNull(param);
   OMXChecker::CheckHeaderVersion(GetVersion(param));
 
-  auto const getCurrentPort = [=](OMX_PTR param) -> Port const*
-                              {
-                                auto const index = *(((OMX_U32*)param) + 2);
-                                return GetPort(index);
-                              };
+  auto getCurrentPort = [=](OMX_PTR param) -> Port*
+                        {
+                          auto const index = *(((OMX_U32*)param) + 2);
+                          return GetPort(index);
+                        };
   switch(static_cast<OMX_U32>(index)) // all indexes are 32u
   {
   case OMX_IndexParamStandardComponentRole:
@@ -1032,7 +1034,7 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_IndexParamPortDefinition:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);

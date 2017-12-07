@@ -365,13 +365,15 @@ OMX_ERRORTYPE Codec::SetCallbacks(OMX_IN OMX_CALLBACKTYPE* callbacks, OMX_IN OMX
   OMX_CATCH();
 }
 
-static OMX_PARAM_PORTDEFINITIONTYPE ConstructPortDefinition(Port const& port, ModuleInterface const& module)
+static OMX_PARAM_PORTDEFINITIONTYPE ConstructPortDefinition(Port& port, ModuleInterface const& module)
 {
   OMX_PARAM_PORTDEFINITIONTYPE d;
   OMXChecker::SetHeaderVersion(d);
   d.nPortIndex = port.index;
   d.eDir = IsInputPort(d.nPortIndex) ? OMX_DirInput : OMX_DirOutput;
   auto const requirements = IsInputPort(d.nPortIndex) ? module.GetBuffersRequirements().input : module.GetBuffersRequirements().output;
+  if(port.expected < (size_t)requirements.min)
+    port.expected = requirements.min;
   d.nBufferCountActual = port.expected;
   d.bEnabled = ConvertToOMXBool(port.enable);
   d.bPopulated = ConvertToOMXBool(port.playable);
