@@ -759,7 +759,9 @@ OMX_ERRORTYPE Codec::FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
   header->pMarkData = NULL;
   header->nFlags = 0;
 
-  processor->queue(CreateTask(FillBuffer, static_cast<OMX_U32>(output.index), header));
+  map.Add(header->pBuffer, header);
+  auto success = module->Fill(header->pBuffer, header->nOffset, (header->nAllocLen - header->nOffset));
+  assert(success);
 
   return OMX_ErrorNone;
   OMX_CATCH();
