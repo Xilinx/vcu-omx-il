@@ -552,12 +552,6 @@ OMX_ERRORTYPE EncCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
     *(OMX_ALG_VIDEO_PARAM_SLICES*)param = ConstructVideoSlices(*port, ToEncModule(*module));
     return OMX_ErrorNone;
   }
-  case OMX_ALG_IndexParamVideoSubframe:
-  {
-    auto const port = getCurrentPort(param);
-    *(OMX_ALG_VIDEO_PARAM_SUBFRAME*)param = ConstructVideoSubframe(*port, ToEncModule(*module));
-    return OMX_ErrorNone;
-  }
   case OMX_ALG_IndexParamReportedLatency: // GetParameter only
   {
     *(OMX_ALG_PARAM_REPORTED_LATENCY*)param = ConstructReportedLatency(ToEncModule(*module));
@@ -1286,19 +1280,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
     auto const slices = static_cast<OMX_ALG_VIDEO_PARAM_SLICES*>(param);
 
     if(!SetVideoSlices(*slices, *port, ToEncModule(*module)))
-      throw OMX_ErrorBadParameter;
-    return OMX_ErrorNone;
-  }
-  case OMX_ALG_IndexParamVideoSubframe:
-  {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
-    auto const subframe = static_cast<OMX_ALG_VIDEO_PARAM_SUBFRAME*>(param);
-
-    if(!SetVideoSubframe(*subframe, *port, ToEncModule(*module)))
       throw OMX_ErrorBadParameter;
     return OMX_ErrorNone;
   }
