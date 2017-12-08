@@ -744,8 +744,10 @@ bool DecModule::Pause()
 bool DecModule::Flush()
 {
   if(!decoder)
+  {
+    FlushEosHandles();
     return false;
-
+  }
   Stop();
   return Run(true);
 }
@@ -757,6 +759,11 @@ void DecModule::Stop()
 
   DestroyDecoder();
 
+  FlushEosHandles();
+}
+
+void DecModule::FlushEosHandles()
+{
   auto const handleOut = translateOut.Get(eosHandles.output);
 
   if(handleOut)
@@ -768,6 +775,5 @@ void DecModule::Stop()
 
     AL_Buffer_Unref(eosHandles.output);
     eosHandles.output = nullptr;
-  }
+  }  
 }
-

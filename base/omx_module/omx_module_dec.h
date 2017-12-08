@@ -106,6 +106,8 @@ public:
   bool Flush();
   void Stop();
 
+  void FlushEosHandles();
+
 private:
   std::unique_ptr<DecMediatypeInterface> media;
   std::unique_ptr<DecDevice> device;
