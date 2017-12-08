@@ -907,7 +907,7 @@ bool EncModule::SetFormats(Formats const& formats)
 
 bool EncModule::SetBitrates(Bitrates const& bitrates)
 {
-  if(bitrates.max > bitrates.target)
+  if(bitrates.max < bitrates.target)
     return false;
 
   auto& rateCtrl = media->settings.tChParam.tRCParam;

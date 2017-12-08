@@ -299,7 +299,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_MAX_BITRATE
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
-  OMX_U32 nMaxBitrate; // In kbits
+  OMX_U32 nMaxBitrate; // In kbits per second
 }OMX_ALG_VIDEO_PARAM_MAX_BITRATE;
 
 /** Filler Data parameters

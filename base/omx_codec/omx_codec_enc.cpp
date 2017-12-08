@@ -635,8 +635,12 @@ static bool SetQuantizationExtension(OMX_S32 const& qpMin, OMX_S32 const& qpMax,
 static bool SetBitrate(OMX_U32 target, OMX_VIDEO_CONTROLRATETYPE mode, EncModule& module)
 {
   auto moduleBitrates = module.GetBitrates();
-  moduleBitrates.mode = ConvertToModuleControlRate(mode);
   moduleBitrates.target = target;
+
+  if(mode == OMX_Video_ControlRateConstant)
+    moduleBitrates.max = moduleBitrates.target;
+
+  moduleBitrates.mode = ConvertToModuleControlRate(mode);
   return module.SetBitrates(moduleBitrates);
 }
 
