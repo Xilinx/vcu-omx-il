@@ -86,6 +86,7 @@ struct ModuleInterface
   virtual bool SetClocks(Clocks const& clocks) = 0;
   virtual bool SetFormats(Formats const& formats) = 0;
 
+  virtual bool CheckParam() = 0;
   virtual bool Create() = 0;
   virtual void Destroy() = 0;
 

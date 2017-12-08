@@ -240,7 +240,12 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
     auto const nextState = static_cast<OMX_STATETYPE>(param);
     OMXChecker::CheckStateExistance(nextState);
 
-    transientState = GetTransientState(state, nextState);
+    TransientState NewtransientState = GetTransientState(state, nextState);    
+    if(NewtransientState == TransientLoadedToIdle)
+      if(!module->CheckParam())
+        throw OMX_ErrorUndefined;
+
+    transientState = NewtransientState;
     taskCommand = SetState;
     break;
   }

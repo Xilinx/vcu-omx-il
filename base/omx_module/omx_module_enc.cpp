@@ -61,12 +61,11 @@ static inline int GetBitdepthFromFormat(AL_EPicFormat const& format)
   return AL_GET_BITDEPTH(format);
 }
 
-static void CheckValidity(AL_TEncSettings const& settings)
+static bool CheckValidity(AL_TEncSettings const& settings)
 {
   auto err = AL_Settings_CheckValidity(const_cast<AL_TEncSettings*>(&settings), stderr);
 
-  if(err)
-    throw std::runtime_error(std::to_string(err) + " settings are invalids!");
+  return (err == AL_SUCCESS);
 }
 
 static void LookCoherency(AL_TEncSettings& settings)
@@ -85,7 +84,7 @@ EncModule::EncModule(std::unique_ptr<EncMediatypeInterface>&& media, std::unique
   assert(this->device);
   assert(this->allocator);
   encoder = nullptr;
-  isSettingsOk = false;
+  isCreated = false;
   ResetRequirements();
 }
 
@@ -129,6 +128,16 @@ bool EncModule::DestroyEncoder()
   return true;
 }
 
+bool EncModule::CheckParam()
+{
+  auto& settings = media->settings;
+  if(!CheckValidity(settings))
+    return false;
+  LookCoherency(settings);  
+
+  return true;
+}
+
 bool EncModule::Create()
 {
   if(encoder)
@@ -137,12 +146,8 @@ bool EncModule::Create()
     assert(0);
     return false;
   }
-
-  auto& settings = media->settings;
-  CheckValidity(settings);
-  LookCoherency(settings);
-  isSettingsOk = true;
-
+  isCreated = true;
+  
   return true;
 }
 
@@ -153,7 +158,7 @@ void EncModule::Destroy()
     fprintf(stderr, "Encoder should ALREADY be destroyed\n");
     assert(0);
   }
-  isSettingsOk = false;
+  isCreated = false;
 }
 
 bool EncModule::Run(bool)
@@ -165,7 +170,7 @@ bool EncModule::Run(bool)
     return false;
   }
 
-  if(!isSettingsOk)
+  if(!isCreated)
   {
     fprintf(stderr, "You should call Create before Run\n");
     return false;
@@ -873,7 +878,6 @@ bool EncModule::SetResolutions(Resolutions const& resolutions)
   chan.uHeight = resolutions.input.height;
   media->strideAlignment = GetPow2MaxAlignment(8, resolutions.input.stride);
   media->sliceHeightAlignment = GetPow2MaxAlignment(8, resolutions.input.sliceHeight);
-  LookCoherency(media->settings);
   return true;
 }
 

@@ -117,6 +117,7 @@ public:
 
   bool SetCallbacks(Callbacks callbacks);
 
+  bool CheckParam();
   bool Create();
   void Destroy();
 
@@ -153,7 +154,7 @@ private:
 
   bool CreateEncoder();
   bool DestroyEncoder();
-  bool isSettingsOk;
+  bool isCreated;
   void ReleaseBuf(AL_TBuffer const* buf, bool isDma, bool isSrc);
 
   static void RedirectionEndEncoding(void* userParam, AL_TBuffer* pStream, AL_TBuffer const* pSource)

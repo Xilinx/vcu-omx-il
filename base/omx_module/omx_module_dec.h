@@ -86,6 +86,7 @@ public:
   bool SetInternalEntropyBuffers(int const& num);
   bool SetEnableSubframe(bool const& enableSubframe);
 
+  bool CheckParam();
   bool Create();
   void Destroy();
 
@@ -126,7 +127,7 @@ private:
   EOSHandles eosHandles;
   bool CreateDecoder(bool shouldPrealloc);
   bool DestroyDecoder();
-  bool isSettingsOk;
+  bool isCreated;
 
   AL_TBuffer* CreateInputBuffer(uint8_t* buffer, int const& size);
   AL_TBuffer* CreateOutputBuffer(uint8_t* buffer, int const& size);

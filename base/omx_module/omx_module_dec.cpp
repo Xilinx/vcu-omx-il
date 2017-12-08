@@ -61,7 +61,7 @@ DecModule::DecModule(std::unique_ptr<DecMediatypeInterface>&& media, std::unique
   assert(this->device);
   assert(this->allocator);
   decoder = nullptr;
-  isSettingsOk = false;
+  isCreated = false;
   ResetRequirements();
 }
 
@@ -410,6 +410,12 @@ bool DecModule::DestroyDecoder()
   return true;
 }
 
+bool DecModule::CheckParam()
+{
+  // TODO check some settings ?  
+  return true;
+}
+
 bool DecModule::Create()
 {
   if(decoder)
@@ -418,9 +424,8 @@ bool DecModule::Create()
     assert(0);
     return false;
   }
+  isCreated = true;  
 
-  // TODO check some settings ?
-  isSettingsOk = true;
   return true;
 }
 
@@ -432,7 +437,7 @@ void DecModule::Destroy()
     assert(0);
   }
 
-  isSettingsOk = false;
+  isCreated = false;
 }
 
 void DecModule::Free(void* buffer)
@@ -698,7 +703,7 @@ bool DecModule::Run(bool shouldPrealloc)
     return false;
   }
 
-  if(!isSettingsOk)
+  if(!isCreated)
   {
     fprintf(stderr, "You should call Create before Run\n");
     return false;
