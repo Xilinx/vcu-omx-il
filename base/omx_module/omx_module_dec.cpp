@@ -182,12 +182,32 @@ bool DecModule::IsEnableSubframe() const
   return DECODE_UNIT_SLICE == ConvertToModuleDecodeUnit(settings.eDecUnit);
 }
 
+static int GetPow2MaxAlignment(int const& pow2startAlignment, int const& value)
+{
+  if((pow2startAlignment % 2) != 0)
+    return 0;
+  if((value % pow2startAlignment) != 0)
+    return 0;
+
+  int n = 0;
+  while((1 << n) != pow2startAlignment)
+    n++;
+  while((value % (1 << n)) == 0)
+    n++;
+
+  return 1 << (n - 1);
+}
+
 bool DecModule::SetResolutions(Resolutions const& resolutions)
 {
   if(resolutions.input != resolutions.output)
     return false;
 
-  // TODO stride/nSliceHeight checking ?
+  if((GetPow2MaxAlignment(8, resolutions.input.stride) == 0)||(GetPow2MaxAlignment(8, resolutions.input.sliceHeight) == 0))
+    return false;
+
+  media->strideAlignment = GetPow2MaxAlignment(8, resolutions.input.stride);
+  media->sliceHeightAlignment = GetPow2MaxAlignment(8, resolutions.input.sliceHeight);
   auto& streamSettings = media->settings.tStream;
   streamSettings.tDim = { resolutions.input.width, resolutions.input.height };
   return true;

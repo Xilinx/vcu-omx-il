@@ -50,6 +50,8 @@ EncMediatypeHEVC::~EncMediatypeHEVC()
 
 void EncMediatypeHEVC::Reset()
 {
+  strideAlignment = 32;
+  sliceHeightAlignment = 32;
   AL_Settings_SetDefaults(&settings);
   auto& chan = settings.tChParam;
   chan.eProfile = AL_PROFILE_HEVC_MAIN;

@@ -75,5 +75,7 @@ struct EncMediatypeInterface : public MediatypeInterface
   virtual bool SetLoopFilter(LoopFilterType const& loopFilter) = 0;
 
   AL_TEncSettings settings;
+  int strideAlignment;
+  int sliceHeightAlignment;
 };
 

@@ -45,6 +45,8 @@ DecMediatypeHEVC::DecMediatypeHEVC()
 
 void DecMediatypeHEVC::Reset()
 {
+  strideAlignment = 64;
+  sliceHeightAlignment = 64;
   memset(&settings, 0, sizeof(settings));
   settings.iStackSize = 5;
   settings.uFrameRate = 60000;

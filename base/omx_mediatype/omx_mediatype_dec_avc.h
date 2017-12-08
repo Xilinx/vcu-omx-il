@@ -54,6 +54,8 @@ struct DecMediatypeAVC : DecMediatypeInterface
   ProfileLevelType ProfileLevel() const;
   bool SetProfileLevel(ProfileLevelType const& profileLevel);
   int GetRequiredOutputBuffers() const;
+  int strideAlignment;
+  int sliceHeightAlignment;
 
 private:
   std::vector<AVCProfileType> const profiles

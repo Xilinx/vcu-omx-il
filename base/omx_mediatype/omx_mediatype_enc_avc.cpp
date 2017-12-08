@@ -48,6 +48,8 @@ EncMediatypeAVC::~EncMediatypeAVC()
 
 void EncMediatypeAVC::Reset()
 {
+  strideAlignment = 32;
+  sliceHeightAlignment = 32;
   AL_Settings_SetDefaults(&settings);
   auto& chan = settings.tChParam;
   chan.eProfile = AL_PROFILE_AVC_BASELINE;

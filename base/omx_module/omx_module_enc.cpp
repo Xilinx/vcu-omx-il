@@ -681,6 +681,8 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
   end(const_cast<AL_TBuffer*>(source), stream, size);
 }
 
+#define ROUNDUP(n,width) (((n) + (width) - 1) & ~unsigned((width) - 1))
+
 Resolutions EncModule::GetResolutions() const
 {
   auto const chan = media->settings.tChParam;
@@ -690,8 +692,8 @@ Resolutions EncModule::GetResolutions() const
 
   inRes.width = outRes.width = chan.uWidth;
   inRes.height = outRes.height = chan.uHeight;
-  inRes.stride = outRes.stride = AL_CalculatePitchValue(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER);
-  inRes.sliceHeight = outRes.sliceHeight = chan.uHeight;
+  inRes.stride = outRes.stride = ROUNDUP(AL_CalculatePitchValue(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), media->strideAlignment);
+  inRes.sliceHeight = outRes.sliceHeight = ROUNDUP(chan.uHeight, media->sliceHeightAlignment);
 
   return resolutions;
 }
@@ -842,16 +844,35 @@ FileDescriptors EncModule::GetFileDescriptors() const
   return fds;
 }
 
+static int GetPow2MaxAlignment(int const& pow2startAlignment, int const& value)
+{
+  if((pow2startAlignment % 2) != 0)
+    return 0;
+  if((value % pow2startAlignment) != 0)
+    return 0;
+
+  int n = 0;
+  while((1 << n) != pow2startAlignment)
+    n++;
+  while((value % (1 << n)) == 0)
+    n++;
+
+  return 1 << (n - 1);
+}
+
 bool EncModule::SetResolutions(Resolutions const& resolutions)
 {
   if(resolutions.input != resolutions.output)
     return false;
 
-  // TODO stride/nSliceHeight checking ?
+  if((GetPow2MaxAlignment(8, resolutions.input.stride) == 0)||(GetPow2MaxAlignment(8, resolutions.input.sliceHeight) == 0))
+    return false;
 
   auto& chan = media->settings.tChParam;
   chan.uWidth = resolutions.input.width;
   chan.uHeight = resolutions.input.height;
+  media->strideAlignment = GetPow2MaxAlignment(8, resolutions.input.stride);
+  media->sliceHeightAlignment = GetPow2MaxAlignment(8, resolutions.input.sliceHeight);
   LookCoherency(media->settings);
   return true;
 }
