@@ -653,6 +653,10 @@ static bool SetMaxBitrate(OMX_U32 max, EncModule& module)
 {
   auto moduleBitrates = module.GetBitrates();
   moduleBitrates.max = max;
+
+  if(moduleBitrates.target > moduleBitrates.max)
+    moduleBitrates.target = moduleBitrates.max;
+
   return module.SetBitrates(moduleBitrates);
 }
 
