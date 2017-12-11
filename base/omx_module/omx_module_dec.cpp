@@ -150,10 +150,12 @@ std::vector<ProfileLevelType> DecModule::GetProfileLevelSupported() const
 int DecModule::GetLatency() const
 {
   auto const settings = media->settings;
-  auto const bufsCount = media->GetRequiredOutputBuffers() - settings.iStackSize;
+  auto bufsCount = media->GetRequiredOutputBuffers();
+
+  if(ConvertToModuleDecodedPictureBuffer(settings.eDpbMode) == DECODED_PICTURE_BUFFER_LOW_REFERENCE || IsEnableSubframe())
+    bufsCount -= settings.iStackSize;
 
   auto const realFramerate = (static_cast<double>(settings.uFrameRate) / static_cast<double>(settings.uClkRatio));
-
   auto const timeInMilliseconds = (static_cast<double>(bufsCount * 1000.0) / realFramerate);
 
   return std::ceil(timeInMilliseconds);
