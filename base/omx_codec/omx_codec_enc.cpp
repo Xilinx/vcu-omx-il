@@ -637,7 +637,7 @@ static bool SetBitrate(OMX_U32 target, OMX_VIDEO_CONTROLRATETYPE mode, EncModule
   auto moduleBitrates = module.GetBitrates();
   moduleBitrates.target = target;
 
-  if(mode == OMX_Video_ControlRateConstant)
+  if(mode != OMX_Video_ControlRateVariable)
     moduleBitrates.max = moduleBitrates.target;
 
   moduleBitrates.mode = ConvertToModuleControlRate(mode);
