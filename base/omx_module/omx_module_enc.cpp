@@ -614,6 +614,12 @@ void EncModule::ReleaseBuf(AL_TBuffer const* buf, bool isDma, bool isSrc)
   callbacks.release(isSrc, handle);
 }
 
+bool EncModule::isEndOfFrame(AL_TBuffer* stream)
+{
+  auto flags = GetFlags(stream);
+  return flags.isEndOfFrame;
+}
+
 void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 {
   auto const isStreamRelease = (stream && source == nullptr);
@@ -644,15 +650,19 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 
                callbacks.associate(handleIn, handleOut);
 
-               translate.Remove(source);
+               if(isEndOfFrame(stream) || isEOS)
+                 translate.Remove(source);
+
                translate.Remove(stream);
 
-               if(fds.input)
-                 UnuseDMA(handleIn);
-               else
-                 Unuse(handleIn);
-
-               callbacks.emptied(handleIn, 0, 0);
+               if(isEndOfFrame(stream) || isEOS)
+               {
+                 if(fds.input)
+                   UnuseDMA(handleIn);
+                 else
+                   Unuse(handleIn);
+                 callbacks.emptied(handleIn, 0, 0);
+               }
 
                if(fds.output)
                  UnuseDMA(handleOut);
@@ -1034,14 +1044,12 @@ bool EncModule::SetFileDescriptors(FileDescriptors const& fds)
   return true;
 }
 
-Flags EncModule::GetFlags(void* handle)
+Flags EncModule::GetFlags(AL_TBuffer* stream)
 {
-  Flags flags;
-  auto stream = pool.Get(handle);
-  assert(stream);
-
   auto const meta = (AL_TStreamMetaData*)(AL_Buffer_GetMetaData(stream, AL_META_TYPE_STREAM));
   assert(meta);
+
+  Flags flags {};
 
   for(auto i = 0; i < meta->uNumSection; i++)
   {
@@ -1056,5 +1064,13 @@ Flags EncModule::GetFlags(void* handle)
   }
 
   return flags;
+}
+
+Flags EncModule::GetFlags(void* handle)
+{
+  AL_TBuffer* stream = pool.Get(handle);
+  assert(stream);
+
+  return GetFlags(stream);
 }
 

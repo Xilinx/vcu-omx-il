@@ -156,6 +156,8 @@ private:
   bool DestroyEncoder();
   bool isCreated;
   void ReleaseBuf(AL_TBuffer const* buf, bool isDma, bool isSrc);
+  bool isEndOfFrame(AL_TBuffer* stream);
+  Flags GetFlags(AL_TBuffer* handle);
 
   static void RedirectionEndEncoding(void* userParam, AL_TBuffer* pStream, AL_TBuffer const* pSource)
   {
