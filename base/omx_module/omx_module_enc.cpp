@@ -247,6 +247,17 @@ BuffersRequirements EncModule::GetBuffersRequirements() const
   output.bytesAlignment = device->GetAllocationRequirements().output.bytesAlignment;
   output.contiguous = device->GetAllocationRequirements().output.contiguous;
 
+  if(chan.bSubframeLatency)
+  {
+    auto const numSlices = chan.uNumSlices;
+    auto& size = output.size;
+    size /= numSlices;
+    size += 4095 * 2; /* we need space for the headers on each slice */
+    size = (size + 31) & ~31; /* stream size is required to be 32 bits aligned */
+
+    output.min *= numSlices;
+  }
+
   return b;
 }
 
