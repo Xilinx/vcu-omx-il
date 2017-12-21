@@ -549,7 +549,11 @@ OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
 
     if(data)
     {
-      auto const videoDef = paramPort.format.video;
+      OMX_PARAM_PORTDEFINITIONTYPE param;
+      initHeader(param);
+      param.nPortIndex = 1;
+      OMX_CALL(OMX_GetParameter(app->hDecoder, OMX_IndexParamPortDefinition, &param));
+      auto const videoDef = param.format.video;
       auto const stride = videoDef.nStride;
       auto const sliceHeight = videoDef.nSliceHeight;
       auto const coef = is422(videoDef.eColorFormat) ? 1 : 2;
@@ -655,8 +659,8 @@ OMX_ERRORTYPE setDimensions(Application& app)
   param.format.video.nFrameWidth = app.settings.width;
   param.format.video.nFrameHeight = app.settings.height;
   // TODO 10 bits special case
-  param.format.video.nStride = RoundUp(app.settings.width, 32);
-  param.format.video.nSliceHeight = RoundUp(app.settings.height, 32);
+  param.format.video.nStride = 0; // Let the component decide
+  param.format.video.nSliceHeight = 0; // Let the component decide
   OMX_CALL(OMX_SetParameter(app.hDecoder, OMX_IndexParamPortDefinition, &param));
 
   return OMX_ErrorNone;
@@ -809,6 +813,8 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
   paramPort.nPortIndex = 1;
   OMX_CALL(OMX_GetParameter(app.hDecoder, OMX_IndexParamPortDefinition, &paramPort));
   paramPort.nBufferCountActual = paramPort.nBufferCountMin + 1;
+  paramPort.format.video.nStride = 0; // Let the component decide
+  paramPort.format.video.nSliceHeight = 0; // Let the component decide
   OMX_CALL(OMX_SetParameter(app.hDecoder, OMX_IndexParamPortDefinition, &paramPort));
 
   /* /!\ Can't set parameters after this line /!\  */
