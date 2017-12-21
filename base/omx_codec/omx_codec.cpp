@@ -949,7 +949,11 @@ void Codec::TreatSetStateCommand(Task* task)
     }
 
     if(isTransitionToRun(state, newState))
-      module->Run(true);
+    {
+      auto outputPort = GetPort(1);
+      bool shouldPrealloc = (!outputPort->isTransientToDisable && outputPort->enable);
+      module->Run(shouldPrealloc);
+    }
 
     if(isTransitionToPause(state, newState))
       module->Pause();

@@ -168,7 +168,12 @@ void DecCodec::EventCallBack(CallbackEventType type, void* data)
   {
   case CALLBACK_EVENT_RESOLUTION_CHANGE:
   {
-    LOGI("%s TODO", ToStringCallbackEvent.at(type));
+    LOGI("%s", ToStringCallbackEvent.at(type));
+
+    auto port = GetPort(1);
+
+    if(callbacks.EventHandler && (port->isTransientToEnable || !port->enable))
+      callbacks.EventHandler(component, app, OMX_EventPortSettingsChanged, 1, 0, nullptr);
     break;
   }
   case CALLBACK_EVENT_ERROR:

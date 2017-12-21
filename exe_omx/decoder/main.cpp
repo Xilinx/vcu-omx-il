@@ -90,6 +90,7 @@ static OMX_U32 outportIndex = 1;
 
 struct Settings
 {
+  DecCodec codecImplem = HEVC;
   DecCodec codec = HEVC;
   bool bDMAIn = false;
   bool bDMAOut = false;
@@ -206,10 +207,10 @@ void parseCommandLine(int argc, char** argv, Application& app)
   auto opt = CommandLineParser();
   bool help = false;
   opt.addFlag("--help,-help,-h", &help, "Show this help");
-  opt.addFlag("--hevc,-hevc", &settings.codec, "load HEVC decoder (default)", HEVC);
-  opt.addFlag("--avc,-avc", &settings.codec, "load AVC decoder", AVC);
-  opt.addFlag("--hevc_hard,-hevc_hard", &settings.codec, "Use hard hevc decoder", HEVC_HARD);
-  opt.addFlag("--avc_hard,-hevc_hard", &settings.codec, "Use hard avc decoder", AVC_HARD);
+  opt.addFlag("--hevc,-hevc", &settings.codecImplem, "load HEVC decoder (default)", HEVC);
+  opt.addFlag("--avc,-avc", &settings.codecImplem, "load AVC decoder", AVC);
+  opt.addFlag("--hevc_hard,-hevc_hard", &settings.codecImplem, "Use hard hevc decoder", HEVC_HARD);
+  opt.addFlag("--avc_hard,-hevc_hard", &settings.codecImplem, "Use hard avc decoder", AVC_HARD);
   opt.addString("--out,-o", &output_file, "Output compressed file name");
   opt.addString("--chroma,-chroma", &user_chroma, "<NV12 || RX0A || NV16 || RX2A> ('NV12' default)");
   opt.addOption("--dma-in,-dma-in", [&]() {
@@ -238,6 +239,14 @@ void parseCommandLine(int argc, char** argv, Application& app)
     Usage(opt, argv[0]);
     exit(0);
   }
+
+  bool isHevc = settings.codecImplem == HEVC;
+  isHevc = isHevc || settings.codecImplem == HEVC_HARD;
+
+  if(isHevc)
+    settings.codec = HEVC;
+  else
+    settings.codec = AVC;
 
   if(!setChroma(user_chroma, &settings.chroma))
   {
@@ -445,8 +454,21 @@ OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_
       LOGI("State changed to %s", toStringCompState((OMX_STATETYPE)Data2));
       app->decoderEventState.notify();
     }
-    else if(Data1 == OMX_CommandPortEnable || Data1 == OMX_CommandPortDisable)
-      LOGI("Received Port Enable/Disable Event");
+    else if(Data1 == OMX_CommandPortEnable)
+    {
+      LOGI("Received Port Enable Event");
+
+      /* if the output port is enabled */
+      if(Data2 == 1)
+      {
+        for(auto pBuf : app->outputBuffers)
+          OMX_CALL(OMX_FillThisBuffer(hComponent, pBuf));
+      }
+    }
+    else if(Data1 == OMX_CommandPortDisable)
+    {
+      LOGI("Received Port Disable Event");
+    }
     else if(Data1 == OMX_CommandMarkBuffer)
       LOGI("Mark Buffer Event ");
     else if(Data1 == OMX_CommandFlush)
@@ -463,11 +485,9 @@ OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_
     OMX_CALL(OMX_GetParameter(hComponent, OMX_IndexParamPortDefinition, &paramPort));
     paramPort.nBufferCountActual++;
     OMX_CALL(OMX_SetParameter(hComponent, OMX_IndexParamPortDefinition, &paramPort));
-    freeBuffers(outportIndex, *app);
-    allocBuffers(outportIndex, app->settings.bDMAOut, *app);
 
-    for(auto pBuf : app->outputBuffers)
-      OMX_CALL(OMX_FillThisBuffer(hComponent, pBuf));
+    OMX_SendCommand(app->hDecoder, OMX_CommandPortEnable, 1, nullptr);
+    allocBuffers(outportIndex, app->settings.bDMAOut, *app);
   }
   else if(eEvent == OMX_EventError)
   {
@@ -585,9 +605,9 @@ static bool readFrame(OMX_BUFFERHEADERTYPE* pInputBuf, Application& app)
   return false;
 };
 
-string chooseComponent(DecCodec codec)
+string chooseComponent(DecCodec codecImplem)
 {
-  switch(codec)
+  switch(codecImplem)
   {
   case AVC:
     return "OMX.allegro.h264.decoder";
@@ -677,6 +697,29 @@ OMX_ERRORTYPE setPreallocParameters(Application& app)
   return OMX_ErrorNone;
 }
 
+OMX_ERRORTYPE setWorstCaseParameters(Application& app)
+{
+  Settings& settings = app.settings;
+  settings.width = 7680;
+  settings.height = 4320;
+
+  if(settings.codec == HEVC)
+  {
+    settings.profile = OMX_VIDEO_HEVCProfileMain10;
+    settings.level = OMX_VIDEO_HEVCMainTierLevel51;
+  }
+  else
+  {
+    settings.profile = OMX_VIDEO_AVCProfileHigh422;
+    settings.level = OMX_VIDEO_AVCLevel51;
+  }
+
+  settings.framerate = 1 << 16;
+  settings.chroma = OMX_COLOR_FormatYUV422SemiPlanar;
+
+  return setPreallocParameters(app);
+}
+
 OMX_ERRORTYPE safeMain(int argc, char** argv)
 {
   Application app;
@@ -700,7 +743,7 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   OMX_CALL(OMX_Init());
 
-  auto component = chooseComponent(app.settings.codec);
+  auto component = chooseComponent(app.settings.codecImplem);
 
   OMX_CALLBACKTYPE const videoDecoderCallbacks =
   {
@@ -742,12 +785,24 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
       AL_Allocator_Destroy(app.pAllocator);
   });
 
+  auto outputPortDisabled = false;
+
   if(app.settings.hasPrealloc)
   {
     auto const error = setPreallocParameters(app);
 
     if(error != OMX_ErrorNone)
       return error;
+  }
+  else
+  {
+    auto const error = setWorstCaseParameters(app);
+
+    if(error != OMX_ErrorNone)
+      return error;
+
+    OMX_SendCommand(app.hDecoder, OMX_CommandPortDisable, 1, nullptr);
+    outputPortDisabled = true;
   }
 
   initHeader(paramPort);
@@ -762,7 +817,9 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
   OMX_SendCommand(app.hDecoder, OMX_CommandStateSet, OMX_StateIdle, nullptr);
 
   allocBuffers(inportIndex, app.settings.bDMAIn, app);
-  allocBuffers(outportIndex, app.settings.bDMAOut, app);
+
+  if(!outputPortDisabled)
+    allocBuffers(outportIndex, app.settings.bDMAOut, app);
 
   app.decoderEventState.wait();
 
@@ -770,8 +827,11 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
   OMX_CALL(OMX_SendCommand(app.hDecoder, OMX_CommandStateSet, OMX_StateExecuting, nullptr));
   app.decoderEventState.wait();
 
-  for(auto pBuf : app.outputBuffers)
-    OMX_CALL(OMX_FillThisBuffer(app.hDecoder, pBuf));
+  if(!outputPortDisabled)
+  {
+    for(auto pBuf : app.outputBuffers)
+      OMX_CALL(OMX_FillThisBuffer(app.hDecoder, pBuf));
+  }
 
   /** Process **/
   auto eof = false;
