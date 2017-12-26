@@ -891,14 +891,37 @@ bool EncModule::SetResolutions(Resolutions const& resolutions)
   if(resolutions.input != resolutions.output)
     return false;
 
-  if((GetPow2MaxAlignment(8, resolutions.input.stride) == 0)||(GetPow2MaxAlignment(8, resolutions.input.sliceHeight) == 0))
+  if((resolutions.input.width % 8) != 0)
     return false;
+
+  if((resolutions.input.height % 8) != 0)
+    return false;
+
+  if(resolutions.input.stride != 0)
+  {
+    int const align = GetPow2MaxAlignment(8, resolutions.input.stride);
+
+    if(align == 0)
+      return false;
+
+    if(align > media->strideAlignment)
+      media->strideAlignment = align;
+  }
+
+  if(resolutions.input.sliceHeight != 0)
+  {
+    int const align = GetPow2MaxAlignment(8, resolutions.input.sliceHeight);
+
+    if(align == 0)
+      return false;
+
+    if(align > media->sliceHeightAlignment)
+      media->sliceHeightAlignment = align;
+  }
 
   auto& chan = media->settings.tChParam;
   chan.uWidth = resolutions.input.width;
   chan.uHeight = resolutions.input.height;
-  media->strideAlignment = GetPow2MaxAlignment(8, resolutions.input.stride);
-  media->sliceHeightAlignment = GetPow2MaxAlignment(8, resolutions.input.sliceHeight);
   return true;
 }
 
