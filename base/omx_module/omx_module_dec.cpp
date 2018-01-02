@@ -152,8 +152,11 @@ int DecModule::GetLatency() const
   auto const settings = media->settings;
   auto bufsCount = media->GetRequiredOutputBuffers();
 
-  if(ConvertToModuleDecodedPictureBuffer(settings.eDpbMode) == DECODED_PICTURE_BUFFER_LOW_REFERENCE || IsEnableSubframe())
+  if(ConvertToModuleDecodedPictureBuffer(settings.eDpbMode) == DECODED_PICTURE_BUFFER_LOW_REFERENCE)
     bufsCount -= settings.iStackSize;
+
+  if(IsEnableSubframe())
+    bufsCount = 1;
 
   auto const realFramerate = (static_cast<double>(settings.uFrameRate) / static_cast<double>(settings.uClkRatio));
   auto const timeInMilliseconds = (static_cast<double>(bufsCount * 1000.0) / realFramerate);
