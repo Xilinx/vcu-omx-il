@@ -64,9 +64,6 @@ struct EncMediatypeAVC : EncMediatypeInterface
   LoopFilterType LoopFilter() const;
   bool SetLoopFilter(LoopFilterType const& loopFilter);
 
-  int strideAlignment;
-  int sliceHeightAlignment;
-
 private:
   std::vector<AVCProfileType> const profiles
   {
