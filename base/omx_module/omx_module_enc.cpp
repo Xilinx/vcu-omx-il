@@ -237,7 +237,8 @@ BuffersRequirements EncModule::GetBuffersRequirements() const
   auto const gop = chan.tGopParam;
   auto& input = b.input;
   input.min = 1 + gop.uNumB;
-  input.size = GetAllocSize_Src({ chan.uWidth, chan.uHeight }, AL_GET_BITDEPTH(chan.ePicFormat), AL_GET_CHROMA_MODE(chan.ePicFormat), chan.eSrcMode);
+  auto const res = GetResolutions();
+  input.size = GetAllocSize_Src({ res.input.stride, res.input.sliceHeight }, AL_GET_BITDEPTH(chan.ePicFormat), AL_GET_CHROMA_MODE(chan.ePicFormat), chan.eSrcMode);
   input.bytesAlignment = device->GetAllocationRequirements().input.bytesAlignment;
   input.contiguous = device->GetAllocationRequirements().input.contiguous;
 
