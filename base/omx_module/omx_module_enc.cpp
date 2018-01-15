@@ -219,15 +219,7 @@ void EncModule::Stop()
 void EncModule::ResetRequirements()
 {
   media->Reset();
-  auto& chan = media->settings.tChParam;
-  chan.uWidth = 176;
-  chan.uHeight = 144;
-  chan.ePicFormat = AL_420_8BITS;
-
-  auto& rateCtrl = chan.tRCParam;
-  rateCtrl.eOptions = AL_RC_OPT_SCN_CHG_RES;
   fds.input = fds.output = false;
-  media->settings.bEnableAUD = false;
 }
 
 BuffersRequirements EncModule::GetBuffersRequirements() const

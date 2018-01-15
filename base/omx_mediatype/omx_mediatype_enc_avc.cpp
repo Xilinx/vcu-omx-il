@@ -55,6 +55,15 @@ void EncMediatypeAVC::Reset()
   chan.eProfile = AL_PROFILE_AVC_BASELINE;
   AL_Settings_SetDefaultParam(&settings);
   chan.uLevel = 10;
+  chan.uWidth = 176;
+  chan.uHeight = 144;
+  chan.ePicFormat = AL_420_8BITS;
+  auto& rateCtrl = chan.tRCParam;
+  rateCtrl.eRCMode = AL_RC_CBR;
+  rateCtrl.eOptions = AL_RC_OPT_SCN_CHG_RES;
+  rateCtrl.uMaxBitRate = rateCtrl.uTargetBitRate = 64000;
+  rateCtrl.uFrameRate = 15;
+  settings.bEnableAUD = false;
 }
 
 CompressionType EncMediatypeAVC::Compression() const
