@@ -387,6 +387,12 @@ OMX_ERRORTYPE DecCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
     *(OMX_ALG_VIDEO_PARAM_INTERNAL_ENTROPY_BUFFERS*)param = ConstructVideoInternalEntropyBuffers(*port, ToDecModule(*module));
     return OMX_ErrorNone;
   }
+  case OMX_ALG_IndexParamVideoSubframe:
+  {
+    auto const port = getCurrentPort(param);
+    *(OMX_ALG_VIDEO_PARAM_SUBFRAME*)param = ConstructVideoSubframe(*port, ToDecModule(*module));
+    return OMX_ErrorNone;
+  }
   default:
     LOGE("%s is unsupported", ToStringIndex.at(index));
     return OMX_ErrorUnsupportedIndex;
@@ -677,6 +683,19 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
     auto const ieb = static_cast<OMX_ALG_VIDEO_PARAM_INTERNAL_ENTROPY_BUFFERS*>(param);
 
     if(!SetVideoInternalEntropyBuffers(*ieb, *port, ToDecModule(*module)))
+      throw OMX_ErrorBadParameter;
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamVideoSubframe:
+  {
+    auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
+    auto const subframe = static_cast<OMX_ALG_VIDEO_PARAM_SUBFRAME*>(param);
+
+    if(!SetVideoSubframe(*subframe, *port, ToDecModule(*module)))
       throw OMX_ErrorBadParameter;
     return OMX_ErrorNone;
   }

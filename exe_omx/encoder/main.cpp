@@ -171,6 +171,7 @@ static string output_file;
 
 static ifstream infile;
 static ofstream outfile;
+static int user_slice = 0;
 
 static OMX_PARAM_PORTDEFINITIONTYPE paramPort;
 
@@ -202,6 +203,21 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   assert(isBufModeSetted);
   isBufModeSetted = setter.SetBufferMode(app.output.index, GetBufferMode(app.output.isDMA));
   assert(isBufModeSetted);
+
+  if(user_slice)
+  {
+    OMX_ALG_VIDEO_PARAM_SLICES slices;
+    initHeader(slices);
+    slices.nPortIndex = 1;
+    slices.nNumSlices = user_slice;
+    OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSlices), &slices);
+
+    OMX_ALG_VIDEO_PARAM_SUBFRAME sub;
+    initHeader(sub);
+    sub.nPortIndex = 1;
+    sub.bEnableSubframe = OMX_TRUE;
+    OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSubframe), &sub);
+  }
 
   LOGV("Input picture: %ux%u", app.settings.width, app.settings.height);
   return OMX_ErrorNone;
@@ -238,6 +254,7 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addFlag("--avc_hard,-hevc_hard", &settings.codec, "Use hard avc decoder", AVC_HARD);
   opt.addFlag("--dma-in,-dma-in", &app.input.isDMA, "Use dmabufs for input port");
   opt.addFlag("--dma-out,-dma-out", &app.output.isDMA, "Use dmabufs for output port");
+  opt.addInt("--subframe,-subframe", &user_slice, "<4 || 8 || 16>: activate subframe latency");
 
   if(argc < 2)
   {
@@ -266,6 +283,13 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   {
     Usage(opt, argv[0]);
     cerr << "[Error] chroma parameter was incorrectly set" << endl;
+    exit(1);
+  }
+
+  if(!(user_slice == 0 || user_slice == 4 || user_slice == 8 || user_slice == 16))
+  {
+    Usage(opt, argv[0]);
+    cerr << "[Error] subframe parameter was incorrectly set" << endl;
     exit(1);
   }
 
