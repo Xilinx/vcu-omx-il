@@ -535,6 +535,18 @@ bool DecModule::SetCallbacks(Callbacks callbacks)
   return true;
 }
 
+void DecModule::InputDmaBufferDestroy(AL_TBuffer* input)
+{
+  auto handleIn = translateIn.Get(input);
+  assert(handleIn);
+  translateIn.Remove(input);
+
+  AL_Allocator_Free(input->pAllocator, input->hBuf);
+  AL_Buffer_Destroy(input);
+
+  callbacks.emptied(handleIn, 0, 0);
+}
+
 void DecModule::InputBufferDestroy(AL_TBuffer* input)
 {
   auto handleIn = translateIn.Get(input);
@@ -565,7 +577,7 @@ AL_TBuffer* DecModule::CreateInputBuffer(uint8_t* buffer, int const& size)
       return nullptr;
     }
 
-    input = AL_Buffer_Create(allocator.get(), dmaHandle, size, RedirectionInputBufferDestroy);
+    input = AL_Buffer_Create(allocator.get(), dmaHandle, size, RedirectionInputDmaBufferDestroy);
   }
   else
   {
@@ -664,7 +676,13 @@ AL_TBuffer* DecModule::CreateOutputBuffer(uint8_t* buffer, int const& size)
       return nullptr;
     }
 
-    output = AL_Buffer_Create(allocator.get(), dmaHandle, size, RedirectionOutputBufferDestroy);
+    auto dmaDestroy = [](AL_TBuffer* output)
+    {
+	    AL_Allocator_Free(output->pAllocator, output->hBuf);
+	    AL_Buffer_Destroy(output);
+    };
+
+    output = AL_Buffer_Create(allocator.get(), dmaHandle, size, dmaDestroy);
   }
   else
   {

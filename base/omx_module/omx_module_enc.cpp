@@ -403,7 +403,7 @@ bool EncModule::UseDMA(void* handle, int fd, int size)
     return false;
   }
 
-  auto encoderBuffer = AL_Buffer_Create(allocator.get(), dmaHandle, size, AL_Buffer_Destroy);
+  auto encoderBuffer = AL_Buffer_Create(allocator.get(), dmaHandle, size, MyFree);
 
   if(!encoderBuffer)
     return false;

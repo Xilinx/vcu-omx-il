@@ -162,6 +162,13 @@ private:
   };
   void InputBufferDestroy(AL_TBuffer* input);
 
+  static void RedirectionInputDmaBufferDestroy(AL_TBuffer* input)
+  {
+    auto pThis = static_cast<DecModule*>(AL_Buffer_GetUserData(input));
+    pThis->InputDmaBufferDestroy(input);
+  };
+  void InputDmaBufferDestroy(AL_TBuffer* input);
+
   static void RedirectionOutputBufferDestroy(AL_TBuffer* output)
   {
     auto pThis = static_cast<DecModule*>(AL_Buffer_GetUserData(output));
