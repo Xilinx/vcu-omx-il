@@ -44,7 +44,7 @@ struct DecExpertiseHEVC : public DecExpertise
   ~DecExpertiseHEVC()
   {
   };
-  bool GetProfileLevelSupported(OMX_PTR param, Port const& port, DecModule const& module);
+  bool GetProfileLevelSupported(OMX_PTR param, DecModule const& module);
   void GetProfileLevel(OMX_PTR param, Port const& port, DecModule const& module);
   bool SetProfileLevel(OMX_PTR param, Port const& port, DecModule& module);
   void GetExpertise(OMX_PTR param, Port const& port, DecModule const& module);

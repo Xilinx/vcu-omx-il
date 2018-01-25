@@ -73,12 +73,12 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_Init(void)
 
   strncpy(path, "/system/lib/", OMX_MAX_STRINGNAME_SIZE);
 #else
-  std::string env = "/usr/lib";
+  string env = "/usr/lib";
 
   if(getenv("OMX_ALLEGRO_PATH"))
   {
     env = getenv("OMX_ALLEGRO_PATH");
-    std::cout << "using libraries at OMX_ALLEGRO_PATH=\"" << env << "\"" << std::endl;
+    cout << "using libraries at OMX_ALLEGRO_PATH=\"" << env << "\"" << endl;
   }
 
   strncpy(path, env.c_str(), OMX_MAX_STRINGNAME_SIZE);
@@ -96,19 +96,19 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_Init(void)
     strncpy(cCodecName, path, OMX_MAX_STRINGNAME_SIZE);
     strncat(cCodecName, AL_COMP_LIST[i].pSoLibName, strlen(AL_COMP_LIST[i].pSoLibName));
     strncat(cCodecName, ".", 1);
-    auto cMajorVersion = std::to_string(OMX_VERSION_MAJOR);
+    auto cMajorVersion = to_string(OMX_VERSION_MAJOR);
     strncat(cCodecName, cMajorVersion.c_str(), cMajorVersion.length());
     AL_COMP_LIST[i].pLibHandle = dlopen(cCodecName, RTLD_LAZY);
 
     if(!AL_COMP_LIST[i].pLibHandle)
-      std::cerr << dlerror() << std::endl;
+      cerr << dlerror() << endl;
     else
       uNumLibraryLoad++;
   }
 
   if(uNumLibraryLoad == 0)
   {
-    std::cout << "No library found ! Did you set OMX_ALLEGRO_PATH ?" << std::endl;
+    cout << "No library found ! Did you set OMX_ALLEGRO_PATH ?" << endl;
     return OMX_ErrorUndefined;
   }
 
@@ -123,7 +123,7 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_Deinit(void)
       continue;
 
     if(dlclose(AL_COMP_LIST[i].pLibHandle))
-      std::cerr << dlerror() << std::endl;
+      cerr << dlerror() << endl;
   }
 
   return OMX_ErrorNone;
@@ -151,7 +151,7 @@ static OMX_HANDLETYPE CreateComponent(const omx_comp_type* pComponent, char cons
 
   if(pErr)
   {
-    std::cerr << pErr << std::endl;
+    cerr << pErr << endl;
     return NULL;
   }
 

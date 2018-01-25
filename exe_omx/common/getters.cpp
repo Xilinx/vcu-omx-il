@@ -77,7 +77,7 @@ int Getters::GetBuffersCount(int const& index)
   initHeader(p);
   p.nPortIndex = index;
   OMX_GetParameter(*component, OMX_IndexParamPortDefinition, &p);
-  return p.nBufferCountMin;
+  return p.nBufferCountActual;
 }
 
 static inline bool IsInputSupplier(OMX_DIRTYPE const& dir, OMX_BUFFERSUPPLIERTYPE const& sup)

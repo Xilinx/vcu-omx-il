@@ -75,6 +75,7 @@ public:
   T pop()
   {
     m_Semaphore.wait();
+    auto lock = Lock(m_Mutex);
     auto val = std::move(m_Queue.front());
     m_Queue.pop();
     return val;

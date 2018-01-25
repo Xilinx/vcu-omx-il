@@ -37,7 +37,7 @@
 
 #pragma once
 
-#include "omx_device_codec_structs.h"
+#include "omx_module_structs.h"
 
 extern "C"
 {

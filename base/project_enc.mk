@@ -13,12 +13,14 @@ include $(THIS.base_enc)/omx_codec/project_enc.mk
 include $(THIS.base_enc)/omx_mediatype/project_enc.mk
 include $(THIS.base_enc)/omx_module/project_enc.mk
 include $(THIS.base_enc)/omx_wrapper/project_enc.mk
+include $(THIS.base_enc)/omx_settings/project_enc.mk
 
 OMX_ENC_OBJ:=$(OMX_COMMON_OBJ)
 OMX_ENC_OBJ+=$(OMX_CODEC_ENC_SRCS:%=$(BIN)/%.o)
 OMX_ENC_OBJ+=$(OMX_MEDIATYPE_ENC_SRCS:%=$(BIN)/%.o)
 OMX_ENC_OBJ+=$(OMX_MODULE_ENC_SRCS:%=$(BIN)/%.o)
 OMX_ENC_OBJ+=$(OMX_WRAPPER_ENC_SRCS:%=$(BIN)/%.o)
+OMX_ENC_OBJ+=$(OMX_SETTINGS_ENC_SRCS:%=$(BIN)/%.o)
 
 ifneq ($(LINK_SHARED_CTRLSW), 1)
 $(LIB_ENCODE):

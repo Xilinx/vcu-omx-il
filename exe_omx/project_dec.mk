@@ -12,6 +12,8 @@ $(BIN)/$(EXE_NAME_DEC): $(EXE_OMX_DECODER_OBJ) $(LIBS_DECODE) $(LIB_OMX_CORE)
 else
 $(BIN)/$(EXE_NAME_DEC): $(EXE_OMX_DECODER_OBJ) $(LIB_OMX_CORE)
 endif
+$(BIN)/$(EXE_NAME_DEC): LDFLAGS+=-lpthread
+
 omx_decoder: $(BIN)/$(EXE_NAME_DEC)
 
 .PHONY: omx_decoder

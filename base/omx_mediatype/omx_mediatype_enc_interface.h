@@ -38,8 +38,8 @@
 #pragma once
 
 #include "omx_mediatype_interface.h"
-#include "omx_mediatype_interface_structs.h"
-#include "omx_mediatype_enc_enums.h"
+#include "base/omx_module/omx_module_enums.h"
+#include "base/omx_module/omx_module_structs.h"
 #include <vector>
 
 extern "C"
@@ -59,6 +59,7 @@ struct EncMediatypeInterface : public MediatypeInterface
   virtual void Reset() = 0;
 
   virtual std::vector<ProfileLevelType> ProfileLevelSupported() const = 0;
+  virtual std::vector<Format> FormatsSupported() const = 0;
   virtual ProfileLevelType ProfileLevel() const = 0;
   virtual bool SetProfileLevel(ProfileLevelType const& profileLevel) = 0;
 

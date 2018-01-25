@@ -39,8 +39,69 @@
 
 #include <functional>
 #include <memory>
-#include "omx_module_interface_structs.h"
 #include <map>
+
+#include "omx_module_structs.h"
+
+enum ErrorType
+{
+  SUCCESS,
+  ERROR_BAD_PARAMETER,
+  ERROR_NOT_IMPLEMENTED,
+  ERROR_BAD_STATE,
+  ERROR_UNDEFINED,
+  ERROR_MAX,
+};
+
+static std::map<ErrorType, const char*> ToStringError
+{
+  {
+    SUCCESS, "SUCCESS"
+  },
+  {
+    ERROR_BAD_PARAMETER, "ERROR_BAD_PARAMETER"
+  },
+  {
+    ERROR_NOT_IMPLEMENTED, "ERROR_NOT_IMPLEMENTED"
+  },
+  {
+    ERROR_BAD_STATE, "ERROR_BAD_STATE"
+  },
+  {
+    ERROR_UNDEFINED, "ERROR_UNDEFINED"
+  },
+  {
+    ERROR_MAX, "ERROR_MAX"
+  },
+};
+
+enum DynamicIndexType
+{
+  DYNAMIC_INDEX_GOP,
+  DYNAMIC_INDEX_INSERT_IDR,
+  DYNAMIC_INDEX_CLOCK,
+  DYNAMIC_INDEX_BITRATE,
+  DYNAMIC_INDEX_MAX,
+};
+
+static std::map<DynamicIndexType, const char*> ToStringDynamicIndex
+{
+  {
+    DYNAMIC_INDEX_GOP, "DYNAMIC_INDEX_GOP"
+  },
+  {
+    DYNAMIC_INDEX_INSERT_IDR, "DYNAMIC_INDEX_INSERT_IDR"
+  },
+  {
+    DYNAMIC_INDEX_CLOCK, "DYNAMIC_INDEX_CLOCK"
+  },
+  {
+    DYNAMIC_INDEX_BITRATE, "DYNAMIC_INDEX_BITRATE"
+  },
+  {
+    DYNAMIC_INDEX_MAX, "DYNAMIC_INDEX_MAX"
+  },
+};
 
 enum CallbackEventType
 {
@@ -78,13 +139,16 @@ struct ModuleInterface
   }
 
   virtual void ResetRequirements() = 0;
-  virtual BuffersRequirements GetBuffersRequirements() const = 0;
-  virtual Resolutions GetResolutions() const = 0;
-  virtual Clocks GetClocks() const = 0;
-  virtual Formats GetFormats() const = 0;
-  virtual bool SetResolutions(Resolutions const& resolutions) = 0;
-  virtual bool SetClocks(Clocks const& clocks) = 0;
-  virtual bool SetFormats(Formats const& formats) = 0;
+  virtual BufferRequirements GetBufferRequirements() const = 0;
+  virtual Resolution GetResolution() const = 0;
+  virtual Clock GetClock() const = 0;
+  virtual Mimes GetMimes() const = 0;
+  virtual Gop GetGop() const = 0;
+  virtual Format GetFormat() const = 0;
+  virtual bool SetResolution(Resolution const& resolution) = 0;
+  virtual bool SetClock(Clock const& clock) = 0;
+  virtual bool SetFormat(Format const& format) = 0;
+  virtual bool SetGop(Gop const& gop) = 0;
 
   virtual bool CheckParam() = 0;
   virtual bool Create() = 0;
@@ -102,5 +166,8 @@ struct ModuleInterface
   virtual bool Pause() = 0;
   virtual bool Flush() = 0;
   virtual void Stop() = 0;
+
+  virtual ErrorType SetDynamic(DynamicIndexType index, void const* param) = 0;
+  virtual ErrorType GetDynamic(DynamicIndexType index, void* param) = 0;
 };
 

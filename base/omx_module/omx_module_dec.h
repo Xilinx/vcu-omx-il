@@ -38,7 +38,7 @@
 #pragma once
 #include "omx_module_interface.h"
 #include "omx_device_dec_interface.h"
-#include "omx_module_dec_enums.h"
+#include "omx_module_enums.h"
 #include "omx_module_codec_structs.h"
 
 #include <vector>
@@ -64,27 +64,31 @@ public:
   }
 
   void ResetRequirements();
-  BuffersRequirements GetBuffersRequirements() const;
+  BufferRequirements GetBufferRequirements() const;
 
-  Resolutions GetResolutions() const;
-  Clocks GetClocks() const;
-  Formats GetFormats() const;
+  Resolution GetResolution() const;
+  Clock GetClock() const;
+  Mimes GetMimes() const;
+  Format GetFormat() const;
+  std::vector<Format> GetFormatsSupported() const;
   ProfileLevelType GetProfileLevel() const;
   std::vector<ProfileLevelType> GetProfileLevelSupported() const;
   int GetLatency() const;
+  Gop GetGop() const;
   FileDescriptors GetFileDescriptors() const;
   DecodedPictureBufferType GetDecodedPictureBuffer() const;
   int GetInternalEntropyBuffers() const;
   bool IsEnableSubframe() const;
 
-  bool SetResolutions(Resolutions const& resolutions);
-  bool SetClocks(Clocks const& clocks);
-  bool SetFormats(Formats const& formats);
+  bool SetResolution(Resolution const& resolution);
+  bool SetClock(Clock const& clock);
+  bool SetFormat(Format const& format);
   bool SetProfileLevel(ProfileLevelType const& profileLevel);
   bool SetFileDescriptors(FileDescriptors const& fds);
   bool SetDecodedPictureBuffer(DecodedPictureBufferType const& decodedPictureBuffer);
   bool SetInternalEntropyBuffers(int const& num);
   bool SetEnableSubframe(bool const& enableSubframe);
+  bool SetGop(Gop const& gop);
 
   bool CheckParam();
   bool Create();
@@ -106,7 +110,8 @@ public:
   bool Flush();
   void Stop();
 
-  void FlushEosHandles();
+  ErrorType SetDynamic(DynamicIndexType index, void const* param);
+  ErrorType GetDynamic(DynamicIndexType index, void* param);
 
 private:
   std::unique_ptr<DecMediatypeInterface> media;
@@ -129,7 +134,10 @@ private:
   EOSHandles eosHandles;
   bool CreateDecoder(bool shouldPrealloc);
   bool DestroyDecoder();
+  void ReleaseAllBuffers();
+  void FlushEosHandles();
   bool isCreated;
+  void CopyIfRequired(AL_TBuffer* frameToDisplay, int size);
 
   AL_TBuffer* CreateInputBuffer(uint8_t* buffer, int const& size);
   AL_TBuffer* CreateOutputBuffer(uint8_t* buffer, int const& size);
@@ -140,6 +148,7 @@ private:
     pThis->EndDecoding(decodedFrame);
   };
   void EndDecoding(AL_TBuffer* decodedFrame);
+  void ReleaseBufs(AL_TBuffer* frame);
 
   static void RedirectionDisplay(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info, void* userParam)
   {
@@ -175,6 +184,13 @@ private:
     pThis->OutputBufferDestroy(output);
   };
   void OutputBufferDestroy(AL_TBuffer* output);
+
+  static void RedirectionOutputDmaBufferDestroy(AL_TBuffer* output)
+  {
+    auto pThis = static_cast<DecModule*>(AL_Buffer_GetUserData(output));
+    pThis->OutputDmaBufferDestroy(output);
+  };
+  void OutputDmaBufferDestroy(AL_TBuffer* output);
 
   static void RedirectionOutputBufferDestroyAndFree(AL_TBuffer* output)
   {

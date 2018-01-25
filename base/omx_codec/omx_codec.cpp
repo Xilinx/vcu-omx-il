@@ -43,8 +43,10 @@
 #include <string.h>
 
 #include <OMX_VideoExt.h>
-#include "omx_convert_module_to_omx.h"
-#include "omx_convert_omx_to_module.h"
+#include "omx_convert_omx_module.h"
+
+using std::mutex;
+using std::lock_guard;
 
 #define OMX_TRY() \
   try \
@@ -55,7 +57,16 @@
   } \
   catch(OMX_ERRORTYPE& e) \
   { \
-    LOGE("%s", ToStringError.at(e)); \
+    LOGE("%s", ToStringOMXError.at(e)); \
+    return e; \
+  } \
+  void FORCE_SEMICOLON()
+
+#define OMX_CATCH_CONFIG() \
+  } \
+  catch(OMX_ERRORTYPE& e) \
+  { \
+    LOGE("%s : %s", ToStringOMXIndex.at(index), ToStringOMXError.at(e)); \
     return e; \
   } \
   void FORCE_SEMICOLON()
@@ -65,10 +76,7 @@ void Codec::ReturnEmptiedBuffer(uint8_t* emptied)
   if(!emptied)
     assert(0);
 
-  auto header = map.Get(emptied);
-  assert(header);
-  map.Remove(emptied);
-
+  auto header = map.Pop(emptied);
   ClearPropagatedData(header);
 
   if(callbacks.EmptyBufferDone)
@@ -101,9 +109,7 @@ void Codec::ReturnFilledBuffer(uint8_t* filled, int offset, int size)
   if(!filled)
     assert(0);
 
-  auto header = map.Get(filled);
-  assert(header);
-  map.Remove(filled);
+  auto header = map.Pop(filled);
 
   header->nOffset = offset;
   header->nFilledLen = size;
@@ -173,7 +179,7 @@ static void AssociateSpecVersion(OMX_VERSIONTYPE& spec)
 
 Codec::Codec(OMX_HANDLETYPE component, std::unique_ptr<ModuleInterface>&& module, OMX_STRING name, OMX_STRING role) :
   component(component), module(std::move(module)),
-  input(0, this->module->GetBuffersRequirements().input.min), output(1, this->module->GetBuffersRequirements().output.min)
+  input(0, this->module->GetBufferRequirements().input.min), output(1, this->module->GetBufferRequirements().output.min)
 {
   assert(name);
   assert(role);
@@ -240,7 +246,8 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
     auto const nextState = static_cast<OMX_STATETYPE>(param);
     OMXChecker::CheckStateExistance(nextState);
 
-    TransientState NewtransientState = GetTransientState(state, nextState);    
+    TransientState NewtransientState = GetTransientState(state, nextState);
+
     if(NewtransientState == TransientLoadedToIdle)
       if(!module->CheckParam())
         throw OMX_ErrorUndefined;
@@ -376,7 +383,8 @@ static OMX_PARAM_PORTDEFINITIONTYPE ConstructPortDefinition(Port& port, ModuleIn
   OMXChecker::SetHeaderVersion(d);
   d.nPortIndex = port.index;
   d.eDir = IsInputPort(d.nPortIndex) ? OMX_DirInput : OMX_DirOutput;
-  auto const requirements = IsInputPort(d.nPortIndex) ? module.GetBuffersRequirements().input : module.GetBuffersRequirements().output;
+  auto const requirements = IsInputPort(d.nPortIndex) ? module.GetBufferRequirements().input : module.GetBufferRequirements().output;
+
   if(port.expected < (size_t)requirements.min)
     port.expected = requirements.min;
   d.nBufferCountActual = port.expected;
@@ -389,9 +397,10 @@ static OMX_PARAM_PORTDEFINITIONTYPE ConstructPortDefinition(Port& port, ModuleIn
   d.eDomain = OMX_PortDomainVideo;
 
   auto& v = d.format.video;
-  auto const moduleResolution = IsInputPort(d.nPortIndex) ? module.GetResolutions().input : module.GetResolutions().output;
-  auto const moduleFormat = IsInputPort(d.nPortIndex) ? module.GetFormats().input : module.GetFormats().output;
-  auto const moduleClock = IsInputPort(d.nPortIndex) ? module.GetClocks().input : module.GetClocks().output;
+  auto const moduleResolution = module.GetResolution();
+  auto const moduleFormat = module.GetFormat();
+  auto const moduleClock = module.GetClock();
+  auto const moduleMime = IsInputPort(d.nPortIndex) ? module.GetMimes().input : module.GetMimes().output;
   v.pNativeRender = 0; // XXX
   v.nFrameWidth = moduleResolution.width;
   v.nFrameHeight = moduleResolution.height;
@@ -400,9 +409,9 @@ static OMX_PARAM_PORTDEFINITIONTYPE ConstructPortDefinition(Port& port, ModuleIn
   v.nBitrate = 0; // XXX
   v.xFramerate = ConvertToOMXFramerate(moduleClock);
   v.bFlagErrorConcealment = ConvertToOMXBool(false); // XXX
-  v.eCompressionFormat = ConvertToOMXCompression(moduleFormat.compression);
+  v.eCompressionFormat = ConvertToOMXCompression(moduleMime.compression);
   v.eColorFormat = ConvertToOMXColor(moduleFormat.color, moduleFormat.bitdepth);
-  v.cMIMEType = const_cast<char*>(moduleFormat.mime.c_str());
+  v.cMIMEType = const_cast<char*>(moduleMime.mime.c_str());
   v.pNativeWindow = 0; // XXX
   return d;
 }
@@ -422,9 +431,10 @@ static OMX_VIDEO_PARAM_PORTFORMATTYPE ConstructVideoPortFormat(Port const& port,
   OMXChecker::SetHeaderVersion(f);
   f.nPortIndex = port.index;
   f.nIndex = 0;
-  auto const moduleFormat = IsInputPort(f.nPortIndex) ? module.GetFormats().input : module.GetFormats().output;
-  auto const moduleClock = IsInputPort(f.nPortIndex) ? module.GetClocks().input : module.GetClocks().output;
-  f.eCompressionFormat = ConvertToOMXCompression(moduleFormat.compression);
+  auto const moduleFormat = module.GetFormat();
+  auto const moduleClock = module.GetClock();
+  auto const moduleMime = IsInputPort(f.nPortIndex) ? module.GetMimes().input : module.GetMimes().output;
+  f.eCompressionFormat = ConvertToOMXCompression(moduleMime.compression);
   f.eColorFormat = ConvertToOMXColor(moduleFormat.color, moduleFormat.bitdepth);
   f.xFramerate = ConvertToOMXFramerate(moduleClock);
   return f;
@@ -477,40 +487,40 @@ OMX_ERRORTYPE Codec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR 
     return OMX_ErrorNone;
   }
   default:
-    LOGE("%s is unsupported", ToStringIndex.at(index));
+    LOGE("%s is unsupported", ToStringOMXIndex.at(index));
     return OMX_ErrorUnsupportedIndex;
   }
 
-  LOGE("%s is unsupported", ToStringIndex.at(index));
+  LOGE("%s is unsupported", ToStringOMXIndex.at(index));
   return OMX_ErrorUnsupportedIndex;
   OMX_CATCH();
 }
 
-static bool SetFormats(OMX_COLOR_FORMATTYPE const& color, ModuleInterface& module)
+static bool SetFormat(OMX_COLOR_FORMATTYPE const& color, ModuleInterface& module)
 {
-  auto moduleFormats = module.GetFormats();
-  moduleFormats.input.color = moduleFormats.output.color = ConvertToModuleColor(color);
-  moduleFormats.input.bitdepth = moduleFormats.output.bitdepth = ConvertToModuleBitdepth(color);
-  return module.SetFormats(moduleFormats);
+  auto moduleFormat = module.GetFormat();
+  moduleFormat.color = ConvertToModuleColor(color);
+  moduleFormat.bitdepth = ConvertToModuleBitdepth(color);
+  return module.SetFormat(moduleFormat);
 }
 
-static bool SetClocks(OMX_U32 const& framerateInQ16, ModuleInterface& module)
+static bool SetClock(OMX_U32 const& framerateInQ16, ModuleInterface& module)
 {
-  auto moduleClocks = module.GetClocks();
+  auto moduleClock = module.GetClock();
   auto const clock = ConvertToModuleClock(framerateInQ16);
-  moduleClocks.input.framerate = moduleClocks.output.framerate = clock.framerate;
-  moduleClocks.input.clockratio = moduleClocks.output.clockratio = clock.clockratio;
-  return module.SetClocks(moduleClocks);
+  moduleClock.framerate = clock.framerate;
+  moduleClock.clockratio = clock.clockratio;
+  return module.SetClock(moduleClock);
 }
 
 static bool SetResolution(OMX_VIDEO_PORTDEFINITIONTYPE const& definition, ModuleInterface& module)
 {
-  auto moduleResolutions = module.GetResolutions();
-  moduleResolutions.input.width = moduleResolutions.output.width = definition.nFrameWidth;
-  moduleResolutions.input.height = moduleResolutions.output.height = definition.nFrameHeight;
-  moduleResolutions.input.stride = moduleResolutions.output.stride = definition.nStride;
-  moduleResolutions.input.sliceHeight = moduleResolutions.output.sliceHeight = definition.nSliceHeight;
-  return module.SetResolutions(moduleResolutions);
+  auto moduleResolution = module.GetResolution();
+  moduleResolution.width = definition.nFrameWidth;
+  moduleResolution.height = definition.nFrameHeight;
+  moduleResolution.stride = definition.nStride;
+  moduleResolution.sliceHeight = definition.nSliceHeight;
+  return module.SetResolution(moduleResolution);
 }
 
 static bool SetPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE const& settings, ModuleInterface& module)
@@ -520,27 +530,27 @@ static bool SetPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Modu
   if(!SetResolution(video, module))
     return false;
 
-  if(!SetClocks(video.xFramerate, module))
+  if(!SetClock(video.xFramerate, module))
     return false;
 
-  if(!SetFormats(video.eColorFormat, module))
+  if(!SetFormat(video.eColorFormat, module))
     return false;
   return true;
 }
 
 static bool SetVideoPortFormat(OMX_VIDEO_PARAM_PORTFORMATTYPE const& format, ModuleInterface& module)
 {
-  if(!SetClocks(format.xFramerate, module))
+  if(!SetClock(format.xFramerate, module))
     return false;
 
-  if(!SetFormats(format.eColorFormat, module))
+  if(!SetFormat(format.eColorFormat, module))
     return false;
   return true;
 }
 
 static bool SetPortExpectedBuffer(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port& port, ModuleInterface const& module)
 {
-  auto const min = IsInputPort(settings.nPortIndex) ? module.GetBuffersRequirements().input.min : module.GetBuffersRequirements().output.min;
+  auto const min = IsInputPort(settings.nPortIndex) ? module.GetBufferRequirements().input.min : module.GetBufferRequirements().output.min;
   auto const actual = static_cast<int>(settings.nBufferCountActual);
 
   if(actual < min)
@@ -611,11 +621,11 @@ OMX_ERRORTYPE Codec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR par
     return OMX_ErrorNone;
   }
   default:
-    LOGE("%s is unsupported", ToStringIndex.at(index));
+    LOGE("%s is unsupported", ToStringOMXIndex.at(index));
     return OMX_ErrorUnsupportedIndex;
   }
 
-  LOGE("%s is unsupported", ToStringIndex.at(index));
+  LOGE("%s is unsupported", ToStringOMXIndex.at(index));
   return OMX_ErrorUnsupportedIndex;
   OMX_CATCH();
 }
@@ -764,9 +774,12 @@ OMX_ERRORTYPE Codec::FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
   header->pMarkData = NULL;
   header->nFlags = 0;
 
-  map.Add(header->pBuffer, header);
-  auto success = module->Fill(header->pBuffer, header->nOffset, (header->nAllocLen - header->nOffset));
-  assert(success);
+  {
+    lock_guard<mutex> lock(moduleMutex);
+    map.Add(header->pBuffer, header);
+    auto success = module->Fill(header->pBuffer, header->nOffset, (header->nAllocLen - header->nOffset));
+    assert(success);
+  }
 
   return OMX_ErrorNone;
   OMX_CATCH();
@@ -796,16 +809,98 @@ OMX_ERRORTYPE Codec::GetComponentVersion(OMX_OUT OMX_STRING name, OMX_OUT OMX_VE
 
 OMX_ERRORTYPE Codec::GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR config)
 {
-  (void)index;
-  (void)config;
-  return OMX_ErrorNotImplemented;
+  OMX_TRY();
+  OMXChecker::CheckNotNull(config);
+  OMXChecker::CheckHeaderVersion(GetVersion(config));
+  OMXChecker::CheckStateOperation(AL_GetConfig, state);
+  switch(static_cast<OMX_U32>(index))
+  {
+  case OMX_IndexConfigVideoBitrate:
+  {
+    auto& bitrate = *(static_cast<OMX_VIDEO_CONFIG_BITRATETYPE*>(config));
+    module->GetDynamic(DYNAMIC_INDEX_BITRATE, &bitrate.nEncodeBitrate);
+    return OMX_ErrorNone;
+  }
+  case OMX_IndexConfigVideoFramerate:
+  {
+    Clock clock;
+    module->GetDynamic(DYNAMIC_INDEX_CLOCK, &clock);
+    auto& framerate = *(static_cast<OMX_CONFIG_FRAMERATETYPE*>(config));
+    framerate.xEncodeFramerate = ConvertToOMXFramerate(clock);
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexConfigVideoGroupOfPictures:
+  {
+    Gop moduleGop;
+    module->GetDynamic(DYNAMIC_INDEX_GOP, &moduleGop);
+    auto& gop = *(static_cast<OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES*>(config));
+    gop.nBFrames = ConvertToOMXBFrames(moduleGop);
+    gop.nPFrames = ConvertToOMXPFrames(moduleGop);
+    return OMX_ErrorNone;
+  }
+  default:
+    LOGE("%s is unsupported", ToStringOMXIndex.at(index));
+    return OMX_ErrorUnsupportedIndex;
+  }
+
+  LOGE("%s is unsupported", ToStringOMXIndex.at(index));
+
+  return OMX_ErrorUnsupportedIndex;
+  OMX_CATCH_CONFIG();
 }
 
 OMX_ERRORTYPE Codec::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR config)
 {
-  (void)index;
-  (void)config;
-  return OMX_ErrorNotImplemented;
+  OMX_TRY();
+  OMXChecker::CheckNotNull(config);
+  OMXChecker::CheckHeaderVersion(GetVersion(config));
+  OMXChecker::CheckStateOperation(AL_SetConfig, state);
+  switch(static_cast<OMX_U32>(index))
+  {
+  case OMX_IndexConfigVideoBitrate:
+  {
+    OMX_VIDEO_CONFIG_BITRATETYPE* bitrate = new OMX_VIDEO_CONFIG_BITRATETYPE;
+    memcpy(bitrate, static_cast<OMX_VIDEO_CONFIG_BITRATETYPE*>(config), sizeof(OMX_VIDEO_CONFIG_BITRATETYPE));
+
+    if(bitrate->nEncodeBitrate == 0)
+      throw OMX_ErrorBadParameter;
+
+    processor->queue(CreateTask(SetDynamic, OMX_IndexConfigVideoBitrate, bitrate));
+
+    return OMX_ErrorNone;
+  }
+  case OMX_IndexConfigVideoFramerate:
+  {
+    OMX_CONFIG_FRAMERATETYPE* framerate = new OMX_CONFIG_FRAMERATETYPE;
+    memcpy(framerate, static_cast<OMX_CONFIG_FRAMERATETYPE*>(config), sizeof(OMX_CONFIG_FRAMERATETYPE));
+
+    processor->queue(CreateTask(SetDynamic, OMX_IndexConfigVideoFramerate, framerate));
+
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh:
+  {
+    OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH* idr = new OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH;
+    memcpy(idr, static_cast<OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH));
+    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh, idr));
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexConfigVideoGroupOfPictures:
+  {
+    OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES* gop = new OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES;
+    memcpy(gop, static_cast<OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES));
+    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoGroupOfPictures, gop));
+    return OMX_ErrorNone;
+  }
+
+  default:
+    LOGE("%s is unsupported", ToStringOMXIndex.at(index));
+    return OMX_ErrorUnsupportedIndex;
+  }
+
+  LOGE("%s is unsupported", ToStringOMXIndex.at(index));
+  return OMX_ErrorUnsupportedIndex;
+  OMX_CATCH_CONFIG();
 }
 
 OMX_ERRORTYPE Codec::GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_INDEXTYPE* index)
@@ -820,19 +915,13 @@ OMX_ERRORTYPE Codec::GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_INDEX
 
 OMX_ERRORTYPE Codec::ComponentTunnelRequest(OMX_IN OMX_U32 index, OMX_IN OMX_HANDLETYPE comp, OMX_IN OMX_U32 tunneledIndex, OMX_INOUT OMX_TUNNELSETUPTYPE* setup)
 {
-  (void)index;
-  (void)tunneledIndex;
-  (void)comp;
-  (void)setup;
+  (void)index, (void)tunneledIndex, (void)comp, (void)setup;
   return OMX_ErrorNotImplemented;
 }
 
 OMX_ERRORTYPE Codec::UseEGLImage(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN void* eglImage)
 {
-  (void)header;
-  (void)index;
-  (void)app;
-  (void)eglImage;
+  (void)header, (void)index, (void)app, (void)eglImage;
   return OMX_ErrorNotImplemented;
 }
 
@@ -930,7 +1019,7 @@ void Codec::TreatSetStateCommand(Task* task)
     assert(task->opt == nullptr);
 
     auto const newState = (OMX_STATETYPE)((uintptr_t)task->data);
-    LOGI("Set State : %s", ToStringState.at(newState));
+    LOGI("Set State : %s", ToStringOMXState.at(newState));
     OMXChecker::CheckStateTransition(state, newState);
 
     if(isTransitionToIdle(state, newState))
@@ -968,7 +1057,7 @@ void Codec::TreatSetStateCommand(Task* task)
   }
   catch(OMX_ERRORTYPE& e)
   {
-    LOGE("%s", ToStringError.at(e));
+    LOGE("%s", ToStringOMXError.at(e));
 
     if(e == OMX_ErrorInvalidState)
     {
@@ -1070,6 +1159,58 @@ void Codec::TreatFillBufferCommand(Task* task)
   assert(success);
 }
 
+void Codec::TreatDynamicCommand(Task* task)
+{
+  assert(task);
+  assert(task->cmd == SetDynamic);
+  auto const index = static_cast<OMX_U32>((uintptr_t)task->data);
+  switch(index)
+  {
+  case OMX_IndexConfigVideoBitrate:
+  {
+    assert(task->opt);
+    auto bitrate = static_cast<OMX_VIDEO_CONFIG_BITRATETYPE*>(task->opt);
+    module->SetDynamic(DYNAMIC_INDEX_BITRATE, (void*)(static_cast<intptr_t>(bitrate->nEncodeBitrate)));
+    delete bitrate;
+    return;
+  }
+  case OMX_IndexConfigVideoFramerate:
+  {
+    assert(task->opt);
+    auto framerate = static_cast<OMX_CONFIG_FRAMERATETYPE*>(task->opt);
+    auto moduleClock = module->GetClock();
+    auto const clock = ConvertToModuleClock(framerate->xEncodeFramerate);
+    moduleClock.framerate = clock.framerate;
+    moduleClock.clockratio = clock.clockratio;
+    module->SetDynamic(DYNAMIC_INDEX_CLOCK, &moduleClock);
+    delete framerate;
+    return;
+  }
+  case OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh:
+  {
+    assert(task->opt);
+    auto idr = static_cast<OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH*>(task->opt);
+    module->SetDynamic(DYNAMIC_INDEX_INSERT_IDR, nullptr);
+    delete idr;
+    return;
+  }
+  case OMX_ALG_IndexConfigVideoGroupOfPictures:
+  {
+    assert(task->opt);
+    auto gop = static_cast<OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES*>(task->opt);
+    auto moduleGop = module->GetGop();
+    moduleGop.b = ConvertToModuleBFrames(gop->nBFrames, gop->nPFrames);
+    moduleGop.length = ConvertToModuleGopLength(gop->nBFrames, gop->nPFrames);
+    module->SetDynamic(DYNAMIC_INDEX_GOP, &moduleGop);
+    delete gop;
+    return;
+  }
+
+  default:
+    return;
+  }
+}
+
 void Codec::_Delete(void* data)
 {
   auto task = static_cast<Task*>(data);
@@ -1083,11 +1224,13 @@ void Codec::_Process(void* data)
   {
   case SetState:
   {
+    lock_guard<mutex> lock(moduleMutex);
     TreatSetStateCommand(task);
     break;
   }
   case Flush:
   {
+    lock_guard<mutex> lock(moduleMutex);
     TreatFlushCommand(task);
     break;
   }
@@ -1114,6 +1257,11 @@ void Codec::_Process(void* data)
   case FillBuffer:
   {
     TreatFillBufferCommand(task);
+    break;
+  }
+  case SetDynamic:
+  {
+    TreatDynamicCommand(task);
     break;
   }
   default:

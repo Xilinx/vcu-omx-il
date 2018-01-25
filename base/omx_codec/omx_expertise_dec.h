@@ -46,7 +46,7 @@ struct DecExpertise
   virtual ~DecExpertise()
   {
   };
-  virtual bool GetProfileLevelSupported(OMX_PTR param, Port const& port, DecModule const& module) = 0;
+  virtual bool GetProfileLevelSupported(OMX_PTR param, DecModule const& module) = 0;
   virtual void GetProfileLevel(OMX_PTR param, Port const& port, DecModule const& module) = 0;
   virtual bool SetProfileLevel(OMX_PTR param, Port const& port, DecModule& module) = 0;
   virtual void GetExpertise(OMX_PTR param, Port const& port, DecModule const& module) = 0;

@@ -37,6 +37,8 @@
 
 #include "omx_mediatype_enc_avc.h"
 
+using namespace std;
+
 EncMediatypeAVC::EncMediatypeAVC()
 {
   Reset();
@@ -71,14 +73,14 @@ CompressionType EncMediatypeAVC::Compression() const
   return COMPRESSION_AVC;
 }
 
-std::string EncMediatypeAVC::Mime() const
+string EncMediatypeAVC::Mime() const
 {
   return "video/x-h264";
 }
 
-std::vector<ProfileLevelType> EncMediatypeAVC::ProfileLevelSupported() const
+vector<ProfileLevelType> EncMediatypeAVC::ProfileLevelSupported() const
 {
-  std::vector<ProfileLevelType> vector;
+  vector<ProfileLevelType> vector;
 
   for(auto const& profile : profiles)
     for(auto const & level : levels)
@@ -279,5 +281,23 @@ bool EncMediatypeAVC::SetEnableLowBandwidth(bool const& enable)
   auto bw = enable ? 8 : 16;
   chan.pMeRange[SLICE_P][1] = bw;
   return true;
+}
+
+vector<Format> EncMediatypeAVC::FormatsSupported() const
+{
+  vector<Format> formatsSupported;
+
+  for(auto const& color : colors)
+  {
+    for(auto const& bitdepth : bitdepths)
+    {
+      Format format;
+      format.color = color;
+      format.bitdepth = bitdepth;
+      formatsSupported.push_back(format);
+    }
+  }
+
+  return formatsSupported;
 }
 

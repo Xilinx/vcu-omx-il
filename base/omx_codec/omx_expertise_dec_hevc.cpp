@@ -36,17 +36,7 @@
 ******************************************************************************/
 
 #include "omx_expertise_dec_hevc.h"
-
-#include "omx_convert_omx_to_module.h"
-#include "omx_convert_module_to_omx.h"
-
-#include "omx_convert_module_to_omx_hevc.h"
-#include "omx_convert_module_to_omx_dec.h"
-#include "omx_convert_module_to_omx_dec_hevc.h"
-
-#include "omx_convert_omx_to_module_hevc.h"
-#include "omx_convert_omx_to_module_dec.h"
-#include "omx_convert_omx_to_module_dec_hevc.h"
+#include "omx_convert_omx_module.h"
 
 static bool SetModuleProfileLevel(OMX_ALG_VIDEO_HEVCPROFILETYPE const& profile, OMX_ALG_VIDEO_HEVCLEVELTYPE const& level, DecModule& module)
 {
@@ -56,7 +46,7 @@ static bool SetModuleProfileLevel(OMX_ALG_VIDEO_HEVCPROFILETYPE const& profile, 
   return module.SetProfileLevel(p);
 }
 
-bool DecExpertiseHEVC::GetProfileLevelSupported(OMX_PTR param, Port const& port, DecModule const& module)
+bool DecExpertiseHEVC::GetProfileLevelSupported(OMX_PTR param, DecModule const& module)
 {
   auto supported = module.GetProfileLevelSupported();
   auto& pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
@@ -64,7 +54,9 @@ bool DecExpertiseHEVC::GetProfileLevelSupported(OMX_PTR param, Port const& port,
   if(pl.nProfileIndex >= supported.size())
     return false;
 
-  this->GetProfileLevel(param, port, module);
+  pl.eProfile = ConvertToOMXHEVCProfile(supported[pl.nProfileIndex]);
+  pl.eLevel = ConvertToOMXHEVCLevel(supported[pl.nProfileIndex]);
+
   return true;
 }
 

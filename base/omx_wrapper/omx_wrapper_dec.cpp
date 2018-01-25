@@ -35,8 +35,6 @@
 *
 ******************************************************************************/
 
-#include "omx_wrapper.h"
-
 #include "base/omx_module/omx_module_dec.h"
 #include "base/omx_codec/omx_codec_dec.h"
 #include "base/omx_codec/omx_expertise_dec_hevc.h"
@@ -49,8 +47,8 @@
 #include <string.h>
 #include <memory>
 #include <functional>
-
 #include <stdexcept>
+
 using namespace std;
 
 extern "C" {
@@ -73,59 +71,46 @@ static AL_TAllocator* createDmaAlloc(string deviceName)
 
 static DecCodec* GenerateAvcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
-  std::unique_ptr<DecMediatypeAVC> mediatype(new DecMediatypeAVC);
-  std::unique_ptr<DecDeviceHardwareMcu> device(new DecDeviceHardwareMcu);
+  unique_ptr<DecMediatypeAVC> mediatype(new DecMediatypeAVC);
+  unique_ptr<DecDeviceHardwareMcu> device(new DecDeviceHardwareMcu);
   deleted_unique_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroDecodeIP"), [](AL_TAllocator* allocator) {
     AL_Allocator_Destroy(allocator);
   });
-  std::unique_ptr<DecModule> module(new DecModule(std::move(mediatype), std::move(device), std::move(allocator)));
-  std::unique_ptr<DecExpertiseAVC> expertise(new DecExpertiseAVC);
-  return new DecCodec(hComponent, std::move(module), cComponentName, cRole, std::move(expertise));
+  unique_ptr<DecModule> module(new DecModule(move(mediatype), move(device), move(allocator)));
+  unique_ptr<DecExpertiseAVC> expertise(new DecExpertiseAVC);
+  return new DecCodec(hComponent, move(module), cComponentName, cRole, move(expertise));
 }
 
 
 static DecCodec* GenerateHevcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
-  std::unique_ptr<DecMediatypeHEVC> mediatype(new DecMediatypeHEVC);
-  std::unique_ptr<DecDeviceHardwareMcu> device(new DecDeviceHardwareMcu);
+  unique_ptr<DecMediatypeHEVC> mediatype(new DecMediatypeHEVC);
+  unique_ptr<DecDeviceHardwareMcu> device(new DecDeviceHardwareMcu);
   deleted_unique_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroDecodeIP"), [](AL_TAllocator* allocator) {
     AL_Allocator_Destroy(allocator);
   });
-  std::unique_ptr<DecModule> module(new DecModule(std::move(mediatype), std::move(device), std::move(allocator)));
-  std::unique_ptr<DecExpertiseHEVC> expertise(new DecExpertiseHEVC);
-  return new DecCodec(hComponent, std::move(module), cComponentName, cRole, std::move(expertise));
+  unique_ptr<DecModule> module(new DecModule(move(mediatype), move(device), move(allocator)));
+  unique_ptr<DecExpertiseHEVC> expertise(new DecExpertiseHEVC);
+  return new DecCodec(hComponent, move(module), cComponentName, cRole, move(expertise));
 }
 
 
 static OMX_PTR GenerateDefaultCodec(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_STRING cRole)
 {
-  auto w = new Wrapper;
-  w->base = nullptr;
-
+  OMX_PTR dec = nullptr;
 
   if(!strncmp(cComponentName, "OMX.allegro.h265.hardware.decoder", strlen(cComponentName)))
-    w->base = GenerateHevcCodecHardware(hComponent, cComponentName, cRole);
+    dec = GenerateHevcCodecHardware(hComponent, cComponentName, cRole);
 
   if(!strncmp(cComponentName, "OMX.allegro.h265.decoder", strlen(cComponentName)))
-    w->base = GenerateHevcCodecHardware(hComponent, cComponentName, cRole);
+    dec = GenerateHevcCodecHardware(hComponent, cComponentName, cRole);
 
   if(!strncmp(cComponentName, "OMX.allegro.h264.hardware.decoder", strlen(cComponentName)))
-    w->base = GenerateAvcCodecHardware(hComponent, cComponentName, cRole);
+    dec = GenerateAvcCodecHardware(hComponent, cComponentName, cRole);
 
   if(!strncmp(cComponentName, "OMX.allegro.h264.decoder", strlen(cComponentName)))
-    w->base = GenerateAvcCodecHardware(hComponent, cComponentName, cRole);
-  return w;
-}
-
-static void DestroyPrivate(Wrapper* w)
-{
-  if(!w)
-    return;
-
-  if(w->base)
-    delete w->base;
-
-  delete w;
+    dec = GenerateAvcCodecHardware(hComponent, cComponentName, cRole);
+  return dec;
 }
 
 extern "C"
@@ -137,8 +122,7 @@ OMX_PTR CreateComponentPrivate(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRI
 
 void DestroyComponentPrivate(OMX_IN OMX_PTR pComponentPrivate)
 {
-  auto w = static_cast<Wrapper*>(pComponentPrivate);
-  DestroyPrivate(w);
+  delete static_cast<DecCodec*>(pComponentPrivate);
 }
 }
 

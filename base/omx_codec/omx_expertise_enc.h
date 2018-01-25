@@ -46,7 +46,7 @@ struct EncExpertise
   virtual ~EncExpertise()
   {
   };
-  virtual bool GetProfileLevelSupported(OMX_PTR param, Port const& port, EncModule const& module) = 0;
+  virtual bool GetProfileLevelSupported(OMX_PTR param, EncModule const& module) = 0;
   virtual void GetProfileLevel(OMX_PTR param, Port const& port, EncModule const& module) = 0;
   virtual bool SetProfileLevel(OMX_PTR param, Port const& port, EncModule& module) = 0;
   virtual void GetExpertise(OMX_PTR param, Port const& port, EncModule const& module) = 0;

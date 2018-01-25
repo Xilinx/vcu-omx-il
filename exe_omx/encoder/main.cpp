@@ -72,6 +72,9 @@ extern "C"
 #include <OMX_IndexExt.h>
 }
 
+#include "CommandsSender.h"
+#include "EncCmdMngr.h"
+
 #include "base/omx_utils/locked_queue.h"
 #include "base/omx_utils/semaphore.h"
 #include "base/omx_utils/omx_log.h"
@@ -135,6 +138,9 @@ struct Application
 
   Ports input;
   Ports output;
+
+  CEncCmdMngr* encCmd;
+  CommandsSender* cmdSender;
 };
 
 static inline void SetDefaultSettings(Settings& settings)
@@ -168,6 +174,7 @@ static inline int RoundUp(int iVal, int iRnd)
 
 static string input_file;
 static string output_file;
+static string cmd_file;
 
 static ifstream infile;
 static ofstream outfile;
@@ -193,7 +200,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   paramPort.format.video.nFrameWidth = app.settings.width;
   paramPort.format.video.nFrameHeight = app.settings.height;
   paramPort.format.video.nStride = is10bits(app.settings.format) ? ((app.settings.width + 2) / 3) * 4 : app.settings.width;
-  paramPort.format.video.nSliceHeight = RoundUp(app.settings.height, 32);
+  paramPort.format.video.nSliceHeight = RoundUp(app.settings.height, 8);
 
   OMX_CALL(OMX_SetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPort));
   OMX_CALL(OMX_GetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPort));
@@ -218,6 +225,19 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
     sub.bEnableSubframe = OMX_TRUE;
     OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSubframe), &sub);
   }
+
+  OMX_PARAM_PORTDEFINITIONTYPE paramPortForActual;
+  initHeader(paramPortForActual);
+  paramPortForActual.nPortIndex = 0;
+  OMX_CALL(OMX_GetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPortForActual));
+  paramPortForActual.nBufferCountActual = paramPortForActual.nBufferCountMin + 4; // alloc max for b frames
+  OMX_CALL(OMX_SetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPortForActual));
+  paramPortForActual.nPortIndex = 1;
+  OMX_CALL(OMX_GetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPortForActual));
+  paramPortForActual.nBufferCountActual = paramPortForActual.nBufferCountMin + 4; // alloc max for b frames
+  OMX_CALL(OMX_SetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPortForActual));
+
+  OMX_CALL(OMX_GetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPort));
 
   LOGV("Input picture: %ux%u", app.settings.width, app.settings.height);
   return OMX_ErrorNone;
@@ -255,6 +275,7 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addFlag("--dma-in,-dma-in", &app.input.isDMA, "Use dmabufs for input port");
   opt.addFlag("--dma-out,-dma-out", &app.output.isDMA, "Use dmabufs for output port");
   opt.addInt("--subframe,-subframe", &user_slice, "<4 || 8 || 16>: activate subframe latency");
+  opt.addString("--cmd_file,-cmd_file", &cmd_file, "File to precise dynamic cmd");
 
   if(argc < 2)
   {
@@ -378,26 +399,26 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
     {
     case OMX_CommandStateSet:
     {
-      printf("Comp %p : %s : %s : %s\n", hComponent, ToStringEvent.at(eEvent), ToStringCommand.at(cmd), ToStringState.at(static_cast<OMX_STATETYPE>(Data2)));
+      printf("Comp %p : %s : %s : %s\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), ToStringOMXState.at(static_cast<OMX_STATETYPE>(Data2)));
       app->encoderEventState.notify();
       break;
     }
     case OMX_CommandPortEnable:
     case OMX_CommandPortDisable:
     {
-      printf("Comp %p : %s : %s : %i\n", hComponent, ToStringEvent.at(eEvent), ToStringCommand.at(cmd), (int)Data2);
+      printf("Comp %p : %s : %s : %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
       app->encoderEventSem.notify();
       break;
     }
     case OMX_CommandMarkBuffer:
     {
-      printf("Comp %p : %s : %s : %i\n", hComponent, ToStringEvent.at(eEvent), ToStringCommand.at(cmd), (int)Data2);
+      printf("Comp %p : %s : %s : %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
       app->encoderEventSem.notify();
       break;
     }
     case OMX_CommandFlush:
     {
-      printf("Comp %p : %s : %s : %i\n", hComponent, ToStringEvent.at(eEvent), ToStringCommand.at(cmd), (int)Data2);
+      printf("Comp %p : %s : %s : %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
       app->encoderEventSem.notify();
       break;
     }
@@ -410,12 +431,12 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
 
   case OMX_EventError:
   {
-    printf("Comp %p : %s\n", hComponent, ToStringEvent.at(eEvent));
+    printf("Comp %p : %s\n", hComponent, ToStringOMXEvent.at(eEvent));
     return OMX_ErrorUndefined;
   }
   default:
   {
-    printf("Comp %p : Unspported %s\n", hComponent, ToStringEvent.at(eEvent));
+    printf("Comp %p : Unspported %s\n", hComponent, ToStringOMXEvent.at(eEvent));
     return OMX_ErrorNotImplemented;
   }
   }
@@ -425,8 +446,9 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
 
 static void Read(OMX_BUFFERHEADERTYPE* pBuffer, Application& app)
 {
+  static int frame = 0;
   pBuffer->nFlags = 0; // clear flags;
-  auto eos = (readOneYuvFrame(pBuffer, app) == 0);
+  auto eos = (readOneYuvFrame(pBuffer, app) == false);
   pBuffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
 
   if(eos)
@@ -434,7 +456,11 @@ static void Read(OMX_BUFFERHEADERTYPE* pBuffer, Application& app)
     pBuffer->nFlags |= OMX_BUFFERFLAG_EOS;
     app.input.isEOS = true;
     printf("Waiting for EOS...  \n");
+    return;
   }
+
+  app.encCmd->Process(app.cmdSender, frame);
+  frame++;
 }
 
 static OMX_ERRORTYPE onInputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_BUFFERHEADERTYPE* pBuffer)
@@ -623,6 +649,9 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
     cerr << "Error in opening output file '" << output_file.c_str() << "'" << endl;
     return OMX_ErrorUndefined;
   }
+  printf("cmd file = %s\n", cmd_file.c_str());
+  ifstream cmdfile(cmd_file != "" ? cmd_file.c_str() : "/dev/null");
+  app.encCmd = new CEncCmdMngr(cmdfile, 3, -1);
 
   OMX_CALL(OMX_Init());
 
@@ -671,6 +700,15 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   Getters get(&app.hEncoder);
 
+  if((app.settings.format != OMX_COLOR_FormatYUV420SemiPlanar) &&
+     (app.settings.format != OMX_COLOR_FormatYUV422SemiPlanar) &&
+     (app.settings.format != (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked) &&
+     (app.settings.format != (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked))
+  {
+    fprintf(stderr, "Unsupported color format : 0X%.8X", app.settings.format);
+    return OMX_ErrorUnsupportedSetting;
+  }
+
   /** sending command to video encoder component to go to idle state */
   OMX_SendCommand(app.hEncoder, OMX_CommandStateSet, OMX_StateIdle, nullptr);
 
@@ -686,21 +724,14 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   OMX_CALL(OMX_SendCommand(app.hEncoder, OMX_CommandStateSet, OMX_StateExecuting, nullptr));
   app.encoderEventState.wait();
 
-  if((app.settings.format != OMX_COLOR_FormatYUV420SemiPlanar) &&
-     (app.settings.format != OMX_COLOR_FormatYUV422SemiPlanar) &&
-     (app.settings.format != (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked) &&
-     (app.settings.format != (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked))
-  {
-    fprintf(stderr, "Unsupported color format : 0X%.8X", app.settings.format);
-    return OMX_ErrorUnsupportedSetting;
-  }
-
   for(auto i = 0; i < get.GetBuffersCount(app.output.index); ++i)
     OMX_CALL(OMX_FillThisBuffer(app.hEncoder, app.output.buffers.at(i)));
 
   unique_lock<mutex> lock(app.mutex);
   app.read = false;
   lock.unlock();
+
+  app.cmdSender = new CommandsSender(app.hEncoder);
 
   for(auto i = 0; i < get.GetBuffersCount(app.input.index); i++)
   {
@@ -747,6 +778,11 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   infile.close();
   outfile.close();
+  cmdfile.close();
+
+  delete app.cmdSender;
+  delete app.encCmd;
+
   return OMX_ErrorNone;
 }
 

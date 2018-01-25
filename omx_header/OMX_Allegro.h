@@ -102,6 +102,16 @@ typedef enum
   OMX_ALG_DPB_MAX,
 }OMX_ALG_EDpbMode;
 
+typedef enum
+{
+  OMX_ALG_ROI_QUALITY_HIGH,
+  OMX_ALG_ROI_QUALITY_MEDIUM,
+  OMX_ALG_ROI_QUALITY_LOW,
+  OMX_ALG_ROI_QUALITY_DONT_CARE,
+  OMX_ALG_ROI_QUALITY_STATIC,
+  OMX_ALG_ROI_QUALITY_MAX,
+}OMX_ALG_ERoiQuality;
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

@@ -52,17 +52,11 @@ struct EOSHandles
 {
   EOSHandles() :
     input(nullptr),
-    output(nullptr),
-    eosSent(false),
-    eosReceive(false)
+    output(nullptr)
   {
   }
 
   AL_TBuffer* input;
   AL_TBuffer* output;
-  bool eosSent;
-  bool eosReceive;
-  std::condition_variable cv;
-  std::mutex mutex;
 };
 

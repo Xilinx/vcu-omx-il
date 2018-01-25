@@ -38,7 +38,7 @@
 #pragma once
 
 #include <string>
-#include "omx_mediatype_interface_enums.h"
+#include "base/omx_module/omx_module_enums.h"
 
 struct MediatypeInterface
 {

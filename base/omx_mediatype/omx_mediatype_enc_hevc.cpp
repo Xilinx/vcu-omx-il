@@ -39,6 +39,8 @@
 
 #include <assert.h>
 
+using namespace std;
+
 EncMediatypeHEVC::EncMediatypeHEVC()
 {
   Reset();
@@ -73,22 +75,48 @@ CompressionType EncMediatypeHEVC::Compression() const
   return COMPRESSION_HEVC;
 }
 
-std::string EncMediatypeHEVC::Mime() const
+string EncMediatypeHEVC::Mime() const
 {
   return "video/x-h265";
 }
 
-std::vector<ProfileLevelType> EncMediatypeHEVC::ProfileLevelSupported() const
+static bool isHighTierProfile(HEVCProfileType const& profile)
 {
-  std::vector<ProfileLevelType> vector;
+  switch(profile)
+  {
+  case HEVC_PROFILE_MAIN_HIGH_TIER:
+  case HEVC_PROFILE_MAIN10_HIGH_TIER:
+  case HEVC_PROFILE_MAIN422_HIGH_TIER:
+  case HEVC_PROFILE_MAIN422_10_HIGH_TIER:
+  case HEVC_PROFILE_MAINSTILL_HIGH_TIER:
+    return true;
+  default: return false;
+  }
+
+  return false;
+}
+
+static bool isCompliant(HEVCProfileType const& profile, int const& level)
+{
+  if(isHighTierProfile(profile) && level < 40)
+    return false;
+  return true;
+}
+
+vector<ProfileLevelType> EncMediatypeHEVC::ProfileLevelSupported() const
+{
+  vector<ProfileLevelType> vector;
 
   for(auto const& profile : profiles)
     for(auto const & level : levels)
     {
-      ProfileLevelType tmp;
-      tmp.profile.hevc = profile;
-      tmp.level = level;
-      vector.push_back(tmp);
+      if(isCompliant(profile, level))
+      {
+        ProfileLevelType tmp;
+        tmp.profile.hevc = profile;
+        tmp.level = level;
+        vector.push_back(tmp);
+      }
     }
 
   return vector;
@@ -322,5 +350,23 @@ bool EncMediatypeHEVC::SetEnableLowBandwidth(bool const& enable)
   auto bw = enable ? 16 : 32;
   chan.pMeRange[SLICE_P][1] = bw;
   return true;
+}
+
+vector<Format> EncMediatypeHEVC::FormatsSupported() const
+{
+  vector<Format> formatsSupported;
+
+  for(auto const& color : colors)
+  {
+    for(auto const& bitdepth : bitdepths)
+    {
+      Format format;
+      format.color = color;
+      format.bitdepth = bitdepth;
+      formatsSupported.push_back(format);
+    }
+  }
+
+  return formatsSupported;
 }
 

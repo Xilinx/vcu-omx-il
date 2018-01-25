@@ -35,7 +35,7 @@
 *
 ******************************************************************************/
 
-#include "omx_wrapper.h"
+#include "base/omx_base/omx_base.h"
 #include "base/omx_checker/omx_checker.h"
 
 static OMXBase* GetThis(OMX_IN OMX_HANDLETYPE hComponent)
@@ -43,18 +43,10 @@ static OMXBase* GetThis(OMX_IN OMX_HANDLETYPE hComponent)
   if(!hComponent)
     return nullptr;
 
-  auto c = (Wrapper*)(((OMX_COMPONENTTYPE*)hComponent)->pComponentPrivate);
-
-  if(!c)
-    return nullptr;
-
-  if(!c->base)
-    return nullptr;
-
-  return c->base;
+  return static_cast<OMXBase*>((((OMX_COMPONENTTYPE*)hComponent)->pComponentPrivate));
 }
 
-OMX_ERRORTYPE MySendCommand(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_COMMANDTYPE Cmd, OMX_IN OMX_U32 nParam1, OMX_IN OMX_PTR pCmdData)
+static OMX_ERRORTYPE MySendCommand(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_COMMANDTYPE Cmd, OMX_IN OMX_U32 nParam1, OMX_IN OMX_PTR pCmdData)
 {
   auto pThis = GetThis(hComponent);
 
@@ -64,7 +56,7 @@ OMX_ERRORTYPE MySendCommand(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_COMMAND
   return pThis->SendCommand(Cmd, nParam1, pCmdData);
 }
 
-OMX_ERRORTYPE MyGetState(OMX_IN OMX_HANDLETYPE hComponent, OMX_OUT OMX_STATETYPE* pState)
+static OMX_ERRORTYPE MyGetState(OMX_IN OMX_HANDLETYPE hComponent, OMX_OUT OMX_STATETYPE* pState)
 {
   auto pThis = GetThis(hComponent);
 
@@ -73,7 +65,7 @@ OMX_ERRORTYPE MyGetState(OMX_IN OMX_HANDLETYPE hComponent, OMX_OUT OMX_STATETYPE
   return pThis->GetState(pState);
 }
 
-OMX_ERRORTYPE MySetCallbacks(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_CALLBACKTYPE* pCallbacks, OMX_IN OMX_PTR pAppData)
+static OMX_ERRORTYPE MySetCallbacks(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_CALLBACKTYPE* pCallbacks, OMX_IN OMX_PTR pAppData)
 {
   auto pThis = GetThis(hComponent);
 
@@ -82,7 +74,7 @@ OMX_ERRORTYPE MySetCallbacks(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_CALLBA
   return pThis->SetCallbacks(pCallbacks, pAppData);
 }
 
-OMX_ERRORTYPE MyGetParameter(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE nParamIndex, OMX_INOUT OMX_PTR pParam)
+static OMX_ERRORTYPE MyGetParameter(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE nParamIndex, OMX_INOUT OMX_PTR pParam)
 {
   auto pThis = GetThis(hComponent);
 
@@ -91,7 +83,7 @@ OMX_ERRORTYPE MyGetParameter(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXT
   return pThis->GetParameter(nParamIndex, pParam);
 }
 
-OMX_ERRORTYPE MySetParameter(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE nParamIndex, OMX_IN OMX_PTR pParam)
+static OMX_ERRORTYPE MySetParameter(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE nParamIndex, OMX_IN OMX_PTR pParam)
 {
   auto pThis = GetThis(hComponent);
 
@@ -100,7 +92,7 @@ OMX_ERRORTYPE MySetParameter(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXT
   return pThis->SetParameter(nParamIndex, pParam);
 }
 
-OMX_ERRORTYPE MyUseBuffer(OMX_IN OMX_HANDLETYPE hComponent, OMX_OUT OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_IN OMX_U32 nPortIndex, OMX_IN OMX_PTR pAppPrivate, OMX_IN OMX_U32 nSizeBytes, OMX_IN OMX_U8* pBuffer)
+static OMX_ERRORTYPE MyUseBuffer(OMX_IN OMX_HANDLETYPE hComponent, OMX_OUT OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_IN OMX_U32 nPortIndex, OMX_IN OMX_PTR pAppPrivate, OMX_IN OMX_U32 nSizeBytes, OMX_IN OMX_U8* pBuffer)
 {
   auto pThis = GetThis(hComponent);
 
@@ -109,7 +101,7 @@ OMX_ERRORTYPE MyUseBuffer(OMX_IN OMX_HANDLETYPE hComponent, OMX_OUT OMX_BUFFERHE
   return pThis->UseBuffer(ppBufferHdr, nPortIndex, pAppPrivate, nSizeBytes, pBuffer);
 }
 
-OMX_ERRORTYPE MyAllocateBuffer(OMX_IN OMX_HANDLETYPE hComponent, OMX_INOUT OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_IN OMX_U32 nPortIndex, OMX_IN OMX_PTR pAppPrivate, OMX_IN OMX_U32 nSizeBytes)
+static OMX_ERRORTYPE MyAllocateBuffer(OMX_IN OMX_HANDLETYPE hComponent, OMX_INOUT OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_IN OMX_U32 nPortIndex, OMX_IN OMX_PTR pAppPrivate, OMX_IN OMX_U32 nSizeBytes)
 {
   auto pThis = GetThis(hComponent);
 
@@ -118,7 +110,7 @@ OMX_ERRORTYPE MyAllocateBuffer(OMX_IN OMX_HANDLETYPE hComponent, OMX_INOUT OMX_B
   return pThis->AllocateBuffer(ppBufferHdr, nPortIndex, pAppPrivate, nSizeBytes);
 }
 
-OMX_ERRORTYPE MyFreeBuffer(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_U32 nPortIndex, OMX_IN OMX_BUFFERHEADERTYPE* pBufferHdr)
+static OMX_ERRORTYPE MyFreeBuffer(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_U32 nPortIndex, OMX_IN OMX_BUFFERHEADERTYPE* pBufferHdr)
 {
   auto pThis = GetThis(hComponent);
 
@@ -127,7 +119,7 @@ OMX_ERRORTYPE MyFreeBuffer(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_U32 nPor
   return pThis->FreeBuffer(nPortIndex, pBufferHdr);
 }
 
-OMX_ERRORTYPE MyEmptyThisBuffer(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_BUFFERHEADERTYPE* pBufferHdr)
+static OMX_ERRORTYPE MyEmptyThisBuffer(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_BUFFERHEADERTYPE* pBufferHdr)
 {
   auto pThis = GetThis(hComponent);
 
@@ -136,7 +128,7 @@ OMX_ERRORTYPE MyEmptyThisBuffer(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_BUF
   return pThis->EmptyThisBuffer(pBufferHdr);
 }
 
-OMX_ERRORTYPE MyFillThisBuffer(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_BUFFERHEADERTYPE* pBufferHdr)
+static OMX_ERRORTYPE MyFillThisBuffer(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_BUFFERHEADERTYPE* pBufferHdr)
 {
   auto pThis = GetThis(hComponent);
 
@@ -149,7 +141,7 @@ extern "C"
 {
 extern void DestroyComponentPrivate(OMX_IN OMX_PTR pComponent);
 }
-OMX_ERRORTYPE MyComponentDeInit(OMX_IN OMX_HANDLETYPE hComponent)
+static OMX_ERRORTYPE MyComponentDeInit(OMX_IN OMX_HANDLETYPE hComponent)
 {
   auto pThis = GetThis(hComponent);
 
@@ -164,7 +156,7 @@ OMX_ERRORTYPE MyComponentDeInit(OMX_IN OMX_HANDLETYPE hComponent)
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE MyGetComponentVersion(OMX_IN OMX_HANDLETYPE hComponent, OMX_OUT OMX_STRING pComponentName, OMX_OUT OMX_VERSIONTYPE* pComponentVersion, OMX_OUT OMX_VERSIONTYPE* pSpecVersion, OMX_OUT OMX_UUIDTYPE[128] /*pComponentUUID */)
+static OMX_ERRORTYPE MyGetComponentVersion(OMX_IN OMX_HANDLETYPE hComponent, OMX_OUT OMX_STRING pComponentName, OMX_OUT OMX_VERSIONTYPE* pComponentVersion, OMX_OUT OMX_VERSIONTYPE* pSpecVersion, OMX_OUT OMX_UUIDTYPE[128] /*pComponentUUID */)
 {
   auto pThis = GetThis(hComponent);
 
@@ -173,7 +165,7 @@ OMX_ERRORTYPE MyGetComponentVersion(OMX_IN OMX_HANDLETYPE hComponent, OMX_OUT OM
   return pThis->GetComponentVersion(pComponentName, pComponentVersion, pSpecVersion);
 }
 
-OMX_ERRORTYPE MyGetConfig(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE nIndex, OMX_INOUT OMX_PTR pComponentConfigStructure)
+static OMX_ERRORTYPE MyGetConfig(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE nIndex, OMX_INOUT OMX_PTR pComponentConfigStructure)
 {
   auto pThis = GetThis(hComponent);
 
@@ -182,7 +174,7 @@ OMX_ERRORTYPE MyGetConfig(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE
   return pThis->GetConfig(nIndex, pComponentConfigStructure);
 }
 
-OMX_ERRORTYPE MySetConfig(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE nIndex, OMX_IN OMX_PTR pComponentConfigStructure)
+static OMX_ERRORTYPE MySetConfig(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE nIndex, OMX_IN OMX_PTR pComponentConfigStructure)
 {
   auto pThis = GetThis(hComponent);
 
@@ -191,7 +183,7 @@ OMX_ERRORTYPE MySetConfig(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE
   return pThis->SetConfig(nIndex, pComponentConfigStructure);
 }
 
-OMX_ERRORTYPE MyGetExtensionIndex(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRING cParameterName, OMX_OUT OMX_INDEXTYPE* pIndexType)
+static OMX_ERRORTYPE MyGetExtensionIndex(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRING cParameterName, OMX_OUT OMX_INDEXTYPE* pIndexType)
 {
   auto pThis = GetThis(hComponent);
 
@@ -200,7 +192,7 @@ OMX_ERRORTYPE MyGetExtensionIndex(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_S
   return pThis->GetExtensionIndex(cParameterName, pIndexType);
 }
 
-OMX_ERRORTYPE MyComponentTunnelRequest(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_U32 nPort, OMX_IN OMX_HANDLETYPE hTunneledComp, OMX_IN OMX_U32 nTunneledPort, OMX_INOUT OMX_TUNNELSETUPTYPE* pTunnelSetup)
+static OMX_ERRORTYPE MyComponentTunnelRequest(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_U32 nPort, OMX_IN OMX_HANDLETYPE hTunneledComp, OMX_IN OMX_U32 nTunneledPort, OMX_INOUT OMX_TUNNELSETUPTYPE* pTunnelSetup)
 {
   auto pThis = GetThis(hComponent);
 
@@ -209,7 +201,7 @@ OMX_ERRORTYPE MyComponentTunnelRequest(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN 
   return pThis->ComponentTunnelRequest(nPort, hTunneledComp, nTunneledPort, pTunnelSetup);
 }
 
-OMX_ERRORTYPE MyUseEGLImage(OMX_IN OMX_HANDLETYPE hComponent, OMX_INOUT OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_IN OMX_U32 nPortIndex, OMX_IN OMX_PTR pAppPrivate, OMX_IN void* eglImage)
+static OMX_ERRORTYPE MyUseEGLImage(OMX_IN OMX_HANDLETYPE hComponent, OMX_INOUT OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_IN OMX_U32 nPortIndex, OMX_IN OMX_PTR pAppPrivate, OMX_IN void* eglImage)
 {
   auto pThis = GetThis(hComponent);
 
@@ -218,7 +210,7 @@ OMX_ERRORTYPE MyUseEGLImage(OMX_IN OMX_HANDLETYPE hComponent, OMX_INOUT OMX_BUFF
   return pThis->UseEGLImage(ppBufferHdr, nPortIndex, pAppPrivate, eglImage);
 }
 
-OMX_ERRORTYPE MyComponentRoleEnum(OMX_IN OMX_HANDLETYPE hComponent, OMX_OUT OMX_U8* cRole, OMX_IN OMX_U32 nIndex)
+static OMX_ERRORTYPE MyComponentRoleEnum(OMX_IN OMX_HANDLETYPE hComponent, OMX_OUT OMX_U8* cRole, OMX_IN OMX_U32 nIndex)
 {
   auto pThis = GetThis(hComponent);
 

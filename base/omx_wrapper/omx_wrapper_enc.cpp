@@ -35,8 +35,6 @@
 *
 ******************************************************************************/
 
-#include "omx_wrapper.h"
-
 #include "base/omx_module/omx_module_enc.h"
 #include "base/omx_codec/omx_codec_enc.h"
 #include "base/omx_codec/omx_expertise_enc_hevc.h"
@@ -49,8 +47,8 @@
 #include <string.h>
 #include <memory>
 #include <functional>
-
 #include <stdexcept>
+
 using namespace std;
 
 extern "C" {
@@ -99,33 +97,21 @@ static EncCodec* GenerateHevcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING
 
 static OMX_PTR GenerateDefaultCodec(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_STRING cRole)
 {
-  auto w = new Wrapper;
-  w->base = nullptr;
+  OMX_PTR enc = nullptr;
 
 
   if(!strncmp(cComponentName, "OMX.allegro.h265.hardware.encoder", strlen(cComponentName)))
-    w->base = GenerateHevcCodecHardware(hComponent, cComponentName, cRole);
+    enc = GenerateHevcCodecHardware(hComponent, cComponentName, cRole);
 
   if(!strncmp(cComponentName, "OMX.allegro.h265.encoder", strlen(cComponentName)))
-    w->base = GenerateHevcCodecHardware(hComponent, cComponentName, cRole);
+    enc = GenerateHevcCodecHardware(hComponent, cComponentName, cRole);
 
   if(!strncmp(cComponentName, "OMX.allegro.h264.hardware.encoder", strlen(cComponentName)))
-    w->base = GenerateAvcCodecHardware(hComponent, cComponentName, cRole);
+    enc = GenerateAvcCodecHardware(hComponent, cComponentName, cRole);
 
   if(!strncmp(cComponentName, "OMX.allegro.h264.encoder", strlen(cComponentName)))
-    w->base = GenerateAvcCodecHardware(hComponent, cComponentName, cRole);
-  return w;
-}
-
-static void DestroyPrivate(Wrapper* w)
-{
-  if(!w)
-    return;
-
-  if(w->base)
-    delete w->base;
-
-  delete w;
+    enc = GenerateAvcCodecHardware(hComponent, cComponentName, cRole);
+  return enc;
 }
 
 extern "C"
@@ -137,8 +123,7 @@ OMX_PTR CreateComponentPrivate(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRI
 
 void DestroyComponentPrivate(OMX_IN OMX_PTR pComponentPrivate)
 {
-  auto w = static_cast<Wrapper*>(pComponentPrivate);
-  DestroyPrivate(w);
+  delete static_cast<EncCodec*>(pComponentPrivate);
 }
 }
 

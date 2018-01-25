@@ -48,6 +48,7 @@ struct EncMediatypeHEVC : EncMediatypeInterface
   CompressionType Compression() const;
   std::string Mime() const;
 
+  std::vector<Format> FormatsSupported() const;
   std::vector<ProfileLevelType> ProfileLevelSupported() const;
   ProfileLevelType ProfileLevel() const;
   bool SetProfileLevel(ProfileLevelType const& profileLevel);
@@ -85,7 +86,6 @@ private:
     21,
     30,
     31,
-    32,
     40,
     41,
     50,
@@ -97,5 +97,17 @@ private:
   };
   bool IsInProfilesSupported(HEVCProfileType const& profile);
   bool IsInLevelsSupported(int const& level);
+  std::vector<ColorType> const colors
+  {
+    COLOR_MONO,
+    COLOR_420,
+    COLOR_422,
+  };
+
+  std::vector<int> const bitdepths
+  {
+    8,
+    10,
+  };
 };
 

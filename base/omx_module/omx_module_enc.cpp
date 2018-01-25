@@ -53,8 +53,10 @@ extern "C"
 #include <lib_fpga/DmaAllocLinux.h>
 }
 
-#include "omx_convert_module_soft_enc.h"
-#include "omx_convert_module_soft.h"
+#include "base/omx_settings/omx_convert_module_soft_enc.h"
+#include "base/omx_settings/omx_convert_module_soft.h"
+
+using namespace std;
 
 static inline int GetBitdepthFromFormat(AL_EPicFormat const& format)
 {
@@ -65,7 +67,7 @@ static bool CheckValidity(AL_TEncSettings const& settings)
 {
   auto err = AL_Settings_CheckValidity(const_cast<AL_TEncSettings*>(&settings), stderr);
 
-  return (err == AL_SUCCESS);
+  return err == AL_SUCCESS;
 }
 
 static void LookCoherency(AL_TEncSettings& settings)
@@ -75,10 +77,10 @@ static void LookCoherency(AL_TEncSettings& settings)
   AL_Settings_CheckCoherency(&settings, fourCC, stdout);
 }
 
-EncModule::EncModule(std::unique_ptr<EncMediatypeInterface>&& media, std::unique_ptr<EncDevice>&& device, deleted_unique_ptr<AL_TAllocator>&& allocator) :
-  media(std::move(media)),
-  device(std::move(device)),
-  allocator(std::move(allocator))
+EncModule::EncModule(unique_ptr<EncMediatypeInterface>&& media, unique_ptr<EncDevice>&& device, deleted_unique_ptr<AL_TAllocator>&& allocator) :
+  media(move(media)),
+  device(move(device)),
+  allocator(move(allocator))
 {
   assert(this->media);
   assert(this->device);
@@ -86,6 +88,33 @@ EncModule::EncModule(std::unique_ptr<EncMediatypeInterface>&& media, std::unique
   encoder = nullptr;
   isCreated = false;
   ResetRequirements();
+}
+
+map<int, string> MapToStringEncodeError =
+{
+  { AL_ERR_INIT_FAILED, "encoder: initialization failure" },
+  { AL_ERR_NO_MEMORY, "encoder: memory allocation failure (firmware or ctrlsw)" },
+  { AL_ERR_STREAM_OVERFLOW, "encoder: stream overflow" },
+  { AL_ERR_TOO_MANY_SLICES, "encoder: too many slices" },
+  { AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE, "encoder: no channel available on the hardware" },
+  { AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE, "encoder: hardware doesn't have enough resources" },
+  { AL_ERR_CHAN_CREATION_NOT_ENOUGH_CORES, "encoder, hardware doesn't have enough resources (fragmentation)" },
+  { AL_ERR_REQUEST_MALFORMED, "encoder: request to hardware was malformed" },
+  { AL_WARN_LCU_OVERFLOW, "encoder: lcu overflow" }
+};
+
+string ToStringEncodeError(int error)
+{
+  string str_error = "";
+  try
+  {
+    str_error = MapToStringEncodeError.at(error);
+  }
+  catch(out_of_range& e)
+  {
+    str_error = "unknown error";
+  }
+  return str_error;
 }
 
 bool EncModule::CreateEncoder()
@@ -102,11 +131,13 @@ bool EncModule::CreateEncoder()
 
   if(errorCode != AL_SUCCESS)
   {
-    fprintf(stderr, "Failed to create Encoder: %d\n", errorCode);
+    fprintf(stderr, "Failed to create Encoder:\n");
+    fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
     return false;
   }
 
   eosHandles.output = nullptr;
+  eosHandles.input = nullptr;
 
   return true;
 }
@@ -131,9 +162,10 @@ bool EncModule::DestroyEncoder()
 bool EncModule::CheckParam()
 {
   auto& settings = media->settings;
+
   if(!CheckValidity(settings))
     return false;
-  LookCoherency(settings);  
+  LookCoherency(settings);
 
   return true;
 }
@@ -147,7 +179,7 @@ bool EncModule::Create()
     return false;
   }
   isCreated = true;
-  
+
   return true;
 }
 
@@ -179,22 +211,26 @@ bool EncModule::Run(bool)
   return CreateEncoder();
 }
 
+void EncModule::FlushEosHandles()
+{
+  if(eosHandles.input)
+    ReleaseBuf(eosHandles.input, fds.input, true);
+
+  if(eosHandles.output)
+    ReleaseBuf(eosHandles.output, fds.output, false);
+
+  eosHandles.input = nullptr;
+  eosHandles.output = nullptr;
+}
+
 bool EncModule::Pause()
 {
   if(!encoder)
     return false;
 
-  if(!eosHandles.eosSent)
-  {
-    fprintf(stderr, "Passing in Pause without sending eos\n");
-    assert(0);
-    return false;
-  }
-
-  std::unique_lock<std::mutex> lock(eosHandles.mutex);
-  eosHandles.cv.wait(lock, [&] { return eosHandles.eosReceive == true;
-                     });
-  return DestroyEncoder();
+  auto ret = DestroyEncoder();
+  FlushEosHandles();
+  return ret;
 }
 
 void EncModule::Stop()
@@ -202,18 +238,8 @@ void EncModule::Stop()
   if(!encoder)
     return;
 
-  if(!eosHandles.eosSent)
-  {
-    fprintf(stderr, "Passing in Stop without sending eos\n");
-    assert(0);
-    return;
-  }
-
-  std::unique_lock<std::mutex> lock(eosHandles.mutex);
-  eosHandles.cv.wait(lock, [&] { return eosHandles.eosReceive == true;
-                     });
-  lock.unlock();
   DestroyEncoder();
+  FlushEosHandles();
 }
 
 void EncModule::ResetRequirements()
@@ -222,21 +248,21 @@ void EncModule::ResetRequirements()
   fds.input = fds.output = false;
 }
 
-BuffersRequirements EncModule::GetBuffersRequirements() const
+BufferRequirements EncModule::GetBufferRequirements() const
 {
-  BuffersRequirements b;
+  BufferRequirements b;
   auto const chan = media->settings.tChParam;
   auto const gop = chan.tGopParam;
   auto& input = b.input;
   input.min = 1 + gop.uNumB;
-  auto const res = GetResolutions();
-  input.size = GetAllocSize_Src({ res.input.stride, res.input.sliceHeight }, AL_GET_BITDEPTH(chan.ePicFormat), AL_GET_CHROMA_MODE(chan.ePicFormat), chan.eSrcMode);
+  auto const resolution = GetResolution();
+  input.size = GetAllocSize_Src({ resolution.stride, resolution.sliceHeight }, AL_GET_BITDEPTH(chan.ePicFormat), AL_GET_CHROMA_MODE(chan.ePicFormat), chan.eSrcMode);
   input.bytesAlignment = device->GetAllocationRequirements().input.bytesAlignment;
   input.contiguous = device->GetAllocationRequirements().input.contiguous;
 
   auto& output = b.output;
   output.min = 2 + gop.uNumB + 1; // 1 for eos
-  output.size = AL_GetMaxNalSize({ chan.uWidth, chan.uHeight }, AL_GET_CHROMA_MODE(chan.ePicFormat));
+  output.size = AL_GetMaxNalSize({ chan.uWidth, chan.uHeight }, AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat));
   output.bytesAlignment = device->GetAllocationRequirements().output.bytesAlignment;
   output.contiguous = device->GetAllocationRequirements().output.contiguous;
 
@@ -259,16 +285,22 @@ int EncModule::GetLatency() const
   auto const chan = media->settings.tChParam;
   auto const gopParam = chan.tGopParam;
   auto const rateCtrl = chan.tRCParam;
-  auto const bufsCount = gopParam.uNumB + 1;
+  auto bufsCount = gopParam.uNumB + 1;
+
+  if(AL_IS_AVC(chan.eProfile))
+    bufsCount += 1; // intermediate
 
   auto const realFramerate = (static_cast<double>(rateCtrl.uFrameRate * rateCtrl.uClkRatio) / 1000.0);
 
   auto timeInMilliseconds = (static_cast<double>(bufsCount * 1000.0) / realFramerate);
 
   if(chan.bSubframeLatency)
+  {
     timeInMilliseconds /= chan.uNumSlices;
+    timeInMilliseconds += 1.0; // overhead
+  }
 
-  return std::ceil(timeInMilliseconds);
+  return ceil(timeInMilliseconds);
 }
 
 bool EncModule::SetCallbacks(Callbacks callbacks)
@@ -294,12 +326,8 @@ void EncModule::Free(void* buffer)
   if(!buffer)
     return;
 
-  auto handle = allocated.Get(buffer);
-  assert(handle);
-
+  auto handle = allocated.Pop(buffer);
   AL_Allocator_Free(allocator.get(), handle);
-
-  allocated.Remove(buffer);
 }
 
 void EncModule::FreeDMA(int fd)
@@ -307,13 +335,9 @@ void EncModule::FreeDMA(int fd)
   if(fd < 0)
     return;
 
-  auto handle = allocatedDMA.Get(fd);
-  assert(handle);
-
+  auto handle = allocatedDMA.Pop(fd);
   AL_Allocator_Free(allocator.get(), handle);
   close(fd);
-
-  allocatedDMA.Remove(fd);
 }
 
 void* EncModule::Allocate(size_t size)
@@ -356,10 +380,10 @@ static void MyFree(AL_TBuffer* buffer)
 bool EncModule::Use(void* handle, unsigned char* buffer, int size)
 {
   if(!handle)
-    throw std::invalid_argument("handle");
+    throw invalid_argument("handle");
 
   if(!buffer)
-    throw std::invalid_argument("buffer");
+    throw invalid_argument("buffer");
 
   AL_TBuffer* encoderBuffer = nullptr;
 
@@ -390,10 +414,10 @@ bool EncModule::Use(void* handle, unsigned char* buffer, int size)
 bool EncModule::UseDMA(void* handle, int fd, int size)
 {
   if(!handle)
-    throw std::invalid_argument("handle");
+    throw invalid_argument("handle");
 
   if(fd < 0)
-    throw std::invalid_argument("fd");
+    throw invalid_argument("fd");
 
   auto dmaHandle = AL_LinuxDmaAllocator_ImportFromFd((AL_TLinuxDmaAllocator*)allocator.get(), fd);
 
@@ -420,12 +444,9 @@ bool EncModule::UseDMA(void* handle, int fd, int size)
 void EncModule::Unuse(void* handle)
 {
   if(!handle)
-    throw std::invalid_argument("handle");
+    throw invalid_argument("handle");
 
-  auto encoderBuffer = pool.Get(handle);
-  assert(encoderBuffer);
-
-  pool.Remove(handle);
+  auto encoderBuffer = pool.Pop(handle);
 
   if(shouldBeCopied.Exist(encoderBuffer))
     shouldBeCopied.Remove(encoderBuffer);
@@ -435,11 +456,9 @@ void EncModule::Unuse(void* handle)
 void EncModule::UnuseDMA(void* handle)
 {
   if(!handle)
-    throw std::invalid_argument("handle");
+    throw invalid_argument("handle");
 
-  auto encoderBuffer = pool.Get(handle);
-  assert(encoderBuffer);
-  pool.Remove(handle);
+  auto encoderBuffer = pool.Pop(handle);
   AL_Buffer_Unref(encoderBuffer);
 }
 
@@ -487,7 +506,7 @@ bool EncModule::Empty(uint8_t* buffer, int offset, int size)
 
   if(!AL_Buffer_GetMetaData(input, AL_META_TYPE_SOURCE))
   {
-    if(!CreateAndAttachSourceMeta(*input, media->settings.tChParam, GetResolutions().input))
+    if(!CreateAndAttachSourceMeta(*input, media->settings.tChParam, GetResolution()))
       return false;
   }
 
@@ -498,12 +517,10 @@ bool EncModule::Empty(uint8_t* buffer, int offset, int size)
   if(eos)
   {
     eosHandles.input = input;
-    eosHandles.eosSent = true;
     return AL_Encoder_Process(encoder, nullptr, nullptr);
   }
 
   eosHandles.input = nullptr;
-  eosHandles.eosSent = false;
 
   if(shouldBeCopied.Exist(input))
   {
@@ -531,8 +548,7 @@ static bool CreateAndAttachStreamMeta(AL_TBuffer& buf)
 
 bool EncModule::Fill(uint8_t* buffer, int offset, int size)
 {
-  (void)offset;
-  (void)size;
+  (void)offset, (void)size;
 
   if(!encoder)
     return false;
@@ -606,9 +622,7 @@ static int ReconstructStream(AL_TBuffer& stream)
 
 void EncModule::ReleaseBuf(AL_TBuffer const* buf, bool isDma, bool isSrc)
 {
-  auto const handle = translate.Get(buf);
-  assert(handle);
-  translate.Remove(buf);
+  auto const handle = translate.Pop(buf);
 
   if(isDma)
     UnuseDMA(handle);
@@ -628,6 +642,16 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 {
   auto const isStreamRelease = (stream && source == nullptr);
   auto const isSrcRelease = (stream == nullptr && source);
+
+  auto errorCode = AL_Encoder_GetLastError(encoder);
+
+  if(errorCode != AL_SUCCESS)
+  {
+    fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
+
+    if((errorCode & AL_ERROR) && (errorCode != AL_ERR_STREAM_OVERFLOW) && callbacks.event)
+      callbacks.event(CALLBACK_EVENT_ERROR, nullptr);
+  }
 
   if(isSrcRelease)
   {
@@ -679,15 +703,10 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
   if(isEOS)
   {
     end(eosHandles.input, eosHandles.output, 0);
-    std::lock_guard<std::mutex> lock(eosHandles.mutex);
-    eosHandles.eosReceive = true;
-    eosHandles.cv.notify_one();
+    eosHandles.input = nullptr;
+    eosHandles.output = nullptr;
     return;
   }
-
-  std::lock_guard<std::mutex> lock(eosHandles.mutex);
-  eosHandles.eosReceive = false;
-  eosHandles.cv.notify_one();
 
   auto const size = ReconstructStream(*stream);
 
@@ -700,53 +719,51 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
   end(const_cast<AL_TBuffer*>(source), stream, size);
 }
 
-#define ROUNDUP(n,width) (((n) + (width) - 1) & ~unsigned((width) - 1))
+#define ROUNDUP(n, align) (((n) + (align) - 1) & ~unsigned((align) - 1))
 
-Resolutions EncModule::GetResolutions() const
+Resolution EncModule::GetResolution() const
 {
   auto const chan = media->settings.tChParam;
-  Resolutions resolutions;
-  auto& inRes = resolutions.input;
-  auto& outRes = resolutions.output;
+  Resolution resolution;
+  resolution.width = chan.uWidth;
+  resolution.height = chan.uHeight;
+  resolution.stride = ROUNDUP(AL_CalculatePitchValue(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), media->strideAlignment);
+  resolution.sliceHeight = ROUNDUP(chan.uHeight, media->sliceHeightAlignment);
 
-  inRes.width = outRes.width = chan.uWidth;
-  inRes.height = outRes.height = chan.uHeight;
-  inRes.stride = outRes.stride = ROUNDUP(AL_CalculatePitchValue(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), media->strideAlignment);
-  inRes.sliceHeight = outRes.sliceHeight = ROUNDUP(chan.uHeight, media->sliceHeightAlignment);
-
-  return resolutions;
+  return resolution;
 }
 
-Clocks EncModule::GetClocks() const
+Clock EncModule::GetClock() const
 {
   auto const rateCtrl = media->settings.tChParam.tRCParam;
-  Clocks clocks;
-
-  auto& inClock = clocks.input;
-  auto& outClock = clocks.output;
-
-  inClock.framerate = outClock.framerate = rateCtrl.uFrameRate;
-  inClock.clockratio = outClock.clockratio = rateCtrl.uClkRatio;
-  return clocks;
+  Clock clock;
+  clock.framerate = rateCtrl.uFrameRate;
+  clock.clockratio = rateCtrl.uClkRatio;
+  return clock;
 }
 
-Formats EncModule::GetFormats() const
+Mimes EncModule::GetMimes() const
 {
+  Mimes mimes;
+  auto& inMime = mimes.input;
+  inMime.mime = "video/x-raw"; // NV12
+  inMime.compression = COMPRESSION_UNUSED; // NV12
+
+  auto& outMime = mimes.output;
+  outMime.mime = media->Mime();
+  outMime.compression = media->Compression();
+
+  return mimes;
+}
+
+Format EncModule::GetFormat() const
+{
+  Format format;
   auto const chan = media->settings.tChParam;
-  Formats formats;
+  format.color = ConvertSoftToModuleColor(AL_GET_CHROMA_MODE(chan.ePicFormat));
+  format.bitdepth = GetBitdepthFromFormat(chan.ePicFormat);
 
-  auto& inFormat = formats.input;
-  inFormat.mime = "video/x-raw"; // NV12
-  inFormat.compression = COMPRESSION_UNUSED; // NV12
-
-  auto& outFormat = formats.output;
-  outFormat.mime = media->Mime();
-  outFormat.compression = media->Compression();
-
-  inFormat.color = outFormat.color = ConvertToModuleColor(AL_GET_CHROMA_MODE(chan.ePicFormat));
-  inFormat.bitdepth = outFormat.bitdepth = GetBitdepthFromFormat(chan.ePicFormat);
-
-  return formats;
+  return format;
 }
 
 Bitrates EncModule::GetBitrates() const
@@ -757,8 +774,8 @@ Bitrates EncModule::GetBitrates() const
   bitrates.max = rateCtrl.uMaxBitRate / 1000;
   bitrates.cpb = rateCtrl.uCPBSize / 90;
   bitrates.ird = rateCtrl.uInitialRemDelay / 90;
-  bitrates.mode = ConvertToModuleRateControl(rateCtrl.eRCMode);
-  bitrates.option = ConvertToModuleRateControlOption(rateCtrl.eOptions);
+  bitrates.mode = ConvertSoftToModuleRateControl(rateCtrl.eRCMode);
+  bitrates.option = ConvertSoftToModuleRateControlOption(rateCtrl.eOptions);
 
   return bitrates;
 }
@@ -770,8 +787,8 @@ Gop EncModule::GetGop() const
   gop.b = gopParam.uNumB;
   gop.length = gopParam.uGopLength;
   gop.idrFrequency = gopParam.uFreqIDR;
-  gop.mode = ConvertToModuleGopControl(gopParam.eMode);
-  gop.gdr = ConvertToModuleGdr(gopParam.eGdrMode);
+  gop.mode = ConvertSoftToModuleGopControl(gopParam.eMode);
+  gop.gdr = ConvertSoftToModuleGdr(gopParam.eGdrMode);
 
   return gop;
 }
@@ -779,7 +796,7 @@ Gop EncModule::GetGop() const
 QPs EncModule::GetQPs() const
 {
   QPs qps;
-  qps.mode = ConvertToModuleQPControl(media->settings.eQpCtrlMode);
+  qps.mode = ConvertSoftToModuleQPControl(media->settings.eQpCtrlMode);
 
   auto const rateCtrl = media->settings.tChParam.tRCParam;
   qps.initial = rateCtrl.iInitialQP;
@@ -795,7 +812,12 @@ ProfileLevelType EncModule::GetProfileLevel() const
   return media->ProfileLevel();
 }
 
-std::vector<ProfileLevelType> EncModule::GetProfileLevelSupported() const
+vector<Format> EncModule::GetFormatsSupported() const
+{
+  return media->FormatsSupported();
+}
+
+vector<ProfileLevelType> EncModule::GetProfileLevelSupported() const
 {
   return media->ProfileLevelSupported();
 }
@@ -817,7 +839,7 @@ LoopFilterType EncModule::GetLoopFilter() const
 
 AspectRatioType EncModule::GetAspectRatio() const
 {
-  return ConvertToModuleAspectRatio(media->settings.eAspectRatio);
+  return ConvertSoftToModuleAspectRatio(media->settings.eAspectRatio);
 }
 
 bool EncModule::IsEnableLowBandwidth() const
@@ -832,7 +854,7 @@ int EncModule::GetPrefetchBufferSize() const
 
 ScalingListType EncModule::GetScalingList() const
 {
-  return ConvertToModuleScalingList(media->settings.eScalingList);
+  return ConvertSoftToModuleScalingList(media->settings.eScalingList);
 }
 
 bool EncModule::IsEnableFillerData() const
@@ -867,32 +889,32 @@ static int GetPow2MaxAlignment(int const& pow2startAlignment, int const& value)
 {
   if((pow2startAlignment % 2) != 0)
     return 0;
+
   if((value % pow2startAlignment) != 0)
     return 0;
 
   int n = 0;
+
   while((1 << n) != pow2startAlignment)
     n++;
+
   while((value % (1 << n)) == 0)
     n++;
 
   return 1 << (n - 1);
 }
 
-bool EncModule::SetResolutions(Resolutions const& resolutions)
+bool EncModule::SetResolution(Resolution const& resolution)
 {
-  if(resolutions.input != resolutions.output)
+  if((resolution.width % 8) != 0)
     return false;
 
-  if((resolutions.input.width % 8) != 0)
+  if((resolution.height % 8) != 0)
     return false;
 
-  if((resolutions.input.height % 8) != 0)
-    return false;
-
-  if(resolutions.input.stride != 0)
+  if(resolution.stride != 0)
   {
-    int const align = GetPow2MaxAlignment(8, resolutions.input.stride);
+    int const align = GetPow2MaxAlignment(8, resolution.stride);
 
     if(align == 0)
       return false;
@@ -901,9 +923,9 @@ bool EncModule::SetResolutions(Resolutions const& resolutions)
       media->strideAlignment = align;
   }
 
-  if(resolutions.input.sliceHeight != 0)
+  if(resolution.sliceHeight != 0)
   {
-    int const align = GetPow2MaxAlignment(8, resolutions.input.sliceHeight);
+    int const align = GetPow2MaxAlignment(8, resolution.sliceHeight);
 
     if(align == 0)
       return false;
@@ -913,37 +935,32 @@ bool EncModule::SetResolutions(Resolutions const& resolutions)
   }
 
   auto& chan = media->settings.tChParam;
-  chan.uWidth = resolutions.input.width;
-  chan.uHeight = resolutions.input.height;
+  chan.uWidth = resolution.width;
+  chan.uHeight = resolution.height;
   return true;
 }
 
-bool EncModule::SetClocks(Clocks const& clocks)
+bool EncModule::SetClock(Clock const& clock)
 {
-  if(clocks.input != clocks.output)
-    return false;
-
   auto& rateCtrl = media->settings.tChParam.tRCParam;
-  rateCtrl.uFrameRate = clocks.input.framerate;
-  rateCtrl.uClkRatio = clocks.input.clockratio;
+  rateCtrl.uFrameRate = clock.framerate;
+  rateCtrl.uClkRatio = clock.clockratio;
   return true;
 }
 
-bool EncModule::SetFormats(Formats const& formats)
+bool EncModule::SetFormat(Format const& format)
 {
-  if(formats.input.bitdepth != formats.output.bitdepth)
-    return false;
-
-  if(formats.input.color != formats.output.color)
-    return false;
   auto& chan = media->settings.tChParam;
-  AL_SET_BITDEPTH(chan.ePicFormat, formats.input.bitdepth);
-  AL_SET_CHROMA_MODE(chan.ePicFormat, ConvertToSoftChroma(formats.input.color));
+  AL_SET_BITDEPTH(chan.ePicFormat, format.bitdepth);
+  AL_SET_CHROMA_MODE(chan.ePicFormat, ConvertModuleToSoftChroma(format.color));
   return true;
 }
 
 bool EncModule::SetBitrates(Bitrates const& bitrates)
 {
+  if(bitrates.mode >= RATE_CONTROL_MAX)
+    return false;
+
   if(bitrates.max < bitrates.target)
     return false;
 
@@ -952,8 +969,8 @@ bool EncModule::SetBitrates(Bitrates const& bitrates)
   rateCtrl.uMaxBitRate = bitrates.max * 1000;
   rateCtrl.uCPBSize = bitrates.cpb * 90;
   rateCtrl.uInitialRemDelay = bitrates.ird * 90;
-  rateCtrl.eRCMode = ConvertToSoftRateControl(bitrates.mode);
-  rateCtrl.eOptions = ConvertToSoftRateControlOption(bitrates.option);
+  rateCtrl.eRCMode = ConvertModuleToSoftRateControl(bitrates.mode);
+  rateCtrl.eOptions = ConvertModuleToSoftRateControlOption(bitrates.option);
   return true;
 }
 
@@ -969,8 +986,8 @@ bool EncModule::SetGop(Gop const& gop)
   gopParam.uNumB = gop.b;
   gopParam.uGopLength = gop.length;
   gopParam.uFreqIDR = gop.idrFrequency;
-  gopParam.eMode = ConvertToSoftGopControl(gop.mode);
-  gopParam.eGdrMode = ConvertToSoftGdr(gop.gdr);
+  gopParam.eMode = ConvertModuleToSoftGopControl(gop.mode);
+  gopParam.eGdrMode = ConvertModuleToSoftGdr(gop.gdr);
   return true;
 }
 
@@ -997,7 +1014,7 @@ bool EncModule::SetLoopFilter(LoopFilterType const& loopFilter)
 bool EncModule::SetQPs(QPs const& qps)
 {
   // TODO check on qp
-  media->settings.eQpCtrlMode = ConvertToSoftQPControl(qps.mode);
+  media->settings.eQpCtrlMode = ConvertModuleToSoftQPControl(qps.mode);
 
   auto& rateCtrl = media->settings.tChParam.tRCParam;
   rateCtrl.iInitialQP = qps.initial;
@@ -1014,7 +1031,7 @@ bool EncModule::SetAspectRatio(AspectRatioType const& aspectRatio)
   if(aspectRatio == ASPECT_RATIO_MAX)
     return false;
 
-  media->settings.eAspectRatio = ConvertToSoftAspectRatio(aspectRatio);
+  media->settings.eAspectRatio = ConvertModuleToSoftAspectRatio(aspectRatio);
   return true;
 }
 
@@ -1035,7 +1052,7 @@ bool EncModule::SetScalingList(ScalingListType const& scalingList)
 {
   if(scalingList == SCALING_LIST_MAX)
     return false;
-  media->settings.eScalingList = ConvertToSoftScalingList(scalingList);
+  media->settings.eScalingList = ConvertModuleToSoftScalingList(scalingList);
   return true;
 }
 
@@ -1099,5 +1116,82 @@ Flags EncModule::GetFlags(void* handle)
   assert(stream);
 
   return GetFlags(stream);
+}
+
+ErrorType EncModule::SetDynamic(DynamicIndexType index, void const* param)
+{
+  if(!encoder)
+    return ERROR_UNDEFINED;
+  switch(index)
+  {
+  case DYNAMIC_INDEX_CLOCK:
+  {
+    auto const clock = static_cast<Clock const*>(param);
+
+    if(!SetClock(*clock))
+      assert(0);
+
+    AL_Encoder_SetFrameRate(encoder, clock->framerate, clock->clockratio);
+    return SUCCESS;
+  }
+  case DYNAMIC_INDEX_BITRATE:
+  {
+    auto const bitrate = static_cast<int>((intptr_t)param) * 1000;
+    AL_Encoder_SetBitRate(encoder, bitrate);
+    auto& rateCtrl = media->settings.tChParam.tRCParam;
+    rateCtrl.uTargetBitRate = bitrate;
+
+    if(ConvertSoftToModuleRateControl(rateCtrl.eRCMode) != RATE_CONTROL_VARIABLE_BITRATE)
+      rateCtrl.uMaxBitRate = rateCtrl.uTargetBitRate;
+
+    return SUCCESS;
+  }
+  case DYNAMIC_INDEX_INSERT_IDR:
+  {
+    AL_Encoder_RestartGop(encoder);
+    return SUCCESS;
+  }
+  case DYNAMIC_INDEX_GOP:
+  {
+    auto const gop = static_cast<Gop const*>(param);
+
+    if(!SetGop(*gop))
+      assert(0);
+    AL_Encoder_SetGopNumB(encoder, gop->b);
+    AL_Encoder_SetGopLength(encoder, gop->length);
+    return SUCCESS;
+  }
+  default:
+    return ERROR_NOT_IMPLEMENTED;
+  }
+}
+
+ErrorType EncModule::GetDynamic(DynamicIndexType index, void* param)
+{
+  switch(index)
+  {
+  case DYNAMIC_INDEX_CLOCK:
+  {
+    auto framerate = static_cast<Clock*>(param);
+    auto const f = GetClock();
+    *framerate = f;
+    return SUCCESS;
+  }
+  case DYNAMIC_INDEX_BITRATE:
+  {
+    auto bitrate = (int*)param;
+    auto const rateCtrl = media->settings.tChParam.tRCParam;
+    *bitrate = rateCtrl.uTargetBitRate / 1000;
+    return SUCCESS;
+  }
+  case DYNAMIC_INDEX_GOP:
+  {
+    auto gop = static_cast<Gop*>(param);
+    *gop = GetGop();
+    return SUCCESS;
+  }
+  default:
+    return ERROR_NOT_IMPLEMENTED;
+  }
 }
 

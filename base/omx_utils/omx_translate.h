@@ -41,7 +41,7 @@
 #include <OMX_IndexExt.h>
 #include <map>
 
-static std::map<OMX_ERRORTYPE, const char*> ToStringError =
+static std::map<OMX_ERRORTYPE, const char*> ToStringOMXError =
 {
   { OMX_ErrorNone, "OMX_ErrorNone" },
   { OMX_ErrorInsufficientResources, "OMX_ErrorInsufficientResources" },
@@ -84,7 +84,7 @@ static std::map<OMX_ERRORTYPE, const char*> ToStringError =
   { static_cast<OMX_ERRORTYPE>(OMX_ErrorInvalidMode), "OMX_ErrorInvalidMode" },
 };
 
-static std::map<OMX_STATETYPE, const char*> ToStringState =
+static std::map<OMX_STATETYPE, const char*> ToStringOMXState =
 {
   { OMX_StateInvalid, "OMX_StateInvalid" },
   { OMX_StateLoaded, "OMX_StateLoaded" },
@@ -94,7 +94,7 @@ static std::map<OMX_STATETYPE, const char*> ToStringState =
   { OMX_StateWaitForResources, "OMX_StateWaitForResources" },
 };
 
-static std::map<OMX_COMMANDTYPE, const char*> ToStringCommand =
+static std::map<OMX_COMMANDTYPE, const char*> ToStringOMXCommand =
 {
   { OMX_CommandStateSet, "OMX_CommandStateSet" },
   { OMX_CommandFlush, "OMX_CommandFlush" },
@@ -103,7 +103,7 @@ static std::map<OMX_COMMANDTYPE, const char*> ToStringCommand =
   { OMX_CommandMarkBuffer, "OMX_CommandMarkBuffer" },
 };
 
-static std::map<OMX_EVENTTYPE, const char*> ToStringEvent =
+static std::map<OMX_EVENTTYPE, const char*> ToStringOMXEvent =
 {
   { OMX_EventCmdComplete, "OMX_EventCmdComplete" },
   { OMX_EventError, "OMX_EventError" },
@@ -117,7 +117,7 @@ static std::map<OMX_EVENTTYPE, const char*> ToStringEvent =
   { static_cast<OMX_EVENTTYPE>(OMX_EventIndexSettingChanged), "OMX_EventIndexSettingChanged" },
 };
 
-static std::map<OMX_INDEXTYPE, const char*> ToStringIndex =
+static std::map<OMX_INDEXTYPE, const char*> ToStringOMXIndex =
 {
   { OMX_IndexComponentStartUnused, "OMX_IndexComponentStartUnused" },
   { OMX_IndexParamPriorityMgmt, "OMX_IndexParamPriorityMgmt" },
@@ -306,7 +306,7 @@ static std::map<OMX_INDEXTYPE, const char*> ToStringIndex =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamReportedLatency), "OMX_ALG_IndexParamReportedLatency" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexVendorPortStartUnused), "OMX_ALG_IndexVendorPortStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexPortParamBufferMode), "OMX_ALG_IndexPortParamBufferMode" },
-  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexVendorVideoStartUnused), "OMX_ALG_IndexVendorVideoStartUnused" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVendorVideoStartUnused), "OMX_ALG_IndexParamVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoHevc), "OMX_ALG_IndexParamVideoHevc" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoVp9), "OMX_ALG_IndexParamVideoVp9" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoGopControl), "OMX_ALG_IndexParamVideoGopControl" },
@@ -321,6 +321,7 @@ static std::map<OMX_INDEXTYPE, const char*> ToStringIndex =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInternalEntropyBuffers), "OMX_ALG_IndexParamVideoInternalEntropyBuffers" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLowBandwidth), "OMX_ALG_IndexParamVideoLowBandwidth" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoAspectRatio), "OMX_ALG_IndexParamVideoAspectRatio" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVendorVideoStartUnused), "OMX_ALG_IndexConfigVendorVideoStartUnused" },
 
   { OMX_IndexMax, "OMX_IndexMax" },
 };

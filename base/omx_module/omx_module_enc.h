@@ -37,7 +37,8 @@
 
 #pragma once
 #include "omx_module_interface.h"
-#include "omx_module_enc_structs.h"
+#include "omx_module_structs.h"
+
 #include "omx_device_enc_interface.h"
 #include "omx_module_codec_structs.h"
 
@@ -73,12 +74,14 @@ public:
   }
 
   void ResetRequirements();
-  BuffersRequirements GetBuffersRequirements() const;
+  BufferRequirements GetBufferRequirements() const;
   int GetLatency() const; // In milliseconds
 
-  Resolutions GetResolutions() const;
-  Clocks GetClocks() const;
-  Formats GetFormats() const;
+  Resolution GetResolution() const;
+  Clock GetClock() const;
+  Mimes GetMimes() const;
+  Format GetFormat() const;
+  std::vector<Format> GetFormatsSupported() const;
   Bitrates GetBitrates() const;
   Gop GetGop() const;
   QPs GetQPs() const;
@@ -97,9 +100,9 @@ public:
   FileDescriptors GetFileDescriptors() const;
 
   bool SetBitrates(Bitrates const& bitrates);
-  bool SetResolutions(Resolutions const& resolutions);
-  bool SetClocks(Clocks const& clocks);
-  bool SetFormats(Formats const& formats);
+  bool SetResolution(Resolution const& resolution);
+  bool SetClock(Clock const& clock);
+  bool SetFormat(Format const& format);
   bool SetGop(Gop const& gop);
   bool SetProfileLevel(ProfileLevelType const& profileLevel);
   bool SetEntropyCoding(EntropyCodingType const& entropyCoding);
@@ -139,12 +142,13 @@ public:
   bool Flush();
   void Stop();
 
+  ErrorType SetDynamic(DynamicIndexType index, void const* param);
+  ErrorType GetDynamic(DynamicIndexType index, void* param);
+
 private:
-  bool Use(void* handle, uint8_t* buffer, int size);
-  void Unuse(void* handle);
-  std::unique_ptr<EncMediatypeInterface> media;
-  std::unique_ptr<EncDevice> device;
-  deleted_unique_ptr<AL_TAllocator> allocator;
+  std::unique_ptr<EncMediatypeInterface> const media;
+  std::unique_ptr<EncDevice> const device;
+  deleted_unique_ptr<AL_TAllocator> const allocator;
   AL_HEncoder encoder;
   TScheduler* scheduler;
   Callbacks callbacks;
@@ -152,6 +156,8 @@ private:
 
   EOSHandles eosHandles;
 
+  bool Use(void* handle, uint8_t* buffer, int size);
+  void Unuse(void* handle);
   bool CreateEncoder();
   bool DestroyEncoder();
   bool isCreated;
@@ -165,6 +171,7 @@ private:
     pThis->EndEncoding(pStream, pSource);
   };
   void EndEncoding(AL_TBuffer* pStream, AL_TBuffer const* pSource);
+  void FlushEosHandles();
 
   ThreadSafeMap<void*, AL_HANDLE> allocated;
   ThreadSafeMap<int, AL_HANDLE> allocatedDMA;

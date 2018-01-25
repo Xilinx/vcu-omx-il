@@ -11,6 +11,7 @@ BIN?=$(PWD)/bin
 OMX_HEADERS?=$(PWD)/omx_header
 
 EXTERNAL_CTRLSW?=$(PWD)/../allegro-vcu-ctrl-sw
+EXTERNAL_TESTS=$(PWD)/unittests
 
 EXTERNAL_INCLUDE?=$(EXTERNAL_CTRLSW)/include
 EXTERNAL_LIB?=$(EXTERNAL_CTRLSW)/bin
@@ -81,7 +82,6 @@ include $(THIS)/core/project.mk
 
 include $(THIS)/base/project_common.mk
 -include $(THIS)/base/project_enc.mk
--include $(THIS)/base/project_copy.mk
 -include $(THIS)/base/project_dec.mk
 
 include $(THIS)/exe_omx/project_common.mk

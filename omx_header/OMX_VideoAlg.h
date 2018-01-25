@@ -313,12 +313,32 @@ typedef struct OMX_ALG_VIDEO_PARAM_FILLER_DATA
   OMX_BOOL bDisableFillerData;
 }OMX_ALG_VIDEO_PARAM_FILLER_DATA;
 
+typedef enum OMX_ALG_VIDEO_BUFFER_MODE
+{
+  OMX_ALG_VIDEO_BUFFER_MODE_FRAME = 0x0, // frame-level buffer, no latency optimization, no custom frame delimiter
+  OMX_ALG_VIDEO_BUFFER_MODE_FRAME_NO_REORDERING = 0x1, //frame-level buffer, reduced latency assuming only I & P frames, custom frame delimiter enabled (SEI)
+  OMX_ALG_VIDEO_BUFFER_MODE_SLICE = 0x2, //slice-level buffer, low latency, custom frame delimiter enabled (SEI)
+  OMX_ALG_VIDEO_BUFFER_MODE_MAX,
+}OMX_ALG_VIDEO_BUFFER_MODE;
+
+/** Buffer Mode parameters
+ * This parameter permit to switch buffer mode
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_BUFFER_MODE
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_ALG_VIDEO_BUFFER_MODE eMode;
+}OMX_ALG_VIDEO_PARAM_BUFFER_MODE;
+
 /** Extented enumeration of video formats */
 typedef enum OMX_ALG_COLOR_FORMATTYPE
 {
   OMX_ALG_COLOR_FormatUnused = OMX_COLOR_FormatVendorStartUnused,
   OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked,
   OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked,
+  OMX_ALG_COLOR_FormatL10bitPacked,
 }OMX_ALG_COLOR_FORMATTYPE;
 
 /** Extended enumeration of bitrate control types */
@@ -327,6 +347,51 @@ typedef enum OMX_ALG_VIDEO_CONTROLRATETYPE
   OMX_ALG_Video_ControlRateStartUnused = OMX_Video_ControlRateVendorStartUnused,
   OMX_ALG_Video_ControlRateLowLatency,
 }OMX_ALG_VIDEO_CONTROLRATETYPE;
+
+/** Insert Instantaneous decoding refresh
+ * This configuration permit to insert an Instantaneous Decoding Refresh frame
+ */
+typedef struct OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+} OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH;
+
+typedef struct OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_U32 nPFrames;
+  OMX_U32 nBFrames;
+}OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES;
+
+/**
+ * OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST
+ *
+ * STRUCT MEMBERS:
+ *  nSize      : Size of the structure in bytes
+ *  nVersion   : OMX specification version information
+ *  nPortIndex : Port that this structure applies to
+ *  nLeft      : X Coordinate of the top left corner of the rectangle
+ *  nTop       : Y Coordinate of the top left corner of the rectangle
+ *  nWidth     : Width of the rectangle
+ *  nHeight    : Height of the rectangle
+ *  eQuality   : Quality of the region of interest
+ */
+
+typedef struct OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_S32 nLeft;
+  OMX_S32 nTop;
+  OMX_U32 nWidth;
+  OMX_U32 nHeight;
+  OMX_ALG_ERoiQuality eQuality;
+}OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST;
 
 #ifdef __cplusplus
 }

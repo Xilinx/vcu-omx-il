@@ -44,7 +44,7 @@ struct EncExpertiseHEVC : public EncExpertise
   ~EncExpertiseHEVC()
   {
   };
-  bool GetProfileLevelSupported(OMX_PTR param, Port const& port, EncModule const& module);
+  bool GetProfileLevelSupported(OMX_PTR param, EncModule const& module);
   void GetProfileLevel(OMX_PTR param, Port const& port, EncModule const& module);
   bool SetProfileLevel(OMX_PTR param, Port const& port, EncModule& module);
   void GetExpertise(OMX_PTR param, Port const& port, EncModule const& module);

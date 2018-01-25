@@ -13,12 +13,14 @@ include $(THIS.base_dec)/omx_codec/project_dec.mk
 include $(THIS.base_dec)/omx_mediatype/project_dec.mk
 include $(THIS.base_dec)/omx_module/project_dec.mk
 include $(THIS.base_dec)/omx_wrapper/project_dec.mk
+include $(THIS.base_dec)/omx_settings/project_dec.mk
 
 OMX_DEC_OBJ:=$(OMX_COMMON_OBJ)
 OMX_DEC_OBJ+=$(OMX_CODEC_DEC_SRCS:%=$(BIN)/%.o)
 OMX_DEC_OBJ+=$(OMX_MEDIATYPE_DEC_SRCS:%=$(BIN)/%.o)
 OMX_DEC_OBJ+=$(OMX_MODULE_DEC_SRCS:%=$(BIN)/%.o)
 OMX_DEC_OBJ+=$(OMX_WRAPPER_DEC_SRCS:%=$(BIN)/%.o)
+OMX_DEC_OBJ+=$(OMX_SETTINGS_DEC_SRCS:%=$(BIN)/%.o)
 
 ifneq ($(LINK_SHARED_CTRLSW), 1)
 $(LIB_DECODE):

@@ -38,6 +38,8 @@
 #include "omx_mediatype_dec_avc.h"
 #include <string.h> // memset
 
+using namespace std;
+
 DecMediatypeAVC::DecMediatypeAVC()
 {
   Reset();
@@ -69,14 +71,14 @@ CompressionType DecMediatypeAVC::Compression() const
   return COMPRESSION_AVC;
 }
 
-std::string DecMediatypeAVC::Mime() const
+string DecMediatypeAVC::Mime() const
 {
   return "video/x-h264";
 }
 
-std::vector<ProfileLevelType> DecMediatypeAVC::ProfileLevelSupported() const
+vector<ProfileLevelType> DecMediatypeAVC::ProfileLevelSupported() const
 {
-  std::vector<ProfileLevelType> vector;
+  vector<ProfileLevelType> vector;
 
   for(auto const& profile : profiles)
     for(auto const & level : levels)
@@ -175,5 +177,23 @@ bool DecMediatypeAVC::SetProfileLevel(ProfileLevelType const& profileLevel)
 int DecMediatypeAVC::GetRequiredOutputBuffers() const
 {
   return AL_AVC_GetMinOutputBuffersNeeded(settings.tStream, settings.iStackSize, settings.eDpbMode);
+}
+
+vector<Format> DecMediatypeAVC::FormatsSupported() const
+{
+  vector<Format> formatsSupported;
+
+  for(auto const& color : colors)
+  {
+    for(auto const& bitdepth : bitdepths)
+    {
+      Format format;
+      format.color = color;
+      format.bitdepth = bitdepth;
+      formatsSupported.push_back(format);
+    }
+  }
+
+  return formatsSupported;
 }
 

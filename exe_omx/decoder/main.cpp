@@ -85,6 +85,116 @@ enum DecCodec
   AVC_HARD,
 };
 
+#include <vector>
+#include <map>
+#include <deque>
+#include <memory>
+
+#include <string>
+#include <iostream>
+
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
+#include <functional>
+
+using namespace std;
+
+using EventType = int;
+
+struct EventData
+{
+};
+
+struct Event
+{
+  EventType type;
+  std::shared_ptr<EventData> data;
+};
+
+struct EventBus
+{
+  void addListener(std::function<void(std::shared_ptr<EventData> data)> delegate, EventType type)
+  {
+    eventListeners[type].push_back(delegate);
+  }
+
+  void queueEvent(Event event)
+  {
+    lock_guard<mutex> guard(lock);
+    eventQueue.push_back(event);
+    cv.notify_one();
+  }
+
+  void wait(void)
+  {
+    unique_lock<mutex> guard(lock);
+    cv.wait(guard, [&]() {
+      return !eventQueue.empty();
+    });
+  }
+
+  void tick(void)
+  {
+    lock_guard<mutex> guard(lock);
+    auto event = eventQueue.begin();
+
+    while(event != eventQueue.end())
+    {
+      for(auto delegate : eventListeners[event->type])
+        delegate(event->data);
+
+      event = eventQueue.erase(event);
+    }
+  }
+
+  void waitAndProcess(void)
+  {
+    wait();
+    tick();
+  }
+
+private:
+  map<EventType, std::vector<std::function<void(std::shared_ptr<EventData> )>>> eventListeners {};
+  deque<Event> eventQueue {};
+  mutex lock {};
+  condition_variable cv {};
+};
+
+EventType constexpr eosEvent = 1;
+EventType constexpr errorEvent = 2;
+EventType constexpr omxEvent = 3;
+EventType constexpr pipelineEndEvent = 4;
+
+struct OmxEventData : EventData
+{
+  OMX_HANDLETYPE hComponent;
+  OMX_PTR pAppData;
+  OMX_EVENTTYPE eEvent;
+  OMX_U32 Data1;
+  OMX_U32 Data2;
+  OMX_PTR pEventData;
+  OmxEventData(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent, OMX_U32 Data1, OMX_U32 Data2, OMX_PTR pEventData) :
+    hComponent{hComponent},
+    pAppData{pAppData},
+    eEvent{eEvent},
+    Data1{Data1},
+    Data2{Data2},
+    pEventData{pEventData}
+  {
+  }
+};
+
+struct ErrorEventData : EventData
+{
+  int errorCode;
+  ErrorEventData(int errorCode) :
+    errorCode{errorCode}
+  {
+  }
+};
+
 static OMX_U32 inportIndex = 0;
 static OMX_U32 outportIndex = 1;
 
@@ -97,7 +207,6 @@ struct Settings
   OMX_ALG_BUFFER_MODE eDMAIn = OMX_ALG_BUF_NORMAL;
   OMX_ALG_BUFFER_MODE eDMAOut = OMX_ALG_BUF_NORMAL;
   OMX_COLOR_FORMATTYPE chroma = OMX_COLOR_FormatYUV420SemiPlanar;
-
   int width = 176;
   int height = 144;
   OMX_U32 level = OMX_VIDEO_HEVCLevelUnknown;
@@ -108,9 +217,9 @@ struct Settings
 
 struct Application
 {
-  semaphore eofSem;
   semaphore decoderEventState;
   semaphore flushEvent;
+  semaphore disableEvent;
 
   OMX_HANDLETYPE hDecoder;
   OMX_PTR pAppData;
@@ -119,6 +228,9 @@ struct Application
   locked_queue<OMX_BUFFERHEADERTYPE*> inputBuffers;
   list<OMX_BUFFERHEADERTYPE*> outputBuffers;
   AL_TAllocator* pAllocator;
+  EventBus eventBus {};
+  bool quit = false;
+  bool pipelineEnded = false;
 };
 
 string input_file;
@@ -441,7 +553,7 @@ static OMX_ERRORTYPE freeBuffers(OMX_U32 nPortIndex, Application& app)
   return OMX_ErrorNone;
 };
 
-OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent, OMX_U32 Data1, OMX_U32 Data2, OMX_PTR /*pEventData*/)
+OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent, OMX_U32 Data1, OMX_U32 Data2, OMX_PTR /*pEventData*/)
 {
   auto app = static_cast<Application*>(pAppData);
   assert(hComponent == app->hDecoder);
@@ -468,6 +580,7 @@ OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_
     else if(Data1 == OMX_CommandPortDisable)
     {
       LOGI("Received Port Disable Event");
+      app->disableEvent.notify();
     }
     else if(Data1 == OMX_CommandMarkBuffer)
       LOGI("Mark Buffer Event ");
@@ -502,6 +615,14 @@ OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_
   return OMX_ErrorNone;
 }
 
+OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent, OMX_U32 Data1, OMX_U32 Data2, OMX_PTR pEventData)
+{
+  auto app = static_cast<Application*>(pAppData);
+  auto data = make_shared<OmxEventData>(hComponent, pAppData, eEvent, Data1, Data2, pEventData);
+  app->eventBus.queueEvent({ omxEvent, data });
+  return OMX_ErrorNone;
+}
+
 static OMX_ERRORTYPE setPortParameters(Application& app)
 {
   // This should always be done at the beginning
@@ -526,7 +647,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
 OMX_ERRORTYPE onInputBufferAvailable(OMX_HANDLETYPE /*hComponent*/, OMX_PTR pAppData, OMX_BUFFERHEADERTYPE* pBuffer)
 {
   auto app = static_cast<Application*>(pAppData);
-  LOGV("InputBufferAvailable");
+  LOGV("one input buffer is available");
   assert(pBuffer->nFilledLen == 0);
   app->inputBuffers.push(pBuffer);
   return OMX_ErrorNone;
@@ -536,6 +657,8 @@ OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
 {
   static bool end = false;
   auto app = static_cast<Application*>(pAppData);
+
+  LOGV("one output buffer is available");
 
   if(end)
     return OMX_ErrorNone;
@@ -550,6 +673,7 @@ OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
     if(data)
     {
       OMX_PARAM_PORTDEFINITIONTYPE param;
+
       initHeader(param);
       param.nPortIndex = 1;
       OMX_CALL(OMX_GetParameter(app->hDecoder, OMX_IndexParamPortDefinition, &param));
@@ -584,7 +708,7 @@ OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
   if(wasEos)
   {
     end = true;
-    app->eofSem.notify();
+    app->eventBus.queueEvent({ eosEvent, nullptr });
   }
 
   return OMX_ErrorNone;
@@ -636,8 +760,6 @@ OMX_ERRORTYPE setProfileAndLevel(Application& app)
 
   param.eProfile = app.settings.profile;
   param.eLevel = app.settings.level;
-  // param.eProfile = OMX_VIDEO_HEVCProfileMain;
-  // param.eLevel = OMX_VIDEO_HEVCMainTierLevel51;
   OMX_CALL(OMX_SetParameter(app.hDecoder, OMX_IndexParamVideoProfileLevelCurrent, &param));
 
   return OMX_ErrorNone;
@@ -724,71 +846,22 @@ OMX_ERRORTYPE setWorstCaseParameters(Application& app)
   return setPreallocParameters(app);
 }
 
-OMX_ERRORTYPE safeMain(int argc, char** argv)
+OMX_ERRORTYPE stopPipeline(Application& app)
 {
-  Application app;
-  parseCommandLine(argc, argv, app);
+  /** state change of all components from executing to idle */
+  OMX_CALL(OMX_SendCommand(app.hDecoder, OMX_CommandFlush, 0, nullptr));
+  app.flushEvent.wait();
+  OMX_CALL(OMX_SendCommand(app.hDecoder, OMX_CommandFlush, 1, nullptr));
+  app.flushEvent.wait();
 
-  infile.open(input_file, ios::binary);
+  OMX_CALL(OMX_SendCommand(app.hDecoder, OMX_CommandStateSet, OMX_StateIdle, nullptr));
+  app.decoderEventState.wait();
 
-  if(!infile.is_open())
-  {
-    cerr << "Error in opening input file '" << input_file << "'" << endl;
-    return OMX_ErrorUndefined;
-  }
+  return OMX_ErrorNone;
+}
 
-  outfile.open(output_file, ios::binary);
-
-  if(!outfile.is_open())
-  {
-    cerr << "Error in opening output file '" << output_file << "'" << endl;
-    return OMX_ErrorUndefined;
-  }
-
-  OMX_CALL(OMX_Init());
-
-  auto component = chooseComponent(app.settings.codecImplem);
-
-  OMX_CALLBACKTYPE const videoDecoderCallbacks =
-  {
-    .EventHandler = onComponentEvent,
-    .EmptyBufferDone = onInputBufferAvailable,
-    .FillBufferDone = onOutputBufferAvailable
-  };
-
-  OMX_CALL(OMX_GetHandle(&app.hDecoder, (OMX_STRING)component.c_str(), &app, const_cast<OMX_CALLBACKTYPE*>(&videoDecoderCallbacks)));
-
-  OMX_STRING name = (OMX_STRING)calloc(128, sizeof(char));
-  OMX_VERSIONTYPE compType;
-  OMX_VERSIONTYPE ilType;
-
-  OMX_CALL(OMX_GetComponentVersion(app.hDecoder, (OMX_STRING)name, &compType, &ilType, nullptr));
-
-  LOGI("Component : %s (v.%u) made for OMX_IL client : %u.%u.%u", name, compType.nVersion, ilType.s.nVersionMajor, ilType.s.nVersionMinor, ilType.s.nRevision);
-
-  free(name);
-
-  auto const ret = setPortParameters(app);
-
-  if(ret != OMX_ErrorNone)
-    return ret;
-
-  app.pAllocator = nullptr;
-
-  if(app.settings.bDMAIn || app.settings.bDMAOut)
-  {
-    auto constexpr deviceName = "/dev/allegroDecodeIP";
-    app.pAllocator = DmaAlloc_Create(deviceName);
-
-    if(!app.pAllocator)
-      throw runtime_error(string("Couldn't create dma allocator (using ") + deviceName + string(")"));
-  }
-
-  auto scopeAlloc = scopeExit([&]() {
-    if(app.pAllocator)
-      AL_Allocator_Destroy(app.pAllocator);
-  });
-
+OMX_ERRORTYPE configureComponent(Application& app)
+{
   auto outputPortDisabled = false;
 
   if(app.settings.hasPrealloc)
@@ -806,6 +879,7 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
       return error;
 
     OMX_SendCommand(app.hDecoder, OMX_CommandPortDisable, 1, nullptr);
+    app.disableEvent.wait();
     outputPortDisabled = true;
   }
 
@@ -829,62 +903,215 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   app.decoderEventState.wait();
 
-  /** sending command to video decoder component to go to executing state */
-  OMX_CALL(OMX_SendCommand(app.hDecoder, OMX_CommandStateSet, OMX_StateExecuting, nullptr));
-  app.decoderEventState.wait();
+  return OMX_ErrorNone;
+}
 
-  if(!outputPortDisabled)
-  {
-    for(auto pBuf : app.outputBuffers)
-      OMX_CALL(OMX_FillThisBuffer(app.hDecoder, pBuf));
-  }
-
-  /** Process **/
+void omxWorker(Application* app)
+{
   auto eof = false;
 
-  while(!eof)
-  {
-    auto inputBuffer = app.inputBuffers.pop();
-    eof = readFrame(inputBuffer, app);
+  auto err = configureComponent(*app);
 
-    OMX_CALL(OMX_EmptyThisBuffer(app.hDecoder, inputBuffer));
+  if(err != OMX_ErrorNone)
+  {
+    app->eventBus.queueEvent({ errorEvent, make_shared<ErrorEventData>(err) });
+    return;
+  }
+
+  /** sending command to video decoder component to go to executing state */
+  err = OMX_SendCommand(app->hDecoder, OMX_CommandStateSet, OMX_StateExecuting, nullptr);
+
+  if(err != OMX_ErrorNone)
+  {
+    app->eventBus.queueEvent({ errorEvent, make_shared<ErrorEventData>(err) });
+    return;
+  }
+  app->decoderEventState.wait();
+
+  if(!app->settings.hasPrealloc)
+  {
+    for(auto pBuf : app->outputBuffers)
+    {
+      auto err = OMX_FillThisBuffer(app->hDecoder, pBuf);
+
+      if(err != OMX_ErrorNone)
+      {
+        app->eventBus.queueEvent({ errorEvent, make_shared<ErrorEventData>(err) });
+        return;
+      }
+    }
+  }
+
+  while(!eof && !app->quit)
+  {
+    auto inputBuffer = app->inputBuffers.pop();
+    eof = readFrame(inputBuffer, *app);
+
+    auto err = OMX_EmptyThisBuffer(app->hDecoder, inputBuffer);
+
+    if(err != OMX_ErrorNone)
+    {
+      app->eventBus.queueEvent({ errorEvent, make_shared<ErrorEventData>(err) });
+      break;
+    }
 
     if(eof)
     {
       LOGV("End of file");
-      auto emptyBuffer = app.inputBuffers.pop();
+      auto emptyBuffer = app->inputBuffers.pop();
       emptyBuffer->nFilledLen = 0;
-      inputBuffer->nFlags |= OMX_BUFFERFLAG_EOS;
-      OMX_CALL(OMX_EmptyThisBuffer(app.hDecoder, emptyBuffer));
+      emptyBuffer->nFlags |= OMX_BUFFERFLAG_EOS;
+      auto err = OMX_EmptyThisBuffer(app->hDecoder, emptyBuffer);
+
+      if(err != OMX_ErrorNone)
+      {
+        app->eventBus.queueEvent({ errorEvent, make_shared<ErrorEventData>(err) });
+        break;
+      }
     }
   }
+}
 
-  LOGV("Waiting for EOS ... ");
-  app.eofSem.wait();
+OMX_ERRORTYPE showComponentVersion(Application& app)
+{
+  char name[128];
+  OMX_VERSIONTYPE compType;
+  OMX_VERSIONTYPE ilType;
+
+  OMX_CALL(OMX_GetComponentVersion(app.hDecoder, (OMX_STRING)name, &compType, &ilType, nullptr));
+
+  LOGI("Component : %s (v.%u) made for OMX_IL client : %u.%u.%u", name, compType.nVersion, ilType.s.nVersionMajor, ilType.s.nVersionMinor, ilType.s.nRevision);
+  return OMX_ErrorNone;
+}
+
+void deletePipeline(Application* app)
+{
+  LOGV("Stopping the pipeline");
+
+  auto err = stopPipeline(*app);
+
+  if(err != OMX_ErrorNone)
+    app->eventBus.queueEvent({ errorEvent, make_shared<ErrorEventData>(err) });
+  err = OMX_SendCommand(app->hDecoder, OMX_CommandStateSet, OMX_StateLoaded, nullptr);
+
+  if(err != OMX_ErrorNone)
+    app->eventBus.queueEvent({ errorEvent, make_shared<ErrorEventData>(err) });
+
+  freeBuffers(inportIndex, *app);
+  freeBuffers(outportIndex, *app);
+
+  app->decoderEventState.wait();
+
+  app->eventBus.queueEvent({ pipelineEndEvent, nullptr });
+}
+
+OMX_ERRORTYPE safeMain(int argc, char** argv)
+{
+  Application app;
+  parseCommandLine(argc, argv, app);
+  thread deleteThread;
+
+  app.eventBus.addListener([&](shared_ptr<EventData> )
+  {
+    fprintf(stderr, "[EventBus] Received EOS\n");
+
+    if(app.quit)
+      return;
+    app.quit = true;
+    deleteThread = thread(deletePipeline, &app);
+  }, eosEvent);
+
+  app.eventBus.addListener([&](shared_ptr<EventData> )
+  {
+    app.pipelineEnded = true;
+  }, pipelineEndEvent);
+
+  app.eventBus.addListener([&](shared_ptr<EventData> data_)
+  {
+    ErrorEventData* data = static_cast<ErrorEventData*>(data_.get());
+    fprintf(stderr, "[EventBus] Got error code %d\n", data->errorCode);
+
+    if(app.quit)
+      return;
+    app.quit = true;
+    deleteThread = thread(deletePipeline, &app);
+  }, errorEvent);
+
+  app.eventBus.addListener([&](shared_ptr<EventData> data_)
+  {
+    OmxEventData* d = static_cast<OmxEventData*>(data_.get());
+    handleEvent(d->hComponent, d->pAppData, d->eEvent, d->Data1, d->Data2, d->pEventData);
+  }, omxEvent);
+
+  infile.open(input_file, ios::binary);
+
+  if(!infile.is_open())
+  {
+    cerr << "Error in opening input file '" << input_file << "'" << endl;
+    return OMX_ErrorUndefined;
+  }
+
+  outfile.open(output_file, ios::binary);
+
+  if(!outfile.is_open())
+  {
+    cerr << "Error in opening output file '" << output_file << "'" << endl;
+    return OMX_ErrorUndefined;
+  }
+
+  OMX_CALL(OMX_Init());
+  auto scopeOMX = scopeExit([]() {
+    OMX_Deinit();
+  });
+
+  auto component = chooseComponent(app.settings.codecImplem);
+
+  OMX_CALLBACKTYPE const videoDecoderCallbacks =
+  {
+    .EventHandler = onComponentEvent,
+    .EmptyBufferDone = onInputBufferAvailable,
+    .FillBufferDone = onOutputBufferAvailable
+  };
+
+  OMX_CALL(OMX_GetHandle(&app.hDecoder, (OMX_STRING)component.c_str(), &app, const_cast<OMX_CALLBACKTYPE*>(&videoDecoderCallbacks)));
+  auto scopeHandle = scopeExit([&]() {
+    OMX_FreeHandle(app.hDecoder);
+  });
+
+  OMX_CALL(showComponentVersion(app));
+  auto const ret = setPortParameters(app);
+
+  if(ret != OMX_ErrorNone)
+    return ret;
+
+  app.pAllocator = nullptr;
+
+  if(app.settings.bDMAIn || app.settings.bDMAOut)
+  {
+    auto constexpr deviceName = "/dev/allegroDecodeIP";
+    app.pAllocator = DmaAlloc_Create(deviceName);
+
+    if(!app.pAllocator)
+      throw runtime_error(string("Couldn't create dma allocator (using ") + deviceName + string(")"));
+  }
+
+  auto scopeAlloc = scopeExit([&]() {
+    if(app.pAllocator)
+      AL_Allocator_Destroy(app.pAllocator);
+  });
+
+  thread omxThread(omxWorker, &app);
+  LOGV("Waiting for Events");
+
+  while(!app.pipelineEnded)
+  {
+    app.eventBus.waitAndProcess();
+  }
+
+  omxThread.join();
+  deleteThread.join();
+
   cerr.flush();
-  LOGV("EOS received");
-
-  /** state change of all components from executing to idle */
-  OMX_CALL(OMX_SendCommand(app.hDecoder, OMX_CommandFlush, 0, nullptr));
-  app.flushEvent.wait();
-
-  OMX_CALL(OMX_SendCommand(app.hDecoder, OMX_CommandFlush, 1, nullptr));
-  app.flushEvent.wait();
-
-  OMX_CALL(OMX_SendCommand(app.hDecoder, OMX_CommandStateSet, OMX_StateIdle, nullptr));
-  app.decoderEventState.wait();
-
-  /** sending command to all components to go to loaded state */
-  OMX_CALL(OMX_SendCommand(app.hDecoder, OMX_CommandStateSet, OMX_StateLoaded, nullptr));
-
-  freeBuffers(inportIndex, app);
-  freeBuffers(outportIndex, app);
-
-  app.decoderEventState.wait();
-
-  OMX_FreeHandle(app.hDecoder);
-  OMX_Deinit();
-
   infile.close();
   outfile.close();
   return OMX_ErrorNone;

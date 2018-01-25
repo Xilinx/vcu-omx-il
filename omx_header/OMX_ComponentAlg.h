@@ -40,7 +40,6 @@ extern "C" {
  */
 #include <OMX_Component.h>
 
-
 /** Enum buffers modes */
 typedef enum OMX_ALG_BUFFER_MODE
 {

@@ -38,6 +38,7 @@
 #pragma once
 #include <map>
 #include <mutex>
+#include <cassert>
 
 template<class K, class V>
 class ThreadSafeMap
@@ -52,13 +53,22 @@ public:
   void Remove(K const& key)
   {
     std::lock_guard<std::mutex> lock(mutex);
-    map.erase(key);
+    _Remove(key);
   }
 
   V Get(K const& key)
   {
     std::lock_guard<std::mutex> lock(mutex);
-    return map[key];
+    return _Get(key);
+  }
+
+  V Pop(K const& key)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    auto const val = _Get(key);
+    assert(val);
+    _Remove(key);
+    return val;
   }
 
   bool Exist(K const& key)
@@ -72,6 +82,16 @@ public:
   }
 
 private:
+  V _Get(K const& key)
+  {
+    return map[key];
+  }
+
+  void _Remove(K const& key)
+  {
+    map.erase(key);
+  }
+
   std::mutex mutex;
   std::map<K, V> map;
 };

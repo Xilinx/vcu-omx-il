@@ -50,15 +50,12 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexVendorComponentStartUnused = OMX_IndexVendorStartUnused + 0x00100000,
   OMX_ALG_IndexParamReportedLatency,                  /**< reference: OMX_ALG_PARAM_REPORTED_LATENCY */
 
-  /* Component soles parameters and configurations */
-  OMX_ALG_IndexSoleVendorComponentStartUnused = OMX_IndexVendorStartUnused + 0x00180000,
-
   /* Port parameters and configurations */
   OMX_ALG_IndexVendorPortStartUnused = OMX_IndexVendorStartUnused + 0x00200000,
   OMX_ALG_IndexPortParamBufferMode,                   /**< reference: OMX_ALG_PORT_PARAM_BUFFER_MODE */
 
-  /* Vendor Video parameters and configrations */
-  OMX_ALG_IndexVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00300000,
+  /* Vendor Video parameters */
+  OMX_ALG_IndexParamVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00300000,
   OMX_ALG_IndexParamVideoHevc,                        /**< reference: OMX_ALG_VIDEO_PARAM_HEVCTYPE */
   OMX_ALG_IndexParamVideoVp9,                         /**< reference: OMX_ALG_VIDEO_PARAM_VP9TYPE */
   OMX_ALG_IndexParamVideoGopControl,                  /**< reference: OMX_ALG_VIDEO_PARAM_GOP_CONTROL */
@@ -77,6 +74,13 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamVideoInstantaneousDecodingRefresh,/**< reference: OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH */
   OMX_ALG_IndexParamVideoMaxBitrate,                  /**< reference: OMX_ALG_VIDEO_PARAM_MAX_BITRATE */
   OMX_ALG_IndexParamVideoFillerData,                  /**< reference: OMX_ALG_VIDEO_PARAM_FILLER_DATA */
+  OMX_ALG_IndexParamVideoBufferMode,                  /**< reference: OMX_ALG_VIDEO_PARAM_BUFFER_MODE */
+
+  /* Vendor Video configrations */
+  OMX_ALG_IndexConfigVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00380000,
+  OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh, /**< reference: OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH */
+  OMX_ALG_IndexConfigVideoGroupOfPictures,                    /**< reference: OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES */
+  OMX_ALG_IndexConfigVideoRegionOfInterest,                   /**< reference: OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST */
 
   OMX_ALG_IndexMax = 0x7FFFFFFF
 } OMX_ALG_INDEXTYPE;

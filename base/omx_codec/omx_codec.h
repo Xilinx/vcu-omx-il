@@ -44,6 +44,7 @@
 
 #include <algorithm>
 #include <condition_variable>
+#include <mutex>
 
 #define ALLEGRODVT_OMX_VERSION 3
 
@@ -55,7 +56,9 @@ enum Command
   EnablePort,
   MarkBuffer,
   EmptyBuffer,
-  FillBuffer
+  FillBuffer,
+  SetDynamic,
+  Max,
 };
 
 enum TransientState
@@ -187,6 +190,7 @@ protected:
   OMX_PORT_PARAM_TYPE ports;
   ThreadSafeMap<uint8_t*, OMX_BUFFERHEADERTYPE*> map;
   std::queue<OMX_MARKTYPE*> marks;
+  std::mutex moduleMutex {};
 
   std::unique_ptr<ProcessorFifo> processor;
   void _Process(void* data);
@@ -209,6 +213,7 @@ protected:
   void TreatMarkBufferCommand(Task* task);
   virtual void TreatEmptyBufferCommand(Task* task);
   void TreatFillBufferCommand(Task* task);
+  void TreatDynamicCommand(Task* task);
   void AttachMark(OMX_BUFFERHEADERTYPE* header);
 
   virtual void EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size);
