@@ -186,6 +186,9 @@ Codec::Codec(OMX_HANDLETYPE component, std::unique_ptr<ModuleInterface>&& module
 
   CreateName(name);
   CreateRole(role);
+  shouldPrealloc = true;
+  shouldClearROI = false;
+  shouldPushROI = false;
   version.nVersion = ALLEGRODVT_OMX_VERSION;
   AssociateSpecVersion(spec);
 
@@ -892,7 +895,13 @@ OMX_ERRORTYPE Codec::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR config
     processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoGroupOfPictures, gop));
     return OMX_ErrorNone;
   }
-
+  case OMX_ALG_IndexConfigVideoRegionOfInterest:
+  {
+    OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST* roi = new OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST;
+    memcpy(roi, static_cast<OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST));
+    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoRegionOfInterest, roi));
+    return OMX_ErrorNone;
+  }
   default:
     LOGE("%s is unsupported", ToStringOMXIndex.at(index));
     return OMX_ErrorUnsupportedIndex;
@@ -1038,11 +1047,7 @@ void Codec::TreatSetStateCommand(Task* task)
     }
 
     if(isTransitionToRun(state, newState))
-    {
-      auto outputPort = GetPort(1);
-      bool shouldPrealloc = (!outputPort->isTransientToDisable && outputPort->enable);
       module->Run(shouldPrealloc);
-    }
 
     if(isTransitionToPause(state, newState))
       module->Pause();
@@ -1159,6 +1164,17 @@ void Codec::TreatFillBufferCommand(Task* task)
   assert(success);
 }
 
+RegionQuality CreateRegionQuality(OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST const& roi)
+{
+  RegionQuality rq;
+  rq.region.x = roi.nLeft;
+  rq.region.y = roi.nTop;
+  rq.region.width = roi.nWidth;
+  rq.region.height = roi.nHeight;
+  rq.quality = ConvertToModuleQuality(roi.eQuality);
+  return rq;
+}
+
 void Codec::TreatDynamicCommand(Task* task)
 {
   assert(task);
@@ -1203,6 +1219,23 @@ void Codec::TreatDynamicCommand(Task* task)
     moduleGop.length = ConvertToModuleGopLength(gop->nBFrames, gop->nPFrames);
     module->SetDynamic(DYNAMIC_INDEX_GOP, &moduleGop);
     delete gop;
+    return;
+  }
+  case OMX_ALG_IndexConfigVideoRegionOfInterest:
+  {
+    assert(task->opt);
+    auto roi = static_cast<OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST*>(task->opt);
+
+    if(shouldClearROI)
+    {
+      module->SetDynamic(DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_CLEAR, nullptr);
+      shouldClearROI = false;
+    }
+
+    auto rq = CreateRegionQuality(*roi);
+    module->SetDynamic(DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD, &rq);
+    shouldPushROI = true;
+    delete roi;
     return;
   }
 

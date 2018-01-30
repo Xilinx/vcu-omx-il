@@ -114,6 +114,7 @@ QPControlType ConvertSoftToModuleQPControl(AL_EQpCtrlMode const& mode)
   switch(mode)
   {
   case UNIFORM_QP: return QP_UNIFORM;
+  case ROI_QP: return QP_ROI;
   case AUTO_QP: return QP_AUTO;
   case QP_MAX_ENUM: // fallthrough
   default: return QP_MAX;
@@ -223,6 +224,7 @@ AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType const& mode)
   switch(mode)
   {
   case QP_UNIFORM: return UNIFORM_QP;
+  case QP_ROI: return ROI_QP;
   case QP_AUTO: return AUTO_QP;
   default: return QP_MAX_ENUM;
   }

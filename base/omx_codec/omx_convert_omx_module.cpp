@@ -414,6 +414,7 @@ QPControlType ConvertToModuleQPControl(OMX_ALG_EQpCtrlMode const& mode)
   switch(mode)
   {
   case OMX_ALG_UNIFORM_QP: return QP_UNIFORM;
+  case OMX_ALG_ROI_QP: return QP_ROI;
   case OMX_ALG_AUTO_QP: return QP_AUTO;
   case OMX_ALG_MAX_QP: return QP_MAX;
   default: return QP_MAX;
@@ -867,5 +868,20 @@ OMX_ALG_VIDEO_BUFFER_MODE ConvertToOMXBufferMode(BufferModeType const& mode)
   }
 
   return OMX_ALG_VIDEO_BUFFER_MODE_MAX;
+}
+
+QualityType ConvertToModuleQuality(OMX_ALG_ERoiQuality const& quality)
+{
+  switch(quality)
+  {
+  case OMX_ALG_ROI_QUALITY_HIGH: return REGION_OF_INTEREST_QUALITY_HIGH;
+  case OMX_ALG_ROI_QUALITY_MEDIUM: return REGION_OF_INTEREST_QUALITY_MEDIUM;
+  case OMX_ALG_ROI_QUALITY_LOW: return REGION_OF_INTEREST_QUALITY_LOW;
+  case OMX_ALG_ROI_QUALITY_DONT_CARE: return REGION_OF_INTEREST_QUALITY_DONT_CARE;
+  case OMX_ALG_ROI_QUALITY_STATIC: // fallthrough
+  default: return REGION_OF_INTEREST_QUALITY_STATIC;
+  }
+
+  return REGION_OF_INTEREST_QUALITY_STATIC;
 }
 

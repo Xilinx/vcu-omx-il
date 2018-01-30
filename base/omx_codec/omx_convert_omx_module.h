@@ -124,3 +124,5 @@ OMX_ALG_EScalingList ConvertToOMXScalingList(ScalingListType const& scalingLisgt
 BufferModeType ConvertToModuleBufferMode(OMX_ALG_VIDEO_BUFFER_MODE const& mode);
 OMX_ALG_VIDEO_BUFFER_MODE ConvertToOMXBufferMode(BufferModeType const& mode);
 
+QualityType ConvertToModuleQuality(OMX_ALG_ERoiQuality const& quality);
+

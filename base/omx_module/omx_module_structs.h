@@ -213,3 +213,17 @@ struct Slices
   bool dependent;
 };
 
+struct Region
+{
+  int x;
+  int y;
+  int width;
+  int height;
+};
+
+struct RegionQuality
+{
+  Region region;
+  QualityType quality;
+};
+

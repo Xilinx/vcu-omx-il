@@ -94,6 +94,12 @@ void EncCodec::EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size)
 
   ClearPropagatedData(header);
 
+  if(roiMap.Exist(header))
+  {
+    auto roiBuffer = roiMap.Pop(header);
+    roiFreeBuffers.push(roiBuffer);
+  }
+
   if(callbacks.EmptyBufferDone)
     callbacks.EmptyBufferDone(component, app, header);
 }
@@ -1388,6 +1394,40 @@ static void DeleteHeader(OMX_BUFFERHEADERTYPE* header)
   delete header;
 }
 
+uint8_t* EncCodec::AllocateROIBuffer()
+{
+  int roiSize;
+  module->GetDynamic(DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_SIZE, &roiSize);
+  return static_cast<uint8_t*>(calloc(roiSize, sizeof(uint8_t)));
+}
+
+OMX_ERRORTYPE EncCodec::UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size, OMX_IN OMX_U8* buffer)
+{
+  OMX_TRY();
+  OMXChecker::CheckNotNull(header);
+  OMXChecker::CheckNotNull(size);
+
+  CheckPortIndex(index);
+  auto port = GetPort(index);
+
+  if(transientState != TransientLoadedToIdle && !(port->isTransientToEnable))
+    throw OMX_ErrorIncorrectStateOperation;
+
+  *header = AllocateHeader(app, size, buffer, false, index);
+  assert(*header);
+  port->Add(*header);
+
+  if(IsInputPort(index))
+  {
+    auto roiBuffer = AllocateROIBuffer();
+    roiFreeBuffers.push(roiBuffer);
+    roiDestroyMap.Add(*header, roiBuffer);
+  }
+
+  return OMX_ErrorNone;
+  OMX_CATCH();
+}
+
 OMX_ERRORTYPE EncCodec::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size)
 {
   OMX_TRY();
@@ -1410,8 +1450,20 @@ OMX_ERRORTYPE EncCodec::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, 
   assert(*header);
   port->Add(*header);
 
+  if(IsInputPort(index))
+  {
+    auto roiBuffer = AllocateROIBuffer();
+    roiFreeBuffers.push(roiBuffer);
+    roiDestroyMap.Add(*header, roiBuffer);
+  }
+
   return OMX_ErrorNone;
   OMX_CATCH();
+}
+
+void EncCodec::DestroyROIBuffer(uint8_t* roiBuffer)
+{
+  free(roiBuffer);
 }
 
 OMX_ERRORTYPE EncCodec::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADERTYPE* header)
@@ -1432,10 +1484,43 @@ OMX_ERRORTYPE EncCodec::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADER
     dmaOnPort ? ToEncModule(*module).FreeDMA(static_cast<int>((intptr_t)header->pBuffer)) : module->Free(header->pBuffer);
   }
 
+  if(IsInputPort(index))
+  {
+    if(roiDestroyMap.Exist(header))
+    {
+      auto roiBuffer = roiDestroyMap.Pop(header);
+      DestroyROIBuffer(roiBuffer);
+    }
+  }
+
   port->Remove(header);
   DeleteHeader(header);
 
   return OMX_ErrorNone;
   OMX_CATCH();
+}
+
+void EncCodec::TreatEmptyBufferCommand(Task* task)
+{
+  assert(task);
+  assert(task->cmd == EmptyBuffer);
+  assert(static_cast<int>((intptr_t)task->data) == input.index);
+  auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt);
+  assert(header);
+  AttachMark(header);
+  map.Add(header->pBuffer, header);
+
+  if(shouldPushROI && header->nFilledLen)
+  {
+    auto roiBuffer = roiFreeBuffers.pop();
+    module->GetDynamic(DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_FILL, roiBuffer);
+    module->SetDynamic(DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_EMPTY, roiBuffer);
+    roiMap.Add(header, roiBuffer);
+  }
+
+  auto success = module->Empty(header->pBuffer, header->nOffset, header->nFilledLen);
+
+  shouldClearROI = true;
+  assert(success);
 }
 

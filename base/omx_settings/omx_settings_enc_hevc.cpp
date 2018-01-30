@@ -101,32 +101,31 @@ ErrorSettingsType EncSettingsHEVC::Set(string index, void const* settings)
       return ERROR_SETTINGS_BAD_PARAMETER;
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_FORMAT)
+
+  if(index == SETTINGS_INDEX_FORMAT)
   {
     if(!UpdateFormat(this->settings, *(static_cast<Format const*>(settings))))
       return ERROR_SETTINGS_BAD_PARAMETER;
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_CLOCK)
+
+  if(index == SETTINGS_INDEX_CLOCK)
   {
     if(!UpdateClock(this->settings, *(static_cast<Clock const*>(settings))))
       return ERROR_SETTINGS_BAD_PARAMETER;
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED)
+
+  if(index == SETTINGS_INDEX_PROFILE_LEVEL)
     return ERROR_SETTINGS_NOT_IMPLEMENTED;
-  else if(index == SETTINGS_INDEX_PROFILE_LEVEL)
-    return ERROR_SETTINGS_NOT_IMPLEMENTED;
-  else if(index == SETTINGS_INDEX_LATENCY)
-    return ERROR_SETTINGS_NOT_IMPLEMENTED;
-  else if(index == SETTINGS_INDEX_GROUP_OF_PICTURES)
+
+  if(index == SETTINGS_INDEX_GROUP_OF_PICTURES)
   {
     if(!UpdateGroupOfPictures(this->settings, *(static_cast<Gop const*>(settings))))
       return ERROR_SETTINGS_BAD_PARAMETER;
     return ERROR_SETTINGS_NONE;
   }
-  else
-    return ERROR_SETTINGS_BAD_INDEX;
+  return ERROR_SETTINGS_BAD_INDEX;
 }
 
 static Mimes CreateMimes()
@@ -168,77 +167,90 @@ ErrorSettingsType EncSettingsHEVC::Get(string index, void* settings)
     *(static_cast<Mimes*>(settings)) = CreateMimes();
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_RESOLUTION)
+
+  if(index == SETTINGS_INDEX_RESOLUTION)
   {
     *(static_cast<Resolution*>(settings)) = CreateResolution(this->settings, this->alignments);
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_FORMAT)
+
+  if(index == SETTINGS_INDEX_FORMAT)
   {
     *(static_cast<Format*>(settings)) = CreateFormat(this->settings);
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_FORMATS_SUPPORTED)
+
+  if(index == SETTINGS_INDEX_FORMATS_SUPPORTED)
   {
     *(static_cast<vector<Format>*>(settings)) = CreateFormatsSupported(this->colors, this->bitdepths);
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_CLOCK)
+
+  if(index == SETTINGS_INDEX_CLOCK)
   {
     *(static_cast<Clock*>(settings)) = CreateClock(this->settings);
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED)
+
+  if(index == SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED)
   {
     *(static_cast<vector<ProfileLevelType>*>(settings)) = CreateHEVCProfileLevelSupported(this->profiles, this->levels);
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_PROFILE_LEVEL)
+
+  if(index == SETTINGS_INDEX_PROFILE_LEVEL)
   {
     *(static_cast<ProfileLevelType*>(settings)) = this->settings.tChParam.uTier ? CreateHEVCHighTierProfileLevel(this->settings.tChParam.eProfile, this->settings.tChParam.uLevel) : CreateHEVCMainTierProfileLevel(this->settings.tChParam.eProfile, this->settings.tChParam.uLevel);
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_BUFFER_MODE)
+
+  if(index == SETTINGS_INDEX_BUFFER_MODE)
   {
     *(static_cast<BufferModeType*>(settings)) = CreateBufferMode(this->settings);
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_BUFFER_HANDLES)
+
+  if(index == SETTINGS_INDEX_BUFFER_HANDLES)
   {
     *(static_cast<BufferHandles*>(settings)) = this->bufferHandles;
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_BUFFER_COUNTS)
+
+  if(index == SETTINGS_INDEX_BUFFER_COUNTS)
   {
     *(static_cast<BufferCounts*>(settings)) = CreateBufferCounts(this->settings);
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_BUFFER_SIZES)
+
+  if(index == SETTINGS_INDEX_BUFFER_SIZES)
   {
     *(static_cast<BufferSizes*>(settings)) = CreateBufferSizes(this->settings);
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_BUFFER_BYTES_ALIGNMENTS)
+
+  if(index == SETTINGS_INDEX_BUFFER_BYTES_ALIGNMENTS)
   {
     *(static_cast<BufferBytesAlignments*>(settings)) = this->bufferBytesAlignments;
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_BUFFER_CONTIGUITIES)
+
+  if(index == SETTINGS_INDEX_BUFFER_CONTIGUITIES)
   {
     *(static_cast<BufferContiguities*>(settings)) = this->bufferContiguities;
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_LATENCY)
+
+  if(index == SETTINGS_INDEX_LATENCY)
   {
     *(static_cast<int*>(settings)) = CreateMillisecondsLatency(this->settings, CreateBufferCounts(this->settings));
     return ERROR_SETTINGS_NONE;
   }
-  else if(index == SETTINGS_INDEX_GROUP_OF_PICTURES)
+
+  if(index == SETTINGS_INDEX_GROUP_OF_PICTURES)
   {
     *(static_cast<Gop*>(settings)) = CreateGroupOfPictures(this->settings);
     return ERROR_SETTINGS_NONE;
   }
-  else
-    return ERROR_SETTINGS_BAD_INDEX;
+  return ERROR_SETTINGS_BAD_INDEX;
 }
 

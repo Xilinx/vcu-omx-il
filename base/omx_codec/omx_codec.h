@@ -159,7 +159,7 @@ public:
 
   OMX_ERRORTYPE GetState(OMX_OUT OMX_STATETYPE* state);
   OMX_ERRORTYPE SetCallbacks(OMX_IN OMX_CALLBACKTYPE* callbacks, OMX_IN OMX_PTR app);
-  OMX_ERRORTYPE UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size, OMX_IN OMX_U8* buffer);
+  virtual OMX_ERRORTYPE UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size, OMX_IN OMX_U8* buffer);
   virtual OMX_ERRORTYPE AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size);
   virtual OMX_ERRORTYPE FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADERTYPE* header);
   void ComponentDeInit();
@@ -178,6 +178,9 @@ protected:
   std::unique_ptr<ModuleInterface> module;
   Port input;
   Port output;
+  bool shouldPrealloc;
+  bool shouldClearROI;
+  bool shouldPushROI;
 
   OMX_STRING name;
   OMX_STRING role;

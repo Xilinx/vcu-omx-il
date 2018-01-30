@@ -813,13 +813,13 @@ void DecModule::Stop()
   ReleaseAllBuffers();
 }
 
-ErrorType DecModule::SetDynamic(DynamicIndexType index, void const* param)
+ErrorType DecModule::SetDynamic(std::string index, void const* param)
 {
   (void)index, (void)param;
   return ERROR_NOT_IMPLEMENTED;
 }
 
-ErrorType DecModule::GetDynamic(DynamicIndexType index, void* param)
+ErrorType DecModule::GetDynamic(std::string index, void* param)
 {
   (void)index, (void)param;
   return ERROR_NOT_IMPLEMENTED;

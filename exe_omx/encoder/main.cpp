@@ -724,6 +724,16 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   OMX_CALL(OMX_SendCommand(app.hEncoder, OMX_CommandStateSet, OMX_StateExecuting, nullptr));
   app.encoderEventState.wait();
 
+  OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST roi;
+  initHeader(roi);
+  roi.nPortIndex = 0;
+  roi.nLeft = 0;
+  roi.nTop = 0;
+  roi.nWidth = app.settings.width;
+  roi.nHeight = app.settings.height;
+  roi.eQuality = OMX_ALG_ROI_QUALITY_MEDIUM;
+  OMX_SetConfig(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoRegionOfInterest), &roi);
+
   for(auto i = 0; i < get.GetBuffersCount(app.output.index); ++i)
     OMX_CALL(OMX_FillThisBuffer(app.hEncoder, app.output.buffers.at(i)));
 

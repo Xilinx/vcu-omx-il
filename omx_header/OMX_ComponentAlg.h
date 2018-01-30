@@ -65,6 +65,15 @@ typedef struct OMX_ALG_PARAM_REPORTED_LATENCY
   OMX_U32 nLatency; // Computed in milliseconds
 }OMX_ALG_PARAM_REPORTED_LATENCY;
 
+/** Component preallocation */
+typedef struct OMX_ALG_PARAM_PREALLOCATION
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_BOOL bDisablePreallocation;
+}OMX_ALG_PARAM_PREALLOCATION;
+
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

@@ -35,35 +35,35 @@
 *
 ******************************************************************************/
 
-#pragma once
+#include "omx_convert_module_soft_roi.h"
 
-#include <OMX_ComponentAlg.h> // buffer mode
-
-#include "omx_codec.h"
-#include "omx_expertise_enc.h"
-#include "base/omx_module/omx_module_enc.h"
-
-struct EncCodec : public Codec
+AL_ERoiQuality ConvertModuleToSoftQuality(QualityType const& quality)
 {
-  EncCodec(OMX_HANDLETYPE component, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<EncExpertise>&& expertise);
-  ~EncCodec();
-  OMX_ERRORTYPE GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR param);
-  OMX_ERRORTYPE SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param);
-  OMX_ERRORTYPE GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_INDEXTYPE* index);
-  OMX_ERRORTYPE AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size);
-  OMX_ERRORTYPE UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size, OMX_IN OMX_U8* buffer);
-  OMX_ERRORTYPE FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADERTYPE* header);
+  switch(quality)
+  {
+  case REGION_OF_INTEREST_QUALITY_HIGH: return AL_ROI_QUALITY_HIGH;
+  case REGION_OF_INTEREST_QUALITY_MEDIUM: return AL_ROI_QUALITY_MEDIUM;
+  case REGION_OF_INTEREST_QUALITY_LOW: return AL_ROI_QUALITY_LOW;
+  case REGION_OF_INTEREST_QUALITY_DONT_CARE: return AL_ROI_QUALITY_DONT_CARE;
+  case REGION_OF_INTEREST_QUALITY_STATIC: return AL_ROI_QUALITY_STATIC;
+  default: return AL_ROI_QUALITY_STATIC;
+  }
 
-private:
-  uint8_t* AllocateROIBuffer();
-  void DestroyROIBuffer(uint8_t* roiBuffer);
-  void EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size);
-  void FillThisBufferCallBack(uint8_t* filled, int offset, int size);
-  void AssociateCallBack(uint8_t* empty, uint8_t* fill);
-  void TreatEmptyBufferCommand(Task* task);
-  std::unique_ptr<EncExpertise> expertise;
-  locked_queue<uint8_t*> roiFreeBuffers;
-  ThreadSafeMap<OMX_BUFFERHEADERTYPE*, uint8_t*> roiMap;
-  ThreadSafeMap<OMX_BUFFERHEADERTYPE*, uint8_t*> roiDestroyMap;
-};
+  return AL_ROI_QUALITY_STATIC;
+}
+
+QualityType ConvertSoftToModuleQuality(AL_ERoiQuality const& quality)
+{
+  switch(quality)
+  {
+  case AL_ROI_QUALITY_HIGH: return REGION_OF_INTEREST_QUALITY_HIGH;
+  case AL_ROI_QUALITY_MEDIUM: return REGION_OF_INTEREST_QUALITY_MEDIUM;
+  case AL_ROI_QUALITY_LOW: return REGION_OF_INTEREST_QUALITY_LOW;
+  case AL_ROI_QUALITY_DONT_CARE: return REGION_OF_INTEREST_QUALITY_DONT_CARE;
+  case AL_ROI_QUALITY_STATIC: return REGION_OF_INTEREST_QUALITY_STATIC;
+  default: return REGION_OF_INTEREST_QUALITY_STATIC;
+  }
+
+  return REGION_OF_INTEREST_QUALITY_STATIC;
+}
 

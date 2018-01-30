@@ -42,8 +42,11 @@
 #include "omx_device_enc_interface.h"
 #include "omx_module_codec_structs.h"
 
+#include "ROIMngr.h"
+
 #include <string.h>
 #include <vector>
+#include <list>
 
 #include "base/omx_utils/threadsafe_map.h"
 #include "base/omx_mediatype/omx_mediatype_enc_interface.h"
@@ -142,8 +145,8 @@ public:
   bool Flush();
   void Stop();
 
-  ErrorType SetDynamic(DynamicIndexType index, void const* param);
-  ErrorType GetDynamic(DynamicIndexType index, void* param);
+  ErrorType SetDynamic(std::string index, void const* param);
+  ErrorType GetDynamic(std::string index, void* param);
 
 private:
   std::unique_ptr<EncMediatypeInterface> const media;
@@ -154,6 +157,8 @@ private:
   Callbacks callbacks;
   FileDescriptors fds;
 
+  AL_TRoiMngrCtx* roiCtx;
+  std::list<AL_TBuffer*> roiBuffers;
   EOSHandles eosHandles;
 
   bool Use(void* handle, uint8_t* buffer, int size);

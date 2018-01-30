@@ -36,7 +36,7 @@
 ******************************************************************************/
 
 #include "omx_module_enc.h"
-#include "base/omx_checker/omx_checker.h"
+#include "omx_convert_module_soft_roi.h"
 #include <assert.h>
 #include <unistd.h>
 #include <cmath>
@@ -53,6 +53,7 @@ extern "C"
 #include <lib_fpga/DmaAllocLinux.h>
 }
 
+#include "base/omx_checker/omx_checker.h"
 #include "base/omx_settings/omx_convert_module_soft_enc.h"
 #include "base/omx_settings/omx_convert_module_soft.h"
 
@@ -125,6 +126,15 @@ bool EncModule::CreateEncoder()
     assert(0);
   }
 
+  auto const chan = media->settings.tChParam;
+  roiCtx = AL_RoiMngr_Create(chan.uWidth, chan.uHeight, chan.eProfile, AL_ROI_QUALITY_MEDIUM, AL_ROI_INCOMING_ORDER);
+
+  if(!roiCtx)
+  {
+    fprintf(stderr, "Failed to create ROI manager:\n");
+    return false;
+  }
+
   auto& settings = media->settings;
   scheduler = device->Init(settings, *allocator.get());
   auto errorCode = AL_Encoder_Create(&encoder, scheduler, allocator.get(), &media->settings, { EncModule::RedirectionEndEncoding, this });
@@ -155,6 +165,13 @@ bool EncModule::DestroyEncoder()
 
   device->Deinit(scheduler);
   scheduler = nullptr;
+
+  if(!roiCtx)
+  {
+    fprintf(stderr, "ROI manager isn't created\n");
+    return false;
+  }
+  AL_RoiMngr_Destroy(roiCtx);
 
   return true;
 }
@@ -528,7 +545,15 @@ bool EncModule::Empty(uint8_t* buffer, int offset, int size)
     memcpy(AL_Buffer_GetData(input), buffer, input->zSize);
   }
 
-  return AL_Encoder_Process(encoder, input, nullptr);
+  AL_TBuffer* roiBuffer = nullptr;
+
+  if(!roiBuffers.empty())
+  {
+    roiBuffer = roiBuffers.front();
+    roiBuffers.pop_front();
+  }
+
+  return AL_Encoder_Process(encoder, input, roiBuffer);
 }
 
 static bool CreateAndAttachStreamMeta(AL_TBuffer& buf)
@@ -1118,13 +1143,12 @@ Flags EncModule::GetFlags(void* handle)
   return GetFlags(stream);
 }
 
-ErrorType EncModule::SetDynamic(DynamicIndexType index, void const* param)
+ErrorType EncModule::SetDynamic(std::string index, void const* param)
 {
   if(!encoder)
     return ERROR_UNDEFINED;
-  switch(index)
-  {
-  case DYNAMIC_INDEX_CLOCK:
+
+  if(index == "DYNAMIC_INDEX_CLOCK")
   {
     auto const clock = static_cast<Clock const*>(param);
 
@@ -1134,7 +1158,8 @@ ErrorType EncModule::SetDynamic(DynamicIndexType index, void const* param)
     AL_Encoder_SetFrameRate(encoder, clock->framerate, clock->clockratio);
     return SUCCESS;
   }
-  case DYNAMIC_INDEX_BITRATE:
+
+  if(index == "DYNAMIC_INDEX_BITRATE")
   {
     auto const bitrate = static_cast<int>((intptr_t)param) * 1000;
     AL_Encoder_SetBitRate(encoder, bitrate);
@@ -1146,12 +1171,14 @@ ErrorType EncModule::SetDynamic(DynamicIndexType index, void const* param)
 
     return SUCCESS;
   }
-  case DYNAMIC_INDEX_INSERT_IDR:
+
+  if(index == "DYNAMIC_INDEX_INSERT_IDR")
   {
     AL_Encoder_RestartGop(encoder);
     return SUCCESS;
   }
-  case DYNAMIC_INDEX_GOP:
+
+  if(index == "DYNAMIC_INDEX_GOP")
   {
     auto const gop = static_cast<Gop const*>(param);
 
@@ -1161,37 +1188,81 @@ ErrorType EncModule::SetDynamic(DynamicIndexType index, void const* param)
     AL_Encoder_SetGopLength(encoder, gop->length);
     return SUCCESS;
   }
-  default:
-    return ERROR_NOT_IMPLEMENTED;
+
+  if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD")
+  {
+    assert(roiCtx);
+    auto const roi = static_cast<RegionQuality const*>(param);
+    auto ret = AL_RoiMngr_AddROI(roiCtx, roi->region.x, roi->region.y, roi->region.width, roi->region.height, ConvertModuleToSoftQuality(roi->quality));
+    assert(ret);
+    return SUCCESS;
   }
+
+  if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_CLEAR")
+  {
+    assert(roiCtx);
+    AL_RoiMngr_Clear(roiCtx);
+    return SUCCESS;
+  }
+
+  if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_EMPTY")
+  {
+    assert(roiCtx);
+    auto bufferToEmpty = static_cast<char const*>(param);
+    auto const chan = media->settings.tChParam;
+    AL_TDimension tDim = { chan.uWidth, chan.uHeight };
+    auto const size = GetAllocSizeEP2(tDim, chan.uMaxCuSize);
+    auto roiBuffer = AL_Buffer_Create_And_Allocate(allocator.get(), size, MyFree);
+    memcpy(AL_Buffer_GetData(roiBuffer), bufferToEmpty, size);
+    roiBuffers.push_back(roiBuffer);
+    return SUCCESS;
+  }
+
+  return ERROR_NOT_IMPLEMENTED;
 }
 
-ErrorType EncModule::GetDynamic(DynamicIndexType index, void* param)
+ErrorType EncModule::GetDynamic(std::string index, void* param)
 {
-  switch(index)
-  {
-  case DYNAMIC_INDEX_CLOCK:
+  if(index == "DYNAMIC_INDEX_CLOCK")
   {
     auto framerate = static_cast<Clock*>(param);
     auto const f = GetClock();
     *framerate = f;
     return SUCCESS;
   }
-  case DYNAMIC_INDEX_BITRATE:
+
+  if(index == "DYNAMIC_INDEX_BITRATE")
   {
     auto bitrate = (int*)param;
     auto const rateCtrl = media->settings.tChParam.tRCParam;
     *bitrate = rateCtrl.uTargetBitRate / 1000;
     return SUCCESS;
   }
-  case DYNAMIC_INDEX_GOP:
+
+  if(index == "DYNAMIC_INDEX_GOP")
   {
     auto gop = static_cast<Gop*>(param);
     *gop = GetGop();
     return SUCCESS;
   }
-  default:
-    return ERROR_NOT_IMPLEMENTED;
+
+  if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_FILL")
+  {
+    assert(roiCtx);
+    uint8_t* bufferToFill = static_cast<uint8_t*>(param);
+    AL_RoiMngr_FillBuff(roiCtx, 1, 1, bufferToFill + EP2_BUF_QP_BY_MB.Offset);
+    return SUCCESS;
   }
+
+  if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_SIZE")
+  {
+    auto size = (int*)param;
+    auto const chan = media->settings.tChParam;
+    AL_TDimension tDim = { chan.uWidth, chan.uHeight };
+    *size = GetAllocSizeEP2(tDim, chan.uMaxCuSize);
+    return SUCCESS;
+  }
+
+  return ERROR_NOT_IMPLEMENTED;
 }
 

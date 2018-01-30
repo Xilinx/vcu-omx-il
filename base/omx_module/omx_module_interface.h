@@ -75,33 +75,15 @@ static std::map<ErrorType, const char*> ToStringError
   },
 };
 
-enum DynamicIndexType
-{
-  DYNAMIC_INDEX_GOP,
-  DYNAMIC_INDEX_INSERT_IDR,
-  DYNAMIC_INDEX_CLOCK,
-  DYNAMIC_INDEX_BITRATE,
-  DYNAMIC_INDEX_MAX,
-};
-
-static std::map<DynamicIndexType, const char*> ToStringDynamicIndex
-{
-  {
-    DYNAMIC_INDEX_GOP, "DYNAMIC_INDEX_GOP"
-  },
-  {
-    DYNAMIC_INDEX_INSERT_IDR, "DYNAMIC_INDEX_INSERT_IDR"
-  },
-  {
-    DYNAMIC_INDEX_CLOCK, "DYNAMIC_INDEX_CLOCK"
-  },
-  {
-    DYNAMIC_INDEX_BITRATE, "DYNAMIC_INDEX_BITRATE"
-  },
-  {
-    DYNAMIC_INDEX_MAX, "DYNAMIC_INDEX_MAX"
-  },
-};
+#define DYNAMIC_INDEX_GOP "DYNAMIC_INDEX_GOP"
+#define DYNAMIC_INDEX_INSERT_IDR "DYNAMIC_INDEX_INSERT_IDR"
+#define DYNAMIC_INDEX_CLOCK "DYNAMIC_INDEX_CLOCK"
+#define DYNAMIC_INDEX_BITRATE "DYNAMIC_INDEX_BITRATE"
+#define DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_SIZE "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_SIZE"
+#define DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_FILL "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_FILL"
+#define DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_EMPTY "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_EMPTY"
+#define DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD"
+#define DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_CLEAR "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_CLEAR"
 
 enum CallbackEventType
 {
@@ -167,7 +149,7 @@ struct ModuleInterface
   virtual bool Flush() = 0;
   virtual void Stop() = 0;
 
-  virtual ErrorType SetDynamic(DynamicIndexType index, void const* param) = 0;
-  virtual ErrorType GetDynamic(DynamicIndexType index, void* param) = 0;
+  virtual ErrorType SetDynamic(std::string index, void const* param) = 0;
+  virtual ErrorType GetDynamic(std::string index, void* param) = 0;
 };
 

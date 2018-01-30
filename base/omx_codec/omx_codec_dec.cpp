@@ -254,6 +254,14 @@ static OMX_ALG_PARAM_REPORTED_LATENCY ConstructReportedLatency(DecModule const& 
   return lat;
 }
 
+static OMX_ALG_PARAM_PREALLOCATION ConstructPreallocation(bool const& isEnabled)
+{
+  OMX_ALG_PARAM_PREALLOCATION prealloc;
+  OMXChecker::SetHeaderVersion(prealloc);
+  prealloc.bDisablePreallocation = ConvertToOMXBool(!isEnabled);
+  return prealloc;
+}
+
 OMX_ALG_PORT_PARAM_BUFFER_MODE ConstructPortBufferMode(Port const& port, DecModule const& module)
 {
   OMX_ALG_PORT_PARAM_BUFFER_MODE mode;
@@ -380,6 +388,11 @@ OMX_ERRORTYPE DecCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
   case OMX_ALG_IndexParamReportedLatency: // GetParameter only
   {
     *(OMX_ALG_PARAM_REPORTED_LATENCY*)param = ConstructReportedLatency(ToDecModule(*module));
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamPreallocation:
+  {
+    *(OMX_ALG_PARAM_PREALLOCATION*)param = ConstructPreallocation(this->shouldPrealloc);
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexPortParamBufferMode:
@@ -605,6 +618,12 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
       return OMX_ErrorNone;
     }
     throw OMX_ErrorBadParameter;
+  }
+  case OMX_ALG_IndexParamPreallocation:
+  {
+    auto p = (OMX_ALG_PARAM_PREALLOCATION*)param;
+    this->shouldPrealloc = !p->bDisablePreallocation;
+    return OMX_ErrorNone;
   }
   case OMX_IndexParamPortDefinition:
   {

@@ -76,6 +76,7 @@ typedef enum
 typedef enum
 {
   OMX_ALG_UNIFORM_QP = 0x000, /*!< default behaviour */
+  OMX_ALG_ROI_QP = 0x006, /*!< must be set for dynamic roi */
   OMX_ALG_AUTO_QP = 0x400, /*!< compute Qp by MB on the fly */
   OMX_ALG_MAX_QP,
 }OMX_ALG_EQpCtrlMode;

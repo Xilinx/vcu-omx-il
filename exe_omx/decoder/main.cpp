@@ -61,6 +61,7 @@ extern "C"
 #include <OMX_Video.h>
 #include <OMX_VideoExt.h>
 #include <OMX_ComponentExt.h>
+#include <OMX_IndexAlg.h>
 }
 
 #include "base/omx_utils/locked_queue.h"
@@ -860,6 +861,14 @@ OMX_ERRORTYPE stopPipeline(Application& app)
   return OMX_ErrorNone;
 }
 
+static OMX_ERRORTYPE disablePrealloc(Application& app)
+{
+  OMX_ALG_PARAM_PREALLOCATION param;
+  initHeader(param);
+  param.bDisablePreallocation = OMX_TRUE;
+  return OMX_SetParameter(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamPreallocation), &param);
+}
+
 OMX_ERRORTYPE configureComponent(Application& app)
 {
   auto outputPortDisabled = false;
@@ -873,7 +882,12 @@ OMX_ERRORTYPE configureComponent(Application& app)
   }
   else
   {
-    auto const error = setWorstCaseParameters(app);
+    auto error = disablePrealloc(app);
+
+    if(error != OMX_ErrorNone)
+      return error;
+
+    error = setWorstCaseParameters(app);
 
     if(error != OMX_ErrorNone)
       return error;

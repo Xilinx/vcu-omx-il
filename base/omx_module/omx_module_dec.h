@@ -110,8 +110,8 @@ public:
   bool Flush();
   void Stop();
 
-  ErrorType SetDynamic(DynamicIndexType index, void const* param);
-  ErrorType GetDynamic(DynamicIndexType index, void* param);
+  ErrorType SetDynamic(std::string index, void const* param);
+  ErrorType GetDynamic(std::string index, void* param);
 
 private:
   std::unique_ptr<DecMediatypeInterface> media;
