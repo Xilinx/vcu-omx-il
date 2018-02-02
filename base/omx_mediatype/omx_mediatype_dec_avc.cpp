@@ -36,6 +36,7 @@
 ******************************************************************************/
 
 #include "omx_mediatype_dec_avc.h"
+#include "base/omx_settings/omx_convert_module_soft.h"
 #include <string.h> // memset
 
 using namespace std;
@@ -179,21 +180,18 @@ int DecMediatypeAVC::GetRequiredOutputBuffers() const
   return AL_AVC_GetMinOutputBuffersNeeded(settings.tStream, settings.iStackSize, settings.eDpbMode);
 }
 
+Format DecMediatypeAVC::GetFormat() const
+{
+  Format format;
+  format.color = ConvertSoftToModuleColor(settings.tStream.eChroma);
+  format.bitdepth = settings.tStream.iBitDepth;
+  return format;
+}
+
 vector<Format> DecMediatypeAVC::FormatsSupported() const
 {
   vector<Format> formatsSupported;
-
-  for(auto const& color : colors)
-  {
-    for(auto const& bitdepth : bitdepths)
-    {
-      Format format;
-      format.color = color;
-      format.bitdepth = bitdepth;
-      formatsSupported.push_back(format);
-    }
-  }
-
+  formatsSupported.push_back(GetFormat());
   return formatsSupported;
 }
 

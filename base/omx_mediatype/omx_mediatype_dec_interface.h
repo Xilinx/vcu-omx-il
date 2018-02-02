@@ -58,6 +58,7 @@ struct DecMediatypeInterface : public MediatypeInterface
   virtual void Reset() = 0;
 
   virtual std::vector<ProfileLevelType> ProfileLevelSupported() const = 0;
+  virtual Format GetFormat() const = 0;
   virtual std::vector<Format> FormatsSupported() const = 0;
   virtual ProfileLevelType ProfileLevel() const = 0;
   virtual bool SetProfileLevel(ProfileLevelType const& profileLevel) = 0;

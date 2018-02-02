@@ -132,13 +132,7 @@ Mimes DecModule::GetMimes() const
 
 Format DecModule::GetFormat() const
 {
-  Format format;
-  auto const streamSettings = media->settings.tStream;
-
-  format.color = ConvertSoftToModuleColor(streamSettings.eChroma);
-  format.bitdepth = streamSettings.iBitDepth;
-
-  return format;
+  return media->GetFormat();
 }
 
 vector<Format> DecModule::GetFormatsSupported() const

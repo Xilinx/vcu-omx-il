@@ -50,6 +50,7 @@ struct DecMediatypeHEVC : DecMediatypeInterface
   CompressionType Compression() const;
   std::string Mime() const;
 
+  Format GetFormat() const;
   std::vector<Format> FormatsSupported() const;
   std::vector<ProfileLevelType> ProfileLevelSupported() const;
   ProfileLevelType ProfileLevel() const;
