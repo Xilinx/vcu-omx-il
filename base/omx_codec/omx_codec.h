@@ -196,7 +196,9 @@ protected:
   std::mutex moduleMutex {};
 
   std::unique_ptr<ProcessorFifo> processor;
+  std::unique_ptr<ProcessorFifo> processorFill;
   void _Process(void* data);
+  void _ProcessFillBuffer(void* data);
   void _Delete(void* data);
 
   void CreateName(OMX_STRING name);

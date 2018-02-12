@@ -196,7 +196,10 @@ Codec::Codec(OMX_HANDLETYPE component, std::unique_ptr<ModuleInterface>&& module
   SetPortsParam(ports);
   auto const p = std::bind(&Codec::_Process, this, std::placeholders::_1);
   auto const d = std::bind(&Codec::_Delete, this, std::placeholders::_1);
+  auto const p2 = std::bind(&Codec::_ProcessFillBuffer, this, std::placeholders::_1);
   processor.reset(new ProcessorFifo(p, d));
+  processorFill.reset(new ProcessorFifo(p2, d));
+
   transientState = TransientMax;
   state = OMX_StateLoaded;
 }
@@ -777,12 +780,7 @@ OMX_ERRORTYPE Codec::FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
   header->pMarkData = NULL;
   header->nFlags = 0;
 
-  {
-    lock_guard<mutex> lock(moduleMutex);
-    map.Add(header->pBuffer, header);
-    auto success = module->Fill(header->pBuffer, header->nOffset, (header->nAllocLen - header->nOffset));
-    assert(success);
-  }
+  processorFill->queue(CreateTask(FillBuffer, static_cast<OMX_U32>(output.index), header));
 
   return OMX_ErrorNone;
   OMX_CATCH();
@@ -1047,7 +1045,8 @@ void Codec::TreatSetStateCommand(Task* task)
     }
 
     if(isTransitionToRun(state, newState))
-      module->Run(shouldPrealloc);
+      if(!module->Run(shouldPrealloc))
+        throw OMX_ErrorUndefined;
 
     if(isTransitionToPause(state, newState))
       module->Pause();
@@ -1287,11 +1286,6 @@ void Codec::_Process(void* data)
     TreatEmptyBufferCommand(task);
     break;
   }
-  case FillBuffer:
-  {
-    TreatFillBufferCommand(task);
-    break;
-  }
   case SetDynamic:
   {
     TreatDynamicCommand(task);
@@ -1302,5 +1296,18 @@ void Codec::_Process(void* data)
   }
 
   delete task;
+}
+
+void Codec::_ProcessFillBuffer(void* data)
+{
+  auto task = static_cast<Task*>(data);
+
+  if(task->cmd == FillBuffer)
+  {
+    lock_guard<mutex> lock(moduleMutex);
+    TreatFillBufferCommand(task);
+  }
+  else
+    assert(0 == "bad command");
 }
 
