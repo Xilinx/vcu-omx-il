@@ -38,7 +38,6 @@
 #pragma once
 #include <map>
 #include <mutex>
-#include <cassert>
 
 template<class K, class V>
 class ThreadSafeMap
@@ -66,7 +65,6 @@ public:
   {
     std::lock_guard<std::mutex> lock(mutex);
     auto const val = _Get(key);
-    assert(val);
     _Remove(key);
     return val;
   }
