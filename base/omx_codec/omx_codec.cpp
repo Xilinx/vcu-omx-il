@@ -83,7 +83,7 @@ void Codec::ReturnEmptiedBuffer(uint8_t* emptied)
     callbacks.EmptyBufferDone(component, app, header);
 }
 
-void Codec::EmptyThisBufferCallBack(uint8_t* emptied, int, int)
+void Codec::EmptyThisBufferCallBack(uint8_t* emptied, int, int, void*)
 {
   ReturnEmptiedBuffer(emptied);
 }
@@ -366,7 +366,7 @@ OMX_ERRORTYPE Codec::SetCallbacks(OMX_IN OMX_CALLBACKTYPE* callbacks, OMX_IN OMX
   OMXChecker::CheckNotNull<OMX_CALLBACKTYPE*>(callbacks);
   OMXChecker::CheckStateOperation(AL_SetCallbacks, state);
 
-  auto empty = std::bind(&Codec::EmptyThisBufferCallBack, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+  auto empty = std::bind(&Codec::EmptyThisBufferCallBack, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
   auto associate = std::bind(&Codec::AssociateCallBack, this, std::placeholders::_1, std::placeholders::_2);
   auto filled = std::bind(&Codec::FillThisBufferCallBack, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
   auto event = std::bind(&Codec::EventCallBack, this, std::placeholders::_1, std::placeholders::_2);
@@ -1147,7 +1147,7 @@ void Codec::TreatEmptyBufferCommand(Task* task)
   assert(header);
   AttachMark(header);
   map.Add(header->pBuffer, header);
-  auto success = module->Empty(header->pBuffer, header->nOffset, header->nFilledLen);
+  auto success = module->Empty(header->pBuffer, header->nOffset, header->nFilledLen, header);
   assert(success);
 }
 

@@ -221,7 +221,7 @@ protected:
   void TreatDynamicCommand(Task* task);
   void AttachMark(OMX_BUFFERHEADERTYPE* header);
 
-  virtual void EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size);
+  virtual void EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size, void* handle);
   virtual void AssociateCallBack(uint8_t* empty, uint8_t* fill);
   virtual void FillThisBufferCallBack(uint8_t* filled, int offset, int size);
   virtual void ReleaseCallBack(bool isInput, uint8_t* buf);

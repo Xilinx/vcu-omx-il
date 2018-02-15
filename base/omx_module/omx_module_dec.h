@@ -102,8 +102,8 @@ public:
 
   bool SetCallbacks(Callbacks callbacks);
 
-  bool Empty(uint8_t* handle, int offset, int size);
-  bool Fill(uint8_t* handle, int offset, int size);
+  bool Empty(uint8_t* buffer, int offset, int size, void* handle);
+  bool Fill(uint8_t* buffer, int offset, int size);
 
   bool Run(bool shouldPrealloc);
   bool Pause();
@@ -120,9 +120,12 @@ private:
 
   Callbacks callbacks;
   ThreadSafeMap<AL_TBuffer*, uint8_t*> translateIn;
+  ThreadSafeMap<AL_TBuffer*, void*> handleMap;
+
   ThreadSafeMap<AL_TBuffer*, uint8_t*> translateOut;
   ThreadSafeMap<uint8_t*, AL_TBuffer*> dpb;
   ThreadSafeMap<AL_TBuffer*, uint8_t*> shouldBeCopied;
+
 
   ThreadSafeMap<void*, AL_HANDLE> allocated;
   ThreadSafeMap<int, AL_HANDLE> allocatedDMA;

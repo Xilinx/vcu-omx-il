@@ -382,6 +382,7 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
     dpb.Remove(handleOut);
 
     auto const handleIn = translateIn.Get(eosHandles.input);
+
     auto const eosIsSent = handleIn != nullptr;
 
     if(eosIsSent)
@@ -550,20 +551,22 @@ bool DecModule::SetCallbacks(Callbacks callbacks)
 void DecModule::InputBufferDestroy(AL_TBuffer* input)
 {
   auto const handleIn = translateIn.Pop(input);
+  auto const realHandle = handleMap.Pop(input);
 
   AL_Buffer_Destroy(input);
 
-  callbacks.emptied(handleIn, 0, 0);
+  callbacks.emptied(handleIn, 0, 0, realHandle);
 }
 
 void DecModule::InputDmaBufferDestroy(AL_TBuffer* input)
 {
   auto const handleIn = translateIn.Pop(input);
+  auto const realHandle = handleMap.Pop(input);
 
   AL_Allocator_Free(input->pAllocator, input->hBuf);
   AL_Buffer_Destroy(input);
 
-  callbacks.emptied(handleIn, 0, 0);
+  callbacks.emptied(handleIn, 0, 0, realHandle);
 }
 
 AL_TBuffer* DecModule::CreateInputBuffer(uint8_t* buffer, int const& size)
@@ -604,10 +607,9 @@ AL_TBuffer* DecModule::CreateInputBuffer(uint8_t* buffer, int const& size)
   return input;
 }
 
-bool DecModule::Empty(uint8_t* buffer, int offset, int size)
+bool DecModule::Empty(uint8_t* buffer, int offset, int size, void* handle)
 {
   (void)offset;
-
   if(!decoder || !buffer)
     return false;
 
@@ -617,6 +619,7 @@ bool DecModule::Empty(uint8_t* buffer, int offset, int size)
     return false;
 
   translateIn.Add(input, buffer);
+  handleMap.Add(input, handle);
 
   auto const eos = (size == 0);
 

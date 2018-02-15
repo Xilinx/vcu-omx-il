@@ -83,9 +83,9 @@ EncCodec::~EncCodec()
 {
 }
 
-void EncCodec::EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size)
+void EncCodec::EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size, void* handle)
 {
-  (void)offset, (void)size;
+  (void)offset, (void)size, (void)handle;
 
   if(!emptied)
     assert(0);
@@ -1518,7 +1518,7 @@ void EncCodec::TreatEmptyBufferCommand(Task* task)
     roiMap.Add(header, roiBuffer);
   }
 
-  auto success = module->Empty(header->pBuffer, header->nOffset, header->nFilledLen);
+  auto success = module->Empty(header->pBuffer, header->nOffset, header->nFilledLen, header);
 
   shouldClearROI = true;
   assert(success);

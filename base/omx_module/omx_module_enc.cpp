@@ -504,9 +504,9 @@ static bool CreateAndAttachSourceMeta(AL_TBuffer& buf, AL_TEncChanParam const& c
   return true;
 }
 
-bool EncModule::Empty(uint8_t* buffer, int offset, int size)
+bool EncModule::Empty(uint8_t* buffer, int offset, int size, void* handle)
 {
-  (void)offset;
+  (void)offset; (void) handle;
 
   if(!encoder)
     return false;
@@ -714,7 +714,7 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
                    UnuseDMA(handleIn);
                  else
                    Unuse(handleIn);
-                 callbacks.emptied(handleIn, 0, 0);
+                 callbacks.emptied(handleIn, 0, 0, 0); //TODO handle
                }
 
                if(fds.output)

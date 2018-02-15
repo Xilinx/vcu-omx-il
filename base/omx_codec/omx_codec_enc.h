@@ -57,7 +57,7 @@ struct EncCodec : public Codec
 private:
   uint8_t* AllocateROIBuffer();
   void DestroyROIBuffer(uint8_t* roiBuffer);
-  void EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size);
+  void EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size, void* handle);
   void FillThisBufferCallBack(uint8_t* filled, int offset, int size);
   void AssociateCallBack(uint8_t* empty, uint8_t* fill);
   void TreatEmptyBufferCommand(Task* task);

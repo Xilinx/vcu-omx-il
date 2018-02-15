@@ -107,7 +107,7 @@ static std::map<CallbackEventType, const char*> ToStringCallbackEvent
 
 typedef struct
 {
-  std::function<void (uint8_t* buffer, int offset, int size)> emptied;
+  std::function<void (uint8_t* buffer, int offset, int size, void* handle)> emptied;
   std::function<void (uint8_t* const input, uint8_t* const output)> associate;
   std::function<void (uint8_t* buffer, int offset, int size)> filled;
   std::function<void (bool isInput, uint8_t* buffer)> release;
@@ -141,7 +141,7 @@ struct ModuleInterface
 
   virtual bool SetCallbacks(Callbacks callbacks) = 0;
 
-  virtual bool Empty(uint8_t* buffer, int offset, int size) = 0;
+  virtual bool Empty(uint8_t* buffer, int offset, int size, void* handle) = 0;
   virtual bool Fill(uint8_t* buffer, int offset, int size) = 0;
 
   virtual bool Run(bool shouldPrealloc) = 0;

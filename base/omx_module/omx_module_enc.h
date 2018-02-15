@@ -136,8 +136,8 @@ public:
   bool UseDMA(void* handle, int fd, int size);
   void UnuseDMA(void* handle);
 
-  bool Empty(uint8_t* handle, int offset, int size);
-  bool Fill(uint8_t* handle, int offset, int size);
+  bool Empty(uint8_t* buffer, int offset, int size, void* handle);
+  bool Fill(uint8_t* buffer, int offset, int size);
   Flags GetFlags(void* handle);
 
   bool Run(bool shouldPrealloc);

@@ -90,14 +90,14 @@ DecCodec::~DecCodec()
 {
 }
 
-void DecCodec::EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size)
+void DecCodec::EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size, void* handle)
 {
   if(!emptied)
     assert(0);
   (void)offset;
   (void)size;
 
-  auto header = map.Pop(emptied);
+  auto header = static_cast<OMX_BUFFERHEADERTYPE*>(handle);
 
   ClearPropagatedData(header);
 
@@ -849,9 +849,9 @@ void DecCodec::TreatEmptyBufferCommand(Task* task)
   auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt);
   assert(header);
   AttachMark(header);
-  map.Add(header->pBuffer, header);
-  transmit.push_back(PropagatedData(header->hMarkTargetComponent, header->pMarkData, header->nTimeStamp, header->nFlags));
-  auto success = module->Empty(header->pBuffer, header->nOffset, header->nFilledLen);
+  if(header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME)
+    transmit.push_back(PropagatedData(header->hMarkTargetComponent, header->pMarkData, header->nTimeStamp, header->nFlags));
+  auto success = module->Empty(header->pBuffer, header->nOffset, header->nFilledLen, header);
   assert(success);
 }
 

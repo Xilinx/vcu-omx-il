@@ -66,7 +66,7 @@ private:
     OMX_TICKS nTimeStamp;
     OMX_U32 nFlags;
   };
-  void EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size);
+  void EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size, void* handle);
   void AssociateCallBack(uint8_t* empty, uint8_t* fill);
   void FillThisBufferCallBack(uint8_t* filled, int offset, int size);
   void EventCallBack(CallbackEventType type, void* data);
