@@ -623,12 +623,11 @@ static bool SetResolution(OMX_VIDEO_PORTDEFINITIONTYPE const& definition, EncMod
   return module.SetResolution(moduleResolution);
 }
 
-static bool SetBitrates(OMX_U32 const& bitrate, EncModule& module)
+static bool SetTargetBitrate(OMX_U32 const& bitrate, EncModule& module)
 {
   auto moduleBitrates = module.GetBitrates();
   moduleBitrates.target = bitrate;
-
-  if(moduleBitrates.mode != RATE_CONTROL_VARIABLE_BITRATE)
+  if(moduleBitrates.max < moduleBitrates.target)
     moduleBitrates.max = moduleBitrates.target;
   return module.SetBitrates(moduleBitrates);
 }
@@ -657,13 +656,12 @@ static bool SetQuantizationExtension(OMX_S32 const& qpMin, OMX_S32 const& qpMax,
   return module.SetQPs(moduleQPs);
 }
 
-static bool SetBitrate(OMX_U32 target, OMX_VIDEO_CONTROLRATETYPE mode, EncModule& module)
+static bool SetBitrateMode(OMX_U32 target, OMX_VIDEO_CONTROLRATETYPE mode, EncModule& module)
 {
   auto moduleBitrates = module.GetBitrates();
   moduleBitrates.mode = ConvertToModuleControlRate(mode);
   moduleBitrates.target = target;
-
-  if(moduleBitrates.mode != RATE_CONTROL_VARIABLE_BITRATE)
+  if(moduleBitrates.max < moduleBitrates.target)
     moduleBitrates.max = moduleBitrates.target;
   return module.SetBitrates(moduleBitrates);
 }
@@ -785,7 +783,7 @@ static bool SetPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port
     return false;
   }
 
-  if(!SetBitrates(video.nBitrate, module))
+  if(!SetTargetBitrate(video.nBitrate, module))
   {
     SetPortDefinition(rollback, port, module);
     return false;
@@ -855,7 +853,7 @@ static bool SetVideoBitrate(OMX_VIDEO_PARAM_BITRATETYPE const& bitrate, Port con
 {
   auto const rollback = ConstructVideoBitrate(port, module);
 
-  if(!SetBitrate(bitrate.nTargetBitrate, bitrate.eControlRate, module))
+  if(!SetBitrateMode(bitrate.nTargetBitrate, bitrate.eControlRate, module))
   {
     SetVideoBitrate(rollback, port, module);
     return false;
