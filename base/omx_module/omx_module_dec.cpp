@@ -428,6 +428,8 @@ bool DecModule::CreateDecoder(bool shouldPrealloc)
   decCallbacks.endDecodingCB = { RedirectionEndDecoding, this };
   decCallbacks.displayCB = { RedirectionDisplay, this };
   decCallbacks.resolutionFoundCB = { RedirectionResolutionFound, this };
+  if(media->settings.uFrameRate && media->settings.uClkRatio)
+    media->settings.bForceFrameRate = true;
   auto errorCode = AL_Decoder_Create(&decoder, channel, allocator.get(), &media->settings, &decCallbacks);
 
   if(errorCode != AL_SUCCESS)
