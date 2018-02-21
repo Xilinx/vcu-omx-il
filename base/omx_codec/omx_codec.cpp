@@ -47,6 +47,7 @@
 
 using std::mutex;
 using std::lock_guard;
+using std::shared_ptr;
 
 #define OMX_TRY() \
   try \
@@ -220,7 +221,7 @@ void Codec::CreateRole(OMX_STRING role)
   strncpy(this->role, role, OMX_MAX_STRINGNAME_SIZE);
 }
 
-Task* Codec::CreateTask(Command cmd, OMX_U32 data, OMX_PTR opt)
+Task* CreateTask(Command cmd, OMX_U32 data, shared_ptr<void> opt)
 {
   auto task = new Task();
   task->cmd = cmd;
@@ -238,6 +239,10 @@ static TransientState GetTransientState(OMX_STATETYPE const& curState, OMX_STATE
     return TransientLoadedToIdle;
 
   return TransientMax;
+}
+
+void nullDeleter(void*)
+{
 }
 
 void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
@@ -269,7 +274,7 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
     if(param == OMX_ALL)
     {
       for(auto i = ports.nStartPortNumber; i < ports.nPorts; i++)
-        processor->queue(CreateTask(Flush, i, data));
+        processor->queue(CreateTask(Flush, i, shared_ptr<void>(data, nullDeleter)));
 
       return;
     }
@@ -287,7 +292,7 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
       {
         GetPort(i)->enable = false;
         GetPort(i)->isTransientToDisable = true;
-        processor->queue(CreateTask(DisablePort, i, data));
+        processor->queue(CreateTask(DisablePort, i, shared_ptr<void>(data, nullDeleter)));
       }
 
       return;
@@ -309,7 +314,7 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
       {
         GetPort(i)->enable = true;
         GetPort(i)->isTransientToEnable = true;
-        processor->queue(CreateTask(EnablePort, i, data));
+        processor->queue(CreateTask(EnablePort, i, shared_ptr<void>(data, nullDeleter)));
       }
 
       return;
@@ -335,7 +340,7 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
     throw OMX_ErrorBadParameter;
   }
 
-  processor->queue(CreateTask(taskCommand, param, data));
+  processor->queue(CreateTask(taskCommand, param, shared_ptr<void>(data, nullDeleter)));
 }
 
 OMX_ERRORTYPE Codec::SendCommand(OMX_IN OMX_COMMANDTYPE cmd, OMX_IN OMX_U32 param, OMX_IN OMX_PTR data)
@@ -762,7 +767,7 @@ OMX_ERRORTYPE Codec::EmptyThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
   OMXChecker::CheckStateOperation(AL_EmptyThisBuffer, state);
   CheckPortIndex(header->nInputPortIndex);
 
-  processor->queue(CreateTask(EmptyBuffer, static_cast<OMX_U32>(input.index), header));
+  processor->queue(CreateTask(EmptyBuffer, static_cast<OMX_U32>(input.index), shared_ptr<void>(header, nullDeleter)));
 
   return OMX_ErrorNone;
   OMX_CATCH();
@@ -780,7 +785,7 @@ OMX_ERRORTYPE Codec::FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
   header->pMarkData = NULL;
   header->nFlags = 0;
 
-  processorFill->queue(CreateTask(FillBuffer, static_cast<OMX_U32>(output.index), header));
+  processorFill->queue(CreateTask(FillBuffer, static_cast<OMX_U32>(output.index), shared_ptr<void>(header, nullDeleter)));
 
   return OMX_ErrorNone;
   OMX_CATCH();
@@ -866,7 +871,7 @@ OMX_ERRORTYPE Codec::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR config
     if(bitrate->nEncodeBitrate == 0)
       throw OMX_ErrorBadParameter;
 
-    processor->queue(CreateTask(SetDynamic, OMX_IndexConfigVideoBitrate, bitrate));
+    processor->queue(CreateTask(SetDynamic, OMX_IndexConfigVideoBitrate, shared_ptr<void>(bitrate)));
 
     return OMX_ErrorNone;
   }
@@ -875,7 +880,7 @@ OMX_ERRORTYPE Codec::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR config
     OMX_CONFIG_FRAMERATETYPE* framerate = new OMX_CONFIG_FRAMERATETYPE;
     memcpy(framerate, static_cast<OMX_CONFIG_FRAMERATETYPE*>(config), sizeof(OMX_CONFIG_FRAMERATETYPE));
 
-    processor->queue(CreateTask(SetDynamic, OMX_IndexConfigVideoFramerate, framerate));
+    processor->queue(CreateTask(SetDynamic, OMX_IndexConfigVideoFramerate, shared_ptr<void>(framerate)));
 
     return OMX_ErrorNone;
   }
@@ -883,21 +888,21 @@ OMX_ERRORTYPE Codec::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR config
   {
     OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH* idr = new OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH;
     memcpy(idr, static_cast<OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH));
-    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh, idr));
+    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh, shared_ptr<void>(idr)));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexConfigVideoGroupOfPictures:
   {
     OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES* gop = new OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES;
     memcpy(gop, static_cast<OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES));
-    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoGroupOfPictures, gop));
+    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoGroupOfPictures, shared_ptr<void>(gop)));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexConfigVideoRegionOfInterest:
   {
     OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST* roi = new OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST;
     memcpy(roi, static_cast<OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST));
-    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoRegionOfInterest, roi));
+    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoRegionOfInterest, shared_ptr<void>(roi)));
     return OMX_ErrorNone;
   }
   default:
@@ -1023,7 +1028,7 @@ void Codec::TreatSetStateCommand(Task* task)
   {
     assert(task);
     assert(task->cmd == SetState);
-    assert(task->opt == nullptr);
+    assert(task->opt.get() == nullptr);
 
     auto const newState = (OMX_STATETYPE)((uintptr_t)task->data);
     LOGI("Set State : %s", ToStringOMXState.at(newState));
@@ -1079,7 +1084,7 @@ void Codec::TreatFlushCommand(Task* task)
 {
   assert(task);
   assert(task->cmd == Flush);
-  assert(task->opt == nullptr);
+  assert(task->opt.get() == nullptr);
   auto const index = static_cast<OMX_U32>((uintptr_t)task->data);
 
   LOGI("Flush port : %i", index);
@@ -1093,7 +1098,7 @@ void Codec::TreatDisablePortCommand(Task* task)
 {
   assert(task);
   assert(task->cmd == DisablePort);
-  assert(task->opt == nullptr);
+  assert(task->opt.get() == nullptr);
   auto const index = static_cast<OMX_U32>((uintptr_t)task->data);
   auto const port = GetPort(index);
 
@@ -1111,7 +1116,7 @@ void Codec::TreatEnablePortCommand(Task* task)
 {
   assert(task);
   assert(task->cmd == EnablePort);
-  assert(task->opt == nullptr);
+  assert(task->opt.get() == nullptr);
   auto const index = static_cast<OMX_U32>((uintptr_t)task->data);
   auto const port = GetPort(index);
 
@@ -1132,7 +1137,7 @@ void Codec::TreatMarkBufferCommand(Task* task)
   assert(task);
   assert(task->cmd == MarkBuffer);
   assert(static_cast<int>((uintptr_t)task->data) == input.index);
-  auto mark = static_cast<OMX_MARKTYPE*>(task->opt);
+  auto mark = static_cast<OMX_MARKTYPE*>(task->opt.get());
   assert(mark);
 
   marks.push(mark);
@@ -1143,7 +1148,7 @@ void Codec::TreatEmptyBufferCommand(Task* task)
   assert(task);
   assert(task->cmd == EmptyBuffer);
   assert(static_cast<int>((uintptr_t)task->data) == input.index);
-  auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt);
+  auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
   assert(header);
   AttachMark(header);
   map.Add(header->pBuffer, header);
@@ -1156,7 +1161,7 @@ void Codec::TreatFillBufferCommand(Task* task)
   assert(task);
   assert(task->cmd == FillBuffer);
   assert(static_cast<int>((uintptr_t)task->data) == output.index);
-  auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt);
+  auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
   assert(header);
   map.Add(header->pBuffer, header);
   auto success = module->Fill(header->pBuffer, header->nOffset, (header->nAllocLen - header->nOffset));
@@ -1179,51 +1184,43 @@ void Codec::TreatDynamicCommand(Task* task)
   assert(task);
   assert(task->cmd == SetDynamic);
   auto const index = static_cast<OMX_U32>((uintptr_t)task->data);
+  void* opt = task->opt.get();
+  assert(opt);
   switch(index)
   {
   case OMX_IndexConfigVideoBitrate:
   {
-    assert(task->opt);
-    auto bitrate = static_cast<OMX_VIDEO_CONFIG_BITRATETYPE*>(task->opt);
+    auto bitrate = static_cast<OMX_VIDEO_CONFIG_BITRATETYPE*>(opt);
     module->SetDynamic(DYNAMIC_INDEX_BITRATE, (void*)(static_cast<intptr_t>(bitrate->nEncodeBitrate)));
-    delete bitrate;
     return;
   }
   case OMX_IndexConfigVideoFramerate:
   {
-    assert(task->opt);
-    auto framerate = static_cast<OMX_CONFIG_FRAMERATETYPE*>(task->opt);
+    auto framerate = static_cast<OMX_CONFIG_FRAMERATETYPE*>(opt);
     auto moduleClock = module->GetClock();
     auto const clock = ConvertToModuleClock(framerate->xEncodeFramerate);
     moduleClock.framerate = clock.framerate;
     moduleClock.clockratio = clock.clockratio;
     module->SetDynamic(DYNAMIC_INDEX_CLOCK, &moduleClock);
-    delete framerate;
     return;
   }
   case OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh:
   {
-    assert(task->opt);
-    auto idr = static_cast<OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH*>(task->opt);
     module->SetDynamic(DYNAMIC_INDEX_INSERT_IDR, nullptr);
-    delete idr;
     return;
   }
   case OMX_ALG_IndexConfigVideoGroupOfPictures:
   {
-    assert(task->opt);
-    auto gop = static_cast<OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES*>(task->opt);
+    auto gop = static_cast<OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES*>(opt);
     auto moduleGop = module->GetGop();
     moduleGop.b = ConvertToModuleBFrames(gop->nBFrames, gop->nPFrames);
     moduleGop.length = ConvertToModuleGopLength(gop->nBFrames, gop->nPFrames);
     module->SetDynamic(DYNAMIC_INDEX_GOP, &moduleGop);
-    delete gop;
     return;
   }
   case OMX_ALG_IndexConfigVideoRegionOfInterest:
   {
-    assert(task->opt);
-    auto roi = static_cast<OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST*>(task->opt);
+    auto roi = static_cast<OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST*>(opt);
 
     if(shouldClearROI)
     {
@@ -1234,7 +1231,6 @@ void Codec::TreatDynamicCommand(Task* task)
     auto rq = CreateRegionQuality(*roi);
     module->SetDynamic(DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD, &rq);
     shouldPushROI = true;
-    delete roi;
     return;
   }
 

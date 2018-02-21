@@ -1503,7 +1503,7 @@ void EncCodec::TreatEmptyBufferCommand(Task* task)
   assert(task);
   assert(task->cmd == EmptyBuffer);
   assert(static_cast<int>((intptr_t)task->data) == input.index);
-  auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt);
+  auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
   assert(header);
   AttachMark(header);
   map.Add(header->pBuffer, header);

@@ -45,6 +45,7 @@
 #include <algorithm>
 #include <condition_variable>
 #include <mutex>
+#include <memory>
 
 #define ALLEGRODVT_OMX_VERSION 3
 
@@ -83,7 +84,7 @@ struct Task
 
   Command cmd;
   void* data;
-  void* opt;
+  std::shared_ptr<void> opt;
 };
 
 struct Port
@@ -209,7 +210,6 @@ protected:
   inline void PopulatingPorts();
   inline void UnpopulatingPorts();
 
-  Task* CreateTask(Command cmd, OMX_U32 data, OMX_PTR opt);
   void CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data);
   void TreatSetStateCommand(Task* task);
   void TreatFlushCommand(Task* task);
