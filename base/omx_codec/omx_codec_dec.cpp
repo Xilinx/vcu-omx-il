@@ -97,6 +97,7 @@ void DecCodec::EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size, v
   (void)offset;
   (void)size;
 
+  printf("[omx] emptied: %p\n", emptied);
   auto header = static_cast<OMX_BUFFERHEADERTYPE*>(handle);
 
   ClearPropagatedData(header);
@@ -139,6 +140,8 @@ void DecCodec::FillThisBufferCallBack(uint8_t* filled, int offset, int size)
 {
   if(!filled)
     assert(0);
+
+  printf("[omx] filled: %p\n", filled);
 
   auto header = map.Pop(filled);
 

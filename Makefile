@@ -31,7 +31,7 @@ ENABLE_MCU?=1
 ENABLE_64BIT?=1
 # Makes the assumption that the external ctrlsw is installed on the machine
 # disable this if you want compilation to work with a non installed ctrlsw
-LINK_SHARED_CTRLSW?=1
+#LINK_SHARED_CTRLSW?=1
 
 CROSS_COMPILE?=
 

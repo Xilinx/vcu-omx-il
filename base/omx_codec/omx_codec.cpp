@@ -41,6 +41,7 @@
 #include "base/omx_utils/omx_log.h"
 #include <assert.h>
 #include <string.h>
+#include <future>
 
 #include <OMX_VideoExt.h>
 #include "omx_convert_omx_module.h"
@@ -86,6 +87,7 @@ void Codec::ReturnEmptiedBuffer(uint8_t* emptied)
 
 void Codec::EmptyThisBufferCallBack(uint8_t* emptied, int, int, void*)
 {
+  printf("[omx] emptied: %p\n", emptied);
   ReturnEmptiedBuffer(emptied);
 }
 
@@ -121,11 +123,18 @@ void Codec::ReturnFilledBuffer(uint8_t* filled, int offset, int size)
 
 void Codec::FillThisBufferCallBack(uint8_t* filled, int offset, int size)
 {
+  printf("[omx] filled: %p\n", filled);
   ReturnFilledBuffer(filled, offset, size);
 }
 
 void Codec::ReleaseCallBack(bool isInput, uint8_t* released)
 {
+  std::string type;
+  if(isInput)
+    type = "empty";
+  else
+    type = "fill";
+  printf("[omx] (%s) released: %p\n", type.c_str(), released);
   if(isInput)
     ReturnEmptiedBuffer(released);
   else
@@ -271,6 +280,10 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
   {
     OMXChecker::CheckNull(data);
 
+    auto promise = std::make_shared<std::promise<int>>();
+    processor->queue(CreateTask(Fence, param, promise));
+    processorFill->queue(CreateTask(RemoveFence, param, promise));
+
     if(param == OMX_ALL)
     {
       for(auto i = ports.nStartPortNumber; i < ports.nPorts; i++)
@@ -278,6 +291,8 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
 
       return;
     }
+
+    printf("[omx] flush port %d\n", param); 
     CheckPortIndex(param);
     taskCommand = Flush;
     break;
@@ -762,6 +777,7 @@ void Codec::AttachMark(OMX_BUFFERHEADERTYPE* header)
 
 OMX_ERRORTYPE Codec::EmptyThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
 {
+  printf("[omx] empty: %p\n", header->pBuffer);
   OMX_TRY();
   OMXChecker::CheckNotNull(header);
   OMXChecker::CheckStateOperation(AL_EmptyThisBuffer, state);
@@ -775,6 +791,7 @@ OMX_ERRORTYPE Codec::EmptyThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
 
 OMX_ERRORTYPE Codec::FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
 {
+  printf("[omx] fill: %p\n", header->pBuffer);
   OMX_TRY();
   OMXChecker::CheckNotNull(header);
   OMXChecker::CheckStateOperation(AL_FillThisBuffer, state);
@@ -1089,6 +1106,7 @@ void Codec::TreatFlushCommand(Task* task)
 
   LOGI("Flush port : %i", index);
   module->Flush();
+  printf("END FLUSH\n");
 
   if(callbacks.EventHandler)
     callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandFlush, index, nullptr);
@@ -1239,6 +1257,18 @@ void Codec::TreatDynamicCommand(Task* task)
   }
 }
 
+static void TreatRemoveFenceCommand(Task* task)
+{
+  auto promise = (std::promise<int>*)task->opt.get();
+  promise->set_value(0);
+}
+
+static void TreatFenceCommand(Task* task)
+{
+  auto promise = (std::promise<int>*)task->opt.get();
+  promise->get_future().wait();
+}
+
 void Codec::_Delete(void* data)
 {
   auto task = static_cast<Task*>(data);
@@ -1287,6 +1317,11 @@ void Codec::_Process(void* data)
     TreatDynamicCommand(task);
     break;
   }
+  case Fence:
+  {
+    TreatFenceCommand(task);
+    break;
+  }
   default:
     assert(0);
   }
@@ -1303,6 +1338,8 @@ void Codec::_ProcessFillBuffer(void* data)
     lock_guard<mutex> lock(moduleMutex);
     TreatFillBufferCommand(task);
   }
+  else if(task->cmd == RemoveFence)
+    TreatRemoveFenceCommand(task);
   else
     assert(0 == "bad command");
 }
