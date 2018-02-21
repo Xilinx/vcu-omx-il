@@ -1342,5 +1342,6 @@ void Codec::_ProcessFillBuffer(void* data)
     TreatRemoveFenceCommand(task);
   else
     assert(0 == "bad command");
+  delete task;
 }
 
