@@ -64,6 +64,8 @@ static inline int GetBitdepthFromFormat(AL_EPicFormat const& format)
   return AL_GET_BITDEPTH(format);
 }
 
+#define ROUNDUP(n, align) (((n) + (align) - 1) & ~unsigned((align) - 1))
+
 static bool CheckValidity(AL_TEncSettings const& settings)
 {
   auto err = AL_Settings_CheckValidity(const_cast<AL_TEncSettings*>(&settings), stderr);
@@ -265,6 +267,46 @@ void EncModule::ResetRequirements()
   fds.input = fds.output = false;
 }
 
+static int RawAllocationSize(int width, int widthAlignment, int height,  int heightAlignment, int bitdepth, AL_EChromaMode eChromaMode)
+{
+  auto const IP_WIDTH_ALIGNMENT = 32;
+  auto const IP_HEIGHT_ALIGNMENT = 8;
+  assert(widthAlignment % IP_WIDTH_ALIGNMENT == 0); // IP requirements
+  assert(heightAlignment % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
+  auto const adjustedWidthAlignment = widthAlignment > IP_WIDTH_ALIGNMENT ? widthAlignment : IP_WIDTH_ALIGNMENT;
+  int const adjustedHeightAlignment = heightAlignment > IP_HEIGHT_ALIGNMENT ? heightAlignment : IP_HEIGHT_ALIGNMENT;
+
+  auto const bitdepthWidth = bitdepth == 8 ? width : (width + 2) / 3 * 4;
+  auto const adjustedWidth = ROUNDUP(bitdepthWidth, adjustedWidthAlignment);
+  auto const adjustedHeight = ROUNDUP(height, adjustedHeightAlignment);
+
+  auto size = adjustedWidth * adjustedHeight;
+
+  switch(eChromaMode)
+  {
+    case CHROMA_MONO: break;
+    case CHROMA_4_2_0:
+    {
+      size += size >> 1;
+      break;
+    }
+    case CHROMA_4_2_2:
+    {
+      size += size;
+      break;
+    }
+    case CHROMA_4_4_4:
+    default:
+    {
+      assert(0);
+      break;
+    }
+  }
+
+  return size;
+}
+
+
 BufferRequirements EncModule::GetBufferRequirements() const
 {
   BufferRequirements b;
@@ -272,8 +314,7 @@ BufferRequirements EncModule::GetBufferRequirements() const
   auto const gop = chan.tGopParam;
   auto& input = b.input;
   input.min = 1 + gop.uNumB;
-  auto const resolution = GetResolution();
-  input.size = GetAllocSize_Src({ resolution.stride, resolution.sliceHeight }, AL_GET_BITDEPTH(chan.ePicFormat), AL_GET_CHROMA_MODE(chan.ePicFormat), chan.eSrcMode);
+  input.size = RawAllocationSize(chan.uWidth, media->strideAlignment, chan.uHeight, media->sliceHeightAlignment, AL_GET_BITDEPTH(chan.ePicFormat), AL_GET_CHROMA_MODE(chan.ePicFormat));
   input.bytesAlignment = device->GetAllocationRequirements().input.bytesAlignment;
   input.contiguous = device->GetAllocationRequirements().input.contiguous;
 
@@ -744,7 +785,6 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
   end(const_cast<AL_TBuffer*>(source), stream, size);
 }
 
-#define ROUNDUP(n, align) (((n) + (align) - 1) & ~unsigned((align) - 1))
 
 Resolution EncModule::GetResolution() const
 {

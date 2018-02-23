@@ -73,6 +73,47 @@ void DecModule::ResetRequirements()
   fds.input = fds.output = false;
 }
 
+#define ROUNDUP(n, align) (((n) + (align) - 1) & ~unsigned((align) - 1))
+
+static int RawAllocationSize(int width, int widthAlignment, int height,  int heightAlignment, int bitdepth, AL_EChromaMode eChromaMode)
+{
+  auto const IP_WIDTH_ALIGNMENT = 64;
+  auto const IP_HEIGHT_ALIGNMENT = 64;
+  assert(widthAlignment % IP_WIDTH_ALIGNMENT == 0); // IP requirements
+  assert(heightAlignment % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
+  auto const adjustedWidthAlignment = widthAlignment > IP_WIDTH_ALIGNMENT ? widthAlignment : IP_WIDTH_ALIGNMENT;
+  int const adjustedHeightAlignment = heightAlignment > IP_HEIGHT_ALIGNMENT ? heightAlignment : IP_HEIGHT_ALIGNMENT;
+
+  auto const bitdepthWidth = bitdepth == 8 ? width : (width + 2) / 3 * 4;
+  auto const adjustedWidth = ROUNDUP(bitdepthWidth, adjustedWidthAlignment);
+  auto const adjustedHeight = ROUNDUP(height, adjustedHeightAlignment);
+
+  auto size = adjustedWidth * adjustedHeight;
+
+  switch(eChromaMode)
+  {
+    case CHROMA_MONO: break;
+    case CHROMA_4_2_0:
+    {
+      size += size >> 1;
+      break;
+    }
+    case CHROMA_4_2_2:
+    {
+      size += size;
+      break;
+    }
+    case CHROMA_4_4_4:
+    default:
+    {
+      assert(0);
+      break;
+    }
+  }
+
+  return size;
+}
+
 BufferRequirements DecModule::GetBufferRequirements() const
 {
   auto const streamSettings = media->settings.tStream;
@@ -85,14 +126,13 @@ BufferRequirements DecModule::GetBufferRequirements() const
 
   auto& output = b.output;
   output.min = media->GetRequiredOutputBuffers() + 1; // 1 for eos
-  output.size = AL_GetAllocSize_Frame(streamSettings.tDim, streamSettings.eChroma, streamSettings.iBitDepth, false, media->settings.eFBStorageMode);
+  output.size = RawAllocationSize(streamSettings.tDim.iWidth, media->strideAlignment, streamSettings.tDim.iHeight, media->sliceHeightAlignment, streamSettings.iBitDepth, streamSettings.eChroma);
   output.bytesAlignment = device->GetAllocationRequirements().output.bytesAlignment;
   output.contiguous = device->GetAllocationRequirements().output.contiguous;
 
   return b;
 }
 
-#define ROUNDUP(n, align) (((n) + (align) - 1) & ~unsigned((align) - 1))
 
 Resolution DecModule::GetResolution() const
 {
