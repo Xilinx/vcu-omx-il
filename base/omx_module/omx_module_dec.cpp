@@ -651,7 +651,7 @@ AL_TBuffer* DecModule::CreateInputBuffer(uint8_t* buffer, int const& size)
 bool DecModule::Empty(uint8_t* buffer, int offset, int size, void* handle)
 {
   (void)offset;
-  if(!decoder || !buffer)
+  if(!decoder)
     return false;
 
   AL_TBuffer* input = CreateInputBuffer(buffer, size);
