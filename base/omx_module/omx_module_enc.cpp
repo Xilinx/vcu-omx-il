@@ -1258,6 +1258,13 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
     return SUCCESS;
   }
 
+  if(index == "DYNAMIC_INDEX_NOTIFY_SCENE_CHANGE")
+  {
+    auto const lookAhead = static_cast<int>((intptr_t)param);
+    AL_Encoder_NotifySceneChange(encoder, lookAhead);
+    return SUCCESS;
+  }
+
   return ERROR_NOT_IMPLEMENTED;
 }
 
