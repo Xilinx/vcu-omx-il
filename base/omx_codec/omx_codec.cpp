@@ -916,6 +916,13 @@ OMX_ERRORTYPE Codec::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR config
     processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoRegionOfInterest, shared_ptr<void>(roi)));
     return OMX_ErrorNone;
   }
+  case OMX_ALG_IndexConfigVideoNotifySceneChange:
+  {
+    OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE* notifySceneChange = new OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE;
+    memcpy(notifySceneChange, static_cast<OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE));
+    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoNotifySceneChange, shared_ptr<void>(notifySceneChange)));
+    return OMX_ErrorNone;
+  }
   default:
     LOGE("%s is unsupported", ToStringOMXIndex.at(index));
     return OMX_ErrorUnsupportedIndex;
@@ -1242,6 +1249,12 @@ void Codec::TreatDynamicCommand(Task* task)
     auto rq = CreateRegionQuality(*roi);
     module->SetDynamic(DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD, &rq);
     shouldPushROI = true;
+    return;
+  }
+  case OMX_ALG_IndexConfigVideoNotifySceneChange:
+  {
+    auto notifySceneChange = static_cast<OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE*>(opt);
+    module->SetDynamic(DYNAMIC_INDEX_NOTIFY_SCENE_CHANGE, (void*)(static_cast<intptr_t>(notifySceneChange->nLookAhead)));
     return;
   }
 

@@ -53,8 +53,12 @@ extern "C"
 
 void CommandsSender::notifySceneChange(int lookAhead)
 {
-  (void)lookAhead;
-  assert(0 && "notifySceneChange not implemented");
+  OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE notifySceneChange;
+  initHeader(notifySceneChange);
+  notifySceneChange.nPortIndex = 1;
+  notifySceneChange.nLookAhead = lookAhead;
+  auto error = OMX_SetConfig(hEnc, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoNotifySceneChange), &notifySceneChange);
+  assert(error == OMX_ErrorNone);
 }
 
 void CommandsSender::notifyLongTerm()
