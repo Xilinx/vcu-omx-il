@@ -82,6 +82,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh, /**< reference: OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH */
   OMX_ALG_IndexConfigVideoGroupOfPictures,                    /**< reference: OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES */
   OMX_ALG_IndexConfigVideoRegionOfInterest,                   /**< reference: OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST */
+  OMX_ALG_IndexConfigVideoNotifySceneChange,                  /**< reference: OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE */
 
   OMX_ALG_IndexMax = 0x7FFFFFFF
 } OMX_ALG_INDEXTYPE;

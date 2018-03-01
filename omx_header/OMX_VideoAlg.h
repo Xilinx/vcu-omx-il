@@ -393,6 +393,24 @@ typedef struct OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST
   OMX_ALG_ERoiQuality eQuality;
 }OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST;
 
+
+/**
+ * OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE
+ *
+ * STRUCT MEMBERS:
+ *  nSize      : Size of the structure in bytes
+ *  nVersion   : OMX specification version information
+ *  nPortIndex : Port that this structure applies to
+ *  nLookAhead : Number of frames before a scene change
+ */
+typedef struct
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_U32 nLookAhead;
+}OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE;
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
