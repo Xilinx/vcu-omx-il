@@ -534,8 +534,18 @@ void DecModule::Free(void* buffer)
   if(!buffer)
     return;
 
-  auto handle = allocated.Pop(buffer);
-  AL_Allocator_Free(allocator.get(), handle);
+  if(dpb.Exist((uint8_t*)buffer))
+  {
+    auto handle = dpb.Pop((uint8_t*)buffer);
+    assert(!translateOut.Exist(handle));
+    AL_Buffer_Unref(handle);
+  }
+
+  if(allocated.Exist(buffer))
+  {
+    auto handle = allocated.Pop(buffer);
+    AL_Allocator_Free(allocator.get(), handle);
+  }
 }
 
 void DecModule::FreeDMA(int fd)
@@ -543,10 +553,21 @@ void DecModule::FreeDMA(int fd)
   if(fd < 0)
     return;
 
-  auto handle = allocatedDMA.Pop(fd);
+  uint8_t* buffer = (uint8_t*)((intptr_t)fd);
 
-  AL_Allocator_Free(allocator.get(), handle);
-  close(fd);
+  if(dpb.Exist(buffer))
+  {
+    auto handle = dpb.Pop(buffer);
+    assert(!translateOut.Exist(handle));
+    AL_Buffer_Unref(handle);
+  }
+
+  if(allocatedDMA.Exist(fd))
+  {
+    auto handle = allocatedDMA.Pop(fd);
+    AL_Allocator_Free(allocator.get(), handle);
+    close(fd);
+  }
 }
 
 void* DecModule::Allocate(size_t size)
