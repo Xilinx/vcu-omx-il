@@ -236,8 +236,8 @@ static inline AVCProfileType ConvertToModuleAVCProfile(OMX_VIDEO_AVCPROFILETYPE 
   case OMX_VIDEO_AVCProfileBaseline: return AVC_PROFILE_BASELINE;
   case OMX_VIDEO_AVCProfileMain: return AVC_PROFILE_MAIN;
   case OMX_VIDEO_AVCProfileHigh: return AVC_PROFILE_HIGH;
-  case OMX_VIDEO_AVCProfileHigh10: return AVC_PROFILE_HIGH10;
-  case OMX_VIDEO_AVCProfileHigh422: return AVC_PROFILE_HIGH422;
+  case OMX_VIDEO_AVCProfileHigh10: return AVC_PROFILE_HIGH_10;
+  case OMX_VIDEO_AVCProfileHigh422: return AVC_PROFILE_HIGH_422;
   case OMX_VIDEO_AVCProfileMax:
   default: return AVC_PROFILE_MAX;
   }
@@ -299,8 +299,8 @@ OMX_VIDEO_AVCPROFILETYPE ConvertToOMXAVCProfile(ProfileLevelType const& profileL
   case AVC_PROFILE_BASELINE: return OMX_VIDEO_AVCProfileBaseline;
   case AVC_PROFILE_MAIN: return OMX_VIDEO_AVCProfileMain;
   case AVC_PROFILE_HIGH: return OMX_VIDEO_AVCProfileHigh;
-  case AVC_PROFILE_HIGH10: return OMX_VIDEO_AVCProfileHigh10;
-  case AVC_PROFILE_HIGH422: return OMX_VIDEO_AVCProfileHigh422;
+  case AVC_PROFILE_HIGH_10: return OMX_VIDEO_AVCProfileHigh10;
+  case AVC_PROFILE_HIGH_422: return OMX_VIDEO_AVCProfileHigh422;
   default: return OMX_VIDEO_AVCProfileMax;
   }
 

@@ -74,8 +74,8 @@ private:
     AVCProfileType::AVC_PROFILE_BASELINE,
     AVCProfileType::AVC_PROFILE_MAIN,
     AVCProfileType::AVC_PROFILE_HIGH,
-    AVCProfileType::AVC_PROFILE_HIGH10,
-    AVCProfileType::AVC_PROFILE_HIGH422,
+    AVCProfileType::AVC_PROFILE_HIGH_10,
+    AVCProfileType::AVC_PROFILE_HIGH_422,
   };
 
   std::vector<int> const levels
