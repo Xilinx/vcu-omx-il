@@ -173,7 +173,21 @@ typedef struct OMX_ALG_VIDEO_PARAM_VP9TYPE
   OMX_ALG_VIDEO_VP9LOOPFILTERTYPE eLoopFilterMode;  /**< Enable/disable loop filter */
 }OMX_ALG_VIDEO_PARAM_VP9TYPE;
 
-/** AVC Extended level */
+/** AVC Extended profiles */
+typedef enum OMX_ALG_VIDEO_AVCPROFILETYPE
+{
+  OMX_ALG_VIDEO_AVCProfileUnused = OMX_VIDEO_AVCProfileVendorStartUnused,
+  OMX_ALG_VIDEO_AVCProfileConstrainedBaseline,
+  OMX_ALG_VIDEO_AVCProfileProgressiveHigh,
+  OMX_ALG_VIDEO_AVCProfileConstrainedHigh,
+  OMX_ALG_VIDEO_AVCProfileHigh10_Intra,
+  OMX_ALG_VIDEO_AVCProfileHigh422_Intra,
+  OMX_ALG_VIDEO_AVCProfileHigh444_Intra,
+  OMX_ALG_VIDEO_AVCProfileCAVLC444_Intra,
+  OMX_ALG_VIDEO_AVCProfileMaxEnum = 0x7FFFFFFF,
+}OMX_ALG_VIDEO_AVCPROFILETYPE;
+
+/** AVC Extended levels */
 typedef enum OMX_ALG_VIDEO_AVCLEVELTYPE
 {
   OMX_ALG_VIDEO_AVCLevelUnused = OMX_VIDEO_AVCLevelVendorStartUnused,
