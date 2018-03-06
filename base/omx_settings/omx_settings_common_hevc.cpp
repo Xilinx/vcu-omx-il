@@ -45,10 +45,10 @@ static bool isHighTierProfile(HEVCProfileType const& profile)
   switch(profile)
   {
   case HEVC_PROFILE_MAIN_HIGH_TIER:
-  case HEVC_PROFILE_MAIN10_HIGH_TIER:
-  case HEVC_PROFILE_MAIN422_HIGH_TIER:
-  case HEVC_PROFILE_MAIN422_10_HIGH_TIER:
-  case HEVC_PROFILE_MAINSTILL_HIGH_TIER:
+  case HEVC_PROFILE_MAIN_10_HIGH_TIER:
+  case HEVC_PROFILE_MAIN_422_HIGH_TIER:
+  case HEVC_PROFILE_MAIN_422_10_HIGH_TIER:
+  case HEVC_PROFILE_MAIN_STILL_HIGH_TIER:
     return true;
   default: return false;
   }
