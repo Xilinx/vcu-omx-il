@@ -231,14 +231,23 @@ OMX_ALG_EDpbMode ConvertToOMXDecodedPictureBuffer(DecodedPictureBufferType const
 
 static inline AVCProfileType ConvertToModuleAVCProfile(OMX_VIDEO_AVCPROFILETYPE const& profile)
 {
-  switch(profile)
+  switch(static_cast<OMX_U32>(profile)) // all indexes are in OMX_U32
   {
   case OMX_VIDEO_AVCProfileBaseline: return AVC_PROFILE_BASELINE;
   case OMX_VIDEO_AVCProfileMain: return AVC_PROFILE_MAIN;
+  case OMX_VIDEO_AVCProfileExtended: return AVC_PROFILE_EXTENDED;
   case OMX_VIDEO_AVCProfileHigh: return AVC_PROFILE_HIGH;
   case OMX_VIDEO_AVCProfileHigh10: return AVC_PROFILE_HIGH_10;
   case OMX_VIDEO_AVCProfileHigh422: return AVC_PROFILE_HIGH_422;
-  case OMX_VIDEO_AVCProfileMax:
+  case OMX_VIDEO_AVCProfileHigh444: return AVC_PROFILE_HIGH_444_PREDICTIVE;
+  case OMX_ALG_VIDEO_AVCProfileConstrainedBaseline: return AVC_PROFILE_CONSTRAINED_BASELINE;
+  case OMX_ALG_VIDEO_AVCProfileProgressiveHigh: return AVC_PROFILE_PROGRESSIVE_HIGH;
+  case OMX_ALG_VIDEO_AVCProfileConstrainedHigh: return AVC_PROFILE_CONSTRAINED_HIGH;
+  case OMX_ALG_VIDEO_AVCProfileHigh10_Intra: return AVC_PROFILE_HIGH_10_INTRA;
+  case OMX_ALG_VIDEO_AVCProfileHigh422_Intra: return AVC_PROFILE_HIGH_422_INTRA;
+  case OMX_ALG_VIDEO_AVCProfileHigh444_Intra: return AVC_PROFILE_HIGH_444_INTRA;
+  case OMX_ALG_VIDEO_AVCProfileCAVLC444_Intra: return AVC_PROFILE_CAVLC_444_INTRA;
+  case OMX_VIDEO_AVCProfileMax: return AVC_PROFILE_MAX;
   default: return AVC_PROFILE_MAX;
   }
 
@@ -298,9 +307,18 @@ OMX_VIDEO_AVCPROFILETYPE ConvertToOMXAVCProfile(ProfileLevelType const& profileL
   {
   case AVC_PROFILE_BASELINE: return OMX_VIDEO_AVCProfileBaseline;
   case AVC_PROFILE_MAIN: return OMX_VIDEO_AVCProfileMain;
+  case AVC_PROFILE_EXTENDED: return OMX_VIDEO_AVCProfileExtended;
   case AVC_PROFILE_HIGH: return OMX_VIDEO_AVCProfileHigh;
   case AVC_PROFILE_HIGH_10: return OMX_VIDEO_AVCProfileHigh10;
   case AVC_PROFILE_HIGH_422: return OMX_VIDEO_AVCProfileHigh422;
+  case AVC_PROFILE_HIGH_444_PREDICTIVE: return OMX_VIDEO_AVCProfileHigh444;
+  case AVC_PROFILE_CONSTRAINED_BASELINE: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileConstrainedBaseline);
+  case AVC_PROFILE_PROGRESSIVE_HIGH: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileProgressiveHigh);
+  case AVC_PROFILE_CONSTRAINED_HIGH: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileConstrainedHigh);
+  case AVC_PROFILE_HIGH_10_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileHigh10_Intra);
+  case AVC_PROFILE_HIGH_422_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileHigh422_Intra);
+  case AVC_PROFILE_HIGH_444_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileHigh444_Intra);
+  case AVC_PROFILE_CAVLC_444_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileCAVLC444_Intra);
   default: return OMX_VIDEO_AVCProfileMax;
   }
 
