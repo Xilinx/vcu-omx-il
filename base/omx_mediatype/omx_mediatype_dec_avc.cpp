@@ -37,6 +37,7 @@
 
 #include "omx_mediatype_dec_avc.h"
 #include "base/omx_settings/omx_convert_module_soft.h"
+#include "base/omx_settings/omx_convert_module_soft_avc.h"
 #include <string.h> // memset
 
 using namespace std;
@@ -93,46 +94,12 @@ vector<ProfileLevelType> DecMediatypeAVC::ProfileLevelSupported() const
   return vector;
 }
 
-static AVCProfileType ToProfile(AL_EProfile const& profile)
-{
-  if(!AL_IS_AVC(profile))
-    return AVC_PROFILE_MAX;
-  switch(profile)
-  {
-  case AL_PROFILE_AVC_BASELINE: return AVC_PROFILE_BASELINE;
-  case AL_PROFILE_AVC_MAIN: return AVC_PROFILE_MAIN;
-  case AL_PROFILE_AVC_HIGH: return AVC_PROFILE_HIGH;
-  case AL_PROFILE_AVC_HIGH10: return AVC_PROFILE_HIGH_10;
-  case AL_PROFILE_AVC_HIGH_422: return AVC_PROFILE_HIGH_422;
-  default:
-    return AVC_PROFILE_MAX;
-  }
-
-  return AVC_PROFILE_MAX;
-}
-
 ProfileLevelType DecMediatypeAVC::ProfileLevel() const
 {
   ProfileLevelType p;
-  p.profile.avc = ToProfile(static_cast<AL_EProfile>(settings.tStream.iProfileIdc));
+  p.profile.avc = ConvertSoftToModuleAVCProfile(static_cast<AL_EProfile>(settings.tStream.iProfileIdc));
   p.level = settings.tStream.iLevel;
   return p;
-}
-
-static AL_EProfile ToProfile(AVCProfileType const& profile)
-{
-  switch(profile)
-  {
-  case AVC_PROFILE_BASELINE: return AL_PROFILE_AVC_BASELINE;
-  case AVC_PROFILE_MAIN: return AL_PROFILE_AVC_MAIN;
-  case AVC_PROFILE_HIGH: return AL_PROFILE_AVC_HIGH;
-  case AVC_PROFILE_HIGH_10: return AL_PROFILE_AVC_HIGH10;
-  case AVC_PROFILE_HIGH_422: return AL_PROFILE_AVC_HIGH_422;
-  case AVC_PROFILE_MAX:
-  default: return AL_PROFILE_AVC;
-  }
-
-  return AL_PROFILE_AVC;
 }
 
 bool DecMediatypeAVC::IsInProfilesSupported(AVCProfileType const& profile)
@@ -165,7 +132,7 @@ bool DecMediatypeAVC::SetProfileLevel(ProfileLevelType const& profileLevel)
   if(!IsInLevelsSupported(profileLevel.level))
     return false;
 
-  auto const profile = ToProfile(profileLevel.profile.avc);
+  auto const profile = ConvertModuleToSoftAVCProfile(profileLevel.profile.avc);
 
   if(profile == AL_PROFILE_AVC)
     return false;
