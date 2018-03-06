@@ -65,7 +65,7 @@ void DecMediatypeAVC::Reset()
   settings.tStream.eChroma = CHROMA_4_2_0;
   settings.tStream.iBitDepth = 8;
   settings.tStream.iLevel = 10;
-  settings.tStream.iProfileIdc = AL_PROFILE_AVC_BASELINE;
+  settings.tStream.iProfileIdc = AL_PROFILE_AVC_C_BASELINE;
 }
 
 CompressionType DecMediatypeAVC::Compression() const

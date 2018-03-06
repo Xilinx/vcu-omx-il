@@ -55,7 +55,7 @@ void EncMediatypeAVC::Reset()
   sliceHeightAlignment = 8;
   AL_Settings_SetDefaults(&settings);
   auto& chan = settings.tChParam;
-  chan.eProfile = AL_PROFILE_AVC_BASELINE;
+  chan.eProfile = AL_PROFILE_AVC_C_BASELINE;
   AL_Settings_SetDefaultParam(&settings);
   chan.uLevel = 10;
   chan.uWidth = 176;
