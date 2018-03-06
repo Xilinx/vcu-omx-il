@@ -73,7 +73,7 @@ HEVCProfileType ConvertSoftToModuleHEVCMainTierProfile(AL_EProfile const& profil
   return HEVC_PROFILE_MAX;
 }
 
-static AL_EProfile ConvertModuleToSoftHEVCProfile(HEVCProfileType const& profile)
+AL_EProfile ConvertModuleToSoftHEVCProfile(HEVCProfileType const& profile)
 {
   switch(profile)
   {
@@ -92,14 +92,3 @@ static AL_EProfile ConvertModuleToSoftHEVCProfile(HEVCProfileType const& profile
 
   return AL_PROFILE_HEVC;
 }
-
-AL_EProfile ConvertModuleToSoftHEVCMainTierProfile(HEVCProfileType const& profile)
-{
-  return ConvertModuleToSoftHEVCProfile(profile);
-}
-
-AL_EProfile ConvertModuleToSoftHEVCHighTierProfile(HEVCProfileType const& profile)
-{
-  return ConvertModuleToSoftHEVCProfile(profile);
-}
-

@@ -37,6 +37,7 @@
 
 #include "omx_mediatype_dec_hevc.h"
 #include "base/omx_settings/omx_convert_module_soft.h"
+#include "base/omx_settings/omx_convert_module_soft_hevc.h"
 #include <string.h> // memset
 
 using namespace std;
@@ -140,68 +141,12 @@ static bool IsHighTier(HEVCProfileType const& profile)
   return false;
 }
 
-static HEVCProfileType ToHighProfile(AL_EProfile const& profile)
-{
-  if(!AL_IS_HEVC(profile))
-    return HEVC_PROFILE_MAX;
-  switch(profile)
-  {
-  case AL_PROFILE_HEVC_MAIN: return HEVC_PROFILE_MAIN_HIGH_TIER;
-  case AL_PROFILE_HEVC_MAIN10: return HEVC_PROFILE_MAIN_10_HIGH_TIER;
-  case AL_PROFILE_HEVC_MAIN_422: return HEVC_PROFILE_MAIN_422_HIGH_TIER;
-  case AL_PROFILE_HEVC_MAIN_422_10: return HEVC_PROFILE_MAIN_422_10_HIGH_TIER;
-  case AL_PROFILE_HEVC_MAIN_STILL: return HEVC_PROFILE_MAIN_STILL_HIGH_TIER;
-  default:
-    return HEVC_PROFILE_MAX;
-  }
-
-  return HEVC_PROFILE_MAX;
-}
-
-static HEVCProfileType ToMainProfile(AL_EProfile const& profile)
-{
-  if(!AL_IS_HEVC(profile))
-    return HEVC_PROFILE_MAX;
-  switch(profile)
-  {
-  case AL_PROFILE_HEVC_MAIN: return HEVC_PROFILE_MAIN;
-  case AL_PROFILE_HEVC_MAIN10: return HEVC_PROFILE_MAIN_10;
-  case AL_PROFILE_HEVC_MAIN_422: return HEVC_PROFILE_MAIN_422;
-  case AL_PROFILE_HEVC_MAIN_422_10: return HEVC_PROFILE_MAIN_422_10;
-  case AL_PROFILE_HEVC_MAIN_STILL: return HEVC_PROFILE_MAIN_STILL;
-  default:
-    return HEVC_PROFILE_MAX;
-  }
-
-  return HEVC_PROFILE_MAX;
-}
-
 ProfileLevelType DecMediatypeHEVC::ProfileLevel() const
 {
   ProfileLevelType p;
-  p.profile.hevc = IsHighTier(tier) ? ToHighProfile(static_cast<AL_EProfile>(settings.tStream.iProfileIdc)) : ToMainProfile(static_cast<AL_EProfile>(settings.tStream.iProfileIdc));
+  p.profile.hevc = IsHighTier(tier) ? ConvertSoftToModuleHEVCHighTierProfile(static_cast<AL_EProfile>(settings.tStream.iProfileIdc)) : ConvertSoftToModuleHEVCMainTierProfile(static_cast<AL_EProfile>(settings.tStream.iProfileIdc));
   p.level = settings.tStream.iLevel;
   return p;
-}
-
-static AL_EProfile ToProfile(HEVCProfileType const& profile)
-{
-  switch(profile)
-  {
-  case HEVC_PROFILE_MAIN:
-  case HEVC_PROFILE_MAIN_HIGH_TIER: return AL_PROFILE_HEVC_MAIN;
-  case HEVC_PROFILE_MAIN_10:
-  case HEVC_PROFILE_MAIN_10_HIGH_TIER: return AL_PROFILE_HEVC_MAIN10;
-  case HEVC_PROFILE_MAIN_422:
-  case HEVC_PROFILE_MAIN_422_HIGH_TIER: return AL_PROFILE_HEVC_MAIN_422;
-  case HEVC_PROFILE_MAIN_422_10:
-  case HEVC_PROFILE_MAIN_422_10_HIGH_TIER: return AL_PROFILE_HEVC_MAIN_422_10;
-  case HEVC_PROFILE_MAIN_STILL:
-  case HEVC_PROFILE_MAIN_STILL_HIGH_TIER: return AL_PROFILE_HEVC_MAIN_STILL;
-  default: return AL_PROFILE_HEVC;
-  }
-
-  return AL_PROFILE_HEVC;
 }
 
 bool DecMediatypeHEVC::IsInProfilesSupported(HEVCProfileType const& profile)
@@ -234,7 +179,7 @@ bool DecMediatypeHEVC::SetProfileLevel(ProfileLevelType const& profileLevel)
   if(!IsInLevelsSupported(profileLevel.level))
     return false;
 
-  auto const profile = ToProfile(profileLevel.profile.hevc);
+  auto const profile = ConvertModuleToSoftHEVCProfile(profileLevel.profile.hevc);
 
   if(profile == AL_PROFILE_HEVC)
     return false;
