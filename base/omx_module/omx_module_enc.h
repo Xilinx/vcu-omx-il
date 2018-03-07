@@ -95,7 +95,7 @@ public:
   LoopFilterType GetLoopFilter() const;
   AspectRatioType GetAspectRatio() const;
   bool IsEnableLowBandwidth() const;
-  int GetPrefetchBufferSize() const; // In units of 1024 bytes
+  bool IsEnablePrefetchBuffer() const;
   ScalingListType GetScalingList() const;
   bool IsEnableFillerData() const;
   Slices GetSlices() const;
@@ -114,7 +114,7 @@ public:
   bool SetQPs(QPs const& qps);
   bool SetAspectRatio(AspectRatioType const& aspectRatio);
   bool SetEnableLowBandwidth(bool const& enableLowBandwidth);
-  bool SetPrefetchBufferSize(int const& size); // In units of 1024 bytes
+  bool SetEnablePrefetchBuffer(bool const& enablePrefetchBuffer);
   bool SetScalingList(ScalingListType const& scalingList);
   bool SetEnableFillerData(bool const& enableFillerData);
   bool SetSlices(Slices const& slices);

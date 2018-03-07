@@ -912,9 +912,9 @@ bool EncModule::IsEnableLowBandwidth() const
   return media->IsEnableLowBandwidth();
 }
 
-int EncModule::GetPrefetchBufferSize() const
+bool EncModule::IsEnablePrefetchBuffer() const
 {
-  return media->settings.iPrefetchLevel2 / 1024;
+  return media->settings.iPrefetchLevel2 != 0;
 }
 
 ScalingListType EncModule::GetScalingList() const
@@ -1105,11 +1105,9 @@ bool EncModule::SetEnableLowBandwidth(bool const& enableLowBandwidth)
   return media->SetEnableLowBandwidth(enableLowBandwidth);
 }
 
-bool EncModule::SetPrefetchBufferSize(int const& size)
+bool EncModule::SetEnablePrefetchBuffer(bool const& enablePrefetchBuffer)
 {
-  if(size < 0)
-    return false;
-  media->settings.iPrefetchLevel2 = size * 1024;
+  media->settings.iPrefetchLevel2 = enablePrefetchBuffer ? !0 : 0;
   return true;
 }
 

@@ -235,7 +235,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
-  OMX_U32 nPrefetchBufferSize; // In units of 1024 bytes
+  OMX_BOOL bEnablePrefetchBuffer;
 }OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER;
 
 /** CPB parameters */

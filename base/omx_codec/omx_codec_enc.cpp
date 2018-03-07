@@ -321,7 +321,7 @@ static OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER ConstructVideoPrefetchBuffer(Port con
   OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER pb;
   OMXChecker::SetHeaderVersion(pb);
   pb.nPortIndex = port.index;
-  pb.nPrefetchBufferSize = module.GetPrefetchBufferSize();
+  pb.bEnablePrefetchBuffer = ConvertToOMXBool(module.IsEnablePrefetchBuffer());
   return pb;
 }
 
@@ -717,9 +717,9 @@ static bool SetCodedPictureBuffer(OMX_U32 const& codedPictureBufferSize, OMX_U32
   return module.SetBitrates(moduleBitrates);
 }
 
-static bool SetPrefetchBuffer(OMX_U32 const& prefetchBufferSize, EncModule& module)
+static bool SetPrefetchBuffer(OMX_BOOL const& enablePrefetchBuffer, EncModule& module)
 {
-  return module.SetPrefetchBufferSize(prefetchBufferSize);
+  return module.SetEnablePrefetchBuffer(ConvertToModuleBool(enablePrefetchBuffer));
 }
 
 static bool SetScalingList(OMX_ALG_EScalingList const& scalingListMode, EncModule& module)
@@ -949,7 +949,7 @@ static bool SetVideoPrefetchBuffer(OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER const& pr
 {
   auto const rollback = ConstructVideoPrefetchBuffer(port, module);
 
-  if(!SetPrefetchBuffer(prefetchBuffer.nPrefetchBufferSize, module))
+  if(!SetPrefetchBuffer(prefetchBuffer.bEnablePrefetchBuffer, module))
   {
     SetVideoPrefetchBuffer(rollback, port, module);
     return false;
