@@ -67,6 +67,7 @@ void EncMediatypeAVC::Reset()
   rateCtrl.uMaxBitRate = rateCtrl.uTargetBitRate = 64000;
   rateCtrl.uFrameRate = 15;
   settings.bEnableAUD = false;
+  settings.iPrefetchLevel2 = 0;
 }
 
 CompressionType EncMediatypeAVC::Compression() const
