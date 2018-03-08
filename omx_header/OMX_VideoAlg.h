@@ -65,7 +65,7 @@ typedef enum OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE
 /** HEVC profiles */
 typedef enum OMX_ALG_VIDEO_HEVCPROFILETYPE
 {
-  OMX_ALG_VIDEO_HEVCProfileMain, /**< Main profile */
+  OMX_ALG_VIDEO_HEVCProfileMain = 0x00000001, /**< Main profile */
   OMX_ALG_VIDEO_HEVCProfileMain10, /**< Main 10 profile */
   OMX_ALG_VIDEO_HEVCProfileMainStill, /**< Main still profile */
   OMX_ALG_VIDEO_HEVCProfileMonochrome,
