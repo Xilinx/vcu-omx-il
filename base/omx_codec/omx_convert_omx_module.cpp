@@ -719,8 +719,8 @@ static inline HEVCProfileType ConvertToModuleHEVCMainProfile(OMX_ALG_VIDEO_HEVCP
     case OMX_ALG_VIDEO_HEVCProfileMain444_16_Intra: return HEVC_PROFILE_MAIN_444_16_INTRA;
     case OMX_ALG_VIDEO_HEVCProfileMain444_Still: return HEVC_PROFILE_MAIN_444_STILL;
     case OMX_ALG_VIDEO_HEVCProfileMain444_16_Still: return HEVC_PROFILE_MAIN_444_16_STILL;
-    case OMX_ALG_VIDEO_HEVCProfileMax: return HEVC_PROFILE_MAX;
     case OMX_ALG_VIDEO_HEVCProfileHighThroughtPut444_16_Intra: return HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA;
+    case OMX_ALG_VIDEO_HEVCProfileMax: return HEVC_PROFILE_MAX;
     default: return HEVC_PROFILE_MAX;
   }
 
