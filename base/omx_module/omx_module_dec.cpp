@@ -785,7 +785,7 @@ bool DecModule::Fill(uint8_t* buffer, int offset, int size)
 {
   (void)offset;
 
-  if(!decoder || !buffer)
+  if(!decoder)
     return false;
 
   auto output = dpb.Exist(buffer) ? dpb.Get(buffer) : CreateOutputBuffer(buffer, size);
