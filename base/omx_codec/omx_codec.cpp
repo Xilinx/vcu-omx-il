@@ -238,11 +238,29 @@ Task* CreateTask(Command cmd, OMX_U32 data, shared_ptr<void> opt)
 
 static TransientState GetTransientState(OMX_STATETYPE const& curState, OMX_STATETYPE const& nextState)
 {
+  if(curState == OMX_StateLoaded && nextState == OMX_StateIdle)
+    return TransientLoadedToIdle;
+
+  if(curState == OMX_StateIdle && nextState == OMX_StatePause)
+    return TransientIdleToPause;
+
   if(curState == OMX_StateIdle && nextState == OMX_StateLoaded)
     return TransientIdleToLoaded;
 
-  if(curState == OMX_StateLoaded && nextState == OMX_StateIdle)
-    return TransientLoadedToIdle;
+  if(curState == OMX_StateIdle && nextState == OMX_StateExecuting)
+    return TransientIdleToExecuting;
+
+  if(curState == OMX_StatePause && nextState == OMX_StateExecuting)
+    return TransientPauseToExecuting;
+
+  if(curState == OMX_StatePause && nextState == OMX_StateIdle)
+    return TransientPauseToIdle;
+
+  if(curState == OMX_StateExecuting && nextState == OMX_StateIdle)
+    return TransientExecutingToIdle;
+
+  if(curState == OMX_StateExecuting && nextState == OMX_StatePause)
+    return TransientExecutingToPause;
 
   return TransientMax;
 }
@@ -268,6 +286,13 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
     if(NewtransientState == TransientLoadedToIdle)
       if(!module->CheckParam())
         throw OMX_ErrorUndefined;
+
+    if(NewtransientState == TransientExecutingToPause||NewtransientState == TransientExecutingToIdle)
+    {
+      auto promise = std::make_shared<std::promise<int>>();
+      processor->queue(CreateTask(Fence, param, promise));
+      processorFill->queue(CreateTask(RemoveFence, param, promise));
+    }
 
     transientState = NewtransientState;
     taskCommand = SetState;

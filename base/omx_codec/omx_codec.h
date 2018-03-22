@@ -69,11 +69,12 @@ enum TransientState
   TransientInvalid,
   TransientLoadedToIdle,
   TransientIdleToPause,
+  TransientIdleToLoaded,
+  TransientIdleToExecuting,
   TransientPauseToExecuting,
+  TransientPauseToIdle,
   TransientExecutingToIdle,
   TransientExecutingToPause,
-  TransientPauseToIdle,
-  TransientIdleToLoaded,
   TransientMax,
 };
 
