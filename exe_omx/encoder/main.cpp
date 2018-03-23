@@ -399,26 +399,26 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
     {
     case OMX_CommandStateSet:
     {
-      printf("Comp %p : %s : %s : %s\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), ToStringOMXState.at(static_cast<OMX_STATETYPE>(Data2)));
+      LOGI("Comp %p : %s : %s : %s\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), ToStringOMXState.at(static_cast<OMX_STATETYPE>(Data2)));
       app->encoderEventState.notify();
       break;
     }
     case OMX_CommandPortEnable:
     case OMX_CommandPortDisable:
     {
-      printf("Comp %p : %s : %s : %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
+      LOGI("Comp %p : %s : %s : %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
       app->encoderEventSem.notify();
       break;
     }
     case OMX_CommandMarkBuffer:
     {
-      printf("Comp %p : %s : %s : %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
+      LOGI("Comp %p : %s : %s : %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
       app->encoderEventSem.notify();
       break;
     }
     case OMX_CommandFlush:
     {
-      printf("Comp %p : %s : %s : %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
+      LOGI("Comp %p : %s : %s : %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
       app->encoderEventSem.notify();
       break;
     }
@@ -431,12 +431,12 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
 
   case OMX_EventError:
   {
-    printf("Comp %p : %s\n", hComponent, ToStringOMXEvent.at(eEvent));
+    LOGE("Comp %p : %s\n", hComponent, ToStringOMXEvent.at(eEvent));
     return OMX_ErrorUndefined;
   }
   default:
   {
-    printf("Comp %p : Unspported %s\n", hComponent, ToStringOMXEvent.at(eEvent));
+    LOGE("Comp %p : Unspported %s\n", hComponent, ToStringOMXEvent.at(eEvent));
     return OMX_ErrorNotImplemented;
   }
   }
@@ -455,7 +455,7 @@ static void Read(OMX_BUFFERHEADERTYPE* pBuffer, Application& app)
   {
     pBuffer->nFlags |= OMX_BUFFERFLAG_EOS;
     app.input.isEOS = true;
-    printf("Waiting for EOS...  \n");
+    LOGI("Waiting for EOS...  \n");
     return;
   }
 
@@ -543,7 +543,7 @@ static void useBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Application& app)
 
       if(!hBuf)
       {
-        fprintf(stderr, "Failed to allocate Buffer for dma");
+        LOGE( "Failed to allocate Buffer for dma");
         assert(0);
       }
       auto fd = AL_LinuxDmaAllocator_ExportToFd((AL_TLinuxDmaAllocator*)(app.pAllocator), hBuf);
@@ -551,7 +551,7 @@ static void useBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Application& app)
 
       if(!pBufData)
       {
-        fprintf(stderr, "Failed to ExportToFd %p", hBuf);
+        LOGE( "Failed to ExportToFd %p", hBuf);
         assert(0);
       }
 
@@ -649,7 +649,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
     cerr << "Error in opening output file '" << output_file.c_str() << "'" << endl;
     return OMX_ErrorUndefined;
   }
-  printf("cmd file = %s\n", cmd_file.c_str());
+  LOGI("cmd file = %s\n", cmd_file.c_str());
   ifstream cmdfile(cmd_file != "" ? cmd_file.c_str() : "/dev/null");
   app.encCmd = new CEncCmdMngr(cmdfile, 3, -1);
 
@@ -705,7 +705,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
      (app.settings.format != (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked) &&
      (app.settings.format != (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked))
   {
-    fprintf(stderr, "Unsupported color format : 0X%.8X", app.settings.format);
+    LOGE( "Unsupported color format : 0X%.8X", app.settings.format);
     return OMX_ErrorUnsupportedSetting;
   }
 

@@ -1027,7 +1027,7 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   app.eventBus.addListener([&](shared_ptr<EventData> )
   {
-    fprintf(stderr, "[EventBus] Received EOS\n");
+    LOGI( "[EventBus] Received EOS\n");
 
     if(app.quit)
       return;
@@ -1043,7 +1043,7 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
   app.eventBus.addListener([&](shared_ptr<EventData> data_)
   {
     ErrorEventData* data = static_cast<ErrorEventData*>(data_.get());
-    fprintf(stderr, "[EventBus] Got error code %d\n", data->errorCode);
+    LOGE( "[EventBus] Got error code %d\n", data->errorCode);
 
     if(app.quit)
       return;
