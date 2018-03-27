@@ -56,6 +56,7 @@ extern "C"
 #include "base/omx_checker/omx_checker.h"
 #include "base/omx_settings/omx_convert_module_soft_enc.h"
 #include "base/omx_settings/omx_convert_module_soft.h"
+#include "base/omx_utils/roundup.h"
 
 using namespace std;
 
@@ -63,8 +64,6 @@ static inline int GetBitdepthFromFormat(AL_EPicFormat const& format)
 {
   return AL_GET_BITDEPTH(format);
 }
-
-#define ROUNDUP(n, align) (((n) + (align) - 1) & ~unsigned((align) - 1))
 
 static bool CheckValidity(AL_TEncSettings const& settings)
 {
@@ -277,8 +276,8 @@ static int RawAllocationSize(int width, int widthAlignment, int height,  int hei
   int const adjustedHeightAlignment = heightAlignment > IP_HEIGHT_ALIGNMENT ? heightAlignment : IP_HEIGHT_ALIGNMENT;
 
   auto const bitdepthWidth = bitdepth == 8 ? width : (width + 2) / 3 * 4;
-  auto const adjustedWidth = ROUNDUP(bitdepthWidth, adjustedWidthAlignment);
-  auto const adjustedHeight = ROUNDUP(height, adjustedHeightAlignment);
+  auto const adjustedWidth = RoundUp(bitdepthWidth, adjustedWidthAlignment);
+  auto const adjustedHeight = RoundUp(height, adjustedHeightAlignment);
 
   auto size = adjustedWidth * adjustedHeight;
 
@@ -792,8 +791,8 @@ Resolution EncModule::GetResolution() const
   Resolution resolution;
   resolution.width = chan.uWidth;
   resolution.height = chan.uHeight;
-  resolution.stride = ROUNDUP(AL_CalculatePitchValue(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), media->strideAlignment);
-  resolution.sliceHeight = ROUNDUP(chan.uHeight, media->sliceHeightAlignment);
+  resolution.stride = RoundUp(AL_CalculatePitchValue(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), media->strideAlignment);
+  resolution.sliceHeight = RoundUp(chan.uHeight, media->sliceHeightAlignment);
 
   return resolution;
 }

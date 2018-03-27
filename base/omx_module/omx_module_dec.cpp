@@ -51,6 +51,7 @@ extern "C"
 
 #include "base/omx_settings/omx_convert_module_soft.h"
 #include "base/omx_settings/omx_convert_module_soft_dec.h"
+#include "base/omx_utils/roundup.h"
 
 using namespace std;
 
@@ -73,8 +74,6 @@ void DecModule::ResetRequirements()
   fds.input = fds.output = false;
 }
 
-#define ROUNDUP(n, align) (((n) + (align) - 1) & ~unsigned((align) - 1))
-
 static int RawAllocationSize(int width, int widthAlignment, int height,  int heightAlignment, int bitdepth, AL_EChromaMode eChromaMode)
 {
   auto const IP_WIDTH_ALIGNMENT = 64;
@@ -85,8 +84,8 @@ static int RawAllocationSize(int width, int widthAlignment, int height,  int hei
   int const adjustedHeightAlignment = heightAlignment > IP_HEIGHT_ALIGNMENT ? heightAlignment : IP_HEIGHT_ALIGNMENT;
 
   auto const bitdepthWidth = bitdepth == 8 ? width : (width + 2) / 3 * 4;
-  auto const adjustedWidth = ROUNDUP(bitdepthWidth, adjustedWidthAlignment);
-  auto const adjustedHeight = ROUNDUP(height, adjustedHeightAlignment);
+  auto const adjustedWidth = RoundUp(bitdepthWidth, adjustedWidthAlignment);
+  auto const adjustedHeight = RoundUp(height, adjustedHeightAlignment);
 
   auto size = adjustedWidth * adjustedHeight;
 
@@ -140,8 +139,8 @@ Resolution DecModule::GetResolution() const
   Resolution resolution;
   resolution.width = streamSettings.tDim.iWidth;
   resolution.height = streamSettings.tDim.iHeight;
-  resolution.stride = ROUNDUP(AL_Decoder_RoundPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
-  resolution.sliceHeight = ROUNDUP(AL_Decoder_RoundHeight(streamSettings.tDim.iHeight), media->sliceHeightAlignment);
+  resolution.stride = RoundUp(AL_Decoder_RoundPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
+  resolution.sliceHeight = RoundUp(AL_Decoder_RoundHeight(streamSettings.tDim.iHeight), media->sliceHeightAlignment);
 
   return resolution;
 }
