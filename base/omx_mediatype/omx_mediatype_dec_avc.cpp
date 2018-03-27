@@ -38,7 +38,8 @@
 #include "omx_mediatype_dec_avc.h"
 #include "base/omx_settings/omx_convert_module_soft.h"
 #include "base/omx_settings/omx_convert_module_soft_avc.h"
-#include <string.h> // memset
+#include "base/omx_utils/roundup.h"
+#include <cstring> // memset
 
 using namespace std;
 
@@ -49,8 +50,6 @@ DecMediatypeAVC::DecMediatypeAVC()
 
 void DecMediatypeAVC::Reset()
 {
-  strideAlignment = 64;
-  sliceHeightAlignment = 64;
   memset(&settings, 0, sizeof(settings));
   settings.iStackSize = 5;
   settings.uFrameRate = 60000;
@@ -61,11 +60,15 @@ void DecMediatypeAVC::Reset()
   settings.eFBStorageMode = AL_FB_RASTER;
   settings.bIsAvc = true;
 
-  settings.tStream.tDim = { 176, 144 };
-  settings.tStream.eChroma = CHROMA_4_2_0;
-  settings.tStream.iBitDepth = 8;
-  settings.tStream.iLevel = 10;
-  settings.tStream.iProfileIdc = AL_PROFILE_AVC_C_BASELINE;
+  auto& stream = settings.tStream;
+  stream.tDim = { 176, 144 };
+  stream.eChroma = CHROMA_4_2_0;
+  stream.iBitDepth = 8;
+  stream.iLevel = 10;
+  stream.iProfileIdc = AL_PROFILE_AVC_C_BASELINE;
+
+  stride = RoundUp(AL_Decoder_RoundPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode), strideAlignment);
+  sliceHeight = RoundUp(AL_Decoder_RoundHeight(stream.tDim.iHeight), sliceHeightAlignment);
 }
 
 CompressionType DecMediatypeAVC::Compression() const

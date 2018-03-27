@@ -66,7 +66,9 @@ struct DecMediatypeInterface : public MediatypeInterface
   virtual int GetRequiredOutputBuffers() const = 0;
 
   AL_TDecSettings settings;
-  int strideAlignment;
-  int sliceHeightAlignment;
+  int const strideAlignment = 64;
+  int const sliceHeightAlignment = 64;
+  int stride;
+  int sliceHeight;
 };
 

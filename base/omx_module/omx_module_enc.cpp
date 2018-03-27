@@ -266,20 +266,14 @@ void EncModule::ResetRequirements()
   fds.input = fds.output = false;
 }
 
-static int RawAllocationSize(int width, int widthAlignment, int height,  int heightAlignment, int bitdepth, AL_EChromaMode eChromaMode)
+static int RawAllocationSize(int stride, int sliceHeight, AL_EChromaMode eChromaMode)
 {
   auto const IP_WIDTH_ALIGNMENT = 32;
   auto const IP_HEIGHT_ALIGNMENT = 8;
-  assert(widthAlignment % IP_WIDTH_ALIGNMENT == 0); // IP requirements
-  assert(heightAlignment % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
-  auto const adjustedWidthAlignment = widthAlignment > IP_WIDTH_ALIGNMENT ? widthAlignment : IP_WIDTH_ALIGNMENT;
-  int const adjustedHeightAlignment = heightAlignment > IP_HEIGHT_ALIGNMENT ? heightAlignment : IP_HEIGHT_ALIGNMENT;
+  assert(stride % IP_WIDTH_ALIGNMENT == 0); // IP requirements
+  assert(sliceHeight % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
 
-  auto const bitdepthWidth = bitdepth == 8 ? width : (width + 2) / 3 * 4;
-  auto const adjustedWidth = RoundUp(bitdepthWidth, adjustedWidthAlignment);
-  auto const adjustedHeight = RoundUp(height, adjustedHeightAlignment);
-
-  auto size = adjustedWidth * adjustedHeight;
+  auto size = stride * sliceHeight;
 
   switch(eChromaMode)
   {
@@ -313,7 +307,7 @@ BufferRequirements EncModule::GetBufferRequirements() const
   auto const gop = chan.tGopParam;
   auto& input = b.input;
   input.min = 1 + gop.uNumB;
-  input.size = RawAllocationSize(chan.uWidth, media->strideAlignment, chan.uHeight, media->sliceHeightAlignment, AL_GET_BITDEPTH(chan.ePicFormat), AL_GET_CHROMA_MODE(chan.ePicFormat));
+  input.size = RawAllocationSize(media->stride, media->sliceHeight, AL_GET_CHROMA_MODE(chan.ePicFormat));
   input.bytesAlignment = device->GetAllocationRequirements().input.bytesAlignment;
   input.contiguous = device->GetAllocationRequirements().input.contiguous;
 
@@ -791,8 +785,8 @@ Resolution EncModule::GetResolution() const
   Resolution resolution;
   resolution.width = chan.uWidth;
   resolution.height = chan.uHeight;
-  resolution.stride = RoundUp(AL_CalculatePitchValue(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), media->strideAlignment);
-  resolution.sliceHeight = RoundUp(chan.uHeight, media->sliceHeightAlignment);
+  resolution.stride = media->stride;
+  resolution.sliceHeight = media->sliceHeight;
 
   return resolution;
 }
@@ -949,23 +943,26 @@ FileDescriptors EncModule::GetFileDescriptors() const
   return fds;
 }
 
-static int GetPow2MaxAlignment(int const& pow2startAlignment, int const& value)
+bool isStrideSupported(int stride, int minStride, int alignment)
 {
-  if((pow2startAlignment % 2) != 0)
-    return 0;
+  if(stride < minStride)
+    return false;
 
-  if((value % pow2startAlignment) != 0)
-    return 0;
+  if(stride % alignment != 0)
+    return false;
 
-  int n = 0;
+  return true;
+}
 
-  while((1 << n) != pow2startAlignment)
-    n++;
+bool isSliceHeightSupported(int sliceHeight, int minSliceHeight, int alignment)
+{
+  if(sliceHeight < minSliceHeight)
+    return false;
 
-  while((value % (1 << n)) == 0)
-    n++;
+  if(sliceHeight % alignment != 0)
+    return false;
 
-  return 1 << (n - 1);
+  return true;
 }
 
 bool EncModule::SetResolution(Resolution const& resolution)
@@ -976,31 +973,22 @@ bool EncModule::SetResolution(Resolution const& resolution)
   if((resolution.height % 8) != 0)
     return false;
 
-  if(resolution.stride != 0)
-  {
-    int const align = GetPow2MaxAlignment(8, resolution.stride);
-
-    if(align == 0)
-      return false;
-
-    if(align > media->strideAlignment)
-      media->strideAlignment = align;
-  }
-
-  if(resolution.sliceHeight != 0)
-  {
-    int const align = GetPow2MaxAlignment(8, resolution.sliceHeight);
-
-    if(align == 0)
-      return false;
-
-    if(align > media->sliceHeightAlignment)
-      media->sliceHeightAlignment = align;
-  }
-
   auto& chan = media->settings.tChParam;
   chan.uWidth = resolution.width;
   chan.uHeight = resolution.height;
+
+  auto minStride = RoundUp(AL_CalculatePitchValue(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), media->strideAlignment);
+  if(!isStrideSupported(resolution.stride, minStride, media->strideAlignment))
+    media->stride = minStride;
+  else
+    media->stride = resolution.stride;
+
+  auto minSliceHeight = RoundUp(chan.uHeight, media->sliceHeightAlignment);
+  if(!isSliceHeightSupported(resolution.sliceHeight, minSliceHeight, media->sliceHeightAlignment))
+    media->sliceHeight = minSliceHeight;
+  else
+    media->sliceHeight = resolution.sliceHeight;
+
   return true;
 }
 
@@ -1017,6 +1005,11 @@ bool EncModule::SetFormat(Format const& format)
   auto& chan = media->settings.tChParam;
   AL_SET_BITDEPTH(chan.ePicFormat, format.bitdepth);
   AL_SET_CHROMA_MODE(chan.ePicFormat, ConvertModuleToSoftChroma(format.color));
+
+  auto minStride = RoundUp(AL_CalculatePitchValue(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), media->strideAlignment);
+  if(!isStrideSupported(media->stride, minStride, media->strideAlignment))
+    media->stride = minStride;
+
   return true;
 }
 

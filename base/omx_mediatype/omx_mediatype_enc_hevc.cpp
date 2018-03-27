@@ -38,7 +38,13 @@
 #include "omx_mediatype_enc_hevc.h"
 #include "base/omx_settings/omx_convert_module_soft_hevc.h"
 
-#include <assert.h>
+#include <cassert>
+#include "base/omx_utils/roundup.h"
+extern "C"
+{
+#include <lib_common_enc/EncBuffers.h>
+}
+
 
 using namespace std;
 
@@ -53,8 +59,6 @@ EncMediatypeHEVC::~EncMediatypeHEVC()
 
 void EncMediatypeHEVC::Reset()
 {
-  strideAlignment = 32;
-  sliceHeightAlignment = 8;
   AL_Settings_SetDefaults(&settings);
   auto& chan = settings.tChParam;
   chan.eProfile = AL_PROFILE_HEVC_MAIN;
@@ -70,6 +74,8 @@ void EncMediatypeHEVC::Reset()
   rateCtrl.uFrameRate = 15;
   settings.bEnableAUD = false;
   settings.iPrefetchLevel2 = 0;
+  stride = RoundUp(AL_CalculatePitchValue(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), strideAlignment);
+  sliceHeight = RoundUp(chan.uHeight, sliceHeightAlignment);
 }
 
 CompressionType EncMediatypeHEVC::Compression() const

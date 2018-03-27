@@ -74,20 +74,14 @@ void DecModule::ResetRequirements()
   fds.input = fds.output = false;
 }
 
-static int RawAllocationSize(int width, int widthAlignment, int height,  int heightAlignment, int bitdepth, AL_EChromaMode eChromaMode)
+static int RawAllocationSize(int stride, int sliceHeight, AL_EChromaMode eChromaMode)
 {
   auto const IP_WIDTH_ALIGNMENT = 64;
   auto const IP_HEIGHT_ALIGNMENT = 64;
-  assert(widthAlignment % IP_WIDTH_ALIGNMENT == 0); // IP requirements
-  assert(heightAlignment % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
-  auto const adjustedWidthAlignment = widthAlignment > IP_WIDTH_ALIGNMENT ? widthAlignment : IP_WIDTH_ALIGNMENT;
-  int const adjustedHeightAlignment = heightAlignment > IP_HEIGHT_ALIGNMENT ? heightAlignment : IP_HEIGHT_ALIGNMENT;
+  assert(stride % IP_WIDTH_ALIGNMENT == 0); // IP requirements
+  assert(sliceHeight % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
 
-  auto const bitdepthWidth = bitdepth == 8 ? width : (width + 2) / 3 * 4;
-  auto const adjustedWidth = RoundUp(bitdepthWidth, adjustedWidthAlignment);
-  auto const adjustedHeight = RoundUp(height, adjustedHeightAlignment);
-
-  auto size = adjustedWidth * adjustedHeight;
+  auto size = stride * sliceHeight;
 
   switch(eChromaMode)
   {
@@ -125,7 +119,7 @@ BufferRequirements DecModule::GetBufferRequirements() const
 
   auto& output = b.output;
   output.min = media->GetRequiredOutputBuffers() + 1; // 1 for eos
-  output.size = RawAllocationSize(streamSettings.tDim.iWidth, media->strideAlignment, streamSettings.tDim.iHeight, media->sliceHeightAlignment, streamSettings.iBitDepth, streamSettings.eChroma);
+  output.size = RawAllocationSize(media->stride, media->sliceHeight, streamSettings.eChroma);
   output.bytesAlignment = device->GetAllocationRequirements().output.bytesAlignment;
   output.contiguous = device->GetAllocationRequirements().output.contiguous;
 
@@ -139,8 +133,8 @@ Resolution DecModule::GetResolution() const
   Resolution resolution;
   resolution.width = streamSettings.tDim.iWidth;
   resolution.height = streamSettings.tDim.iHeight;
-  resolution.stride = RoundUp(AL_Decoder_RoundPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
-  resolution.sliceHeight = RoundUp(AL_Decoder_RoundHeight(streamSettings.tDim.iHeight), media->sliceHeightAlignment);
+  resolution.stride = media->stride;
+  resolution.sliceHeight = media->sliceHeight;
 
   return resolution;
 }
@@ -229,23 +223,26 @@ bool DecModule::IsEnableSubframe() const
   return DECODE_UNIT_SLICE == ConvertSoftToModuleDecodeUnit(settings.eDecUnit);
 }
 
-static int GetPow2MaxAlignment(int const& pow2startAlignment, int const& value)
+bool isStrideSupported(int stride, int minStride, int alignment)
 {
-  if((pow2startAlignment % 2) != 0)
-    return 0;
+  if(stride < minStride)
+    return false;
 
-  if((value % pow2startAlignment) != 0)
-    return 0;
+  if(stride % alignment != 0)
+    return false;
 
-  int n = 0;
+  return true;
+}
 
-  while((1 << n) != pow2startAlignment)
-    n++;
+bool isSliceHeightSupported(int sliceHeight, int minSliceHeight, int alignment)
+{
+  if(sliceHeight < minSliceHeight)
+    return false;
 
-  while((value % (1 << n)) == 0)
-    n++;
+  if(sliceHeight % alignment != 0)
+    return false;
 
-  return 1 << (n - 1);
+  return true;
 }
 
 bool DecModule::SetResolution(Resolution const& resolution)
@@ -256,30 +253,22 @@ bool DecModule::SetResolution(Resolution const& resolution)
   if((resolution.height % 8) != 0)
     return false;
 
-  if(resolution.stride != 0)
-  {
-    int const align = GetPow2MaxAlignment(8, resolution.stride);
-
-    if(align == 0)
-      return false;
-
-    if(align > media->strideAlignment)
-      media->strideAlignment = align;
-  }
-
-  if(resolution.sliceHeight != 0)
-  {
-    int const align = GetPow2MaxAlignment(8, resolution.sliceHeight);
-
-    if(align == 0)
-      return false;
-
-    if(align > media->sliceHeightAlignment)
-      media->sliceHeightAlignment = align;
-  }
-
   auto& streamSettings = media->settings.tStream;
   streamSettings.tDim = { resolution.width, resolution.height };
+
+  auto minStride = RoundUp(AL_Decoder_RoundPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
+  if(!isStrideSupported(resolution.stride, minStride, media->strideAlignment))
+    media->stride = minStride;
+  else
+    media->stride = resolution.stride;
+
+  auto minSliceHeight = RoundUp(AL_Decoder_RoundHeight(streamSettings.tDim.iHeight), media->sliceHeightAlignment);
+  if(!isSliceHeightSupported(resolution.sliceHeight, minSliceHeight, media->sliceHeightAlignment))
+    media->sliceHeight = minSliceHeight;
+  else
+    media->sliceHeight = resolution.sliceHeight;
+
+
   return true;
 }
 
@@ -296,6 +285,11 @@ bool DecModule::SetFormat(Format const& format)
   auto& streamSettings = media->settings.tStream;
   streamSettings.iBitDepth = format.bitdepth;
   streamSettings.eChroma = ConvertModuleToSoftChroma(format.color);
+
+  auto minStride = RoundUp(AL_Decoder_RoundPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
+  if(!isStrideSupported(media->stride, minStride, media->strideAlignment))
+    media->stride = minStride;
+
   return true;
 }
 
