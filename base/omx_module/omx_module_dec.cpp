@@ -223,28 +223,6 @@ bool DecModule::IsEnableSubframe() const
   return DECODE_UNIT_SLICE == ConvertSoftToModuleDecodeUnit(settings.eDecUnit);
 }
 
-bool isStrideSupported(int stride, int minStride, int alignment)
-{
-  if(stride < minStride)
-    return false;
-
-  if(stride % alignment != 0)
-    return false;
-
-  return true;
-}
-
-bool isSliceHeightSupported(int sliceHeight, int minSliceHeight, int alignment)
-{
-  if(sliceHeight < minSliceHeight)
-    return false;
-
-  if(sliceHeight % alignment != 0)
-    return false;
-
-  return true;
-}
-
 bool DecModule::SetResolution(Resolution const& resolution)
 {
   if((resolution.width % 8) != 0)
@@ -256,18 +234,11 @@ bool DecModule::SetResolution(Resolution const& resolution)
   auto& streamSettings = media->settings.tStream;
   streamSettings.tDim = { resolution.width, resolution.height };
 
-  auto minStride = RoundUp(AL_Decoder_RoundPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
-  if(!isStrideSupported(resolution.stride, minStride, media->strideAlignment))
-    media->stride = minStride;
-  else
-    media->stride = resolution.stride;
+  auto minStride = (int)RoundUp(AL_Decoder_RoundPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
+  media->stride = max(minStride, RoundUp(resolution.stride, media->strideAlignment));
 
-  auto minSliceHeight = RoundUp(AL_Decoder_RoundHeight(streamSettings.tDim.iHeight), media->sliceHeightAlignment);
-  if(!isSliceHeightSupported(resolution.sliceHeight, minSliceHeight, media->sliceHeightAlignment))
-    media->sliceHeight = minSliceHeight;
-  else
-    media->sliceHeight = resolution.sliceHeight;
-
+  auto minSliceHeight = (int)RoundUp(AL_Decoder_RoundHeight(streamSettings.tDim.iHeight), media->sliceHeightAlignment);
+  media->sliceHeight = max(minSliceHeight, RoundUp(resolution.sliceHeight, media->sliceHeightAlignment));
 
   return true;
 }
@@ -286,9 +257,8 @@ bool DecModule::SetFormat(Format const& format)
   streamSettings.iBitDepth = format.bitdepth;
   streamSettings.eChroma = ConvertModuleToSoftChroma(format.color);
 
-  auto minStride = RoundUp(AL_Decoder_RoundPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
-  if(!isStrideSupported(media->stride, minStride, media->strideAlignment))
-    media->stride = minStride;
+  auto minStride = (int)RoundUp(AL_Decoder_RoundPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
+  media->stride = max(minStride, media->stride);
 
   return true;
 }

@@ -943,28 +943,6 @@ FileDescriptors EncModule::GetFileDescriptors() const
   return fds;
 }
 
-bool isStrideSupported(int stride, int minStride, int alignment)
-{
-  if(stride < minStride)
-    return false;
-
-  if(stride % alignment != 0)
-    return false;
-
-  return true;
-}
-
-bool isSliceHeightSupported(int sliceHeight, int minSliceHeight, int alignment)
-{
-  if(sliceHeight < minSliceHeight)
-    return false;
-
-  if(sliceHeight % alignment != 0)
-    return false;
-
-  return true;
-}
-
 bool EncModule::SetResolution(Resolution const& resolution)
 {
   if((resolution.width % 8) != 0)
@@ -977,17 +955,11 @@ bool EncModule::SetResolution(Resolution const& resolution)
   chan.uWidth = resolution.width;
   chan.uHeight = resolution.height;
 
-  auto minStride = RoundUp(AL_CalculatePitchValue(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), media->strideAlignment);
-  if(!isStrideSupported(resolution.stride, minStride, media->strideAlignment))
-    media->stride = minStride;
-  else
-    media->stride = resolution.stride;
+  auto minStride = (int)RoundUp(AL_CalculatePitchValue(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), media->strideAlignment);
+  media->stride = max(minStride, RoundUp(resolution.stride, media->strideAlignment));
 
-  auto minSliceHeight = RoundUp(chan.uHeight, media->sliceHeightAlignment);
-  if(!isSliceHeightSupported(resolution.sliceHeight, minSliceHeight, media->sliceHeightAlignment))
-    media->sliceHeight = minSliceHeight;
-  else
-    media->sliceHeight = resolution.sliceHeight;
+  auto minSliceHeight = (int)RoundUp(chan.uHeight, media->sliceHeightAlignment);
+  media->sliceHeight = max(minSliceHeight, RoundUp(resolution.sliceHeight, media->sliceHeightAlignment));
 
   return true;
 }
@@ -1007,8 +979,7 @@ bool EncModule::SetFormat(Format const& format)
   AL_SET_CHROMA_MODE(chan.ePicFormat, ConvertModuleToSoftChroma(format.color));
 
   auto minStride = RoundUp(AL_CalculatePitchValue(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), media->strideAlignment);
-  if(!isStrideSupported(media->stride, minStride, media->strideAlignment))
-    media->stride = minStride;
+  media->stride = max(minStride, media->stride);
 
   return true;
 }
