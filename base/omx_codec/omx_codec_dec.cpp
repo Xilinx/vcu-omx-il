@@ -490,7 +490,7 @@ static bool SetPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port
   auto const rollback = ConstructPortDefinition(port, module);
   auto const video = settings.format.video;
 
-  if(!SetResolution(video, module))
+  if(!SetFormat(video.eColorFormat, module))
   {
     SetPortDefinition(rollback, port, module);
     return false;
@@ -502,7 +502,7 @@ static bool SetPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port
     return false;
   }
 
-  if(!SetFormat(video.eColorFormat, module))
+  if(!SetResolution(video, module))
   {
     SetPortDefinition(rollback, port, module);
     return false;
