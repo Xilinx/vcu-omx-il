@@ -77,10 +77,14 @@ static ErrorType ToModuleError(int errorCode)
     return ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE;
   case AL_ERR_CHAN_CREATION_NOT_ENOUGH_CORES:
     return ERROR_CHAN_CREATION_RESOURCE_FRAGMENTED;
-  case AL_ERR_REQUEST_MALFORMED:
+  case AL_ERR_REQUEST_MALFORMED: // fallthrough
+  case AL_ERR_CMD_NOT_ALLOWED: // fallthrough
+  case AL_ERR_INVALID_CMD_VALUE:
     return ERROR_BAD_PARAMETER;
   case AL_ERR_NO_MEMORY:
     return ERROR_NO_MEMORY;
+  case AL_ERR_INIT_FAILED: /* will be deprecated */
+    return ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE;
   default:
     return ERROR_UNDEFINED;
   }
