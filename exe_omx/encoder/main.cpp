@@ -651,7 +651,8 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   }
   LOGI("cmd file = %s\n", cmd_file.c_str());
   ifstream cmdfile(cmd_file != "" ? cmd_file.c_str() : "/dev/null");
-  app.encCmd = new CEncCmdMngr(cmdfile, 3, -1);
+  auto encCmd = CEncCmdMngr(cmdfile, 3, -1);
+  app.encCmd = &encCmd;
 
   OMX_CALL(OMX_Init());
 
@@ -731,7 +732,8 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   app.read = false;
   lock.unlock();
 
-  app.cmdSender = new CommandsSender(app.hEncoder);
+  auto cmdSender = CommandsSender(app.hEncoder);
+  app.cmdSender = &cmdSender;
 
   for(auto i = 0; i < get.GetBuffersCount(app.input.index); i++)
   {
@@ -779,9 +781,6 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   infile.close();
   outfile.close();
   cmdfile.close();
-
-  delete app.cmdSender;
-  delete app.encCmd;
 
   return OMX_ErrorNone;
 }
