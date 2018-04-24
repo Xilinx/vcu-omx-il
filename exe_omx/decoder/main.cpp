@@ -241,16 +241,13 @@ ofstream outfile;
 
 static OMX_PARAM_PORTDEFINITIONTYPE paramPort;
 
-static void Usage(CommandLineParser const& opt, char* ExeName)
+static void Usage(CommandLineParser& opt, char* ExeName)
 {
   cerr << "Usage: " << ExeName << " <InputFile> [options]" << endl;
   cerr << "Options:" << endl;
 
-  for(auto& name : opt.displayOrder)
-  {
-    auto& o = opt.options.at(name);
-    cerr << "  " << o.desc << endl;
-  }
+  for(auto& command: opt.displayOrder)
+    cerr << "  " << opt.descs[command] << endl;
 }
 
 bool setChroma(string user_chroma, OMX_COLOR_FORMATTYPE* chroma)
@@ -315,10 +312,11 @@ void parsePreAllocArgs(Settings* settings, string& toParse)
 void parseCommandLine(int argc, char** argv, Application& app)
 {
   string user_chroma = "NV12";
-
   Settings& settings = app.settings;
+
   auto opt = CommandLineParser();
   bool help = false;
+  opt.addString("input_file", &input_file, "Input file");
   opt.addFlag("--help,-help,-h", &help, "Show this help");
   opt.addFlag("--hevc,-hevc", &settings.codecImplem, "load HEVC decoder (default)", HEVC);
   opt.addFlag("--avc,-avc", &settings.codecImplem, "load AVC decoder", AVC);
@@ -326,11 +324,11 @@ void parseCommandLine(int argc, char** argv, Application& app)
   opt.addFlag("--avc_hard,-hevc_hard", &settings.codecImplem, "Use hard avc decoder", AVC_HARD);
   opt.addString("--out,-o", &output_file, "Output compressed file name");
   opt.addString("--chroma,-chroma", &user_chroma, "<NV12 || RX0A || NV16 || RX2A> ('NV12' default)");
-  opt.addOption("--dma-in,-dma-in", [&]() {
+  opt.addOption("--dma-in,-dma-in", [&](string) {
     settings.bDMAIn = true;
     settings.eDMAIn = OMX_ALG_BUF_DMA;
   }, "use dmabufs for input port");
-  opt.addOption("--dma-out,-dma-out", [&]() {
+  opt.addOption("--dma-out,-dma-out", [&](string) {
     settings.bDMAOut = true;
     settings.eDMAOut = OMX_ALG_BUF_DMA;
   }, "use dmabufs for output port");
@@ -343,9 +341,7 @@ void parseCommandLine(int argc, char** argv, Application& app)
     exit(1);
   }
 
-  input_file = string(argv[1]);
-
-  opt.parse(argc - 1, &argv[1]);
+  opt.parse(argc, argv);
 
   if(help)
   {

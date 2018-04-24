@@ -243,16 +243,12 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   return OMX_ErrorNone;
 };
 
-static void Usage(CommandLineParser const& opt, char* ExeName)
+static void Usage(CommandLineParser& opt, char* ExeName)
 {
   cerr << "Usage: " << ExeName << " <InputFile> [options]" << endl;
   cerr << "Options:" << endl;
-
-  for(auto& name : opt.displayOrder)
-  {
-    auto& o = opt.options.at(name);
-    cerr << "  " << o.desc << endl;
-  }
+  for(auto& command: opt.displayOrder)
+    cerr << "  " << opt.descs[command] << endl;
 }
 
 static void parseCommandLine(int argc, char** argv, Application& app)
@@ -262,6 +258,7 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   bool help = false;
 
   auto opt = CommandLineParser();
+  opt.addString("input_file", &input_file, "Input file");
   opt.addFlag("--help,-help,-h", &help, "Show this help");
   opt.addInt("--width,-w", &settings.width, "Input width");
   opt.addInt("--height,-h", &settings.height, "Input height");
@@ -277,14 +274,7 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addInt("--subframe,-subframe", &user_slice, "<4 || 8 || 16>: activate subframe latency");
   opt.addString("--cmd_file,-cmd_file", &cmd_file, "File to precise dynamic cmd");
 
-  if(argc < 2)
-  {
-    Usage(opt, argv[0]);
-    exit(1);
-  }
-
-  input_file = string(argv[1]);
-  opt.parse(argc - 1, &argv[1]);
+  opt.parse(argc, argv);
 
   if(help)
   {

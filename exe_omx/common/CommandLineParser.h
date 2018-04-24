@@ -43,20 +43,17 @@
 #include <iomanip>
 #include <queue>
 #include <map>
+#include <cassert>
 
 using namespace std;
 
 struct CommandLineParser
 {
   CommandLineParser() = default;
-  CommandLineParser(function<void(string)> onOptionParsed_) :
-    onOptionParsed{onOptionParsed_}
-  {
-  };
 
   struct Option
   {
-    function<void(void)> parser;
+    function<void(string word)> parser;
     string desc;
   };
 
@@ -69,20 +66,28 @@ struct CommandLineParser
     {
       auto const word = popWord();
 
-      auto i_func = options.find(word);
+      if(isOption(word))
+      {
+        auto i_func = options.find(word);
 
-      onOptionParsed(word);
+        if(i_func == options.end())
+          throw runtime_error("Unknown option: '" + word + "', use -h to get help");
 
-      if(i_func == options.end())
-        throw runtime_error("Unknown option: '" + word + "', use -h to get help");
-
-      i_func->second.parser();
+        i_func->second.parser(word);
+      }
+      else /* positional argument */
+      {
+        if(positionals.empty())
+          throw runtime_error("Too many positional arguments. Can't interpret '" + word + "', use -h to get help");
+        auto& positional = positionals.front();
+        positional.parser(word);
+        positionals.pop_front();
+      }
     }
   }
 
-  int popInt()
+  int readInt(string word)
   {
-    auto word = popWord();
     stringstream ss(word);
     ss.unsetf(std::ios::dec);
     ss.unsetf(std::ios::hex);
@@ -96,6 +101,12 @@ struct CommandLineParser
     return value;
   }
 
+  int popInt()
+  {
+    auto word = popWord();
+    return readInt(word);
+  }
+
   string popWord()
   {
     if(words.empty())
@@ -105,7 +116,7 @@ struct CommandLineParser
     return word;
   }
 
-  void addOption(string name, function<void(void)> func, string desc_)
+  void addOption(string name, function<void(string)> func, string desc_)
   {
     Option o;
     o.parser = func;
@@ -118,9 +129,12 @@ struct CommandLineParser
   void addCustom(string name, VariableType* value, ParserRetType (* customParser)(const string &), string desc_)
   {
     Option o;
-    o.parser = [=]()
+    o.parser = [=](string word)
                {
-                 * value = (VariableType)customParser(popWord());
+                 if(isOption(word))
+                   *value = (VariableType)customParser(popWord());
+                 else
+                   *value = customParser(word);
                };
     o.desc = makeDescription(name, "value", desc_);
     insertOption(name, o);
@@ -131,8 +145,9 @@ struct CommandLineParser
   {
     Option o;
     o.desc = makeDescription(name, "", desc_);
-    o.parser = [=]()
+    o.parser = [=](string word)
                {
+                 assert(isOption(word));
                  * flag = value;
                };
     insertOption(name, o);
@@ -143,9 +158,12 @@ struct CommandLineParser
   {
     Option o;
     o.desc = makeDescription(name, "number", desc_);
-    o.parser = [=]()
+    o.parser = [=](string word)
                {
-                 * number = popInt();
+                 if(isOption(word))
+                   *number = popInt();
+                 else
+                   *number = readInt(word);
                };
     insertOption(name, o);
   }
@@ -154,15 +172,20 @@ struct CommandLineParser
   {
     Option o;
     o.desc = makeDescription(name, "string", desc_);
-    o.parser = [=]()
+    o.parser = [=](string word)
                {
-                 * value = popWord();
+                 if(isOption(word))
+                   *value = popWord();
+                 else
+                   *value = word;
                };
     insertOption(name, o);
   }
 
   map<string, Option> options;
+  map<string, string> descs;
   vector<string> displayOrder;
+  deque<Option> positionals;
 
 private:
   void insertOption(string name, Option o)
@@ -170,12 +193,15 @@ private:
     string item;
     stringstream ss(name);
 
-    while(getline(ss, item, ','))
+    if(isOption(name))
     {
-      options[item] = o;
-      options[name] = o;
+      while(getline(ss, item, ','))
+        options[item] = o;
     }
+    else
+      positionals.push_back(o);
 
+    descs[name] = o.desc;
     displayOrder.push_back(name);
   }
 
@@ -193,9 +219,11 @@ private:
     return ss.str();
   }
 
+  bool isOption(string word)
+  {
+    return word[0] == '-';
+  }
+
   queue<string> words;
-  function<void(string)> onOptionParsed = [](string)
-                                          {
-                                          };
 };
 
