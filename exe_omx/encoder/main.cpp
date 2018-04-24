@@ -421,8 +421,9 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
 
   case OMX_EventError:
   {
-    LOGE("Comp %p : %s\n", hComponent, ToStringOMXEvent.at(eEvent));
-    return OMX_ErrorUndefined;
+    auto cmd = static_cast<OMX_ERRORTYPE>(Data1);
+    LOGE("Comp %p : %s (%s)\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXError.at(cmd));
+    exit(1);
   }
   default:
   {

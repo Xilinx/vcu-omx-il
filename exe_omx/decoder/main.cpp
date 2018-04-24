@@ -67,6 +67,7 @@ extern "C"
 #include "base/omx_utils/locked_queue.h"
 #include "base/omx_utils/semaphore.h"
 #include "base/omx_utils/omx_log.h"
+#include "base/omx_utils/omx_translate.h"
 
 #include "../common/helpers.h"
 #include "../common/setters.h"
@@ -601,8 +602,8 @@ OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENT
   }
   else if(eEvent == OMX_EventError)
   {
-    LOGI("Event error: 0x%.8X", Data1);
-    cout << "The component failed with an unknown error" << endl;
+    auto cmd = static_cast<OMX_ERRORTYPE>(Data1);
+    LOGE("Comp %p : %s (%s)\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXError.at(cmd));
     exit(1);
   }
   else if(eEvent == OMX_EventBufferFlag)
