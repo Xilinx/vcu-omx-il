@@ -143,11 +143,11 @@ static OMX_ERRORTYPE ToOmxError(ErrorType error)
   switch(error)
   {
   case ERROR_CHAN_CREATION_NO_CHANNEL_AVAILABLE:
-    return OMX_ErrorNoChannelLeft;
+    return OMX_ALG_ErrorNoChannelLeft;
   case ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE:
-    return OMX_ErrorChannelResourceUnavailable;
+    return OMX_ALG_ErrorChannelResourceUnavailable;
   case ERROR_CHAN_CREATION_RESOURCE_FRAGMENTED:
-    return OMX_ErrorChannelResourceFragmented;
+    return OMX_ALG_ErrorChannelResourceFragmented;
   case ERROR_NO_MEMORY:
     return OMX_ErrorInsufficientResources;
   case ERROR_BAD_PARAMETER:
