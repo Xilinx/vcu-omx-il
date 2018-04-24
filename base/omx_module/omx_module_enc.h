@@ -140,7 +140,7 @@ public:
   bool Fill(uint8_t* buffer, int offset, int size);
   Flags GetFlags(void* handle);
 
-  bool Run(bool shouldPrealloc);
+  ErrorType Run(bool shouldPrealloc);
   bool Pause();
   bool Flush();
   void Stop();
@@ -163,7 +163,7 @@ private:
 
   bool Use(void* handle, uint8_t* buffer, int size);
   void Unuse(void* handle);
-  bool CreateEncoder();
+  ErrorType CreateEncoder();
   bool DestroyEncoder();
   bool isCreated;
   void ReleaseBuf(AL_TBuffer const* buf, bool isDma, bool isSrc);

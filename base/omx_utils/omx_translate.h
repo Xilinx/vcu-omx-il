@@ -81,6 +81,9 @@ static std::map<OMX_ERRORTYPE, const char*> ToStringOMXError =
   { OMX_ErrorContentPipeCreationFailed, "OMX_ErrorContentPipeCreationFailed" },
   { OMX_ErrorSeperateTablesUsed, "OMX_ErrorSeperateTablesUsed" },
   { OMX_ErrorTunnelingUnsupported, "OMX_ErrorTunnelingUnsupported" },
+  { OMX_ErrorNoChannelLeft, "OMX_ErrorNoChannelLeft" },
+  { OMX_ErrorChannelResourceUnavailable, "OMX_ErrorChannelResourceUnavailable" },
+  { OMX_ErrorChannelResourceFragmented, "OMX_ErrorChannelResourceFragmented" },
   { static_cast<OMX_ERRORTYPE>(OMX_ErrorInvalidMode), "OMX_ErrorInvalidMode" },
 };
 

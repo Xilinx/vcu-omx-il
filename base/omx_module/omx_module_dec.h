@@ -105,7 +105,7 @@ public:
   bool Empty(uint8_t* buffer, int offset, int size, void* handle);
   bool Fill(uint8_t* buffer, int offset, int size);
 
-  bool Run(bool shouldPrealloc);
+  ErrorType Run(bool shouldPrealloc);
   bool Pause();
   bool Flush();
   void Stop();
@@ -135,7 +135,7 @@ private:
   AL_HDecoder decoder;
 
   EOSHandles eosHandles;
-  bool CreateDecoder(bool shouldPrealloc);
+  ErrorType CreateDecoder(bool shouldPrealloc);
   bool DestroyDecoder();
   void ReleaseAllBuffers();
   void FlushEosHandles();

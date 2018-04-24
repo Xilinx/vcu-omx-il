@@ -65,6 +65,27 @@ static inline int GetBitdepthFromFormat(AL_EPicFormat const& format)
   return AL_GET_BITDEPTH(format);
 }
 
+static ErrorType ToModuleError(int errorCode)
+{
+  switch(errorCode)
+  {
+  case AL_SUCCESS:
+    return SUCCESS;
+  case AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE:
+    return ERROR_CHAN_CREATION_NO_CHANNEL_AVAILABLE;
+  case AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE:
+    return ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE;
+  case AL_ERR_CHAN_CREATION_NOT_ENOUGH_CORES:
+    return ERROR_CHAN_CREATION_RESOURCE_FRAGMENTED;
+  case AL_ERR_REQUEST_MALFORMED:
+    return ERROR_BAD_PARAMETER;
+  case AL_ERR_NO_MEMORY:
+    return ERROR_NO_MEMORY;
+  default:
+    return ERROR_UNDEFINED;
+  }
+}
+
 static bool CheckValidity(AL_TEncSettings const& settings)
 {
   auto err = AL_Settings_CheckValidity(const_cast<AL_TEncSettings*>(&settings), stderr);
@@ -119,7 +140,7 @@ string ToStringEncodeError(int error)
   return str_error;
 }
 
-bool EncModule::CreateEncoder()
+ErrorType EncModule::CreateEncoder()
 {
   if(encoder)
   {
@@ -133,7 +154,7 @@ bool EncModule::CreateEncoder()
   if(!roiCtx)
   {
     fprintf(stderr, "Failed to create ROI manager:\n");
-    return false;
+    return ERROR_BAD_PARAMETER;
   }
 
   auto& settings = media->settings;
@@ -144,13 +165,13 @@ bool EncModule::CreateEncoder()
   {
     fprintf(stderr, "Failed to create Encoder:\n");
     fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
-    return false;
+    return ToModuleError(errorCode);
   }
 
   eosHandles.output = nullptr;
   eosHandles.input = nullptr;
 
-  return true;
+  return SUCCESS;
 }
 
 bool EncModule::DestroyEncoder()
@@ -211,19 +232,19 @@ void EncModule::Destroy()
   isCreated = false;
 }
 
-bool EncModule::Run(bool)
+ErrorType EncModule::Run(bool)
 {
   if(encoder)
   {
     fprintf(stderr, "You can't call Run twice\n");
     assert(0);
-    return false;
+    return ERROR_UNDEFINED;
   }
 
   if(!isCreated)
   {
     fprintf(stderr, "You should call Create before Run\n");
-    return false;
+    return ERROR_UNDEFINED;
   }
 
   return CreateEncoder();
@@ -369,7 +390,7 @@ bool EncModule::Flush()
     return false;
 
   Stop();
-  return Run(true);
+  return Run(true) == SUCCESS;
 }
 
 void EncModule::Free(void* buffer)
@@ -709,7 +730,7 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
     fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
 
     if((errorCode & AL_ERROR) && (errorCode != AL_ERR_STREAM_OVERFLOW) && callbacks.event)
-      callbacks.event(CALLBACK_EVENT_ERROR, nullptr);
+      callbacks.event(CALLBACK_EVENT_ERROR, (void*)ToModuleError(errorCode));
   }
 
   if(isSrcRelease)

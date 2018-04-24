@@ -138,20 +138,36 @@ void Codec::ReleaseCallBack(bool isInput, uint8_t* released)
     ReturnFilledBuffer(released, 0, 0);
 }
 
+static OMX_ERRORTYPE ToOmxError(ErrorType error)
+{
+  switch(error)
+  {
+  case ERROR_CHAN_CREATION_NO_CHANNEL_AVAILABLE:
+    return OMX_ErrorNoChannelLeft;
+  case ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE:
+    return OMX_ErrorChannelResourceUnavailable;
+  case ERROR_CHAN_CREATION_RESOURCE_FRAGMENTED:
+    return OMX_ErrorChannelResourceFragmented;
+  case ERROR_NO_MEMORY:
+    return OMX_ErrorInsufficientResources;
+  case ERROR_BAD_PARAMETER:
+    return OMX_ErrorBadParameter;
+  default:
+    return OMX_ErrorUndefined;
+  }
+}
+
 void Codec::EventCallBack(CallbackEventType type, void* data)
 {
-  (void)data;
-
   if(type > CALLBACK_EVENT_MAX)
     assert(0);
   switch(type)
   {
   case CALLBACK_EVENT_ERROR:
   {
+    ErrorType errorCode = (ErrorType)(uintptr_t)data;
     LOGE("%s", ToStringCallbackEvent.at(type));
-
-    if(callbacks.EventHandler)
-      callbacks.EventHandler(component, app, OMX_EventError, OMX_ErrorUndefined, 0, nullptr);
+    callbacks.EventHandler(component, app, OMX_EventError, ToOmxError(errorCode), 0, nullptr);
     break;
   }
   default:
@@ -1093,8 +1109,12 @@ void Codec::TreatSetStateCommand(Task* task)
     }
 
     if(isTransitionToRun(state, newState))
-      if(!module->Run(shouldPrealloc))
-        throw OMX_ErrorUndefined;
+    {
+      auto error = module->Run(shouldPrealloc);
+
+      if(error)
+        throw ToOmxError(error);
+    }
 
     if(isTransitionToPause(state, newState))
       module->Pause();

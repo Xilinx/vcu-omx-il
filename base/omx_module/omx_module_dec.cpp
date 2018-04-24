@@ -330,6 +330,27 @@ string ToStringDecodeError(int error)
   return str_error;
 }
 
+static ErrorType ToModuleError(int errorCode)
+{
+  switch(errorCode)
+  {
+  case AL_SUCCESS:
+    return SUCCESS;
+  case AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE:
+    return ERROR_CHAN_CREATION_NO_CHANNEL_AVAILABLE;
+  case AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE:
+    return ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE;
+  case AL_ERR_CHAN_CREATION_NOT_ENOUGH_CORES:
+    return ERROR_CHAN_CREATION_RESOURCE_FRAGMENTED;
+  case AL_ERR_REQUEST_MALFORMED:
+    return ERROR_BAD_PARAMETER;
+  case AL_ERR_NO_MEMORY:
+    return ERROR_NO_MEMORY;
+  default:
+    return ERROR_UNDEFINED;
+  }
+}
+
 void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
 {
   if(!decodedFrame)
@@ -339,7 +360,7 @@ void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
     fprintf(stderr, "/!\\ %s (%d)\n", ToStringDecodeError(error).c_str(), error);
 
     if(error & AL_ERROR)
-      callbacks.event(CALLBACK_EVENT_ERROR, nullptr);
+      callbacks.event(CALLBACK_EVENT_ERROR, (void*)ToModuleError(error));
 
     return;
   }
@@ -418,7 +439,7 @@ void DecModule::ResolutionFound(int const& bufferNumber, int const& bufferSize, 
     callbacks.event(CALLBACK_EVENT_RESOLUTION_CHANGE, nullptr);
 }
 
-bool DecModule::CreateDecoder(bool shouldPrealloc)
+ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
 {
   if(decoder)
   {
@@ -437,13 +458,13 @@ bool DecModule::CreateDecoder(bool shouldPrealloc)
   if(errorCode != AL_SUCCESS)
   {
     fprintf(stderr, "Failed to create Decoder: %d\n", errorCode);
-    return false;
+    return ToModuleError(errorCode);
   }
 
   if(shouldPrealloc)
     AL_Decoder_PreallocateBuffers(decoder);
 
-  return true;
+  return SUCCESS;
 }
 
 bool DecModule::DestroyDecoder()
@@ -768,19 +789,19 @@ bool DecModule::Fill(uint8_t* buffer, int offset, int size)
   return true;
 }
 
-bool DecModule::Run(bool shouldPrealloc)
+ErrorType DecModule::Run(bool shouldPrealloc)
 {
   if(decoder)
   {
     fprintf(stderr, "You can't call Run twice\n");
     assert(0);
-    return false;
+    return ERROR_UNDEFINED;
   }
 
   if(!isCreated)
   {
     fprintf(stderr, "You should call Create before Run\n");
-    return false;
+    return ERROR_UNDEFINED;
   }
 
   eosHandles.input = nullptr;
@@ -808,7 +829,7 @@ bool DecModule::Flush()
   }
 
   Stop();
-  return Run(true);
+  return Run(true) == SUCCESS;
 }
 
 void DecModule::FlushEosHandles()

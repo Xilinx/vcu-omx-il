@@ -50,6 +50,11 @@ enum ErrorType
   ERROR_NOT_IMPLEMENTED,
   ERROR_BAD_STATE,
   ERROR_UNDEFINED,
+  /* channel creation error */
+  ERROR_CHAN_CREATION_NO_CHANNEL_AVAILABLE,
+  ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE,
+  ERROR_CHAN_CREATION_RESOURCE_FRAGMENTED,
+  ERROR_NO_MEMORY,
   ERROR_MAX,
 };
 
@@ -69,6 +74,18 @@ static std::map<ErrorType, const char*> ToStringError
   },
   {
     ERROR_UNDEFINED, "ERROR_UNDEFINED"
+  },
+  {
+    ERROR_CHAN_CREATION_NO_CHANNEL_AVAILABLE, "ERROR_CHAN_CREATION_NO_CHANNEL_AVAILABLE"
+  },
+  {
+    ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE, "ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE"
+  },
+  {
+    ERROR_CHAN_CREATION_RESOURCE_FRAGMENTED, "ERROR_CHAN_CREATION_RESOURCE_FRAGMENTED"
+  },
+  {
+    ERROR_NO_MEMORY, "ERROR_NO_MEMORY"
   },
   {
     ERROR_MAX, "ERROR_MAX"
@@ -145,7 +162,7 @@ struct ModuleInterface
   virtual bool Empty(uint8_t* buffer, int offset, int size, void* handle) = 0;
   virtual bool Fill(uint8_t* buffer, int offset, int size) = 0;
 
-  virtual bool Run(bool shouldPrealloc) = 0;
+  virtual ErrorType Run(bool shouldPrealloc) = 0;
   virtual bool Pause() = 0;
   virtual bool Flush() = 0;
   virtual void Stop() = 0;
