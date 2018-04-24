@@ -38,7 +38,7 @@
 #pragma once
 
 #include <stdio.h>
-#define ENABLE_LOG 0
+#define LOG_LEVEL 4
 #define VERBOSE 0
 
 #if __ANDROID_API__
@@ -48,9 +48,9 @@
 #define AllegroLOGE ALOGE
 #else
 
-#define LOG(err, fmt, ...) \
+#define LOG(level, err, fmt, ...) \
   do { \
-    if(ENABLE_LOG) \
+    if(level <= LOG_LEVEL) \
     { \
       if(VERBOSE) \
       { \
@@ -64,12 +64,12 @@
   } while(0)
 
 #if VERBOSE
-#define LOGV(fmt, ...) LOG("V", fmt, ## __VA_ARGS__)
+#define LOGV(fmt, ...) LOG(10, "V", fmt, ## __VA_ARGS__)
 #else
 #define LOGV(fmt, ...) ((void)0)
 #endif
-#define LOGI(fmt, ...) LOG("I", fmt, ## __VA_ARGS__)
-#define LOGW(fmt, ...) LOG("W", fmt, ## __VA_ARGS__)
-#define LOGE(fmt, ...) LOG("E", fmt, ## __VA_ARGS__)
+#define LOGI(fmt, ...) LOG(5, "I", fmt, ## __VA_ARGS__)
+#define LOGW(fmt, ...) LOG(3, "W", fmt, ## __VA_ARGS__)
+#define LOGE(fmt, ...) LOG(1, "E", fmt, ## __VA_ARGS__)
 #endif
 
