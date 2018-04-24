@@ -346,6 +346,8 @@ static ErrorType ToModuleError(int errorCode)
     return ERROR_BAD_PARAMETER;
   case AL_ERR_NO_MEMORY:
     return ERROR_NO_MEMORY;
+  case AL_ERR_INIT_FAILED: /* will be deprecated */
+    return ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE;
   default:
     return ERROR_UNDEFINED;
   }
