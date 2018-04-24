@@ -154,8 +154,6 @@ void DecCodec::FillThisBufferCallBack(uint8_t* filled, int offset, int size)
 
 void DecCodec::EventCallBack(CallbackEventType type, void* data)
 {
-  (void)data;
-
   if(type > CALLBACK_EVENT_MAX)
     assert(0);
   switch(type)
@@ -170,16 +168,9 @@ void DecCodec::EventCallBack(CallbackEventType type, void* data)
       callbacks.EventHandler(component, app, OMX_EventPortSettingsChanged, 1, 0, nullptr);
     break;
   }
-  case CALLBACK_EVENT_ERROR:
-  {
-    LOGE("%s", ToStringCallbackEvent.at(type));
-
-    if(callbacks.EventHandler)
-      callbacks.EventHandler(component, app, OMX_EventError, OMX_ErrorUndefined, 0, nullptr);
-    break;
-  }
   default:
-    LOGE("%s is unsupported", ToStringCallbackEvent.at(type));
+    Codec::EventCallBack(type, data);
+    break;
   }
 }
 
