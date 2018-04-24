@@ -436,7 +436,7 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
   }
   default:
   {
-    LOGE("Comp %p : Unspported %s\n", hComponent, ToStringOMXEvent.at(eEvent));
+    LOGE("Comp %p : Unsupported %s\n", hComponent, ToStringOMXEvent.at(eEvent));
     return OMX_ErrorNotImplemented;
   }
   }
