@@ -55,6 +55,16 @@ using std::shared_ptr;
   { \
     void FORCE_SEMICOLON()
 
+#define OMX_CATCH_L(f) \
+  } \
+  catch(OMX_ERRORTYPE& e) \
+  { \
+    LOGE("%s", ToStringOMXError.at(e)); \
+    f(e); \
+    return e; \
+  } \
+  void FORCE_SEMICOLON()
+
 #define OMX_CATCH() \
   } \
   catch(OMX_ERRORTYPE& e) \
@@ -743,7 +753,11 @@ OMX_ERRORTYPE Codec::UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX
   port->Add(*header);
 
   return OMX_ErrorNone;
-  OMX_CATCH();
+  OMX_CATCH_L([&](OMX_ERRORTYPE& e)
+  {
+    if(e != OMX_ErrorBadPortIndex)
+      GetPort(index)->ErrorOccured();
+  });
 }
 
 OMX_ERRORTYPE Codec::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size)
@@ -768,7 +782,11 @@ OMX_ERRORTYPE Codec::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX
   port->Add(*header);
 
   return OMX_ErrorNone;
-  OMX_CATCH();
+  OMX_CATCH_L([&](OMX_ERRORTYPE& e)
+  {
+    if(e != OMX_ErrorBadPortIndex)
+      GetPort(index)->ErrorOccured();
+  });
 }
 
 OMX_ERRORTYPE Codec::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADERTYPE* header)
@@ -790,7 +808,11 @@ OMX_ERRORTYPE Codec::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADERTYP
   DeleteHeader(header);
 
   return OMX_ErrorNone;
-  OMX_CATCH();
+  OMX_CATCH_L([&](OMX_ERRORTYPE& e)
+  {
+    if(e != OMX_ErrorBadPortIndex)
+      GetPort(index)->ErrorOccured();
+  });
 }
 
 void Codec::AttachMark(OMX_BUFFERHEADERTYPE* header)
@@ -1069,6 +1091,12 @@ inline void Codec::PopulatingPorts()
 
     if(port->enable)
       port->WaitFull();
+
+    if(port->error)
+    {
+      port->ResetError();
+      throw OMX_ErrorInsufficientResources;
+    }
   }
 }
 
@@ -1078,6 +1106,12 @@ inline void Codec::UnpopulatingPorts()
   {
     auto port = GetPort(i);
     port->WaitEmpty();
+
+    if(port->error)
+    {
+      port->ResetError();
+      throw OMX_ErrorUndefined;
+    }
   }
 }
 

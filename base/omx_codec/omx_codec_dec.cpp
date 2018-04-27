@@ -61,6 +61,16 @@
   } \
   void FORCE_SEMICOLON()
 
+#define OMX_CATCH_L(f) \
+  } \
+  catch(OMX_ERRORTYPE& e) \
+  { \
+    LOGE("%s", ToStringOMXError.at(e)); \
+    f(e); \
+    return e; \
+  } \
+  void FORCE_SEMICOLON()
+
 #define OMX_CATCH_PARAMETER() \
   } \
   catch(OMX_ERRORTYPE& e) \
@@ -803,7 +813,11 @@ OMX_ERRORTYPE DecCodec::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, 
   port->Add(*header);
 
   return OMX_ErrorNone;
-  OMX_CATCH();
+  OMX_CATCH_L([&](OMX_ERRORTYPE& e)
+  {
+    if(e != OMX_ErrorBadPortIndex)
+      GetPort(index)->ErrorOccured();
+  });
 }
 
 OMX_ERRORTYPE DecCodec::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADERTYPE* header)
@@ -825,7 +839,11 @@ OMX_ERRORTYPE DecCodec::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADER
   DeleteHeader(header);
 
   return OMX_ErrorNone;
-  OMX_CATCH();
+  OMX_CATCH_L([&](OMX_ERRORTYPE& e)
+  {
+    if(e != OMX_ErrorBadPortIndex)
+      GetPort(index)->ErrorOccured();
+  });
 }
 
 void DecCodec::TreatEmptyBufferCommand(Task* task)

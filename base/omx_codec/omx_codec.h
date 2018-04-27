@@ -93,16 +93,31 @@ struct Task
 struct Port
 {
   Port(int const& index, int const& expected) :
-    index(index), enable(true), playable(false), isTransientToEnable(false), isTransientToDisable(false), expected(expected)
+    index(index), expected(expected)
   {
   };
 
   int const index;
-  bool enable;
-  bool playable;
-  bool isTransientToEnable;
-  bool isTransientToDisable;
+  bool enable = true;
+  bool playable = false;
+  bool error = false;
+  bool isTransientToEnable = false;
+  bool isTransientToDisable = false;
   size_t expected;
+
+  void ResetError()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    error = false;
+  }
+
+  void ErrorOccured()
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    error = true;
+    cv_full.notify_one();
+    cv_empty.notify_one();
+  }
 
   void Add(OMX_BUFFERHEADERTYPE* header)
   {
@@ -132,7 +147,7 @@ struct Port
   {
     std::unique_lock<std::mutex> lck(mutex);
     cv_empty.wait(lck, [&] {
-      return playable == false;
+      return !playable || error;
     });
   }
 
@@ -140,7 +155,7 @@ struct Port
   {
     std::unique_lock<std::mutex> lck(mutex);
     cv_full.wait(lck, [&] {
-      return playable == true;
+      return playable || error;
     });
   }
 

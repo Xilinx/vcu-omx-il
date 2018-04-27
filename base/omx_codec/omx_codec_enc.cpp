@@ -60,6 +60,16 @@
   } \
   void FORCE_SEMICOLON()
 
+#define OMX_CATCH_L(f) \
+  } \
+  catch(OMX_ERRORTYPE & e) \
+  { \
+    LOGE("%s", ToStringOMXError.at(e)); \
+    f(e); \
+    return e; \
+  } \
+  void FORCE_SEMICOLON()
+
 #define OMX_CATCH_PARAMETER() \
   } \
   catch(OMX_ERRORTYPE & e) \
@@ -1423,7 +1433,11 @@ OMX_ERRORTYPE EncCodec::UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN 
   }
 
   return OMX_ErrorNone;
-  OMX_CATCH();
+  OMX_CATCH_L([&](OMX_ERRORTYPE& e)
+  {
+    if(e != OMX_ErrorBadPortIndex)
+      GetPort(index)->ErrorOccured();
+  });
 }
 
 OMX_ERRORTYPE EncCodec::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size)
@@ -1456,7 +1470,11 @@ OMX_ERRORTYPE EncCodec::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, 
   }
 
   return OMX_ErrorNone;
-  OMX_CATCH();
+  OMX_CATCH_L([&](OMX_ERRORTYPE& e)
+  {
+    if(e != OMX_ErrorBadPortIndex)
+      GetPort(index)->ErrorOccured();
+  });
 }
 
 void EncCodec::DestroyROIBuffer(uint8_t* roiBuffer)
