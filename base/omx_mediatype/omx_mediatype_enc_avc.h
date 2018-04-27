@@ -68,6 +68,7 @@ struct EncMediatypeAVC : EncMediatypeInterface
 private:
   std::vector<AVCProfileType> const profiles
   {
+    AVCProfileType::AVC_PROFILE_BASELINE,
     AVCProfileType::AVC_PROFILE_MAIN,
     AVCProfileType::AVC_PROFILE_HIGH,
     AVCProfileType::AVC_PROFILE_HIGH_10,
