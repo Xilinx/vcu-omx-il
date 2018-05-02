@@ -1148,6 +1148,9 @@ void Codec::TreatSetStateCommand(Task* task)
 
       if(error)
         throw ToOmxError(error);
+
+      if(shouldPrealloc && callbacks.EventHandler)
+        callbacks.EventHandler(component, app, OMX_EventPortSettingsChanged, 1, 0, nullptr);
     }
 
     if(isTransitionToPause(state, newState))

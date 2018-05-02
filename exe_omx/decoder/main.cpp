@@ -590,15 +590,18 @@ OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENT
   }
   else if(eEvent == OMX_EventPortSettingsChanged)
   {
-    LOGI("Port settings change");
-    initHeader(paramPort);
-    paramPort.nPortIndex = 1;
-    OMX_CALL(OMX_GetParameter(hComponent, OMX_IndexParamPortDefinition, &paramPort));
-    paramPort.nBufferCountActual++;
-    OMX_CALL(OMX_SetParameter(hComponent, OMX_IndexParamPortDefinition, &paramPort));
+    if(!app->settings.hasPrealloc)
+    {
+      LOGI("Port settings change");
+      initHeader(paramPort);
+      paramPort.nPortIndex = 1;
+      OMX_CALL(OMX_GetParameter(hComponent, OMX_IndexParamPortDefinition, &paramPort));
+      paramPort.nBufferCountActual++;
+      OMX_CALL(OMX_SetParameter(hComponent, OMX_IndexParamPortDefinition, &paramPort));
 
-    OMX_SendCommand(app->hDecoder, OMX_CommandPortEnable, 1, nullptr);
-    allocBuffers(outportIndex, app->settings.bDMAOut, *app);
+      OMX_SendCommand(app->hDecoder, OMX_CommandPortEnable, 1, nullptr);
+      allocBuffers(outportIndex, app->settings.bDMAOut, *app);
+    }
   }
   else if(eEvent == OMX_EventError)
   {
@@ -939,7 +942,7 @@ void omxWorker(Application* app)
   }
   app->decoderEventState.wait();
 
-  if(!app->settings.hasPrealloc)
+  if(app->settings.hasPrealloc)
   {
     for(auto pBuf : app->outputBuffers)
     {
