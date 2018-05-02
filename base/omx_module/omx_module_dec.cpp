@@ -466,7 +466,14 @@ ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
   }
 
   if(shouldPrealloc)
-    AL_Decoder_PreallocateBuffers(decoder);
+  {
+    if(!AL_Decoder_PreallocateBuffers(decoder))
+    {
+      auto error = AL_Decoder_GetLastError(decoder);
+      DestroyDecoder();
+      return ToModuleError(error);
+    }
+  }
 
   return SUCCESS;
 }
