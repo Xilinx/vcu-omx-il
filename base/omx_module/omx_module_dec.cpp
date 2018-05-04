@@ -438,6 +438,8 @@ void DecModule::ResolutionFound(int const& bufferNumber, int const& bufferSize, 
   (void)bufferNumber, (void)bufferSize, (void)crop;
 
   media->settings.tStream = settings;
+  media->stride = (int)RoundUp(AL_Decoder_RoundPitch(settings.tDim.iWidth, settings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
+  media->sliceHeight = (int)RoundUp(AL_Decoder_RoundHeight(settings.tDim.iHeight), media->sliceHeightAlignment);
 
   if(callbacks.event)
     callbacks.event(CALLBACK_EVENT_RESOLUTION_CHANGE, nullptr);
