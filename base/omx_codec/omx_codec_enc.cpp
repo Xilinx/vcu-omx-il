@@ -1052,6 +1052,8 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
                           auto const index = *(((OMX_U32*)param) + 2);
                           return GetPort(index);
                         };
+
+  isSettingsInit = false;
   switch(static_cast<OMX_U32>(index)) // all indexes are 32u
   {
   case OMX_IndexParamStandardComponentRole:

@@ -200,6 +200,7 @@ protected:
   bool shouldPrealloc;
   bool shouldClearROI;
   bool shouldPushROI;
+  bool isSettingsInit;
 
   OMX_STRING name;
   OMX_STRING role;
