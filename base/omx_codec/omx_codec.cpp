@@ -167,6 +167,19 @@ static OMX_ERRORTYPE ToOmxError(ErrorType error)
   }
 }
 
+Task* CreateTask(Command cmd, OMX_U32 data, shared_ptr<void> opt)
+{
+  auto task = new Task();
+  task->cmd = cmd;
+  task->data = reinterpret_cast<uintptr_t*>(data);
+  task->opt = opt;
+  return task;
+}
+
+void nullDeleter(void*)
+{
+}
+
 void Codec::EventCallBack(CallbackEventType type, void* data)
 {
   if(type > CALLBACK_EVENT_MAX)
@@ -175,6 +188,13 @@ void Codec::EventCallBack(CallbackEventType type, void* data)
   {
   case CALLBACK_EVENT_ERROR:
   {
+    {
+      auto promise = std::make_shared<std::promise<int>>();
+      processor->queue(CreateTask(Fence, OMX_StateInvalid, promise));
+      processorFill->queue(CreateTask(RemoveFence, OMX_StateInvalid, promise));
+    }
+    processor->queue(CreateTask(SetState, OMX_StateInvalid, shared_ptr<void>(nullptr, nullDeleter)));
+    state = OMX_StateInvalid;
     ErrorType errorCode = (ErrorType)(uintptr_t)data;
     LOGE("%s", ToStringCallbackEvent.at(type));
     callbacks.EventHandler(component, app, OMX_EventError, ToOmxError(errorCode), 0, nullptr);
@@ -254,15 +274,6 @@ void Codec::CreateRole(OMX_STRING role)
   strncpy(this->role, role, OMX_MAX_STRINGNAME_SIZE);
 }
 
-Task* CreateTask(Command cmd, OMX_U32 data, shared_ptr<void> opt)
-{
-  auto task = new Task();
-  task->cmd = cmd;
-  task->data = reinterpret_cast<uintptr_t*>(data);
-  task->opt = opt;
-  return task;
-}
-
 static TransientState GetTransientState(OMX_STATETYPE const& curState, OMX_STATETYPE const& nextState)
 {
   if(curState == OMX_StateLoaded && nextState == OMX_StateIdle)
@@ -292,9 +303,6 @@ static TransientState GetTransientState(OMX_STATETYPE const& curState, OMX_STATE
   return TransientMax;
 }
 
-void nullDeleter(void*)
-{
-}
 
 void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
 {
