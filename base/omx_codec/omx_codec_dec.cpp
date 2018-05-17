@@ -834,11 +834,8 @@ OMX_ERRORTYPE DecCodec::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADER
     if(callbacks.EventHandler)
       callbacks.EventHandler(component, app, OMX_EventError, OMX_ErrorPortUnpopulated, 0, nullptr);
 
-  if(state != OMX_StateInvalid)
-  {
   auto const dmaOnPort = IsInputPort(index) ? ToDecModule(*module).GetFileDescriptors().input : ToDecModule(*module).GetFileDescriptors().output;
   dmaOnPort ? ToDecModule(*module).FreeDMA(static_cast<int>((intptr_t)header->pBuffer)) : module->Free(header->pBuffer);
-  }
 
   port->Remove(header);
   DeleteHeader(header);
@@ -859,6 +856,12 @@ void DecCodec::TreatEmptyBufferCommand(Task* task)
   assert(static_cast<int>((intptr_t)task->data) == input.index);
   auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
   assert(header);
+  if(state == OMX_StateInvalid)
+  {
+  if(callbacks.EmptyBufferDone)
+    callbacks.EmptyBufferDone(component, app, header);
+	  return;
+  }
   AttachMark(header);
   if(header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME)
     transmit.push_back(PropagatedData(header->hMarkTargetComponent, header->pMarkData, header->nTimeStamp, header->nFlags));

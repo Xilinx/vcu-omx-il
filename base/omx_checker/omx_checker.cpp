@@ -239,9 +239,6 @@ void OMXChecker::CheckStateOperation(AL_ComponentMethods const methodName, OMX_S
 
 void OMXChecker::CheckStateTransition(OMX_STATETYPE const curState, OMX_STATETYPE const newState)
 {
-    if(isStateInvalid(newState))
-      throw OMX_ErrorInvalidState;
-
   if(newState == curState)
     throw OMX_ErrorSameState;
 

@@ -193,11 +193,9 @@ void Codec::EventCallBack(CallbackEventType type, void* data)
       processor->queue(CreateTask(Fence, OMX_StateInvalid, promise));
       processorFill->queue(CreateTask(RemoveFence, OMX_StateInvalid, promise));
     }
-    processor->queue(CreateTask(SetState, OMX_StateInvalid, shared_ptr<void>(nullptr, nullDeleter)));
-    state = OMX_StateInvalid;
     ErrorType errorCode = (ErrorType)(uintptr_t)data;
+    processor->queue(CreateTask(SetState, OMX_StateInvalid, shared_ptr<void>((uintptr_t*)ToOmxError(errorCode), nullDeleter)));
     LOGE("%s", ToStringCallbackEvent.at(type));
-    callbacks.EventHandler(component, app, OMX_EventError, ToOmxError(errorCode), 0, nullptr);
     break;
   }
   default:
@@ -1133,7 +1131,6 @@ void Codec::TreatSetStateCommand(Task* task)
   {
     assert(task);
     assert(task->cmd == SetState);
-    assert(task->opt.get() == nullptr);
 
     auto const newState = (OMX_STATETYPE)((uintptr_t)task->data);
     LOGI("Set State : %s", ToStringOMXState.at(newState));
@@ -1189,6 +1186,9 @@ void Codec::TreatSetStateCommand(Task* task)
       module->Destroy();
       state = OMX_StateInvalid;
     }
+
+    if(task->opt.get() != nullptr)
+	    e = (OMX_ERRORTYPE)((uintptr_t)task->opt.get());
 
     if(callbacks.EventHandler)
       callbacks.EventHandler(component, app, OMX_EventError, e, 0, nullptr);
@@ -1278,6 +1278,12 @@ void Codec::TreatFillBufferCommand(Task* task)
   assert(static_cast<int>((uintptr_t)task->data) == output.index);
   auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
   assert(header);
+  if(state== OMX_StateInvalid)
+  {
+  if(callbacks.FillBufferDone)
+    callbacks.FillBufferDone(component, app, header);
+  return;
+  }
   map.Add(header->pBuffer, header);
   auto success = module->Fill(header->pBuffer, header->nOffset, (header->nAllocLen - header->nOffset));
   assert(success);
