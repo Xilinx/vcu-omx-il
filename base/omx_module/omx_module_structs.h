@@ -184,6 +184,7 @@ struct Gop
   int idrFrequency;
   GopControlType mode;
   GdrType gdr;
+  bool isLongTermEnabled;
 };
 
 struct QPs
@@ -196,7 +197,7 @@ struct QPs
   QPControlType mode;
 };
 
-struct Bitrates
+struct Bitrate
 {
   int target; // In kbits
   int max; // In kbits

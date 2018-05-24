@@ -87,6 +87,17 @@ static omx_comp_type AL_COMP_LIST[] =
       "video_encoder.avc",
     }
   },
+#if AL_ENABLE_VP9
+  {
+    "OMX.allegro.vp9.encoder",
+    NULL,
+    "libOMX.allegro.video_encoder.so",
+    1,
+    {
+      "video_encoder.vp9",
+    }
+  },
+#endif
   {
     "OMX.allegro.h265.decoder",
     NULL,

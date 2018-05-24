@@ -42,9 +42,7 @@
 
 struct OMXBase
 {
-  virtual ~OMXBase()
-  {
-  };
+  virtual ~OMXBase() = default;
 
   virtual OMX_ERRORTYPE SendCommand(OMX_IN OMX_COMMANDTYPE /* Cmd */, OMX_IN OMX_U32 /* nParam1 */, OMX_IN OMX_PTR /* pCmdData */) = 0;
   virtual OMX_ERRORTYPE GetState(OMX_OUT OMX_STATETYPE* /* pState */) = 0;

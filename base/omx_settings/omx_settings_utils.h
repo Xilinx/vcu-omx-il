@@ -37,7 +37,7 @@
 
 #pragma once
 
-static inline int GetPow2MaxAlignment(int const& pow2startAlignment, int const& value)
+static inline int GetPow2MaxAlignment(int pow2startAlignment, int value)
 {
   if((pow2startAlignment % 2) != 0)
     return 0;

@@ -37,7 +37,7 @@
 
 #include "CommandsSender.h"
 
-#include <stdio.h>
+#include <cassert>
 #include <cmath>
 #include "../common/helpers.h"
 
@@ -61,14 +61,28 @@ void CommandsSender::notifySceneChange(int lookAhead)
   assert(error == OMX_ErrorNone);
 }
 
-void CommandsSender::notifyLongTerm()
+void CommandsSender::notifyIsLongTerm()
 {
-  assert(0 && "notifyLongTerm not implemented");
+  OMX_ALG_VIDEO_CONFIG_INSERT config;
+  initHeader(config);
+  config.nPortIndex = 1;
+  auto error = OMX_SetConfig(hEnc, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertLongTerm), &config);
+  assert(error == OMX_ErrorNone);
 }
+
+void CommandsSender::notifyUseLongTerm()
+{
+  OMX_ALG_VIDEO_CONFIG_INSERT config;
+  initHeader(config);
+  config.nPortIndex = 1;
+  auto error = OMX_SetConfig(hEnc, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoUseLongTerm), &config);
+  assert(error == OMX_ErrorNone);
+}
+
 
 void CommandsSender::restartGop()
 {
-  OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH config;
+  OMX_ALG_VIDEO_CONFIG_INSERT config;
   initHeader(config);
   config.nPortIndex = 1;
   auto error = OMX_SetConfig(hEnc, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), &config);

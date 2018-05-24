@@ -39,12 +39,13 @@
 
 #include <OMX_VideoExt.h>
 #include <OMX_ComponentAlg.h>
+#include <OMX_IVCommonAlg.h>
 
 #include "base/omx_module/omx_module_enums.h"
 #include "base/omx_module/omx_module_structs.h"
 
 ColorType ConvertToModuleColor(OMX_COLOR_FORMATTYPE const& format);
-OMX_COLOR_FORMATTYPE ConvertToOMXColor(ColorType const& color, int const& bitdepth);
+OMX_COLOR_FORMATTYPE ConvertToOMXColor(ColorType const& color, int bitdepth);
 
 CompressionType ConvertToModuleCompression(OMX_VIDEO_CODINGTYPE const& coding);
 OMX_VIDEO_CODINGTYPE ConvertToOMXCompression(CompressionType const& compression);
@@ -52,13 +53,13 @@ OMX_VIDEO_CODINGTYPE ConvertToOMXCompression(CompressionType const& compression)
 OMX_U32 ConvertToOMXFramerate(Clock const& clock);
 
 int ConvertToModuleBitdepth(OMX_COLOR_FORMATTYPE const& format);
-Clock ConvertToModuleClock(OMX_U32 const& framerateInQ16);
+Clock ConvertToModuleClock(OMX_U32 framerateInQ16);
 
-bool ConvertToModuleBool(OMX_BOOL const& boolean);
-OMX_BOOL ConvertToOMXBool(bool const& boolean);
+bool ConvertToModuleBool(OMX_BOOL boolean);
+OMX_BOOL ConvertToOMXBool(bool boolean);
 
 bool ConvertToModuleFileDescriptor(OMX_ALG_BUFFER_MODE const& bufferMode);
-OMX_ALG_BUFFER_MODE ConvertToOMXBufferMode(bool const& useFd);
+OMX_ALG_BUFFER_MODE ConvertToOMXBufferMode(bool useFd);
 
 DecodedPictureBufferType ConvertToModuleDecodedPictureBuffer(OMX_ALG_EDpbMode const& mode);
 OMX_ALG_EDpbMode ConvertToOMXDecodedPictureBuffer(DecodedPictureBufferType const& mode);
@@ -79,25 +80,25 @@ OMX_VIDEO_AVCLOOPFILTERTYPE ConvertToOMXAVCLoopFilter(LoopFilterType const& loop
 LoopFilterType ConvertToModuleHEVCLoopFilter(OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE const& loopFilter);
 OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE ConvertToOMXHEVCLoopFilter(LoopFilterType const& loopFilter);
 
-int ConvertToModuleBFrames(OMX_U32 const& bFrames, OMX_U32 const& pFrames);
-int ConvertToModuleGopLength(OMX_U32 const& bFrames, OMX_U32 const& pFrames);
+int ConvertToModuleBFrames(OMX_U32 bFrames, OMX_U32 pFrames);
+int ConvertToModuleGopLength(OMX_U32 bFrames, OMX_U32 pFrames);
 OMX_U32 ConvertToOMXBFrames(Gop const& gop);
 OMX_U32 ConvertToOMXPFrames(Gop const& gop);
 
-EntropyCodingType ConvertToModuleEntropyCoding(OMX_BOOL const& isCabac);
+EntropyCodingType ConvertToModuleEntropyCoding(OMX_BOOL isCabac);
 OMX_BOOL ConvertToOMXEntropyCoding(EntropyCodingType const& mode);
 
-int ConvertToModuleQPInitial(OMX_U32 const& qpI);
-int ConvertToModuleQPDeltaIP(OMX_U32 const& qpI, OMX_U32 const& qpP);
-int ConvertToModuleQPDeltaPB(OMX_U32 const& pP, OMX_U32 const& qpB);
+int ConvertToModuleQPInitial(OMX_U32 qpI);
+int ConvertToModuleQPDeltaIP(OMX_U32 qpI, OMX_U32 qpP);
+int ConvertToModuleQPDeltaPB(OMX_U32 pP, OMX_U32 qpB);
 OMX_U32 ConvertToOMXQpI(QPs const& qps);
 OMX_U32 ConvertToOMXQpP(QPs const& qps);
 OMX_U32 ConvertToOMXQpB(QPs const& qps);
 
-int ConvertToModuleQPMin(OMX_S32 const& qpMin);
+int ConvertToModuleQPMin(OMX_S32 qpMin);
 OMX_S32 ConvertToOMXQpMin(QPs const& qps);
 
-int ConvertToModuleQPMax(OMX_S32 const& qpMax);
+int ConvertToModuleQPMax(OMX_S32 qpMax);
 OMX_S32 ConvertToOMXQpMax(QPs const& qps);
 
 QPControlType ConvertToModuleQPControl(OMX_ALG_EQpCtrlMode const& mode);
@@ -115,7 +116,7 @@ OMX_ALG_EGopCtrlMode ConvertToOMXGopControl(GopControlType const& mode);
 GdrType ConvertToModuleGdr(OMX_ALG_EGdrMode const& gdr);
 OMX_ALG_EGdrMode ConvertToOMXGdr(GdrType const& gdr);
 
-RateControlOptionType ConvertToModuleDisableSceneChangeResilience(OMX_BOOL const& disable);
+RateControlOptionType ConvertToModuleDisableSceneChangeResilience(OMX_BOOL disable);
 OMX_BOOL ConvertToOMXDisableSceneChangeResilience(RateControlOptionType const& option);
 
 ScalingListType ConvertToModuleScalingList(OMX_ALG_EScalingList const& scalingListMode);
@@ -125,4 +126,7 @@ BufferModeType ConvertToModuleBufferMode(OMX_ALG_VIDEO_BUFFER_MODE const& mode);
 OMX_ALG_VIDEO_BUFFER_MODE ConvertToOMXBufferMode(BufferModeType const& mode);
 
 QualityType ConvertToModuleQuality(OMX_ALG_ERoiQuality const& quality);
+
+OMX_U32 ConvertToOMXInterlaceFlag(VideoModeType const& mode);
+VideoModeType ConvertToModuleVideoMode(OMX_U32 flag);
 

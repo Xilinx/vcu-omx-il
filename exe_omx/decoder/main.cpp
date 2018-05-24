@@ -286,7 +286,7 @@ void parsePreAllocArgs(Settings* settings, string& toParse)
   stringstream ss(toParse);
   ss.unsetf(ios::dec);
   ss.unsetf(ios::hex);
-  char chroma[4] {};
+  char chroma[5] {};
   ss >> settings->width;
   getExpectedSeparator(ss, 'x');
   ss >> settings->height;
@@ -295,6 +295,7 @@ void parsePreAllocArgs(Settings* settings, string& toParse)
   ss >> chroma[1];
   ss >> chroma[2];
   ss >> chroma[3];
+  chroma[4] = '\0';
   getExpectedSeparator(ss, ':');
   ss >> settings->profile;
   getExpectedSeparator(ss, ':');
@@ -312,7 +313,6 @@ void parsePreAllocArgs(Settings* settings, string& toParse)
 
 void parseCommandLine(int argc, char** argv, Application& app)
 {
-  string user_chroma = "NV12";
   Settings& settings = app.settings;
 
   auto opt = CommandLineParser();
@@ -324,7 +324,6 @@ void parseCommandLine(int argc, char** argv, Application& app)
   opt.addFlag("--hevc_hard,-hevc_hard", &settings.codecImplem, "Use hard hevc decoder", HEVC_HARD);
   opt.addFlag("--avc_hard,-hevc_hard", &settings.codecImplem, "Use hard avc decoder", AVC_HARD);
   opt.addString("--out,-o", &output_file, "Output compressed file name");
-  opt.addString("--chroma,-chroma", &user_chroma, "<NV12 || RX0A || NV16 || RX2A> ('NV12' default)");
   opt.addOption("--dma-in,-dma-in", [&](string) {
     settings.bDMAIn = true;
     settings.eDMAIn = OMX_ALG_BUF_DMA;
@@ -334,7 +333,7 @@ void parseCommandLine(int argc, char** argv, Application& app)
     settings.eDMAOut = OMX_ALG_BUF_DMA;
   }, "use dmabufs for output port");
   string prealloc_args = "";
-  opt.addString("--prealloc-args", &prealloc_args, "Specify the stream dimension: 1920x1080:NV12:profile-idc:level");
+  opt.addString("--prealloc-args", &prealloc_args, "Specify the stream dimension: 1920x1080:NV12:omx-profile-value:omx-level-value");
 
   if(argc < 2)
   {
@@ -357,13 +356,6 @@ void parseCommandLine(int argc, char** argv, Application& app)
     settings.codec = HEVC;
   else
     settings.codec = AVC;
-
-  if(!setChroma(user_chroma, &settings.chroma))
-  {
-    Usage(opt, argv[0]);
-    cerr << "[Error] chroma parameter was incorrectly set" << endl;
-    exit(1);
-  }
 
   if(!prealloc_args.empty())
   {
@@ -399,7 +391,7 @@ static bool isSupplier(OMX_U32 nPortIndex, Application& app)
     return true;
 
   return false;
-};
+}
 
 static OMX_U32 getSizeBuffer(OMX_U32 nPortIndex, Application& app)
 {
@@ -410,7 +402,7 @@ static OMX_U32 getSizeBuffer(OMX_U32 nPortIndex, Application& app)
   OMX_CALL(OMX_GetParameter(app.hDecoder, OMX_IndexParamPortDefinition, &sPortParam));
 
   return sPortParam.nBufferSize;
-};
+}
 
 static OMX_U32 getMinBufferAlloc(OMX_U32 nPortIndex, Application& app)
 {
@@ -421,7 +413,7 @@ static OMX_U32 getMinBufferAlloc(OMX_U32 nPortIndex, Application& app)
   OMX_CALL(OMX_GetParameter(app.hDecoder, OMX_IndexParamPortDefinition, &sPortParam));
 
   return sPortParam.nBufferCountActual;
-};
+}
 
 static auto numberOfAllocatedInputBuffer = 0;
 static auto numberOfAllocatedOutputBuffer = 0;
@@ -473,7 +465,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Applicati
           LOGE("Failed to allocate Buffer for dma");
           assert(0);
         }
-        auto fd = AL_LinuxDmaAllocator_ExportToFd((AL_TLinuxDmaAllocator*)(app.pAllocator), hBuf);
+        auto fd = AL_LinuxDmaAllocator_GetFd((AL_TLinuxDmaAllocator*)(app.pAllocator), hBuf);
 
         pBufData = (OMX_U8*)(uintptr_t)dup(fd);
 
@@ -502,7 +494,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Applicati
     }
   }
   return OMX_ErrorNone;
-};
+}
 
 static OMX_ERRORTYPE freeBuffers(OMX_U32 nPortIndex, Application& app)
 {
@@ -549,7 +541,7 @@ static OMX_ERRORTYPE freeBuffers(OMX_U32 nPortIndex, Application& app)
     }
   }
   return OMX_ErrorNone;
-};
+}
 
 OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent, OMX_U32 Data1, OMX_U32 Data2, OMX_PTR /*pEventData*/)
 {
@@ -643,7 +635,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   assert(isBufModeSetted);
 
   return OMX_ErrorNone;
-};
+}
 
 OMX_ERRORTYPE onInputBufferAvailable(OMX_HANDLETYPE /*hComponent*/, OMX_PTR pAppData, OMX_BUFFERHEADERTYPE* pBuffer)
 {
@@ -732,7 +724,7 @@ static bool readFrame(OMX_BUFFERHEADERTYPE* pInputBuf, Application& app)
     return true;
 
   return false;
-};
+}
 
 string chooseComponent(DecCodec codecImplem)
 {
@@ -781,9 +773,8 @@ OMX_ERRORTYPE setDimensions(Application& app)
 
   param.format.video.nFrameWidth = app.settings.width;
   param.format.video.nFrameHeight = app.settings.height;
-  // TODO 10 bits special case
-  param.format.video.nStride = 0; // Let the component decide
-  param.format.video.nSliceHeight = 0; // Let the component decide
+  param.format.video.nStride = app.settings.width;
+  param.format.video.nSliceHeight = app.settings.height;
   OMX_CALL(OMX_SetParameter(app.hDecoder, OMX_IndexParamPortDefinition, &param));
 
   return OMX_ErrorNone;
@@ -901,8 +892,6 @@ OMX_ERRORTYPE configureComponent(Application& app)
   paramPort.nPortIndex = 1;
   OMX_CALL(OMX_GetParameter(app.hDecoder, OMX_IndexParamPortDefinition, &paramPort));
   paramPort.nBufferCountActual = paramPort.nBufferCountMin + 1;
-  paramPort.format.video.nStride = 0; // Let the component decide
-  paramPort.format.video.nSliceHeight = 0; // Let the component decide
   OMX_CALL(OMX_SetParameter(app.hDecoder, OMX_IndexParamPortDefinition, &paramPort));
 
   /* /!\ Can't set parameters after this line /!\  */
@@ -1027,7 +1016,7 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   app.eventBus.addListener([&](shared_ptr<EventData> )
   {
-    LOGI( "[EventBus] Received EOS\n");
+    LOGI("[EventBus] Received EOS\n");
 
     if(app.quit)
       return;
@@ -1043,7 +1032,7 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
   app.eventBus.addListener([&](shared_ptr<EventData> data_)
   {
     ErrorEventData* data = static_cast<ErrorEventData*>(data_.get());
-    LOGE( "[EventBus] Got error code %d\n", data->errorCode);
+    LOGE("[EventBus] Got error code %d\n", data->errorCode);
 
     if(app.quit)
       return;
@@ -1080,12 +1069,10 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   auto component = chooseComponent(app.settings.codecImplem);
 
-  OMX_CALLBACKTYPE const videoDecoderCallbacks =
-  {
-    .EventHandler = onComponentEvent,
-    .EmptyBufferDone = onInputBufferAvailable,
-    .FillBufferDone = onOutputBufferAvailable
-  };
+  OMX_CALLBACKTYPE videoDecoderCallbacks;
+  videoDecoderCallbacks.EventHandler = onComponentEvent;
+  videoDecoderCallbacks.EmptyBufferDone = onInputBufferAvailable;
+  videoDecoderCallbacks.FillBufferDone = onOutputBufferAvailable;
 
   OMX_CALL(OMX_GetHandle(&app.hDecoder, (OMX_STRING)component.c_str(), &app, const_cast<OMX_CALLBACKTYPE*>(&videoDecoderCallbacks)));
   auto scopeHandle = scopeExit([&]() {
@@ -1103,7 +1090,7 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
   if(app.settings.bDMAIn || app.settings.bDMAOut)
   {
     auto constexpr deviceName = "/dev/allegroDecodeIP";
-    app.pAllocator = DmaAlloc_Create(deviceName);
+    app.pAllocator = AL_DmaAlloc_Create(deviceName);
 
     if(!app.pAllocator)
       throw runtime_error(string("Couldn't create dma allocator (using ") + deviceName + string(")"));

@@ -42,6 +42,7 @@
 #include <map>
 
 #include "omx_module_structs.h"
+#include "omx_buffer_handle_interface.h"
 
 enum ErrorType
 {
@@ -102,6 +103,8 @@ static std::map<ErrorType, const char*> ToStringError
 #define DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD"
 #define DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_CLEAR "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_CLEAR"
 #define DYNAMIC_INDEX_NOTIFY_SCENE_CHANGE "DYNAMIC_INDEX_NOTIFY_SCENE_CHANGE"
+#define DYNAMIC_INDEX_IS_LONG_TERM "DYNAMIC_INDEX_IS_LONG_TERM"
+#define DYNAMIC_INDEX_USE_LONG_TERM "DYNAMIC_INDEX_USE_LONG_TERM"
 
 enum CallbackEventType
 {
@@ -125,10 +128,10 @@ static std::map<CallbackEventType, const char*> ToStringCallbackEvent
 
 typedef struct
 {
-  std::function<void (uint8_t* buffer, int offset, int size, void* handle)> emptied;
-  std::function<void (uint8_t* const input, uint8_t* const output)> associate;
-  std::function<void (uint8_t* buffer, int offset, int size)> filled;
-  std::function<void (bool isInput, uint8_t* buffer)> release;
+  std::function<void (BufferHandleInterface* buffer)> emptied;
+  std::function<void (BufferHandleInterface* input, BufferHandleInterface* output)> associate;
+  std::function<void (BufferHandleInterface* buffer, int offset, int size)> filled;
+  std::function<void (bool isInput, BufferHandleInterface* buffer)> release;
   std::function<void (CallbackEventType event, void* data)> event;
 }Callbacks;
 
@@ -159,8 +162,8 @@ struct ModuleInterface
 
   virtual bool SetCallbacks(Callbacks callbacks) = 0;
 
-  virtual bool Empty(uint8_t* buffer, int offset, int size, void* handle) = 0;
-  virtual bool Fill(uint8_t* buffer, int offset, int size) = 0;
+  virtual bool Empty(BufferHandleInterface* handle) = 0;
+  virtual bool Fill(BufferHandleInterface* handle) = 0;
 
   virtual ErrorType Run(bool shouldPrealloc) = 0;
   virtual bool Pause() = 0;

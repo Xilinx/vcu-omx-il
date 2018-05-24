@@ -55,13 +55,14 @@ public:
   ~CommandsSender()
   {
   };
-  virtual void notifySceneChange(int lookAhead);
-  virtual void notifyLongTerm();
-  virtual void restartGop();
-  virtual void setGopLength(int gopLength);
-  virtual void setNumB(int numB);
-  virtual void setFrameRate(int frameRate, int clockRatio);
-  virtual void setBitRate(int bitRate);
+  void notifySceneChange(int lookAhead);
+  void notifyIsLongTerm();
+  void notifyUseLongTerm();
+  void restartGop();
+  void setGopLength(int gopLength);
+  void setNumB(int numB);
+  void setFrameRate(int frameRate, int clockRatio);
+  void setBitRate(int bitRate);
 
 private:
   OMX_HANDLETYPE hEnc;

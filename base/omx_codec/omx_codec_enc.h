@@ -45,22 +45,22 @@
 
 struct EncCodec : public Codec
 {
-  EncCodec(OMX_HANDLETYPE component, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<EncExpertise>&& expertise);
+  EncCodec(OMX_HANDLETYPE component, std::shared_ptr<MediatypeInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<EncExpertise>&& expertise);
   ~EncCodec();
-  OMX_ERRORTYPE GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR param);
-  OMX_ERRORTYPE SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param);
-  OMX_ERRORTYPE GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_INDEXTYPE* index);
-  OMX_ERRORTYPE AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size);
-  OMX_ERRORTYPE UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size, OMX_IN OMX_U8* buffer);
-  OMX_ERRORTYPE FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADERTYPE* header);
+  OMX_ERRORTYPE GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR param) override;
+  OMX_ERRORTYPE SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param) override;
+  OMX_ERRORTYPE GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_INDEXTYPE* index) override;
+  OMX_ERRORTYPE AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size) override;
+  OMX_ERRORTYPE UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size, OMX_IN OMX_U8* buffer) override;
+  OMX_ERRORTYPE FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADERTYPE* header) override;
 
 private:
   uint8_t* AllocateROIBuffer();
   void DestroyROIBuffer(uint8_t* roiBuffer);
-  void EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size, void* handle);
-  void FillThisBufferCallBack(uint8_t* filled, int offset, int size);
-  void AssociateCallBack(uint8_t* empty, uint8_t* fill);
-  void TreatEmptyBufferCommand(Task* task);
+  void EmptyThisBufferCallBack(BufferHandleInterface* handle) override;
+  void AssociateCallBack(BufferHandleInterface* empty, BufferHandleInterface* fill) override;
+  void FillThisBufferCallBack(BufferHandleInterface* filled, int offset, int size) override;
+  void TreatEmptyBufferCommand(Task* task) override;
   std::unique_ptr<EncExpertise> expertise;
   locked_queue<uint8_t*> roiFreeBuffers;
   ThreadSafeMap<OMX_BUFFERHEADERTYPE*, uint8_t*> roiMap;

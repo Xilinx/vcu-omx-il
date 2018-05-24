@@ -58,9 +58,9 @@ private:
 
   std::vector<ColorType> const colors
   {
-    COLOR_MONO,
-    COLOR_420,
-    COLOR_422,
+    ColorType::COLOR_400,
+    ColorType::COLOR_420,
+    ColorType::COLOR_422,
   };
 
   std::vector<int> const bitdepths
@@ -73,15 +73,28 @@ private:
   {
     HEVCProfileType::HEVC_PROFILE_MAIN,
     HEVCProfileType::HEVC_PROFILE_MAIN_10,
+    HEVCProfileType::HEVC_PROFILE_MAIN_STILL,
+    HEVCProfileType::HEVC_PROFILE_MONOCHROME,
+    HEVCProfileType::HEVC_PROFILE_MONOCHROME_10,
     HEVCProfileType::HEVC_PROFILE_MAIN_422,
     HEVCProfileType::HEVC_PROFILE_MAIN_422_10,
-    HEVCProfileType::HEVC_PROFILE_MAIN_STILL,
+    HEVCProfileType::HEVC_PROFILE_MAIN_INTRA,
+    HEVCProfileType::HEVC_PROFILE_MAIN_10_INTRA,
+    HEVCProfileType::HEVC_PROFILE_MAIN_422_INTRA,
+    HEVCProfileType::HEVC_PROFILE_MAIN_422_10_INTRA,
     HEVCProfileType::HEVC_PROFILE_MAIN_HIGH_TIER,
     HEVCProfileType::HEVC_PROFILE_MAIN_10_HIGH_TIER,
+    HEVCProfileType::HEVC_PROFILE_MAIN_STILL_HIGH_TIER,
+    HEVCProfileType::HEVC_PROFILE_MONOCHROME_HIGH_TIER,
+    HEVCProfileType::HEVC_PROFILE_MONOCHROME_10_HIGH_TIER,
     HEVCProfileType::HEVC_PROFILE_MAIN_422_HIGH_TIER,
     HEVCProfileType::HEVC_PROFILE_MAIN_422_10_HIGH_TIER,
-    HEVCProfileType::HEVC_PROFILE_MAIN_STILL_HIGH_TIER,
+    HEVCProfileType::HEVC_PROFILE_MAIN_INTRA_HIGH_TIER,
+    HEVCProfileType::HEVC_PROFILE_MAIN_10_INTRA_HIGH_TIER,
+    HEVCProfileType::HEVC_PROFILE_MAIN_422_INTRA_HIGH_TIER,
+    HEVCProfileType::HEVC_PROFILE_MAIN_422_10_INTRA_HIGH_TIER,
   };
+
   std::vector<int> const levels
   {
     10,
@@ -97,6 +110,13 @@ private:
     60,
     61,
     62,
+  };
+
+  std::vector<VideoModeType> const videoModes
+  {
+    VideoModeType::VIDEO_MODE_PROGRESSIVE,
+    VideoModeType::VIDEO_MODE_ALTERNATE_TOP_BOTTOM_FIELD,
+    VideoModeType::VIDEO_MODE_ALTERNATE_BOTTOM_TOP_FIELD,
   };
 };
 

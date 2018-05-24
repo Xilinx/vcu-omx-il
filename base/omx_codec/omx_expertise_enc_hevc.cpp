@@ -38,7 +38,7 @@
 #include "omx_expertise_enc_hevc.h"
 #include "omx_convert_omx_module.h"
 
-static bool SetModuleGop(OMX_U32 const& bFrames, OMX_U32 const& pFrames, EncModule& module)
+static bool SetModuleGop(OMX_U32 bFrames, OMX_U32 pFrames, EncModule& module)
 {
   auto moduleGop = module.GetGop();
   moduleGop.b = ConvertToModuleBFrames(bFrames, pFrames);

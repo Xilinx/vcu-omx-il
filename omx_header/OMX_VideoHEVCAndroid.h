@@ -49,9 +49,9 @@ typedef enum OMX_VIDEO_HEVCPROFILETYPE
   OMX_VIDEO_HEVCProfileUnknown      = 0x0,
   OMX_VIDEO_HEVCProfileMain         = OMX_ALG_VIDEO_HEVCProfileMain,
   OMX_VIDEO_HEVCProfileMain10       = OMX_ALG_VIDEO_HEVCProfileMain10,
-  OMX_VIDEO_HEVCProfileMax          = OMX_ALG_VIDEO_HEVCProfileMax,
+  OMX_VIDEO_HEVCProfileMax          = OMX_ALG_VIDEO_HEVCProfileMaxEnum,
   /* Not implemented */
-  OMX_VIDEO_HEVCProfileMain10HDR10  = OMX_ALG_VIDEO_HEVCProfileMax,
+  OMX_VIDEO_HEVCProfileMain10HDR10  = OMX_ALG_VIDEO_HEVCProfileMaxEnum,
 } OMX_VIDEO_HEVCPROFILETYPE;
 
 /** HEVC Level enum type */
@@ -79,13 +79,13 @@ typedef enum OMX_VIDEO_HEVCLEVELTYPE
   OMX_VIDEO_HEVCHighTierLevel61 = OMX_ALG_VIDEO_HEVCHighTierLevel61,
   OMX_VIDEO_HEVCMainTierLevel62 = OMX_ALG_VIDEO_HEVCMainTierLevel62,
   OMX_VIDEO_HEVCHighTierLevel62 = OMX_ALG_VIDEO_HEVCHighTierLevel62,
-  OMX_VIDEO_HEVCHighTiermax     = OMX_ALG_VIDEO_HEVCLevelMax,
+  OMX_VIDEO_HEVCHighTiermax     = OMX_ALG_VIDEO_HEVCLevelMaxEnum,
   /* Not implemented */
-  OMX_VIDEO_HEVCHighTierLevel1  = OMX_ALG_VIDEO_HEVCLevelMax,
-  OMX_VIDEO_HEVCHighTierLevel2  = OMX_ALG_VIDEO_HEVCLevelMax,
-  OMX_VIDEO_HEVCHighTierLevel21 = OMX_ALG_VIDEO_HEVCLevelMax,
-  OMX_VIDEO_HEVCHighTierLevel3  = OMX_ALG_VIDEO_HEVCLevelMax,
-  OMX_VIDEO_HEVCHighTierLevel31 = OMX_ALG_VIDEO_HEVCLevelMax,
+  OMX_VIDEO_HEVCHighTierLevel1  = OMX_ALG_VIDEO_HEVCLevelMaxEnum,
+  OMX_VIDEO_HEVCHighTierLevel2  = OMX_ALG_VIDEO_HEVCLevelMaxEnum,
+  OMX_VIDEO_HEVCHighTierLevel21 = OMX_ALG_VIDEO_HEVCLevelMaxEnum,
+  OMX_VIDEO_HEVCHighTierLevel3  = OMX_ALG_VIDEO_HEVCLevelMaxEnum,
+  OMX_VIDEO_HEVCHighTierLevel31 = OMX_ALG_VIDEO_HEVCLevelMaxEnum,
 } OMX_VIDEO_HEVCLEVELTYPE;
 
 #ifdef __cplusplus

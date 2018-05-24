@@ -50,28 +50,39 @@ extern "C"
 #include <lib_common/StreamBuffer.h>
 }
 
-int CreateMillisecondsLatency(AL_TEncSettings const& settings, BufferCounts const& bufferCounts)
+static int RawAllocationSize(AL_TEncChanParam const& channel, Alignments const& alignments)
 {
-  auto const channel = settings.tChParam;
-  auto const rateCtrl = channel.tRCParam;
-  auto const outputBufferCount = bufferCounts.output;
-  auto const realFramerate = (static_cast<double>(rateCtrl.uFrameRate * rateCtrl.uClkRatio) / 1000.0);
-  auto timeInMilliseconds = (static_cast<double>(outputBufferCount * 1000.0) / realFramerate);
+  auto const IP_WIDTH_ALIGNMENT = 32;
+  auto const IP_HEIGHT_ALIGNMENT = 8;
+  auto const widthAlignment = alignments.stride;
+  auto const heightAlignment = alignments.sliceHeight;
+  assert(widthAlignment % IP_WIDTH_ALIGNMENT == 0); // IP requirements
+  assert(heightAlignment % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
 
-  if(channel.bSubframeLatency)
+  auto const adjustedWidthAlignment = widthAlignment > IP_WIDTH_ALIGNMENT ? widthAlignment : IP_WIDTH_ALIGNMENT;
+  int const adjustedHeightAlignment = heightAlignment > IP_HEIGHT_ALIGNMENT ? heightAlignment : IP_HEIGHT_ALIGNMENT;
+
+  auto const width = channel.uWidth;
+  auto const height = channel.uHeight;
+  auto const bitdepthWidth = AL_GET_BITDEPTH(channel.ePicFormat) == 8 ? width : (width + 2) / 3 * 4;
+  auto const adjustedWidth = RoundUp(bitdepthWidth, adjustedWidthAlignment);
+  auto const adjustedHeight = RoundUp(height, adjustedHeightAlignment);
+
+  auto size = adjustedWidth * adjustedHeight;
+  switch(AL_GET_CHROMA_MODE(channel.ePicFormat))
   {
-    timeInMilliseconds /= channel.uNumSlices;
-    timeInMilliseconds += 1.0; // overhead
+  case CHROMA_MONO: return size;
+  case CHROMA_4_2_0: return (3 * size) / 2;
+  case CHROMA_4_2_2: return 2 * size;
+  default: return -1;
   }
-
-  return ceil(timeInMilliseconds);
 }
 
-BufferSizes CreateBufferSizes(AL_TEncSettings const& settings)
+BufferSizes CreateBufferSizes(AL_TEncSettings const& settings, Alignments const& alignments)
 {
   BufferSizes bufferSizes;
-  auto const channel = settings.tChParam;
-  bufferSizes.input = GetAllocSize_Src({ channel.uWidth, channel.uHeight }, AL_GET_BITDEPTH(channel.ePicFormat), AL_GET_CHROMA_MODE(channel.ePicFormat), channel.eSrcMode);
+  auto const channel = settings.tChParam[0];
+  bufferSizes.input = RawAllocationSize(channel, alignments);
   bufferSizes.output = AL_GetMaxNalSize({ channel.uWidth, channel.uHeight }, AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat));
 
   if(channel.bSubframeLatency)
@@ -86,42 +97,13 @@ BufferSizes CreateBufferSizes(AL_TEncSettings const& settings)
   return bufferSizes;
 }
 
-Gop CreateGroupOfPictures(AL_TEncSettings const& settings)
-{
-  Gop gop;
-  auto const gopParam = settings.tChParam.tGopParam;
-
-  gop.b = gopParam.uNumB;
-  gop.length = gopParam.uGopLength;
-  gop.idrFrequency = gopParam.uFreqIDR;
-  gop.mode = ConvertSoftToModuleGopControl(gopParam.eMode);
-  gop.gdr = ConvertSoftToModuleGdr(gopParam.eGdrMode);
-
-  return gop;
-}
-
-bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop const& gop)
-{
-  if(!CheckGroupOfPictures(gop))
-    return false;
-
-  auto& gopParam = settings.tChParam.tGopParam;
-  gopParam.uNumB = gop.b;
-  gopParam.uGopLength = gop.length;
-  gopParam.uFreqIDR = gop.idrFrequency;
-  gopParam.eMode = ConvertModuleToSoftGopControl(gop.mode);
-  gopParam.eGdrMode = ConvertModuleToSoftGdr(gop.gdr);
-
-  return true;
-}
-
 Resolution CreateResolution(AL_TEncSettings const& settings, Alignments const& alignments)
 {
   Resolution resolution;
-  auto const channel = settings.tChParam;
+  auto const channel = settings.tChParam[0];
   resolution.width = channel.uWidth;
   resolution.height = channel.uHeight;
-  resolution.stride = RoundUp(AL_CalculatePitchValue(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), alignments.stride);
+  resolution.stride = RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), alignments.stride);
   resolution.sliceHeight = RoundUp(channel.uHeight, alignments.sliceHeight);
 
   return resolution;
@@ -154,31 +136,9 @@ bool UpdateResolution(AL_TEncSettings& settings, Alignments& alignments, Resolut
       alignments.sliceHeight = align;
   }
 
-  auto& channel = settings.tChParam;
+  auto& channel = settings.tChParam[0];
   channel.uWidth = resolution.width;
   channel.uHeight = resolution.height;
-
-  return true;
-}
-
-Clock CreateClock(AL_TEncSettings const& settings)
-{
-  Clock clock;
-  auto const rateCtrl = settings.tChParam.tRCParam;
-  clock.framerate = rateCtrl.uFrameRate;
-  clock.clockratio = rateCtrl.uClkRatio;
-  return clock;
-}
-
-bool UpdateClock(AL_TEncSettings& settings, Clock const& clock)
-{
-  if(!CheckClock(clock))
-    return false;
-
-  auto& rateCtrl = settings.tChParam.tRCParam;
-
-  rateCtrl.uFrameRate = clock.framerate;
-  rateCtrl.uClkRatio = clock.clockratio;
 
   return true;
 }
@@ -186,7 +146,7 @@ bool UpdateClock(AL_TEncSettings& settings, Clock const& clock)
 Format CreateFormat(AL_TEncSettings const& settings)
 {
   Format format;
-  auto const channel = settings.tChParam;
+  auto const channel = settings.tChParam[0];
 
   format.color = ConvertSoftToModuleColor(AL_GET_CHROMA_MODE(channel.ePicFormat));
   format.bitdepth = AL_GET_BITDEPTH(channel.ePicFormat);
@@ -199,7 +159,7 @@ bool UpdateFormat(AL_TEncSettings& settings, Format const& format)
   if(!CheckFormat(format))
     return false;
 
-  auto& channel = settings.tChParam;
+  auto& channel = settings.tChParam[0];
   AL_SET_BITDEPTH(channel.ePicFormat, format.bitdepth);
   AL_SET_CHROMA_MODE(channel.ePicFormat, ConvertModuleToSoftChroma(format.color));
 
@@ -213,16 +173,16 @@ static inline bool isSeiEndOfFrameEnabled(AL_TEncSettings const& settings)
 
 BufferModeType CreateBufferMode(AL_TEncSettings const& settings)
 {
-  auto const channel = settings.tChParam;
+  auto const channel = settings.tChParam[0];
 
   if(channel.bSubframeLatency)
-    return BUFFER_MODE_SLICE;
+    return BufferModeType::BUFFER_MODE_SLICE;
 
   auto const gop = channel.tGopParam;
 
   if(gop.uNumB == 0 && isSeiEndOfFrameEnabled(settings))
-    return BUFFER_MODE_FRAME_NO_REORDERING;
+    return BufferModeType::BUFFER_MODE_FRAME_NO_REORDERING;
 
-  return BUFFER_MODE_FRAME;
+  return BufferModeType::BUFFER_MODE_FRAME;
 }
 

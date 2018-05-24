@@ -52,6 +52,8 @@ GdrType ConvertSoftToModuleGdr(AL_EGdrMode const& gdr);
 RateControlOptionType ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption const& option);
 QPControlType ConvertSoftToModuleQPControl(AL_EQpCtrlMode const& mode);
 ScalingListType ConvertSoftToModuleScalingList(AL_EScalingList const& scalingList);
+VideoModeType ConvertSoftToModuleVideoMode(AL_EVideoMode const& videoMode);
+LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncOption const& option);
 
 AL_ERateCtrlMode ConvertModuleToSoftRateControl(RateControlType const& mode);
 AL_EAspectRatio ConvertModuleToSoftAspectRatio(AspectRatioType const& aspectRatio);
@@ -60,4 +62,6 @@ AL_EScalingList ConvertModuleToSoftScalingList(ScalingListType const& scalingLis
 AL_EGdrMode ConvertModuleToSoftGdr(GdrType const& gdr);
 AL_ERateCtrlOption ConvertModuleToSoftRateControlOption(RateControlOptionType const& option);
 AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType const& mode);
+AL_EVideoMode ConvertModuleToSoftVideoMode(VideoModeType const& videoMode);
+AL_EChEncOption ConvertModuleToSoftLoopFilter(LoopFilterType const& loopFilter);
 

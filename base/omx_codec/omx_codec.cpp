@@ -39,16 +39,14 @@
 #include "base/omx_checker/omx_checker.h"
 #include "base/omx_utils/omx_translate.h"
 #include "base/omx_utils/omx_log.h"
-#include <assert.h>
-#include <string.h>
+#include <cassert>
+#include <cstring>
 #include <future>
 
 #include <OMX_VideoExt.h>
 #include "omx_convert_omx_module.h"
 
-using std::mutex;
-using std::lock_guard;
-using std::shared_ptr;
+using namespace std;
 
 #define OMX_TRY() \
   try \
@@ -83,28 +81,42 @@ using std::shared_ptr;
   } \
   void FORCE_SEMICOLON()
 
-void Codec::ReturnEmptiedBuffer(uint8_t* emptied)
+void Codec::ReturnEmptiedBuffer(OMX_BUFFERHEADERTYPE* emptied)
 {
-  if(!emptied)
-    assert(0);
+  assert(emptied);
 
-  auto header = map.Pop(emptied);
+  auto header = emptied;
   ClearPropagatedData(header);
 
   if(callbacks.EmptyBufferDone)
     callbacks.EmptyBufferDone(component, app, header);
 }
 
-void Codec::EmptyThisBufferCallBack(uint8_t* emptied, int, int, void*)
+void nullDeleter(void*)
 {
-  ReturnEmptiedBuffer(emptied);
 }
 
-void Codec::AssociateCallBack(uint8_t* empty, uint8_t* fill)
+static Task* CreateTask(Command cmd, OMX_U32 data, shared_ptr<void> opt)
 {
-  auto emptyHeader = map.Get(empty);
+  auto task = new Task();
+  task->cmd = cmd;
+  task->data = reinterpret_cast<uintptr_t*>(data);
+  task->opt = opt;
+  return task;
+}
+
+void Codec::EmptyThisBufferCallBack(BufferHandleInterface* handle)
+{
+  auto emptied = ((OMXBufferHandle*)(handle))->header;
+  ReturnEmptiedBuffer(emptied);
+  delete handle;
+}
+
+void Codec::AssociateCallBack(BufferHandleInterface* empty, BufferHandleInterface* fill)
+{
+  auto emptyHeader = (OMX_BUFFERHEADERTYPE*)((OMXBufferHandle*)(empty))->header;
   assert(emptyHeader);
-  auto fillHeader = map.Get(fill);
+  auto fillHeader = (OMX_BUFFERHEADERTYPE*)((OMXBufferHandle*)(fill))->header;
   assert(fillHeader);
 
   PropagateHeaderData(emptyHeader, fillHeader);
@@ -112,16 +124,15 @@ void Codec::AssociateCallBack(uint8_t* empty, uint8_t* fill)
   if(IsEOSDetected(emptyHeader->nFlags))
     callbacks.EventHandler(component, app, OMX_EventBufferFlag, output.index, emptyHeader->nFlags, nullptr);
 
-  if(IsCompMarked(emptyHeader->hMarkTargetComponent, component) && callbacks.EventHandler)
+  if(IsCompMarked(emptyHeader->hMarkTargetComponent, component))
     callbacks.EventHandler(component, app, OMX_EventMark, 0, 0, emptyHeader->pMarkData);
 }
 
-void Codec::ReturnFilledBuffer(uint8_t* filled, int offset, int size)
+void Codec::ReturnFilledBuffer(OMX_BUFFERHEADERTYPE* filled, int offset, int size)
 {
-  if(!filled)
-    assert(0);
+  assert(filled);
 
-  auto header = map.Pop(filled);
+  auto header = filled;
 
   header->nOffset = offset;
   header->nFilledLen = size;
@@ -130,22 +141,19 @@ void Codec::ReturnFilledBuffer(uint8_t* filled, int offset, int size)
     callbacks.FillBufferDone(component, app, header);
 }
 
-void Codec::FillThisBufferCallBack(uint8_t* filled, int offset, int size)
+void Codec::FillThisBufferCallBack(BufferHandleInterface* filled, int offset, int size)
 {
-  ReturnFilledBuffer(filled, offset, size);
+  ReturnFilledBuffer(((OMXBufferHandle*)filled)->header, offset, size);
+  delete filled;
 }
 
-void Codec::ReleaseCallBack(bool isInput, uint8_t* released)
+void Codec::ReleaseCallBack(bool isInput, BufferHandleInterface* released)
 {
-  std::string type;
   if(isInput)
-    type = "empty";
+    ReturnEmptiedBuffer(((OMXBufferHandle*)released)->header);
   else
-    type = "fill";
-  if(isInput)
-    ReturnEmptiedBuffer(released);
-  else
-    ReturnFilledBuffer(released, 0, 0);
+    ReturnFilledBuffer(((OMXBufferHandle*)released)->header, 0, 0);
+  delete released;
 }
 
 static OMX_ERRORTYPE ToOmxError(ErrorType error)
@@ -167,35 +175,18 @@ static OMX_ERRORTYPE ToOmxError(ErrorType error)
   }
 }
 
-Task* CreateTask(Command cmd, OMX_U32 data, shared_ptr<void> opt)
-{
-  auto task = new Task();
-  task->cmd = cmd;
-  task->data = reinterpret_cast<uintptr_t*>(data);
-  task->opt = opt;
-  return task;
-}
-
-void nullDeleter(void*)
-{
-}
-
 void Codec::EventCallBack(CallbackEventType type, void* data)
 {
-  if(type > CALLBACK_EVENT_MAX)
-    assert(0);
+  assert(type <= CALLBACK_EVENT_MAX);
   switch(type)
   {
   case CALLBACK_EVENT_ERROR:
   {
-    {
-      auto promise = std::make_shared<std::promise<int>>();
-      processor->queue(CreateTask(Fence, OMX_StateInvalid, promise));
-      processorFill->queue(CreateTask(RemoveFence, OMX_StateInvalid, promise));
-    }
+    auto promise = std::make_shared<std::promise<int>>();
+    processorFill->queue(CreateTask(Fence, OMX_StateInvalid, promise));
     ErrorType errorCode = (ErrorType)(uintptr_t)data;
     processor->queue(CreateTask(SetState, OMX_StateInvalid, shared_ptr<void>((uintptr_t*)ToOmxError(errorCode), nullDeleter)));
-    LOGE("%s", ToStringCallbackEvent.at(type));
+    processor->queue(CreateTask(RemoveFence, OMX_StateInvalid, promise));
     break;
   }
   default:
@@ -228,8 +219,10 @@ static void AssociateSpecVersion(OMX_VERSIONTYPE& spec)
   spec.s.nStep = OMX_VERSION_STEP;
 }
 
-Codec::Codec(OMX_HANDLETYPE component, std::unique_ptr<ModuleInterface>&& module, OMX_STRING name, OMX_STRING role) :
-  component(component), module(std::move(module)),
+Codec::Codec(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, unique_ptr<ModuleInterface>&& module, OMX_STRING name, OMX_STRING role) :
+  component(component),
+  media(media),
+  module(move(module)),
   input(0, this->module->GetBufferRequirements().input.min), output(1, this->module->GetBufferRequirements().output.min)
 {
   assert(name);
@@ -240,15 +233,14 @@ Codec::Codec(OMX_HANDLETYPE component, std::unique_ptr<ModuleInterface>&& module
   shouldPrealloc = true;
   shouldClearROI = false;
   shouldPushROI = false;
-  isSettingsInit = false;
   version.nVersion = ALLEGRODVT_OMX_VERSION;
   AssociateSpecVersion(spec);
 
   OMXChecker::SetHeaderVersion(ports);
   SetPortsParam(ports);
-  auto const p = std::bind(&Codec::_Process, this, std::placeholders::_1);
-  auto const d = std::bind(&Codec::_Delete, this, std::placeholders::_1);
-  auto const p2 = std::bind(&Codec::_ProcessFillBuffer, this, std::placeholders::_1);
+  auto const p = bind(&Codec::_Process, this, placeholders::_1);
+  auto const d = bind(&Codec::_Delete, this, placeholders::_1);
+  auto const p2 = bind(&Codec::_ProcessFillBuffer, this, placeholders::_1);
   processor.reset(new ProcessorFifo(p, d));
   processorFill.reset(new ProcessorFifo(p2, d));
 
@@ -256,9 +248,7 @@ Codec::Codec(OMX_HANDLETYPE component, std::unique_ptr<ModuleInterface>&& module
   state = OMX_StateLoaded;
 }
 
-Codec::~Codec()
-{
-}
+Codec::~Codec() = default;
 
 void Codec::CreateName(OMX_STRING name)
 {
@@ -301,7 +291,6 @@ static TransientState GetTransientState(OMX_STATETYPE const& curState, OMX_STATE
   return TransientMax;
 }
 
-
 void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
 {
   Command taskCommand;
@@ -320,11 +309,11 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
       if(!module->CheckParam())
         throw OMX_ErrorUndefined;
 
-    if(NewtransientState == TransientExecutingToPause||NewtransientState == TransientExecutingToIdle)
+    if(NewtransientState == TransientExecutingToPause || NewtransientState == TransientExecutingToIdle)
     {
-      auto promise = std::make_shared<std::promise<int>>();
-      processor->queue(CreateTask(Fence, param, promise));
-      processorFill->queue(CreateTask(RemoveFence, param, promise));
+      auto p = make_shared<promise<int>>();
+      processor->queue(CreateTask(Fence, param, p));
+      processorFill->queue(CreateTask(RemoveFence, param, p));
     }
 
     transientState = NewtransientState;
@@ -335,9 +324,9 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
   {
     OMXChecker::CheckNull(data);
 
-    auto promise = std::make_shared<std::promise<int>>();
-    processor->queue(CreateTask(Fence, param, promise));
-    processorFill->queue(CreateTask(RemoveFence, param, promise));
+    auto p = make_shared<promise<int>>();
+    processor->queue(CreateTask(Fence, param, p));
+    processorFill->queue(CreateTask(RemoveFence, param, p));
 
     if(param == OMX_ALL)
     {
@@ -346,7 +335,6 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
 
       return;
     }
-
     CheckPortIndex(param);
     taskCommand = Flush;
     break;
@@ -371,7 +359,6 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
     GetPort(param)->enable = false;
     GetPort(param)->isTransientToDisable = true;
     taskCommand = DisablePort;
-    isSettingsInit = false;
     break;
   }
   case OMX_CommandPortEnable:
@@ -394,7 +381,6 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
     GetPort(param)->enable = true;
     GetPort(param)->isTransientToEnable = true;
     taskCommand = EnablePort;
-    isSettingsInit = true;
     break;
   }
   case OMX_CommandMarkBuffer:
@@ -436,23 +422,38 @@ OMX_ERRORTYPE Codec::GetState(OMX_OUT OMX_STATETYPE* state)
   OMX_CATCH();
 }
 
+static OMX_ERRORTYPE StubEventHandler(OMX_IN OMX_HANDLETYPE, OMX_IN OMX_PTR, OMX_IN OMX_EVENTTYPE, OMX_IN OMX_U32, OMX_IN OMX_U32, OMX_IN OMX_PTR)
+{
+  return OMX_ErrorNone;
+}
+
 OMX_ERRORTYPE Codec::SetCallbacks(OMX_IN OMX_CALLBACKTYPE* callbacks, OMX_IN OMX_PTR app)
 {
   OMX_TRY();
   OMXChecker::CheckNotNull<OMX_CALLBACKTYPE*>(callbacks);
   OMXChecker::CheckStateOperation(AL_SetCallbacks, state);
 
-  auto empty = std::bind(&Codec::EmptyThisBufferCallBack, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-  auto associate = std::bind(&Codec::AssociateCallBack, this, std::placeholders::_1, std::placeholders::_2);
-  auto filled = std::bind(&Codec::FillThisBufferCallBack, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-  auto event = std::bind(&Codec::EventCallBack, this, std::placeholders::_1, std::placeholders::_2);
-  auto release = std::bind(&Codec::ReleaseCallBack, this, std::placeholders::_1, std::placeholders::_2);
-  auto success = module->SetCallbacks((Callbacks) {empty, associate, filled, release, event });
+  auto empty = bind(&Codec::EmptyThisBufferCallBack, this, placeholders::_1);
+  auto associate = bind(&Codec::AssociateCallBack, this, placeholders::_1, placeholders::_2);
+  auto filled = bind(&Codec::FillThisBufferCallBack, this, placeholders::_1, placeholders::_2, placeholders::_3);
+  auto event = bind(&Codec::EventCallBack, this, placeholders::_1, placeholders::_2);
+  auto release = bind(&Codec::ReleaseCallBack, this, placeholders::_1, placeholders::_2);
+  Callbacks cbs;
+  cbs.emptied = empty;
+  cbs.associate = associate;
+  cbs.filled = filled;
+  cbs.release = release;
+  cbs.event = event;
+  auto success = module->SetCallbacks(cbs);
 
   if(!success)
     throw OMX_ErrorUndefined;
 
   this->callbacks = *callbacks;
+
+  if(this->callbacks.EventHandler == NULL)
+    this->callbacks.EventHandler = &StubEventHandler;
+
   this->app = app;
 
   return OMX_ErrorNone;
@@ -483,7 +484,7 @@ static OMX_PARAM_PORTDEFINITIONTYPE ConstructPortDefinition(Port& port, ModuleIn
   auto const moduleFormat = module.GetFormat();
   auto const moduleClock = module.GetClock();
   auto const moduleMime = IsInputPort(d.nPortIndex) ? module.GetMimes().input : module.GetMimes().output;
-  v.pNativeRender = 0; // XXX
+  v.pNativeRender = nullptr; // XXX
   v.nFrameWidth = moduleResolution.width;
   v.nFrameHeight = moduleResolution.height;
   v.nStride = moduleResolution.stride;
@@ -494,7 +495,7 @@ static OMX_PARAM_PORTDEFINITIONTYPE ConstructPortDefinition(Port& port, ModuleIn
   v.eCompressionFormat = ConvertToOMXCompression(moduleMime.compression);
   v.eColorFormat = ConvertToOMXColor(moduleFormat.color, moduleFormat.bitdepth);
   v.cMIMEType = const_cast<char*>(moduleMime.mime.c_str());
-  v.pNativeWindow = 0; // XXX
+  v.pNativeWindow = nullptr; // XXX
   return d;
 }
 
@@ -586,7 +587,7 @@ static bool SetFormat(OMX_COLOR_FORMATTYPE const& color, ModuleInterface& module
   return module.SetFormat(moduleFormat);
 }
 
-static bool SetClock(OMX_U32 const& framerateInQ16, ModuleInterface& module)
+static bool SetClock(OMX_U32 framerateInQ16, ModuleInterface& module)
 {
   auto moduleClock = module.GetClock();
   auto const clock = ConvertToModuleClock(framerateInQ16);
@@ -649,7 +650,6 @@ OMX_ERRORTYPE Codec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR par
   OMXChecker::CheckNotNull(param);
   OMXChecker::CheckHeaderVersion(GetVersion(param));
   OMXChecker::CheckStateOperation(AL_SetParameter, state);
-  isSettingsInit = false;
   switch(index)
   {
   case OMX_IndexParamStandardComponentRole:
@@ -808,8 +808,7 @@ OMX_ERRORTYPE Codec::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADERTYP
   auto port = GetPort(index);
 
   if((transientState != TransientIdleToLoaded) && (!port->isTransientToDisable))
-    if(callbacks.EventHandler)
-      callbacks.EventHandler(component, app, OMX_EventError, OMX_ErrorPortUnpopulated, 0, nullptr);
+    callbacks.EventHandler(component, app, OMX_EventError, OMX_ErrorPortUnpopulated, 0, nullptr);
 
   if(isBufferAllocatedByModule(header))
     module->Free(header->pBuffer);
@@ -840,7 +839,7 @@ void Codec::AttachMark(OMX_BUFFERHEADERTYPE* header)
   header->pMarkData = mark->pMarkData;
   marks.pop();
 
-  if(callbacks.EventHandler && header->hMarkTargetComponent == component)
+  if(header->hMarkTargetComponent == component)
     callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandMarkBuffer, input.index, mark);
 }
 
@@ -970,8 +969,8 @@ OMX_ERRORTYPE Codec::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR config
   }
   case OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh:
   {
-    OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH* idr = new OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH;
-    memcpy(idr, static_cast<OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH));
+    OMX_ALG_VIDEO_CONFIG_INSERT* idr = new OMX_ALG_VIDEO_CONFIG_INSERT;
+    memcpy(idr, static_cast<OMX_ALG_VIDEO_CONFIG_INSERT*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_INSERT));
     processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh, shared_ptr<void>(idr)));
     return OMX_ErrorNone;
   }
@@ -996,6 +995,21 @@ OMX_ERRORTYPE Codec::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR config
     processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoNotifySceneChange, shared_ptr<void>(notifySceneChange)));
     return OMX_ErrorNone;
   }
+  case OMX_ALG_IndexConfigVideoInsertLongTerm:
+  {
+    OMX_ALG_VIDEO_CONFIG_INSERT* lt = new OMX_ALG_VIDEO_CONFIG_INSERT;
+    memcpy(lt, static_cast<OMX_ALG_VIDEO_CONFIG_INSERT*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_INSERT));
+    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoInsertLongTerm, shared_ptr<void>(lt)));
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexConfigVideoUseLongTerm:
+  {
+    OMX_ALG_VIDEO_CONFIG_INSERT* lt = new OMX_ALG_VIDEO_CONFIG_INSERT;
+    memcpy(lt, static_cast<OMX_ALG_VIDEO_CONFIG_INSERT*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_INSERT));
+    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoUseLongTerm, shared_ptr<void>(lt)));
+    return OMX_ErrorNone;
+  }
+
   default:
     LOGE("%s is unsupported", ToStringOMXIndex.at(index));
     return OMX_ErrorUnsupportedIndex;
@@ -1158,11 +1172,8 @@ void Codec::TreatSetStateCommand(Task* task)
       if(error)
         throw ToOmxError(error);
 
-      if(shouldPrealloc && callbacks.EventHandler && !isSettingsInit)
-      {
-        callbacks.EventHandler(component, app, OMX_EventPortSettingsChanged, 1, 0, nullptr);
-	isSettingsInit = true;
-      }
+      if(shouldPrealloc)
+        callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_EventPortSettingsChanged), 1, 0, nullptr);
     }
 
     if(isTransitionToPause(state, newState))
@@ -1173,13 +1184,10 @@ void Codec::TreatSetStateCommand(Task* task)
 
     state = newState;
 
-    if(callbacks.EventHandler)
-      callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandStateSet, newState, nullptr);
+    callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandStateSet, newState, nullptr);
   }
   catch(OMX_ERRORTYPE& e)
   {
-    LOGE("%s", ToStringOMXError.at(e));
-
     if(e == OMX_ErrorInvalidState)
     {
       module->Stop();
@@ -1188,10 +1196,10 @@ void Codec::TreatSetStateCommand(Task* task)
     }
 
     if(task->opt.get() != nullptr)
-	    e = (OMX_ERRORTYPE)((uintptr_t)task->opt.get());
+      e = (OMX_ERRORTYPE)((uintptr_t)task->opt.get());
 
-    if(callbacks.EventHandler)
-      callbacks.EventHandler(component, app, OMX_EventError, e, 0, nullptr);
+    LOGE("%s", ToStringOMXError.at(e));
+    callbacks.EventHandler(component, app, OMX_EventError, e, 0, nullptr);
   }
 }
 
@@ -1205,8 +1213,7 @@ void Codec::TreatFlushCommand(Task* task)
   LOGI("Flush port : %i", index);
   module->Flush();
 
-  if(callbacks.EventHandler)
-    callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandFlush, index, nullptr);
+  callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandFlush, index, nullptr);
 }
 
 void Codec::TreatDisablePortCommand(Task* task)
@@ -1223,8 +1230,7 @@ void Codec::TreatDisablePortCommand(Task* task)
     port->isTransientToDisable = false;
   }
 
-  if(callbacks.EventHandler)
-    callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandPortDisable, index, nullptr);
+  callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandPortDisable, index, nullptr);
 }
 
 void Codec::TreatEnablePortCommand(Task* task)
@@ -1243,8 +1249,7 @@ void Codec::TreatEnablePortCommand(Task* task)
     port->isTransientToEnable = false;
   }
 
-  if(callbacks.EventHandler)
-    callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandPortEnable, index, nullptr);
+  callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandPortEnable, index, nullptr);
 }
 
 void Codec::TreatMarkBufferCommand(Task* task)
@@ -1266,8 +1271,8 @@ void Codec::TreatEmptyBufferCommand(Task* task)
   auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
   assert(header);
   AttachMark(header);
-  map.Add(header->pBuffer, header);
-  auto success = module->Empty(header->pBuffer, header->nOffset, header->nFilledLen, header);
+  auto handle = new OMXBufferHandle(header);
+  auto success = module->Empty(handle);
   assert(success);
 }
 
@@ -1278,14 +1283,15 @@ void Codec::TreatFillBufferCommand(Task* task)
   assert(static_cast<int>((uintptr_t)task->data) == output.index);
   auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
   assert(header);
-  if(state== OMX_StateInvalid)
+
+  if(state == OMX_StateInvalid)
   {
-  if(callbacks.FillBufferDone)
     callbacks.FillBufferDone(component, app, header);
-  return;
+    return;
   }
-  map.Add(header->pBuffer, header);
-  auto success = module->Fill(header->pBuffer, header->nOffset, (header->nAllocLen - header->nOffset));
+
+  auto handle = new OMXBufferHandle(header);
+  auto success = module->Fill(handle);
   assert(success);
 }
 
@@ -1361,6 +1367,17 @@ void Codec::TreatDynamicCommand(Task* task)
     return;
   }
 
+  case OMX_ALG_IndexConfigVideoInsertLongTerm:
+  {
+    module->SetDynamic(DYNAMIC_INDEX_IS_LONG_TERM, nullptr);
+    return;
+  }
+  case OMX_ALG_IndexConfigVideoUseLongTerm:
+  {
+    module->SetDynamic(DYNAMIC_INDEX_USE_LONG_TERM, nullptr);
+    return;
+  }
+
   default:
     return;
   }
@@ -1368,14 +1385,14 @@ void Codec::TreatDynamicCommand(Task* task)
 
 static void TreatRemoveFenceCommand(Task* task)
 {
-  auto promise = (std::promise<int>*)task->opt.get();
-  promise->set_value(0);
+  auto p = (promise<int>*)task->opt.get();
+  p->set_value(0);
 }
 
 static void TreatFenceCommand(Task* task)
 {
-  auto promise = (std::promise<int>*)task->opt.get();
-  promise->get_future().wait();
+  auto p = (promise<int>*)task->opt.get();
+  p->get_future().wait();
 }
 
 void Codec::_Delete(void* data)
@@ -1431,8 +1448,13 @@ void Codec::_Process(void* data)
     TreatFenceCommand(task);
     break;
   }
+  case RemoveFence:
+  {
+    TreatRemoveFenceCommand(task);
+    break;
+  }
   default:
-    assert(0);
+    assert(0 == "bad command");
   }
 
   delete task;
@@ -1449,6 +1471,8 @@ void Codec::_ProcessFillBuffer(void* data)
   }
   else if(task->cmd == RemoveFence)
     TreatRemoveFenceCommand(task);
+  else if(task->cmd == Fence)
+    TreatFenceCommand(task);
   else
     assert(0 == "bad command");
   delete task;

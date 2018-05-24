@@ -46,17 +46,18 @@ extern "C"
 {
 #include <lib_common/BufferSrcMeta.h>
 #include <lib_fpga/DmaAllocLinux.h>
-#include <lib_common/FourCC.h>
+#include <lib_common_dec/IpDecFourCC.h>
 }
 
 #include "base/omx_settings/omx_convert_module_soft.h"
 #include "base/omx_settings/omx_convert_module_soft_dec.h"
+#include "base/omx_settings/omx_settings_structs.h"
 #include "base/omx_utils/roundup.h"
 
 using namespace std;
 
-DecModule::DecModule(unique_ptr<DecMediatypeInterface>&& media, unique_ptr<DecDevice>&& device, deleted_unique_ptr<AL_TAllocator>&& allocator) :
-  media(move(media)),
+DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, unique_ptr<DecDevice>&& device, deleted_unique_ptr<AL_TAllocator>&& allocator) :
+  media(media),
   device(move(device)),
   allocator(move(allocator))
 {
@@ -67,6 +68,8 @@ DecModule::DecModule(unique_ptr<DecMediatypeInterface>&& media, unique_ptr<DecDe
   isCreated = false;
   ResetRequirements();
 }
+
+DecModule::~DecModule() = default;
 
 void DecModule::ResetRequirements()
 {
@@ -80,52 +83,37 @@ static int RawAllocationSize(int stride, int sliceHeight, AL_EChromaMode eChroma
   auto const IP_HEIGHT_ALIGNMENT = 64;
   assert(stride % IP_WIDTH_ALIGNMENT == 0); // IP requirements
   assert(sliceHeight % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
-
   auto size = stride * sliceHeight;
-
   switch(eChromaMode)
   {
-    case CHROMA_MONO: break;
-    case CHROMA_4_2_0:
-    {
-      size += size >> 1;
-      break;
-    }
-    case CHROMA_4_2_2:
-    {
-      size += size;
-      break;
-    }
-    case CHROMA_4_4_4:
-    default:
-    {
-      assert(0);
-      break;
-    }
+  case CHROMA_MONO: return size;
+  case CHROMA_4_2_0: return (3 * size) / 2;
+  case CHROMA_4_2_2: return 2 * size;
+  default: return -1;
   }
-
-  return size;
 }
 
 BufferRequirements DecModule::GetBufferRequirements() const
 {
   auto const streamSettings = media->settings.tStream;
   BufferRequirements b;
+  BufferCounts bufferCounts;
+  media->Get(SETTINGS_INDEX_BUFFER_COUNTS, &bufferCounts);
   auto& input = b.input;
-  input.min = 2; // We need 2 NALUs to detect the first one
+  input.min = bufferCounts.input;
   input.size = AL_GetMaxNalSize(streamSettings.tDim, streamSettings.eChroma, streamSettings.iBitDepth);
   input.bytesAlignment = device->GetAllocationRequirements().input.bytesAlignment;
   input.contiguous = device->GetAllocationRequirements().input.contiguous;
 
   auto& output = b.output;
-  output.min = media->GetRequiredOutputBuffers() + 1; // 1 for eos
+  output.min = bufferCounts.output;
+  output.min += 1; // for eos
   output.size = RawAllocationSize(media->stride, media->sliceHeight, streamSettings.eChroma);
   output.bytesAlignment = device->GetAllocationRequirements().output.bytesAlignment;
   output.contiguous = device->GetAllocationRequirements().output.contiguous;
 
   return b;
 }
-
 
 Resolution DecModule::GetResolution() const
 {
@@ -142,35 +130,53 @@ Resolution DecModule::GetResolution() const
 Clock DecModule::GetClock() const
 {
   Clock clock;
-  clock.framerate = media->settings.uFrameRate / 1000;
-  clock.clockratio = media->settings.uClkRatio;
+  media->Get(SETTINGS_INDEX_CLOCK, &clock);
   return clock;
 }
 
 Mimes DecModule::GetMimes() const
 {
   Mimes mimes;
-  auto& inMime = mimes.input;
-
-  inMime.mime = media->Mime();
-  inMime.compression = media->Compression();
-
-  auto& outMime = mimes.output;
-
-  outMime.mime = "video/x-raw"; // NV12
-  outMime.compression = COMPRESSION_UNUSED;
-
+  media->Get(SETTINGS_INDEX_MIMES, &mimes);
   return mimes;
 }
 
 Format DecModule::GetFormat() const
 {
-  return media->GetFormat();
+  Format format;
+  auto const streamSettings = media->settings.tStream;
+
+  format.color = ConvertSoftToModuleColor(streamSettings.eChroma);
+  format.bitdepth = streamSettings.iBitDepth;
+
+  return format;
 }
 
 vector<Format> DecModule::GetFormatsSupported() const
 {
-  return media->FormatsSupported();
+  vector<Format> formats;
+  media->Get(SETTINGS_INDEX_FORMATS_SUPPORTED, &formats);
+  return formats;
+}
+
+vector<VideoModeType> DecModule::GetVideoModesSupported() const
+{
+  vector<VideoModeType> videoModesSupported;
+  media->Get(SETTINGS_INDEX_VIDEO_MODES_SUPPORTED, &videoModesSupported);
+  return videoModesSupported;
+}
+
+VideoModeType DecModule::GetVideoMode() const
+{
+  VideoModeType videoMode;
+  media->Get(SETTINGS_INDEX_VIDEO_MODE, &videoMode);
+  return videoMode;
+}
+
+bool DecModule::SetVideoMode(VideoModeType const& videoMode)
+{
+  auto ret = media->Set(SETTINGS_INDEX_VIDEO_MODE, &videoMode);
+  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
 }
 
 ProfileLevelType DecModule::GetProfileLevel() const
@@ -180,24 +186,16 @@ ProfileLevelType DecModule::GetProfileLevel() const
 
 vector<ProfileLevelType> DecModule::GetProfileLevelSupported() const
 {
-  return media->ProfileLevelSupported();
+  vector<ProfileLevelType> profileslevels;
+  media->Get(SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED, &profileslevels);
+  return profileslevels;
 }
 
 int DecModule::GetLatency() const
 {
-  auto const settings = media->settings;
-  auto bufsCount = media->GetRequiredOutputBuffers();
-
-  if(ConvertSoftToModuleDecodedPictureBuffer(settings.eDpbMode) == DECODED_PICTURE_BUFFER_LOW_REFERENCE)
-    bufsCount -= settings.iStackSize;
-
-  if(IsEnableSubframe())
-    bufsCount = 1;
-
-  auto const realFramerate = (static_cast<double>(settings.uFrameRate) / static_cast<double>(settings.uClkRatio));
-  auto const timeInMilliseconds = (static_cast<double>(bufsCount * 1000.0) / realFramerate);
-
-  return ceil(timeInMilliseconds);
+  int latency;
+  media->Get(SETTINGS_INDEX_LATENCY, &latency);
+  return latency;
 }
 
 FileDescriptors DecModule::GetFileDescriptors() const
@@ -213,14 +211,15 @@ DecodedPictureBufferType DecModule::GetDecodedPictureBuffer() const
 
 int DecModule::GetInternalEntropyBuffers() const
 {
-  auto const settings = media->settings;
-  return settings.iStackSize;
+  int stack;
+  media->Get(SETTINGS_INDEX_INTERNAL_ENTROPY_BUFFER, &stack);
+  return stack;
 }
 
 bool DecModule::IsEnableSubframe() const
 {
   auto const settings = media->settings;
-  return DECODE_UNIT_SLICE == ConvertSoftToModuleDecodeUnit(settings.eDecUnit);
+  return DecodeUnitType::DECODE_UNIT_SLICE == ConvertSoftToModuleDecodeUnit(settings.eDecUnit);
 }
 
 bool DecModule::SetResolution(Resolution const& resolution)
@@ -234,10 +233,10 @@ bool DecModule::SetResolution(Resolution const& resolution)
   auto& streamSettings = media->settings.tStream;
   streamSettings.tDim = { resolution.width, resolution.height };
 
-  auto minStride = (int)RoundUp(AL_Decoder_RoundPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
+  auto minStride = (int)RoundUp(AL_Decoder_GetMinPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
   media->stride = max(minStride, RoundUp(resolution.stride, media->strideAlignment));
 
-  auto minSliceHeight = (int)RoundUp(AL_Decoder_RoundHeight(streamSettings.tDim.iHeight), media->sliceHeightAlignment);
+  auto minSliceHeight = (int)RoundUp(AL_Decoder_GetMinStrideHeight(streamSettings.tDim.iHeight), media->sliceHeightAlignment);
   media->sliceHeight = max(minSliceHeight, RoundUp(resolution.sliceHeight, media->sliceHeightAlignment));
 
   return true;
@@ -245,10 +244,8 @@ bool DecModule::SetResolution(Resolution const& resolution)
 
 bool DecModule::SetClock(Clock const& clock)
 {
-  auto& settings = media->settings;
-  settings.uFrameRate = clock.framerate * 1000;
-  settings.uClkRatio = clock.clockratio;
-  return true;
+  auto ret = media->Set(SETTINGS_INDEX_CLOCK, &clock);
+  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
 }
 
 bool DecModule::SetFormat(Format const& format)
@@ -257,7 +254,7 @@ bool DecModule::SetFormat(Format const& format)
   streamSettings.iBitDepth = format.bitdepth;
   streamSettings.eChroma = ConvertModuleToSoftChroma(format.color);
 
-  auto minStride = (int)RoundUp(AL_Decoder_RoundPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
+  auto minStride = (int)RoundUp(AL_Decoder_GetMinPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
   media->stride = max(minStride, media->stride);
 
   return true;
@@ -277,36 +274,30 @@ bool DecModule::SetFileDescriptors(FileDescriptors const& fds)
 
 bool DecModule::SetDecodedPictureBuffer(DecodedPictureBufferType const& decodedPictureBuffer)
 {
-  if(decodedPictureBuffer == DECODED_PICTURE_BUFFER_MAX)
+  if(decodedPictureBuffer == DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM)
     return false;
 
   auto& settings = media->settings;
-  settings.bLowLat = decodedPictureBuffer == DECODED_PICTURE_BUFFER_LOW_REFERENCE;
+  settings.bLowLat = decodedPictureBuffer == DecodedPictureBufferType::DECODED_PICTURE_BUFFER_LOW_REFERENCE;
   settings.eDpbMode = ConvertModuleToSoftDecodedPictureBuffer(decodedPictureBuffer);
   return true;
 }
 
-bool DecModule::SetInternalEntropyBuffers(int const& num)
+bool DecModule::SetInternalEntropyBuffers(int num)
 {
-  if(num < 1 && num > 16)
-    return false;
-
-  auto& settings = media->settings;
-  settings.iStackSize = num;
-  return true;
+  auto ret = media->Set(SETTINGS_INDEX_INTERNAL_ENTROPY_BUFFER, &num);
+  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
 }
 
-bool DecModule::SetEnableSubframe(bool const& enableSubframe)
+bool DecModule::SetEnableSubframe(bool enableSubframe)
 {
   auto& settings = media->settings;
-  settings.eDecUnit = enableSubframe ? ConvertModuleToSoftDecodeUnit(DECODE_UNIT_SLICE) : ConvertModuleToSoftDecodeUnit(DECODE_UNIT_FRAME);
+  settings.eDecUnit = enableSubframe ? ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_SLICE) : ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_FRAME);
   return true;
 }
 
 map<int, string> MapToStringDecodeError =
 {
-  { AL_ERR_INIT_FAILED, "decoder: initialization failure" },
-  { AL_ERR_NO_FRAME_DECODED, "decoder: didn't decode any frames" },
   { AL_ERR_RESOLUTION_CHANGE, "decoder: doesn't support resolution change" },
   { AL_ERR_NO_MEMORY, "decoder: memory allocation failure (firmware or ctrlsw)" },
   { AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE, "decoder: no channel available on the hardware" },
@@ -348,8 +339,6 @@ static ErrorType ToModuleError(int errorCode)
     return ERROR_BAD_PARAMETER;
   case AL_ERR_NO_MEMORY:
     return ERROR_NO_MEMORY;
-  case AL_ERR_INIT_FAILED: /* will be deprecated */
-    return ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE;
   default:
     return ERROR_UNDEFINED;
   }
@@ -369,19 +358,19 @@ void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
     return;
   }
 
-  auto const handleOut = translateOut.Get(decodedFrame);
-  assert(handleOut);
+  auto const rhandleOut = handlesOut.Get(decodedFrame);
+  assert(rhandleOut);
 
-  callbacks.associate(nullptr, handleOut);
+  callbacks.associate(nullptr, rhandleOut);
 }
 
 void DecModule::ReleaseBufs(AL_TBuffer* frame)
 {
-  auto const handleOut = translateOut.Get(frame);
-  assert(handleOut);
-  dpb.Remove(handleOut);
-  translateOut.Remove(frame);
-  callbacks.release(false, handleOut);
+  auto const rhandleOut = handlesOut.Get(frame);
+  assert(rhandleOut);
+  dpb.Remove(rhandleOut->data);
+  handlesOut.Remove(frame);
+  callbacks.release(false, rhandleOut);
   AL_Buffer_Unref(frame);
   return;
 }
@@ -406,21 +395,24 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
 
   if(isEOS)
   {
-    auto const handleOut = translateOut.Pop(eosHandles.output);
-    dpb.Remove(handleOut);
+    auto const rhandleOut = handlesOut.Pop(eosHandles.output);
+    dpb.Remove(rhandleOut->data);
 
-    auto const handleIn = translateIn.Get(eosHandles.input);
-
-    auto const eosIsSent = handleIn != nullptr;
+    auto const rhandleIn = handlesIn.Get(eosHandles.input);
+    auto const eosIsSent = rhandleIn != nullptr;
 
     if(eosIsSent)
     {
-      callbacks.associate(handleIn, handleOut);
+      callbacks.associate(rhandleIn, rhandleOut);
       AL_Buffer_Unref(eosHandles.input);
       eosHandles.input = nullptr;
     }
 
-    callbacks.filled(handleOut, 0, 0);
+    currentDisplayPictureType = -1;
+
+    rhandleOut->offset = 0;
+    rhandleOut->payload = 0;
+    callbacks.filled(rhandleOut, rhandleOut->offset, rhandleOut->payload);
 
     AL_Buffer_Unref(eosHandles.output);
     eosHandles.output = nullptr;
@@ -430,19 +422,24 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
 
   auto const size = GetBufferRequirements().output.size;
   CopyIfRequired(frameToDisplay, size);
-  callbacks.filled(translateOut.Pop(frameToDisplay), 0, size);
+  currentDisplayPictureType = info->ePicStruct;
+  auto rhandleOut = handlesOut.Pop(frameToDisplay);
+  rhandleOut->offset = 0;
+  rhandleOut->payload = size;
+  callbacks.filled(rhandleOut, rhandleOut->offset, rhandleOut->payload);
+  currentDisplayPictureType = -1;
 }
 
-void DecModule::ResolutionFound(int const& bufferNumber, int const& bufferSize, AL_TStreamSettings const& settings, AL_TCropInfo const& crop)
+void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSettings const& settings, AL_TCropInfo const& crop)
 {
   (void)bufferNumber, (void)bufferSize, (void)crop;
 
   media->settings.tStream = settings;
-  media->stride = (int)RoundUp(AL_Decoder_RoundPitch(settings.tDim.iWidth, settings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
-  media->sliceHeight = (int)RoundUp(AL_Decoder_RoundHeight(settings.tDim.iHeight), media->sliceHeightAlignment);
 
-  if(callbacks.event)
-    callbacks.event(CALLBACK_EVENT_RESOLUTION_CHANGE, nullptr);
+  media->stride = (int)RoundUp(AL_Decoder_GetMinPitch(settings.tDim.iWidth, settings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
+  media->sliceHeight = (int)RoundUp(AL_Decoder_GetMinStrideHeight(settings.tDim.iHeight), media->sliceHeightAlignment);
+
+  callbacks.event(CALLBACK_EVENT_RESOLUTION_CHANGE, nullptr);
 }
 
 ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
@@ -450,15 +447,15 @@ ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
   if(decoder)
   {
     fprintf(stderr, "Decoder is ALREADY created\n");
-    assert(0);
+    return ERROR_UNDEFINED;
   }
 
-  channel = device->Init(media->settings.eDecUnit, *allocator.get());
+  channel = device->Init(*allocator.get());
   AL_TDecCallBacks decCallbacks {};
   decCallbacks.endDecodingCB = { RedirectionEndDecoding, this };
   decCallbacks.displayCB = { RedirectionDisplay, this };
   decCallbacks.resolutionFoundCB = { RedirectionResolutionFound, this };
-  media->settings.bForceFrameRate = (media->settings.uFrameRate && media->settings.uClkRatio);
+
   auto errorCode = AL_Decoder_Create(&decoder, channel, allocator.get(), &media->settings, &decCallbacks);
 
   if(errorCode != AL_SUCCESS)
@@ -471,9 +468,9 @@ ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
   {
     if(!AL_Decoder_PreallocateBuffers(decoder))
     {
-      auto error = AL_Decoder_GetLastError(decoder);
+      auto errorCode = AL_Decoder_GetLastError(decoder);
       DestroyDecoder();
-      return ToModuleError(error);
+      return ToModuleError(errorCode);
     }
   }
 
@@ -507,7 +504,6 @@ bool DecModule::Create()
   if(decoder)
   {
     fprintf(stderr, "Decoder should NOT be created\n");
-    assert(0);
     return false;
   }
   isCreated = true;
@@ -517,12 +513,7 @@ bool DecModule::Create()
 
 void DecModule::Destroy()
 {
-  if(decoder)
-  {
-    fprintf(stderr, "Decoder should ALREADY be destroyed\n");
-    assert(0);
-  }
-
+  assert(!decoder && "Decoder should ALREADY be destroyed");
   isCreated = false;
 }
 
@@ -531,10 +522,10 @@ void DecModule::Free(void* buffer)
   if(!buffer)
     return;
 
-  if(dpb.Exist((uint8_t*)buffer))
+  if(dpb.Exist((char*)buffer))
   {
-    auto handle = dpb.Pop((uint8_t*)buffer);
-    assert(!translateOut.Exist(handle));
+    auto handle = dpb.Pop((char*)buffer);
+    assert(!handlesOut.Exist(handle));
     AL_Buffer_Unref(handle);
   }
 
@@ -550,12 +541,12 @@ void DecModule::FreeDMA(int fd)
   if(fd < 0)
     return;
 
-  uint8_t* buffer = (uint8_t*)((intptr_t)fd);
+  auto buffer = (char*)((intptr_t)fd);
 
   if(dpb.Exist(buffer))
   {
     auto handle = dpb.Pop(buffer);
-    assert(!translateOut.Exist(handle));
+    assert(!handlesOut.Exist(handle));
     AL_Buffer_Unref(handle);
   }
 
@@ -593,9 +584,13 @@ int DecModule::AllocateDMA(int size)
     return -1;
   }
 
-  auto fd = AL_LinuxDmaAllocator_ExportToFd((AL_TLinuxDmaAllocator*)allocator.get(), handle);
+  auto fd = AL_LinuxDmaAllocator_GetFd((AL_TLinuxDmaAllocator*)allocator.get(), handle);
   allocatedDMA.Add(fd, handle);
   return fd;
+}
+
+static void StubCallbackEvent(CallbackEventType, void*)
+{
 }
 
 bool DecModule::SetCallbacks(Callbacks callbacks)
@@ -603,32 +598,26 @@ bool DecModule::SetCallbacks(Callbacks callbacks)
   if(!callbacks.emptied || !callbacks.associate || !callbacks.filled || !callbacks.release)
     return false;
 
+  if(!callbacks.event)
+    callbacks.event = &StubCallbackEvent;
+
   this->callbacks = callbacks;
+
   return true;
 }
 
 void DecModule::InputBufferDestroy(AL_TBuffer* input)
 {
-  auto const handleIn = translateIn.Pop(input);
-  auto const realHandle = handleMap.Pop(input);
+  auto const rhandleIn = handlesIn.Pop(input);
 
   AL_Buffer_Destroy(input);
 
-  callbacks.emptied(handleIn, 0, 0, realHandle);
+  rhandleIn->offset = 0;
+  rhandleIn->payload = 0;
+  callbacks.emptied(rhandleIn);
 }
 
-void DecModule::InputDmaBufferDestroy(AL_TBuffer* input)
-{
-  auto const handleIn = translateIn.Pop(input);
-  auto const realHandle = handleMap.Pop(input);
-
-  AL_Allocator_Free(input->pAllocator, input->hBuf);
-  AL_Buffer_Destroy(input);
-
-  callbacks.emptied(handleIn, 0, 0, realHandle);
-}
-
-AL_TBuffer* DecModule::CreateInputBuffer(uint8_t* buffer, int const& size)
+AL_TBuffer* DecModule::CreateInputBuffer(char* buffer, int size)
 {
   AL_TBuffer* input = nullptr;
 
@@ -647,14 +636,14 @@ AL_TBuffer* DecModule::CreateInputBuffer(uint8_t* buffer, int const& size)
       return nullptr;
     }
 
-    input = AL_Buffer_Create(allocator.get(), dmaHandle, size, RedirectionInputDmaBufferDestroy);
+    input = AL_Buffer_Create(allocator.get(), dmaHandle, size, RedirectionInputBufferDestroy);
   }
   else
   {
     if(allocated.Exist(buffer))
       input = AL_Buffer_Create(allocator.get(), allocated.Get(buffer), size, RedirectionInputBufferDestroy);
     else
-      input = AL_Buffer_WrapData(buffer, size, RedirectionInputBufferDestroy);
+      input = AL_Buffer_WrapData((uint8_t*)buffer, size, RedirectionInputBufferDestroy);
   }
 
   if(input == nullptr)
@@ -666,21 +655,20 @@ AL_TBuffer* DecModule::CreateInputBuffer(uint8_t* buffer, int const& size)
   return input;
 }
 
-bool DecModule::Empty(uint8_t* buffer, int offset, int size, void* handle)
+bool DecModule::Empty(BufferHandleInterface* handle)
 {
-  (void)offset;
   if(!decoder)
     return false;
 
-  AL_TBuffer* input = CreateInputBuffer(buffer, size);
+  auto buffer = handle->data;
+  AL_TBuffer* input = CreateInputBuffer(buffer, handle->payload);
 
   if(!input)
     return false;
 
-  translateIn.Add(input, buffer);
-  handleMap.Add(input, handle);
+  handlesIn.Add(input, handle);
 
-  auto const eos = (size == 0);
+  auto const eos = (handle->payload == 0);
 
   if(eos)
   {
@@ -689,7 +677,7 @@ bool DecModule::Empty(uint8_t* buffer, int offset, int size, void* handle)
     return true;
   }
 
-  auto const pushed = AL_Decoder_PushBuffer(decoder, input, size, AL_BUF_MODE_BLOCK);
+  auto const pushed = AL_Decoder_PushBuffer(decoder, input, handle->payload);
   AL_Buffer_Unref(input);
 
   return pushed;
@@ -697,20 +685,22 @@ bool DecModule::Empty(uint8_t* buffer, int offset, int size, void* handle)
 
 static AL_TMetaData* CreateSourceMeta(AL_TStreamSettings const& streamSettings, Resolution const& resolution)
 {
-  auto const fourCC = AL_GetSrcFourCC({ streamSettings.eChroma, static_cast<uint8_t>(streamSettings.iBitDepth), AL_FB_RASTER });
-  AL_TPitches const pitches = { 0, 0 };
-  AL_TOffsetYC const offsetYC = { 0, 0 };
+  auto const fourCC = AL_GetDecFourCC({ streamSettings.eChroma, static_cast<uint8_t>(streamSettings.iBitDepth), AL_FB_RASTER });
+  auto const stride = resolution.stride;
+  auto const sliceHeight = resolution.sliceHeight;
+  AL_TPitches const pitches = { stride, stride };
+  AL_TOffsetYC const offsetYC = { 0, stride * sliceHeight };
   return (AL_TMetaData*)(AL_SrcMetaData_Create({ resolution.width, resolution.height }, pitches, offsetYC, fourCC));
 }
 
 void DecModule::OutputBufferDestroy(AL_TBuffer* output)
 {
+  output->hBuf = NULL;
   AL_Buffer_Destroy(output);
 }
 
 void DecModule::OutputDmaBufferDestroy(AL_TBuffer* output)
 {
-  AL_Allocator_Free(output->pAllocator, output->hBuf);
   AL_Buffer_Destroy(output);
 }
 
@@ -718,11 +708,10 @@ void DecModule::OutputBufferDestroyAndFree(AL_TBuffer* output)
 {
   shouldBeCopied.Pop(output);
 
-  AL_Allocator_Free(output->pAllocator, output->hBuf);
   AL_Buffer_Destroy(output);
 }
 
-AL_TBuffer* DecModule::CreateOutputBuffer(uint8_t* buffer, int const& size)
+AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
 {
   auto const sourceMeta = CreateSourceMeta(media->settings.tStream, GetResolution());
 
@@ -778,19 +767,19 @@ AL_TBuffer* DecModule::CreateOutputBuffer(uint8_t* buffer, int const& size)
   return output;
 }
 
-bool DecModule::Fill(uint8_t* buffer, int offset, int size)
+bool DecModule::Fill(BufferHandleInterface* handle)
 {
-  (void)offset;
-
   if(!decoder)
     return false;
 
-  auto output = dpb.Exist(buffer) ? dpb.Get(buffer) : CreateOutputBuffer(buffer, size);
+  auto buffer = handle->data;
+
+  auto output = dpb.Exist(buffer) ? dpb.Get(buffer) : CreateOutputBuffer(buffer, handle->size);
 
   if(!output)
     return false;
 
-  translateOut.Add(output, buffer);
+  handlesOut.Add(output, handle);
 
   if(!eosHandles.output)
   {
@@ -807,7 +796,6 @@ ErrorType DecModule::Run(bool shouldPrealloc)
   if(decoder)
   {
     fprintf(stderr, "You can't call Run twice\n");
-    assert(0);
     return ERROR_UNDEFINED;
   }
 
@@ -828,7 +816,7 @@ bool DecModule::Pause()
   if(!decoder)
     return false;
 
-  DestroyDecoder();
+  ReleaseAllBuffers();
 
   return false;
 }
@@ -847,14 +835,14 @@ bool DecModule::Flush()
 
 void DecModule::FlushEosHandles()
 {
-  auto const handleOut = translateOut.Get(eosHandles.output);
+  auto const rhandleOut = handlesOut.Get(eosHandles.output);
 
-  if(handleOut)
+  if(rhandleOut)
   {
-    dpb.Remove(handleOut);
-    translateOut.Remove(eosHandles.output);
+    dpb.Remove(rhandleOut->data);
+    handlesOut.Remove(eosHandles.output);
 
-    callbacks.release(false, handleOut);
+    callbacks.release(false, rhandleOut);
 
     AL_Buffer_Unref(eosHandles.output);
     eosHandles.output = nullptr;
@@ -889,13 +877,21 @@ ErrorType DecModule::GetDynamic(std::string index, void* param)
 
 Gop DecModule::GetGop() const
 {
-  // This will be replaced by omx_settings
-  assert(0);
+  Gop gop;
+  media->Set(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop);
+  assert(0 && "this should not be called yet");
+  return gop;
 }
 
-bool DecModule::SetGop(Gop const &)
+bool DecModule::SetGop(Gop const& gop)
 {
-  // This will be replaced by omx_settings
-  assert(0);
+  media->Set(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop);
+  assert(0 && "this should not be called yet");
+  return true;
+}
+
+int DecModule::GetDisplayPictureType() const
+{
+  return currentDisplayPictureType;
 }
 

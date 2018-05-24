@@ -307,8 +307,11 @@ static std::map<OMX_INDEXTYPE, const char*> ToStringOMXIndex =
   { OMX_IndexVendorStartUnused, "OMX_IndexVendorStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexVendorComponentStartUnused), "OMX_ALG_IndexVendorComponentStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamReportedLatency), "OMX_ALG_IndexParamReportedLatency" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamPreallocation), "OMX_ALG_IndexParamPreallocation" },
+
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexVendorPortStartUnused), "OMX_ALG_IndexVendorPortStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexPortParamBufferMode), "OMX_ALG_IndexPortParamBufferMode" },
+
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVendorVideoStartUnused), "OMX_ALG_IndexParamVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoHevc), "OMX_ALG_IndexParamVideoHevc" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoVp9), "OMX_ALG_IndexParamVideoVp9" },
@@ -324,7 +327,17 @@ static std::map<OMX_INDEXTYPE, const char*> ToStringOMXIndex =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInternalEntropyBuffers), "OMX_ALG_IndexParamVideoInternalEntropyBuffers" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLowBandwidth), "OMX_ALG_IndexParamVideoLowBandwidth" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoAspectRatio), "OMX_ALG_IndexParamVideoAspectRatio" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSubframe), "OMX_ALG_IndexParamVideoSubframe" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInstantaneousDecodingRefresh), "OMX_ALG_IndexParamVideoInstantaneousDecodingRefresh" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoMaxBitrate), "OMX_ALG_IndexParamVideoMaxBitrate" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoFillerData), "OMX_ALG_IndexParamVideoFillerData" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoBufferMode), "OMX_ALG_IndexParamVideoBufferMode" },
+
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVendorVideoStartUnused), "OMX_ALG_IndexConfigVendorVideoStartUnused" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), "OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoGroupOfPictures), "OMX_ALG_IndexConfigVideoGroupOfPictures" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoRegionOfInterest), "OMX_ALG_IndexConfigVideoRegionOfInterest" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoNotifySceneChange), "OMX_ALG_IndexConfigVideoNotifySceneChange" },
 
   { OMX_IndexMax, "OMX_IndexMax" },
 };

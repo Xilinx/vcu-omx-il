@@ -106,7 +106,7 @@ public:
   {
     if(!ptr)
       throw OMX_ErrorBadParameter;
-  };
+  }
 
   /*************************************************************************//*!
      \brief  The CheckNull method test if the parameter send is null
@@ -120,7 +120,7 @@ public:
   {
     if(ptr)
       throw OMX_ErrorBadParameter;
-  };
+  }
 
   /*************************************************************************//*!
      \brief  The SetHeaderVersion method set the omx-il version header used. It also set to 0 everything else.
@@ -134,7 +134,7 @@ public:
     memset(&header, 0x0, sizeof(T));
     header.nSize = sizeof(header);
     header.nVersion.nVersion = OMX_VERSION;
-  };
+  }
 
   /*************************************************************************//*!
      \brief  The CheckHeader method check if the header is at the omx-il version used

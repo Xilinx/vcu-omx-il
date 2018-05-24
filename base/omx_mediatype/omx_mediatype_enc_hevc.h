@@ -44,26 +44,12 @@ struct EncMediatypeHEVC : EncMediatypeInterface
   EncMediatypeHEVC();
   ~EncMediatypeHEVC();
 
-  void Reset();
-  CompressionType Compression() const;
-  std::string Mime() const;
+  void Reset() override;
+  ErrorSettingsType Get(std::string index, void* settings) const override;
+  ErrorSettingsType Set(std::string index, void const* settings) override;
 
-  std::vector<Format> FormatsSupported() const;
-  std::vector<ProfileLevelType> ProfileLevelSupported() const;
   ProfileLevelType ProfileLevel() const;
   bool SetProfileLevel(ProfileLevelType const& profileLevel);
-
-  EntropyCodingType EntropyCoding() const;
-  bool SetEntropyCoding(EntropyCodingType const& entropyCoding);
-
-  bool IsConstrainedIntraPrediction() const;
-  bool SetConstrainedIntraPrediction(bool const& constrainedIntraPrediction);
-
-  bool IsEnableLowBandwidth() const;
-  bool SetEnableLowBandwidth(bool const& enableLowBandwidth);
-
-  LoopFilterType LoopFilter() const;
-  bool SetLoopFilter(LoopFilterType const& loopFilter);
 
 private:
   std::vector<HEVCProfileType> const profiles
@@ -91,6 +77,7 @@ private:
     HEVCProfileType::HEVC_PROFILE_MAIN_422_INTRA_HIGH_TIER,
     HEVCProfileType::HEVC_PROFILE_MAIN_422_10_INTRA_HIGH_TIER,
   };
+
   std::vector<int> const levels
   {
     10,
@@ -108,18 +95,25 @@ private:
     62,
   };
   bool IsInProfilesSupported(HEVCProfileType const& profile);
-  bool IsInLevelsSupported(int const& level);
+  bool IsInLevelsSupported(int level);
   std::vector<ColorType> const colors
   {
-    COLOR_MONO,
-    COLOR_420,
-    COLOR_422,
+    ColorType::COLOR_400,
+    ColorType::COLOR_420,
+    ColorType::COLOR_422,
   };
 
   std::vector<int> const bitdepths
   {
     8,
     10,
+  };
+
+  std::vector<VideoModeType> const videoModes
+  {
+    VideoModeType::VIDEO_MODE_PROGRESSIVE,
+    VideoModeType::VIDEO_MODE_ALTERNATE_TOP_BOTTOM_FIELD,
+    VideoModeType::VIDEO_MODE_ALTERNATE_BOTTOM_TOP_FIELD,
   };
 };
 

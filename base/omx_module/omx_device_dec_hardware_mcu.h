@@ -42,8 +42,8 @@
 struct DecDeviceHardwareMcu : public DecDevice
 {
   ~DecDeviceHardwareMcu();
-  AL_TIDecChannel* Init(AL_EDecUnit const& decoderUnit, AL_TAllocator const& allocator);
-  void Deinit();
-  AllocationRequirements GetAllocationRequirements();
+  AL_TIDecChannel* Init(AL_TAllocator const& allocator) override;
+  void Deinit() override;
+  AllocationRequirements GetAllocationRequirements() override;
 };
 

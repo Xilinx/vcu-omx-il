@@ -40,10 +40,14 @@ extern "C" {
  */
 #include <OMX_Index.h>
 
+// This value already exist in OpenMax IL version 1.2 but the index name is unclear
+#define OMX_ALG_IndexParamVideoInterlaceFormatSupported 0x07000031
+
 /** Vendor standard extension indices.
 
    This enum lists the current AllegroDVT2 extension indices to OpenMAX IL.
  */
+
 typedef enum OMX_ALG_INDEXTYPE
 {
   /* Component parameters and configurations */
@@ -76,15 +80,19 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamVideoMaxBitrate,                  /**< reference: OMX_ALG_VIDEO_PARAM_MAX_BITRATE */
   OMX_ALG_IndexParamVideoFillerData,                  /**< reference: OMX_ALG_VIDEO_PARAM_FILLER_DATA */
   OMX_ALG_IndexParamVideoBufferMode,                  /**< reference: OMX_ALG_VIDEO_PARAM_BUFFER_MODE */
+  OMX_ALG_IndexParamVideoInterlaceFormatCurrent,      /**< reference: OMX_INTERLACEFORMATTYPE */
+  OMX_ALG_IndexParamVideoLongTerm,                    /**< reference: OMX_ALG_VIDEO_PARAM_LONG_TERM */
 
   /* Vendor Video configrations */
   OMX_ALG_IndexConfigVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00380000,
-  OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh, /**< reference: OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH */
+  OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh, /**< reference: OMX_ALG_VIDEO_CONFIG_INSERT */
   OMX_ALG_IndexConfigVideoGroupOfPictures,                    /**< reference: OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES */
   OMX_ALG_IndexConfigVideoRegionOfInterest,                   /**< reference: OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST */
   OMX_ALG_IndexConfigVideoNotifySceneChange,                  /**< reference: OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE */
+  OMX_ALG_IndexConfigVideoInsertLongTerm,                     /**< reference: OMX_ALG_VIDEO_CONFIG_INSERT */
+  OMX_ALG_IndexConfigVideoUseLongTerm,                        /**< reference: OMX_ALG_VIDEO_CONFIG_INSERT */
 
-  OMX_ALG_IndexMax = 0x7FFFFFFF
+  OMX_ALG_IndexMaxEnum = 0x7FFFFFFF,
 } OMX_ALG_INDEXTYPE;
 
 #ifdef __cplusplus

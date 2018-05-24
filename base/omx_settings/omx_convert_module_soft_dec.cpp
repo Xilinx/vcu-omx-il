@@ -42,9 +42,9 @@ AL_EDpbMode ConvertModuleToSoftDecodedPictureBuffer(DecodedPictureBufferType con
 {
   switch(mode)
   {
-  case DECODED_PICTURE_BUFFER_NORMAL: return AL_DPB_NORMAL;
-  case DECODED_PICTURE_BUFFER_LOW_REFERENCE: return AL_DPB_LOW_REF;
-  case DECODED_PICTURE_BUFFER_MAX: // fallthrough
+  case DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NORMAL: return AL_DPB_NORMAL;
+  case DecodedPictureBufferType::DECODED_PICTURE_BUFFER_LOW_REFERENCE: return AL_DPB_LOW_REF;
+  case DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM: return AL_DPB_MAX_ENUM;
   default: return AL_DPB_MAX_ENUM;
   }
 
@@ -55,10 +55,11 @@ AL_EDecUnit ConvertModuleToSoftDecodeUnit(DecodeUnitType const& unit)
 {
   switch(unit)
   {
-  case DECODE_UNIT_FRAME: return AL_AU_UNIT;
-  case DECODE_UNIT_SLICE: return AL_VCL_NAL_UNIT;
-  case DECODE_UNIT_MAX: // fallthrough
+  case DecodeUnitType::DECODE_UNIT_FRAME: return AL_AU_UNIT;
+  case DecodeUnitType::DECODE_UNIT_SLICE: return AL_VCL_NAL_UNIT;
+  case DecodeUnitType::DECODE_UNIT_MAX_ENUM: // fallthrough
   default: assert(0);
+    /* missing AL_MAX_ENUM */
   }
 
   assert(0);
@@ -68,24 +69,25 @@ DecodedPictureBufferType ConvertSoftToModuleDecodedPictureBuffer(AL_EDpbMode con
 {
   switch(mode)
   {
-  case AL_DPB_NORMAL: return DECODED_PICTURE_BUFFER_NORMAL;
-  case AL_DPB_LOW_REF: return DECODED_PICTURE_BUFFER_LOW_REFERENCE;
-  case AL_DPB_MAX_ENUM: // fallthrough
-  default: return DECODED_PICTURE_BUFFER_MAX;
+  case AL_DPB_NORMAL: return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NORMAL;
+  case AL_DPB_LOW_REF: return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_LOW_REFERENCE;
+  case AL_DPB_MAX_ENUM: return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM;
+  default: return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM;
   }
 
-  return DECODED_PICTURE_BUFFER_MAX;
+  return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM;
 }
 
 DecodeUnitType ConvertSoftToModuleDecodeUnit(AL_EDecUnit const& unit)
 {
   switch(unit)
   {
-  case AL_AU_UNIT: return DECODE_UNIT_FRAME;
-  case AL_VCL_NAL_UNIT: return DECODE_UNIT_SLICE;
-  default: return DECODE_UNIT_MAX;
+  case AL_AU_UNIT: return DecodeUnitType::DECODE_UNIT_FRAME;
+  case AL_VCL_NAL_UNIT: return DecodeUnitType::DECODE_UNIT_SLICE;
+  default: return DecodeUnitType::DECODE_UNIT_MAX_ENUM;
+    /* missing AL_MAX_ENUM */
   }
 
-  return DECODE_UNIT_MAX;
+  return DecodeUnitType::DECODE_UNIT_MAX_ENUM;
 }
 

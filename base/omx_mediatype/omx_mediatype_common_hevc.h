@@ -48,6 +48,7 @@ extern "C"
 
 std::vector<ProfileLevelType> CreateHEVCProfileLevelSupported(std::vector<HEVCProfileType> const& profiles, std::vector<int> const& levels);
 
-ProfileLevelType CreateHEVCMainTierProfileLevel(AL_EProfile const& profile, int const& level);
-ProfileLevelType CreateHEVCHighTierProfileLevel(AL_EProfile const& profile, int const& level);
+bool IsHighTierProfile(HEVCProfileType const& profile);
+ProfileLevelType CreateHEVCMainTierProfileLevel(AL_EProfile const& profile, int level);
+ProfileLevelType CreateHEVCHighTierProfileLevel(AL_EProfile const& profile, int level);
 

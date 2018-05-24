@@ -46,7 +46,7 @@ inline static size_t AlignToPageSize(size_t zSize)
   if((zSize % pagesize) == 0)
     return zSize;
   return zSize + pagesize - (zSize % pagesize);
-};
+}
 
 void Buffer_FreeData(char* data, bool use_dmabuf)
 {
@@ -54,7 +54,7 @@ void Buffer_FreeData(char* data, bool use_dmabuf)
     close((int)(uintptr_t)data);
   else
     free(data);
-};
+}
 
 char* Buffer_MapData(char* data, size_t zSize, bool use_dmabuf)
 {
@@ -72,11 +72,11 @@ char* Buffer_MapData(char* data, size_t zSize, bool use_dmabuf)
     }
   }
   return data;
-};
+}
 
 void Buffer_UnmapData(char* data, size_t zSize, bool use_dmabuf)
 {
   if(use_dmabuf)
     munmap(data, zSize);
-};
+}
 

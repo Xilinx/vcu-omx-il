@@ -35,68 +35,20 @@
 *
 ******************************************************************************/
 
-#include "omx_settings_common_hevc.h"
-#include "omx_convert_module_soft_hevc.h"
+#pragma once
 
-using namespace std;
+#include "base/omx_module/omx_buffer_handle_interface.h"
 
-static bool isHighTierProfile(HEVCProfileType const& profile)
+extern "C"
 {
-  switch(profile)
-  {
-  case HEVC_PROFILE_MAIN_HIGH_TIER:
-  case HEVC_PROFILE_MAIN_10_HIGH_TIER:
-  case HEVC_PROFILE_MAIN_422_HIGH_TIER:
-  case HEVC_PROFILE_MAIN_422_10_HIGH_TIER:
-  case HEVC_PROFILE_MAIN_STILL_HIGH_TIER:
-    return true;
-  default: return false;
-  }
-
-  return false;
+#include <OMX_Core.h>
 }
 
-static bool isCompliant(HEVCProfileType const& profile, int const& level)
+struct OMXBufferHandle : BufferHandleInterface
 {
-  if(isHighTierProfile(profile) && level < 40)
-    return false;
-  return true;
-}
+  OMXBufferHandle(OMX_BUFFERHEADERTYPE* header);
+  ~OMXBufferHandle();
 
-vector<ProfileLevelType> CreateHEVCProfileLevelSupported(vector<HEVCProfileType> const& profiles, vector<int> const& levels)
-{
-  vector<ProfileLevelType> plSupported;
-
-  for(auto const& profile : profiles)
-  {
-    for(auto const& level : levels)
-    {
-      if(isCompliant(profile, level))
-      {
-        ProfileLevelType pl;
-        pl.profile.hevc = profile;
-        pl.level = level;
-        plSupported.push_back(pl);
-      }
-    }
-  }
-
-  return plSupported;
-}
-
-ProfileLevelType CreateHEVCMainTierProfileLevel(AL_EProfile const& profile, int const& level)
-{
-  ProfileLevelType pl;
-  pl.profile.hevc = ConvertSoftToModuleHEVCMainTierProfile(profile);
-  pl.level = level;
-  return pl;
-}
-
-ProfileLevelType CreateHEVCHighTierProfileLevel(AL_EProfile const& profile, int const& level)
-{
-  ProfileLevelType pl;
-  pl.profile.hevc = ConvertSoftToModuleHEVCHighTierProfile(profile);
-  pl.level = level;
-  return pl;
-}
+  OMX_BUFFERHEADERTYPE* const header;
+};
 

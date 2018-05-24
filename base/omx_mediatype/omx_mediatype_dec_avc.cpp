@@ -35,11 +35,15 @@
 *
 ******************************************************************************/
 
+#include <cstring> // memset
+#include <cmath>
 #include "omx_mediatype_dec_avc.h"
-#include "base/omx_settings/omx_convert_module_soft.h"
+#include "omx_mediatype_dec_common.h"
+#include "omx_mediatype_checks.h"
+#include "omx_mediatype_common_avc.h"
+#include "omx_mediatype_common.h"
 #include "base/omx_settings/omx_convert_module_soft_avc.h"
 #include "base/omx_utils/roundup.h"
-#include <cstring> // memset
 
 using namespace std;
 
@@ -47,6 +51,8 @@ DecMediatypeAVC::DecMediatypeAVC()
 {
   Reset();
 }
+
+DecMediatypeAVC::~DecMediatypeAVC() = default;
 
 void DecMediatypeAVC::Reset()
 {
@@ -58,7 +64,7 @@ void DecMediatypeAVC::Reset()
   settings.eDecUnit = AL_AU_UNIT;
   settings.eDpbMode = AL_DPB_NORMAL;
   settings.eFBStorageMode = AL_FB_RASTER;
-  settings.bIsAvc = true;
+  settings.eCodec = AL_CODEC_AVC;
 
   auto& stream = settings.tStream;
   stream.tDim = { 176, 144 };
@@ -67,42 +73,16 @@ void DecMediatypeAVC::Reset()
   stream.iLevel = 10;
   stream.iProfileIdc = AL_PROFILE_AVC_C_BASELINE;
 
-  stride = RoundUp(AL_Decoder_RoundPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode), strideAlignment);
-  sliceHeight = RoundUp(AL_Decoder_RoundHeight(stream.tDim.iHeight), sliceHeightAlignment);
-}
+  stride = RoundUp(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode), strideAlignment);
+  sliceHeight = RoundUp(AL_Decoder_GetMinStrideHeight(stream.tDim.iHeight), sliceHeightAlignment);
 
-CompressionType DecMediatypeAVC::Compression() const
-{
-  return COMPRESSION_AVC;
-}
-
-string DecMediatypeAVC::Mime() const
-{
-  return "video/x-h264";
-}
-
-vector<ProfileLevelType> DecMediatypeAVC::ProfileLevelSupported() const
-{
-  vector<ProfileLevelType> vector;
-
-  for(auto const& profile : profiles)
-    for(auto const & level : levels)
-    {
-      ProfileLevelType tmp;
-      tmp.profile.avc = profile;
-      tmp.level = level;
-      vector.push_back(tmp);
-    }
-
-  return vector;
+  videoMode = VideoModeType::VIDEO_MODE_PROGRESSIVE;
 }
 
 ProfileLevelType DecMediatypeAVC::ProfileLevel() const
 {
-  ProfileLevelType p;
-  p.profile.avc = ConvertSoftToModuleAVCProfile(static_cast<AL_EProfile>(settings.tStream.iProfileIdc));
-  p.level = settings.tStream.iLevel;
-  return p;
+  auto stream = settings.tStream;
+  return CreateAVCProfileLevel(static_cast<AL_EProfile>(stream.iProfileIdc), stream.iLevel);
 }
 
 bool DecMediatypeAVC::IsInProfilesSupported(AVCProfileType const& profile)
@@ -116,7 +96,7 @@ bool DecMediatypeAVC::IsInProfilesSupported(AVCProfileType const& profile)
   return false;
 }
 
-bool DecMediatypeAVC::IsInLevelsSupported(int const& level)
+bool DecMediatypeAVC::IsInLevelsSupported(int level)
 {
   for(auto const& l : levels)
   {
@@ -145,23 +125,151 @@ bool DecMediatypeAVC::SetProfileLevel(ProfileLevelType const& profileLevel)
   return true;
 }
 
-int DecMediatypeAVC::GetRequiredOutputBuffers() const
+static Mimes CreateMimes()
 {
-  return AL_AVC_GetMinOutputBuffersNeeded(settings.tStream, settings.iStackSize, settings.eDpbMode);
+  Mimes mimes;
+  auto& input = mimes.input;
+
+  input.mime = "video/x-h264";
+  input.compression = CompressionType::COMPRESSION_AVC;
+
+  auto& output = mimes.output;
+
+  output.mime = "video/x-raw";
+  output.compression = CompressionType::COMPRESSION_UNUSED;
+
+  return mimes;
 }
 
-Format DecMediatypeAVC::GetFormat() const
+static int CreateLatency(AL_TDecSettings const& settings)
 {
-  Format format;
-  format.color = ConvertSoftToModuleColor(settings.tStream.eChroma);
-  format.bitdepth = settings.tStream.iBitDepth;
-  return format;
+  auto const stream = settings.tStream;
+  auto buffers = AL_AVC_GetMinOutputBuffersNeeded(stream, settings.iStackSize, settings.eDpbMode);
+
+  if(settings.eDpbMode == AL_DPB_LOW_REF)
+    buffers -= settings.iStackSize;
+
+  if(settings.eDecUnit == AL_VCL_NAL_UNIT)
+    buffers = 1;
+
+  auto const realFramerate = (static_cast<double>(settings.uFrameRate) / static_cast<double>(settings.uClkRatio));
+  auto const timeInMilliseconds = (static_cast<double>(buffers * 1000.0) / realFramerate);
+
+  return ceil(timeInMilliseconds);
 }
 
-vector<Format> DecMediatypeAVC::FormatsSupported() const
+static bool UpdateVideoMode(VideoModeType& currentVideoMode, VideoModeType const& videoMode)
 {
-  vector<Format> formatsSupported;
-  formatsSupported.push_back(GetFormat());
-  return formatsSupported;
+  if(!CheckVideoMode(videoMode))
+    return false;
+
+  currentVideoMode = videoMode;
+  return true;
+}
+
+static BufferCounts CreateBufferCounts(AL_TDecSettings const& settings)
+{
+  BufferCounts bufferCounts;
+  bufferCounts.input = 2;
+  auto const stream = settings.tStream;
+  bufferCounts.output = AL_AVC_GetMinOutputBuffersNeeded(stream, settings.iStackSize, settings.eDpbMode);
+  return bufferCounts;
+}
+
+MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Get(std::string index, void* settings) const
+{
+  if(!settings)
+    return ERROR_SETTINGS_BAD_PARAMETER;
+
+  if(index == "SETTINGS_INDEX_MIMES")
+  {
+    *(static_cast<Mimes*>(settings)) = CreateMimes();
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_CLOCK")
+  {
+    *(static_cast<Clock*>(settings)) = CreateClock(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_INTERNAL_ENTROPY_BUFFER")
+  {
+    *(static_cast<int*>(settings)) = CreateInternalEntropyBuffer(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_LATENCY")
+  {
+    *(static_cast<int*>(settings)) = CreateLatency(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_VIDEO_MODE")
+  {
+    *(static_cast<VideoModeType*>(settings)) = this->videoMode;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_VIDEO_MODES_SUPPORTED")
+  {
+    *(static_cast<vector<VideoModeType>*>(settings)) = this->videoModes;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_BUFFER_COUNTS")
+  {
+    *(static_cast<BufferCounts*>(settings)) = CreateBufferCounts(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED")
+  {
+    *(static_cast<vector<ProfileLevelType>*>(settings)) = CreateAVCProfileLevelSupported(profiles, levels);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_FORMATS_SUPPORTED")
+  {
+    *(static_cast<vector<Format>*>(settings)) = CreateFormatsSupported(colors, bitdepths);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  return ERROR_SETTINGS_BAD_INDEX;
+}
+
+MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Set(std::string index, void const* settings)
+{
+  if(!settings)
+    return ERROR_SETTINGS_BAD_PARAMETER;
+
+  if(index == "SETTINGS_INDEX_CLOCK")
+  {
+    auto clock = *(static_cast<Clock const*>(settings));
+
+    if(!UpdateClock(this->settings, clock))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_INTERNAL_ENTROPY_BUFFER")
+  {
+    auto internalEntropyBuffer = *(static_cast<int const*>(settings));
+
+    if(!UpdateInternalEntropyBuffer(this->settings, internalEntropyBuffer))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_VIDEO_MODE")
+  {
+    auto videoMode = *(static_cast<VideoModeType const*>(settings));
+
+    if(!UpdateVideoMode(this->videoMode, videoMode))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  return ERROR_SETTINGS_BAD_INDEX;
 }
 

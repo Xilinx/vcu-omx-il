@@ -41,6 +41,5 @@
 
 bool CheckGroupOfPictures(Gop const& gop);
 bool CheckResolution(Resolution const& resolution);
-bool CheckClock(Clock const& clock);
 bool CheckFormat(Format const& format);
 

@@ -45,20 +45,13 @@ extern "C"
 #include <lib_decode/lib_decode.h>
 }
 
-int CreateMillisecondsLatency(AL_TDecSettings const& settings, BufferCounts const& bufferCounts);
-
-BufferSizes CreateBufferSizes(AL_TDecSettings const& settings);
+BufferSizes CreateBufferSizes(AL_TDecSettings const& settings, Alignments const& alignments);
 
 Resolution CreateResolution(AL_TDecSettings const& settings, Alignments const& alignments);
 bool UpdateResolution(AL_TDecSettings& settings, Alignments& alignments, Resolution const& resolution);
-
-Clock CreateClock(AL_TDecSettings const& settings);
-bool UpdateClock(AL_TDecSettings& settings, Clock const& clock);
 
 Format CreateFormat(AL_TDecSettings const& settings);
 bool UpdateFormat(AL_TDecSettings& settings, Format const& format);
 
 BufferModeType CreateBufferMode(AL_TDecSettings const& settings);
-
-int CreateInternalEntropyBuffer(AL_TDecSettings const& settings);
 

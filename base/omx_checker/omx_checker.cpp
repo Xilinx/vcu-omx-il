@@ -241,7 +241,6 @@ void OMXChecker::CheckStateTransition(OMX_STATETYPE const curState, OMX_STATETYP
 {
   if(newState == curState)
     throw OMX_ErrorSameState;
-
   switch(curState)
   {
   case OMX_StateLoaded:

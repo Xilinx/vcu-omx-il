@@ -37,17 +37,6 @@
 
 #include "omx_settings_checks.h"
 
-bool CheckGroupOfPictures(Gop const& gop)
-{
-  if(gop.b < 0)
-    return false;
-
-  if(gop.length <= gop.b)
-    return false;
-
-  return true;
-}
-
 bool CheckResolution(Resolution const& resolution)
 {
   if(resolution.width <= 0) // Min value could be determined
@@ -66,17 +55,6 @@ bool CheckResolution(Resolution const& resolution)
     return false;
 
   if(resolution.sliceHeight < 0)
-    return false;
-
-  return true;
-}
-
-bool CheckClock(Clock const& clock)
-{
-  if(clock.framerate <= 0)
-    return false;
-
-  if(clock.clockratio <= 0)
     return false;
 
   return true;

@@ -41,6 +41,8 @@
 
 #include <OMX_VideoExt.h>
 #include <OMX_ComponentAlg.h>
+#include <OMX_IVCommonAlg.h>
+
 #include <cmath>
 
 #include "base/omx_checker/omx_checker.h"
@@ -80,6 +82,8 @@
   } \
   void FORCE_SEMICOLON()
 
+using namespace std;
+
 static inline void clear(std::queue<int>& q)
 {
   std::queue<int> empty;
@@ -91,40 +95,33 @@ static DecModule& ToDecModule(ModuleInterface& module)
   return dynamic_cast<DecModule &>(module);
 }
 
-DecCodec::DecCodec(OMX_HANDLETYPE component, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<DecExpertise>&& expertise) :
-  Codec(component, std::move(module), name, role), expertise(std::move(expertise))
+DecCodec::DecCodec(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<DecExpertise>&& expertise) :
+  Codec(component, media, std::move(module), name, role), expertise(std::move(expertise))
 {
 }
 
-DecCodec::~DecCodec()
+DecCodec::~DecCodec() = default;
+
+void DecCodec::EmptyThisBufferCallBack(BufferHandleInterface* handle)
 {
-}
-
-void DecCodec::EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size, void* handle)
-{
-  if(!emptied)
-    assert(0);
-  (void)offset;
-  (void)size;
-
-  auto header = static_cast<OMX_BUFFERHEADERTYPE*>(handle);
-
+  auto header = (OMX_BUFFERHEADERTYPE*)((OMXBufferHandle*)handle)->header;
   ClearPropagatedData(header);
 
   if(callbacks.EmptyBufferDone)
     callbacks.EmptyBufferDone(component, app, header);
+
+  delete handle;
 }
 
-void DecCodec::AssociateCallBack(uint8_t* empty, uint8_t* fill)
+void DecCodec::AssociateCallBack(BufferHandleInterface*, BufferHandleInterface* fill)
 {
-  (void)empty;
   std::lock_guard<std::mutex> lock(mutex);
 
   if(transmit.empty())
     return;
 
   auto emptyHeader = transmit.front();
-  auto fillHeader = map.Get(fill);
+  auto fillHeader = (OMX_BUFFERHEADERTYPE*)((OMXBufferHandle*)fill)->header;
   assert(fillHeader);
 
   assert(!fillHeader->hMarkTargetComponent);
@@ -141,31 +138,48 @@ void DecCodec::AssociateCallBack(uint8_t* empty, uint8_t* fill)
     transmit.clear();
   }
 
-  if(IsCompMarked(emptyHeader.hMarkTargetComponent, component) && callbacks.EventHandler)
+  if(IsCompMarked(emptyHeader.hMarkTargetComponent, component))
     callbacks.EventHandler(component, app, OMX_EventMark, 0, 0, emptyHeader.pMarkData);
 }
 
-void DecCodec::FillThisBufferCallBack(uint8_t* filled, int offset, int size)
+void DecCodec::FillThisBufferCallBack(BufferHandleInterface* filled, int offset, int size)
 {
-  if(!filled)
-    assert(0);
-
-  auto header = map.Pop(filled);
+  assert(filled);
+  auto header = (OMX_BUFFERHEADERTYPE*)((OMXBufferHandle*)filled)->header;
 
   header->nOffset = offset;
   header->nFilledLen = size;
+  switch(ToDecModule(*module).GetDisplayPictureType())
+  {
+  case 0:
+  {
+    // Do nothing : PROGRESSIVE
+    break;
+  }
+  case 1:
+  {
+    header->nFlags |= OMX_ALG_BUFFERFLAG_TOP_FIELD;
+    break;
+  }
+  case 2:
+  {
+    header->nFlags |= OMX_ALG_BUFFERFLAG_BOT_FIELD;
+    break;
+  }
+  default: break;
+  }
 
   if(offset == 0 && size == 0)
     header->nFlags = OMX_BUFFERFLAG_EOS;
 
   if(callbacks.FillBufferDone)
     callbacks.FillBufferDone(component, app, header);
+  delete filled;
 }
 
 void DecCodec::EventCallBack(CallbackEventType type, void* data)
 {
-  if(type > CALLBACK_EVENT_MAX)
-    assert(0);
+  assert(type <= CALLBACK_EVENT_MAX);
   switch(type)
   {
   case CALLBACK_EVENT_RESOLUTION_CHANGE:
@@ -174,7 +188,7 @@ void DecCodec::EventCallBack(CallbackEventType type, void* data)
 
     auto port = GetPort(1);
 
-    if(callbacks.EventHandler && (port->isTransientToEnable || !port->enable))
+    if(port->isTransientToEnable || !port->enable)
       callbacks.EventHandler(component, app, OMX_EventPortSettingsChanged, 1, 0, nullptr);
     break;
   }
@@ -255,7 +269,7 @@ static OMX_ALG_PARAM_REPORTED_LATENCY ConstructReportedLatency(DecModule const& 
   return lat;
 }
 
-static OMX_ALG_PARAM_PREALLOCATION ConstructPreallocation(bool const& isEnabled)
+static OMX_ALG_PARAM_PREALLOCATION ConstructPreallocation(bool isEnabled)
 {
   OMX_ALG_PARAM_PREALLOCATION prealloc;
   OMXChecker::SetHeaderVersion(prealloc);
@@ -315,6 +329,29 @@ static bool GetVideoPortFormatSupported(OMX_VIDEO_PARAM_PORTFORMATTYPE& format, 
   return true;
 }
 
+static OMX_INTERLACEFORMATTYPE ConstructVideoModesSupported(Port const& port, DecModule const& module)
+{
+  OMX_INTERLACEFORMATTYPE interlace;
+  OMXChecker::SetHeaderVersion(interlace);
+  interlace.nPortIndex = port.index;
+  auto const modes = module.GetVideoModesSupported();
+
+  for(auto const mode : modes)
+    interlace.nFormat |= ConvertToOMXInterlaceFlag(mode);
+
+  return interlace;
+}
+
+static OMX_INTERLACEFORMATTYPE ConstructVideoModeCurrent(Port const& port, DecModule const& module)
+{
+  OMX_INTERLACEFORMATTYPE interlace;
+  OMXChecker::SetHeaderVersion(interlace);
+  interlace.nPortIndex = port.index;
+  interlace.nFormat = ConvertToOMXInterlaceFlag(module.GetVideoMode());
+
+  return interlace;
+}
+
 OMX_ERRORTYPE DecCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR param)
 {
   OMX_TRY();
@@ -356,11 +393,15 @@ OMX_ERRORTYPE DecCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
   case OMX_IndexParamVideoPortFormat:
   {
     auto const port = getCurrentPort(param);
-    (void)port;
     auto p = (OMX_VIDEO_PARAM_PORTFORMATTYPE*)param;
 
-    if(!GetVideoPortFormatSupported(*p, ToDecModule(*module)))
-      return OMX_ErrorNoMore;
+    if(IsInputPort(index))
+    {
+      if(!GetVideoPortFormatSupported(*p, ToDecModule(*module)))
+        return OMX_ErrorNoMore;
+    }
+    else
+      *p = ConstructVideoPortCurrentFormat(*port, ToDecModule(*module));
     return OMX_ErrorNone;
   }
   case OMX_IndexParamVideoProfileLevelCurrent:
@@ -369,7 +410,7 @@ OMX_ERRORTYPE DecCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
     expertise->GetProfileLevel(param, *port, ToDecModule(*module));
     return OMX_ErrorNone;
   }
-  case OMX_IndexParamVideoProfileLevelQuerySupported: // GetParameter Only
+  case OMX_IndexParamVideoProfileLevelQuerySupported: // GetParameter only
   {
     auto const port = getCurrentPort(param);
     (void)port;
@@ -384,6 +425,18 @@ OMX_ERRORTYPE DecCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
   {
     auto const port = getCurrentPort(param);
     expertise->GetExpertise(param, *port, ToDecModule(*module));
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamVideoInterlaceFormatSupported: // GetParameter only
+  {
+    auto const port = getCurrentPort(param);
+    *(OMX_INTERLACEFORMATTYPE*)param = ConstructVideoModesSupported(*port, ToDecModule(*module));
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamVideoInterlaceFormatCurrent:
+  {
+    auto const port = getCurrentPort(param);
+    *(OMX_INTERLACEFORMATTYPE*)param = ConstructVideoModeCurrent(*port, ToDecModule(*module));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexParamReportedLatency: // GetParameter only
@@ -438,7 +491,7 @@ static bool SetFormat(OMX_COLOR_FORMATTYPE const& color, DecModule& module)
   return module.SetFormat(moduleFormat);
 }
 
-static bool SetClock(OMX_U32 const& framerateInQ16, DecModule& module)
+static bool SetClock(OMX_U32 framerateInQ16, DecModule& module)
 {
   auto moduleClock = module.GetClock();
   auto const clock = ConvertToModuleClock(framerateInQ16);
@@ -476,12 +529,12 @@ static bool SetDecodedPictureBuffer(OMX_ALG_EDpbMode mode, DecModule& module)
   return module.SetDecodedPictureBuffer(ConvertToModuleDecodedPictureBuffer(mode));
 }
 
-static bool SetInternalEntropyBuffers(OMX_U32 const& num, DecModule& module)
+static bool SetInternalEntropyBuffers(OMX_U32 num, DecModule& module)
 {
   return module.SetInternalEntropyBuffers(num);
 }
 
-static bool SetSubframe(OMX_BOOL const& enableSubframe, DecModule& module)
+static bool SetSubframe(OMX_BOOL enableSubframe, DecModule& module)
 {
   return module.SetEnableSubframe(ConvertToModuleBool(enableSubframe));
 }
@@ -595,6 +648,23 @@ static bool SetPortExpectedBuffer(OMX_PARAM_PORTDEFINITIONTYPE const& settings, 
   return true;
 }
 
+static bool SetInterlaceMode(OMX_U32 flag, DecModule& module)
+{
+  return module.SetVideoMode(ConvertToModuleVideoMode(flag));
+}
+
+static bool SetVideoModeCurrent(OMX_INTERLACEFORMATTYPE const& interlace, Port const& port, DecModule& module)
+{
+  auto const rollback = ConstructVideoModeCurrent(port, module);
+
+  if(!SetInterlaceMode(interlace.nFormat, module))
+  {
+    SetVideoModeCurrent(rollback, port, module);
+    return false;
+  }
+  return true;
+}
+
 OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param)
 {
   OMX_TRY();
@@ -606,8 +676,6 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
                           auto const index = *(((OMX_U32*)param) + 2);
                           return GetPort(index);
                         };
-
-  isSettingsInit = false;
   switch(static_cast<OMX_U32>(index)) // all indexes are 32u
   {
   case OMX_IndexParamStandardComponentRole:
@@ -687,6 +755,19 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
 
     if(!expertise->SetExpertise(param, *port, ToDecModule(*module)))
+      throw OMX_ErrorBadParameter;
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamVideoInterlaceFormatCurrent:
+  {
+    auto const port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
+    auto const interlaced = static_cast<OMX_INTERLACEFORMATTYPE*>(param);
+
+    if(!SetVideoModeCurrent(*interlaced, *port, ToDecModule(*module)))
       throw OMX_ErrorBadParameter;
     return OMX_ErrorNone;
   }
@@ -831,8 +912,7 @@ OMX_ERRORTYPE DecCodec::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADER
   auto port = GetPort(index);
 
   if((transientState != TransientIdleToLoaded) && (!port->isTransientToDisable))
-    if(callbacks.EventHandler)
-      callbacks.EventHandler(component, app, OMX_EventError, OMX_ErrorPortUnpopulated, 0, nullptr);
+    callbacks.EventHandler(component, app, OMX_EventError, OMX_ErrorPortUnpopulated, 0, nullptr);
 
   auto const dmaOnPort = IsInputPort(index) ? ToDecModule(*module).GetFileDescriptors().input : ToDecModule(*module).GetFileDescriptors().output;
   dmaOnPort ? ToDecModule(*module).FreeDMA(static_cast<int>((intptr_t)header->pBuffer)) : module->Free(header->pBuffer);
@@ -856,16 +936,20 @@ void DecCodec::TreatEmptyBufferCommand(Task* task)
   assert(static_cast<int>((intptr_t)task->data) == input.index);
   auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
   assert(header);
+
   if(state == OMX_StateInvalid)
   {
-  if(callbacks.EmptyBufferDone)
     callbacks.EmptyBufferDone(component, app, header);
-	  return;
+    return;
   }
+
   AttachMark(header);
+
   if(header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME)
     transmit.push_back(PropagatedData(header->hMarkTargetComponent, header->pMarkData, header->nTimeStamp, header->nFlags));
-  auto success = module->Empty(header->pBuffer, header->nOffset, header->nFilledLen, header);
+
+  auto handle = new OMXBufferHandle(header);
+  auto success = module->Empty(handle);
   assert(success);
 }
 

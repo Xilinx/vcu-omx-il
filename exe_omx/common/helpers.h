@@ -56,13 +56,13 @@ inline bool is422(OMX_COLOR_FORMATTYPE format)
 {
   OMX_U32 extendedFormat = format;
   return extendedFormat == OMX_COLOR_FormatYUV422SemiPlanar || extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
-};
+}
 
 inline bool is10bits(OMX_COLOR_FORMATTYPE format)
 {
   OMX_U32 extendedFormat = format;
   return extendedFormat == OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked || extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
-};
+}
 
 template<typename T>
 inline
@@ -75,7 +75,7 @@ void initHeader(T& header)
   header.nVersion.s.nVersionMinor = OMX_VERSION_MINOR;
   header.nVersion.s.nRevision = OMX_VERSION_REVISION;
   header.nVersion.s.nStep = OMX_VERSION_STEP;
-};
+}
 
 inline char const* toStringCompState(OMX_STATETYPE state)
 {

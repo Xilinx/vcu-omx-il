@@ -40,12 +40,10 @@
 extern "C"
 {
 #include <lib_encode/SchedulerMcu.h>
-#include <lib_encode/hardwareDriver.h>
+#include <lib_common/HardwareDriver.h>
 }
 
-EncDeviceHardwareMcu::~EncDeviceHardwareMcu()
-{
-}
+EncDeviceHardwareMcu::~EncDeviceHardwareMcu() = default;
 
 TScheduler* EncDeviceHardwareMcu::Init(AL_TEncSettings const &, AL_TAllocator const& allocator)
 {

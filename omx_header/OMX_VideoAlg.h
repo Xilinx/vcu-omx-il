@@ -48,7 +48,7 @@ typedef enum OMX_ALG_VIDEO_CODINGTYPE
   OMX_ALG_VIDEO_CodingUnused = OMX_VIDEO_CodingVendorStartUnused,
   OMX_ALG_VIDEO_CodingHEVC,        /**< H.265/HEVC */
   OMX_ALG_VIDEO_CodingVP9,        /**< VP9/WebM */
-  OMX_ALG_VIDEO_CodingMax = 0x7FFFFFFF,
+  OMX_ALG_VIDEO_CodingMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_CODINGTYPE;
 
 /** HEVC loop filter modes */
@@ -59,7 +59,7 @@ typedef enum OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE
   OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossSlice, /**< Loop filter enable with Cross Slice disable */
   OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossTile, /**< Loop filter enable with Cross Tile disable */
   OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossSliceAndTile, /**< Loop filter enable with Cross Slice and Cross Tile disable */
-  OMX_ALG_VIDEO_HEVCLoopFilterMax = 0x7FFFFFFF,
+  OMX_ALG_VIDEO_HEVCLoopFilterMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE;
 
 /** HEVC profiles */
@@ -92,7 +92,7 @@ typedef enum OMX_ALG_VIDEO_HEVCPROFILETYPE
   OMX_ALG_VIDEO_HEVCProfileMain444_Still,
   OMX_ALG_VIDEO_HEVCProfileMain444_16_Still,
   OMX_ALG_VIDEO_HEVCProfileHighThroughtPut444_16_Intra,
-  OMX_ALG_VIDEO_HEVCProfileMax = 0x7FFFFFFF,
+  OMX_ALG_VIDEO_HEVCProfileMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_HEVCPROFILETYPE;
 
 /** HEVC levels */
@@ -120,7 +120,7 @@ typedef enum OMX_ALG_VIDEO_HEVCLEVELTYPE
   OMX_ALG_VIDEO_HEVCHighTierLevel61,
   OMX_ALG_VIDEO_HEVCMainTierLevel62,
   OMX_ALG_VIDEO_HEVCHighTierLevel62,
-  OMX_ALG_VIDEO_HEVCLevelMax = 0x7FFFFFFF,
+  OMX_ALG_VIDEO_HEVCLevelMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_HEVCLEVELTYPE;
 
 /** HEVC Param */
@@ -142,14 +142,14 @@ typedef enum OMX_ALG_VIDEO_VP9PROFILETYPE
 {
   OMX_ALG_VIDEO_VP9Profile, /**< Profile 0 */
   OMX_ALG_VIDEO_VP9Profile1, /**< Profile 1 */
-  OMX_ALG_VIDEO_VP9ProfileMax = 0x7FFFFFFF,
+  OMX_ALG_VIDEO_VP9ProfileMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_VP9PROFILETYPE;
 
 /** VP9 levels */
 typedef enum OMX_ALG_VIDEO_VP9LEVELTYPE
 {
   OMX_ALG_VIDEO_VP9LevelNo, /**< VP9 Doesn't have any level */
-  OMX_ALG_VIDEO_VP9LevelMax = 0x7FFFFFFF,
+  OMX_ALG_VIDEO_VP9LevelMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_VP9LEVELTYPE;
 
 /** VP9 loop filter modes */
@@ -158,7 +158,7 @@ typedef enum OMX_ALG_VIDEO_VP9LOOPFILTERTYPE
   OMX_ALG_VIDEO_VP9LoopFilterEnable, /**< Loop filter enable */
   OMX_ALG_VIDEO_VP9LoopFilterDisable, /**< Loop filter disable */
   OMX_ALG_VIDEO_VP9LoopFilterDisableCrossTile, /**< Loop filter enable with Cross Tile disable */
-  OMX_ALG_VIDEO_VP9LoopFilterMax = 0x7FFFFFFF,
+  OMX_ALG_VIDEO_VP9LoopFilterMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_VP9LOOPFILTERTYPE;
 
 /** VP9 Param */
@@ -196,7 +196,7 @@ typedef enum OMX_ALG_VIDEO_AVCLEVELTYPE
   OMX_ALG_VIDEO_AVCLevel60,
   OMX_ALG_VIDEO_AVCLevel61,
   OMX_ALG_VIDEO_AVCLevel62,
-  OMX_ALG_VIDEO_AVCLevelMax = 0x7FFFFFFF,
+  OMX_ALG_VIDEO_AVCLevelMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_AVCLEVELTYPE;
 
 /** Group of pictures Control mode */
@@ -358,7 +358,7 @@ typedef enum OMX_ALG_VIDEO_BUFFER_MODE
   OMX_ALG_VIDEO_BUFFER_MODE_FRAME, // frame-level buffer, no latency optimization, no custom frame delimiter
   OMX_ALG_VIDEO_BUFFER_MODE_FRAME_NO_REORDERING, //frame-level buffer, reduced latency assuming only I & P frames, custom frame delimiter enabled (SEI)
   OMX_ALG_VIDEO_BUFFER_MODE_SLICE, //slice-level buffer, low latency, custom frame delimiter enabled (SEI)
-  OMX_ALG_VIDEO_BUFFER_MODE_MAX = 0x7FFFFFFF,
+  OMX_ALG_VIDEO_BUFFER_MODE_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_BUFFER_MODE;
 
 /** Buffer Mode parameters
@@ -372,6 +372,17 @@ typedef struct OMX_ALG_VIDEO_PARAM_BUFFER_MODE
   OMX_ALG_VIDEO_BUFFER_MODE eMode;
 }OMX_ALG_VIDEO_PARAM_BUFFER_MODE;
 
+/** Long Term parameters
+ * This parameter permit to enable/disable long term
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_LONG_TERM
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bEnableLongTerm;
+}OMX_ALG_VIDEO_PARAM_LONG_TERM;
+
 /** Extented enumeration of video formats */
 typedef enum OMX_ALG_COLOR_FORMATTYPE
 {
@@ -379,7 +390,7 @@ typedef enum OMX_ALG_COLOR_FORMATTYPE
   OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked,
   OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked,
   OMX_ALG_COLOR_FormatL10bitPacked,
-  OMX_ALG_COLOR_FormatMax = 0x7FFFFFFF,
+  OMX_ALG_COLOR_FormatMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_COLOR_FORMATTYPE;
 
 /** Extended enumeration of bitrate control types */
@@ -387,18 +398,17 @@ typedef enum OMX_ALG_VIDEO_CONTROLRATETYPE
 {
   OMX_ALG_Video_ControlRateStartUnused = OMX_Video_ControlRateVendorStartUnused,
   OMX_ALG_Video_ControlRateLowLatency,
-  OMX_ALG_Video_ControlRateMax = 0x7FFFFFFF,
+  OMX_ALG_Video_ControlRateMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_CONTROLRATETYPE;
 
-/** Insert Instantaneous decoding refresh
- * This configuration permit to insert an Instantaneous Decoding Refresh frame
+/** Insert
  */
-typedef struct OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH
+typedef struct OMX_ALG_VIDEO_CONFIG_INSERT
 {
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
-} OMX_ALG_VIDEO_CONFIG_INSERT_INSTANTANEOUS_DECODING_REFRESH;
+} OMX_ALG_VIDEO_CONFIG_INSERT;
 
 typedef struct OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES
 {
@@ -434,7 +444,6 @@ typedef struct OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST
   OMX_U32 nHeight;
   OMX_ALG_ERoiQuality eQuality;
 }OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST;
-
 
 /**
  * OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE

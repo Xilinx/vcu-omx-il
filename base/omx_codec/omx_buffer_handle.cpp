@@ -35,34 +35,15 @@
 *
 ******************************************************************************/
 
-#include "omx_settings_common_avc.h"
-#include "omx_convert_module_soft_avc.h"
+#include "omx_buffer_handle.h"
 
-using namespace std;
-
-vector<ProfileLevelType> CreateAVCProfileLevelSupported(vector<AVCProfileType> const& profiles, vector<int> const& levels)
+OMXBufferHandle::OMXBufferHandle(OMX_BUFFERHEADERTYPE* header) : BufferHandleInterface((char*)header->pBuffer, header->nAllocLen), header(header)
 {
-  vector<ProfileLevelType> plSupported;
-
-  for(auto const& profile : profiles)
-  {
-    for(auto const& level : levels)
-    {
-      ProfileLevelType pl;
-      pl.profile.avc = profile;
-      pl.level = level;
-      plSupported.push_back(pl);
-    }
-  }
-
-  return plSupported;
+  offset = header->nOffset;
+  payload = header->nFilledLen;
 }
 
-ProfileLevelType CreateAVCProfileLevel(AL_EProfile const& profile, int const& level)
+OMXBufferHandle::~OMXBufferHandle()
 {
-  ProfileLevelType pl;
-  pl.profile.avc = ConvertSoftToModuleAVCProfile(profile);
-  pl.level = level;
-  return pl;
 }
 

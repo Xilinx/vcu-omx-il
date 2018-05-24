@@ -71,10 +71,8 @@ struct Flags
 class EncModule : public ModuleInterface
 {
 public:
-  EncModule(std::unique_ptr<EncMediatypeInterface>&& media, std::unique_ptr<EncDevice>&& device, deleted_unique_ptr<AL_TAllocator>&& allocator);
-  ~EncModule()
-  {
-  }
+  EncModule(std::shared_ptr<EncMediatypeInterface> media, std::unique_ptr<EncDevice>&& device, deleted_unique_ptr<AL_TAllocator>&& allocator);
+  ~EncModule();
 
   void ResetRequirements();
   BufferRequirements GetBufferRequirements() const;
@@ -85,12 +83,15 @@ public:
   Mimes GetMimes() const;
   Format GetFormat() const;
   std::vector<Format> GetFormatsSupported() const;
-  Bitrates GetBitrates() const;
+  std::vector<VideoModeType> GetVideoModesSupported() const;
+  Bitrate GetBitrate() const;
   Gop GetGop() const;
   QPs GetQPs() const;
   ProfileLevelType GetProfileLevel() const;
   std::vector<ProfileLevelType> GetProfileLevelSupported() const;
   EntropyCodingType GetEntropyCoding() const;
+  VideoModeType GetVideoMode() const;
+
   bool IsConstrainedIntraPrediction() const;
   LoopFilterType GetLoopFilter() const;
   AspectRatioType GetAspectRatio() const;
@@ -102,24 +103,25 @@ public:
   bool IsEnableSubframe() const;
   FileDescriptors GetFileDescriptors() const;
 
-  bool SetBitrates(Bitrates const& bitrates);
+  bool SetBitrate(Bitrate const& bitrates);
   bool SetResolution(Resolution const& resolution);
   bool SetClock(Clock const& clock);
   bool SetFormat(Format const& format);
   bool SetGop(Gop const& gop);
   bool SetProfileLevel(ProfileLevelType const& profileLevel);
   bool SetEntropyCoding(EntropyCodingType const& entropyCoding);
-  bool SetConstrainedIntraPrediction(bool const& constrainedIntraPrediction);
+  bool SetConstrainedIntraPrediction(bool constrainedIntraPrediction);
   bool SetLoopFilter(LoopFilterType const& loopFilter);
   bool SetQPs(QPs const& qps);
   bool SetAspectRatio(AspectRatioType const& aspectRatio);
-  bool SetEnableLowBandwidth(bool const& enableLowBandwidth);
-  bool SetEnablePrefetchBuffer(bool const& enablePrefetchBuffer);
+  bool SetEnableLowBandwidth(bool enableLowBandwidth);
+  bool SetEnablePrefetchBuffer(bool enablePrefetchBuffer);
   bool SetScalingList(ScalingListType const& scalingList);
-  bool SetEnableFillerData(bool const& enableFillerData);
+  bool SetEnableFillerData(bool enableFillerData);
   bool SetSlices(Slices const& slices);
-  bool SetEnableSubframe(bool const& enableSubframe);
+  bool SetEnableSubframe(bool enableSubframe);
   bool SetFileDescriptors(FileDescriptors const& fds);
+  bool SetVideoMode(VideoModeType const& videoMode);
 
   bool SetCallbacks(Callbacks callbacks);
 
@@ -133,12 +135,12 @@ public:
   void FreeDMA(int fd);
   int AllocateDMA(int size);
 
-  bool UseDMA(void* handle, int fd, int size);
-  void UnuseDMA(void* handle);
+  bool UseDMA(BufferHandleInterface* handle, int fd, int size);
+  void UnuseDMA(BufferHandleInterface* handle);
 
-  bool Empty(uint8_t* buffer, int offset, int size, void* handle);
-  bool Fill(uint8_t* buffer, int offset, int size);
-  Flags GetFlags(void* handle);
+  bool Empty(BufferHandleInterface* handle);
+  bool Fill(BufferHandleInterface* handle);
+  Flags GetFlags(BufferHandleInterface* handle);
 
   ErrorType Run(bool shouldPrealloc);
   bool Pause();
@@ -149,7 +151,7 @@ public:
   ErrorType GetDynamic(std::string index, void* param);
 
 private:
-  std::unique_ptr<EncMediatypeInterface> const media;
+  std::shared_ptr<EncMediatypeInterface> const media;
   std::unique_ptr<EncDevice> const device;
   deleted_unique_ptr<AL_TAllocator> const allocator;
   AL_HEncoder encoder;
@@ -161,8 +163,8 @@ private:
   std::list<AL_TBuffer*> roiBuffers;
   EOSHandles eosHandles;
 
-  bool Use(void* handle, uint8_t* buffer, int size);
-  void Unuse(void* handle);
+  bool Use(BufferHandleInterface* handle, uint8_t* buffer, int size);
+  void Unuse(BufferHandleInterface* handle);
   ErrorType CreateEncoder();
   bool DestroyEncoder();
   bool isCreated;
@@ -170,7 +172,7 @@ private:
   bool isEndOfFrame(AL_TBuffer* stream);
   Flags GetFlags(AL_TBuffer* handle);
 
-  static void RedirectionEndEncoding(void* userParam, AL_TBuffer* pStream, AL_TBuffer const* pSource)
+  static void RedirectionEndEncoding(void* userParam, AL_TBuffer* pStream, AL_TBuffer const* pSource, int)
   {
     auto pThis = static_cast<EncModule*>(userParam);
     pThis->EndEncoding(pStream, pSource);
@@ -178,10 +180,10 @@ private:
   void EndEncoding(AL_TBuffer* pStream, AL_TBuffer const* pSource);
   void FlushEosHandles();
 
+  ThreadSafeMap<AL_TBuffer const*, BufferHandleInterface*> handles;
   ThreadSafeMap<void*, AL_HANDLE> allocated;
   ThreadSafeMap<int, AL_HANDLE> allocatedDMA;
   ThreadSafeMap<AL_TBuffer*, AL_VADDR> shouldBeCopied;
-  ThreadSafeMap<void*, AL_TBuffer*> pool;
-  ThreadSafeMap<AL_TBuffer const*, uint8_t*> translate;
+  ThreadSafeMap<BufferHandleInterface*, AL_TBuffer*> pool;
 };
 

@@ -36,15 +36,18 @@
 ******************************************************************************/
 
 #include "omx_mediatype_enc_hevc.h"
+#include "omx_mediatype_enc_common.h"
+#include "omx_mediatype_common_hevc.h"
+#include "omx_mediatype_common.h"
 #include "base/omx_settings/omx_convert_module_soft_hevc.h"
-
-#include <cassert>
 #include "base/omx_utils/roundup.h"
+#include "base/omx_settings/omx_convert_module_soft_enc.h"
+#include <cmath>
+
 extern "C"
 {
 #include <lib_common_enc/EncBuffers.h>
 }
-
 
 using namespace std;
 
@@ -53,81 +56,32 @@ EncMediatypeHEVC::EncMediatypeHEVC()
   Reset();
 }
 
-EncMediatypeHEVC::~EncMediatypeHEVC()
-{
-}
+EncMediatypeHEVC::~EncMediatypeHEVC() = default;
 
 void EncMediatypeHEVC::Reset()
 {
   AL_Settings_SetDefaults(&settings);
-  auto& chan = settings.tChParam;
+  auto& chan = settings.tChParam[0];
   chan.eProfile = AL_PROFILE_HEVC_MAIN;
   AL_Settings_SetDefaultParam(&settings);
   chan.uLevel = 10;
   chan.uWidth = 176;
   chan.uHeight = 144;
   chan.ePicFormat = AL_420_8BITS;
+  chan.uEncodingBitDepth = 8;
   auto& rateCtrl = chan.tRCParam;
   rateCtrl.eRCMode = AL_RC_CBR;
   rateCtrl.eOptions = AL_RC_OPT_SCN_CHG_RES;
   rateCtrl.uMaxBitRate = rateCtrl.uTargetBitRate = 64000;
   rateCtrl.uFrameRate = 15;
+  auto& gopParam = chan.tGopParam;
+  gopParam.bEnableLT = false;
+  settings.bEnableFillerData = true;
   settings.bEnableAUD = false;
   settings.iPrefetchLevel2 = 0;
-  stride = RoundUp(AL_CalculatePitchValue(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), strideAlignment);
+
+  stride = RoundUp(AL_EncGetMinPitch(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), strideAlignment);
   sliceHeight = RoundUp(chan.uHeight, sliceHeightAlignment);
-}
-
-CompressionType EncMediatypeHEVC::Compression() const
-{
-  return COMPRESSION_HEVC;
-}
-
-string EncMediatypeHEVC::Mime() const
-{
-  return "video/x-h265";
-}
-
-static bool isHighTierProfile(HEVCProfileType const& profile)
-{
-  switch(profile)
-  {
-  case HEVC_PROFILE_MAIN_HIGH_TIER:
-  case HEVC_PROFILE_MAIN_10_HIGH_TIER:
-  case HEVC_PROFILE_MAIN_422_HIGH_TIER:
-  case HEVC_PROFILE_MAIN_422_10_HIGH_TIER:
-  case HEVC_PROFILE_MAIN_STILL_HIGH_TIER:
-    return true;
-  default: return false;
-  }
-
-  return false;
-}
-
-static bool isCompliant(HEVCProfileType const& profile, int const& level)
-{
-  if(isHighTierProfile(profile) && level < 40)
-    return false;
-  return true;
-}
-
-vector<ProfileLevelType> EncMediatypeHEVC::ProfileLevelSupported() const
-{
-  vector<ProfileLevelType> vector;
-
-  for(auto const& profile : profiles)
-    for(auto const & level : levels)
-    {
-      if(isCompliant(profile, level))
-      {
-        ProfileLevelType tmp;
-        tmp.profile.hevc = profile;
-        tmp.level = level;
-        vector.push_back(tmp);
-      }
-    }
-
-  return vector;
 }
 
 static bool IsHighTier(uint8_t const& tier)
@@ -137,11 +91,8 @@ static bool IsHighTier(uint8_t const& tier)
 
 ProfileLevelType EncMediatypeHEVC::ProfileLevel() const
 {
-  auto const chan = settings.tChParam;
-  ProfileLevelType p;
-  p.profile.hevc = IsHighTier(chan.uTier) ? ConvertSoftToModuleHEVCHighTierProfile(chan.eProfile) : ConvertSoftToModuleHEVCMainTierProfile(chan.eProfile);
-  p.level = chan.uLevel;
-  return p;
+  auto const chan = settings.tChParam[0];
+  return IsHighTier(chan.uTier) ? CreateHEVCHighTierProfileLevel(chan.eProfile, chan.uLevel) : CreateHEVCMainTierProfileLevel(chan.eProfile, chan.uLevel);
 }
 
 bool EncMediatypeHEVC::IsInProfilesSupported(HEVCProfileType const& profile)
@@ -155,7 +106,7 @@ bool EncMediatypeHEVC::IsInProfilesSupported(HEVCProfileType const& profile)
   return false;
 }
 
-bool EncMediatypeHEVC::IsInLevelsSupported(int const& level)
+bool EncMediatypeHEVC::IsInLevelsSupported(int level)
 {
   for(auto const& l : levels)
   {
@@ -179,135 +130,355 @@ bool EncMediatypeHEVC::SetProfileLevel(ProfileLevelType const& profileLevel)
   if(profile == AL_PROFILE_HEVC)
     return false;
 
-  auto& chan = settings.tChParam;
+  auto& chan = settings.tChParam[0];
   chan.eProfile = profile;
   chan.uLevel = profileLevel.level;
-  chan.uTier = isHighTierProfile(profileLevel.profile.hevc) ? 1 : 0;
+  chan.uTier = IsHighTierProfile(profileLevel.profile.hevc) ? 1 : 0;
   return true;
 }
 
-EntropyCodingType EncMediatypeHEVC::EntropyCoding() const
+static Mimes CreateMimes()
 {
-  auto const chan = settings.tChParam;
-  assert(chan.eEntropyMode == AL_MODE_CABAC);
-  return ENTROPY_CODING_CABAC;
+  Mimes mimes;
+  auto& input = mimes.input;
+
+  input.mime = "video/x-raw";
+  input.compression = CompressionType::COMPRESSION_UNUSED;
+
+  auto& output = mimes.output;
+
+  output.mime = "video/x-h265";
+  output.compression = CompressionType::COMPRESSION_HEVC;
+
+  return mimes;
 }
 
-bool EncMediatypeHEVC::SetEntropyCoding(EntropyCodingType const& entropyCoding)
+static int CreateLatency(AL_TEncSettings const& settings)
 {
-  if(entropyCoding != ENTROPY_CODING_CABAC)
-    return false;
+  auto const channel = settings.tChParam[0];
+  auto const rateCtrl = channel.tRCParam;
+  auto const gopParam = channel.tGopParam;
 
-  auto& chan = settings.tChParam;
-  chan.eEntropyMode = AL_MODE_CABAC;
-  return true;
-}
+  auto const intermediate = 0;
+  auto const buffer = 1;
+  auto const buffers = buffer + intermediate + gopParam.uNumB;
 
-bool EncMediatypeHEVC::IsConstrainedIntraPrediction() const
-{
-  auto const chan = settings.tChParam;
-  return chan.eOptions & AL_OPT_CONST_INTRA_PRED;
-}
+  auto const realFramerate = (static_cast<double>(rateCtrl.uFrameRate * rateCtrl.uClkRatio) / 1000.0);
+  auto timeInMilliseconds = (static_cast<double>(buffers * 1000.0) / realFramerate);
 
-bool EncMediatypeHEVC::SetConstrainedIntraPrediction(bool const& constrainedIntraPrediction)
-{
-  auto& opt = settings.tChParam.eOptions;
-
-  if(constrainedIntraPrediction)
-    opt = static_cast<AL_EChEncOption>(opt | AL_OPT_CONST_INTRA_PRED);
-
-  return true;
-}
-
-static inline LoopFilterType ToLoopFilter(AL_EChEncOption const& opt)
-{
-  if(opt & (AL_OPT_LF_X_SLICE | AL_OPT_LF_X_TILE | AL_OPT_LF))
-    return LOOP_FILTER_ENABLE_CROSS_TILE_AND_SLICE;
-
-  if(opt & (AL_OPT_LF_X_TILE | AL_OPT_LF))
-    return LOOP_FILTER_ENABLE_CROSS_TILE;
-
-  if(opt & (AL_OPT_LF_X_SLICE | AL_OPT_LF))
-    return LOOP_FILTER_ENABLE_CROSS_SLICE;
-
-  if(opt & AL_OPT_LF)
-    return LOOP_FILTER_ENABLE;
-
-  return LOOP_FILTER_DISABLE;
-}
-
-LoopFilterType EncMediatypeHEVC::LoopFilter() const
-{
-  auto const chan = settings.tChParam;
-  return ToLoopFilter(chan.eOptions);
-}
-
-bool EncMediatypeHEVC::SetLoopFilter(LoopFilterType const& loopFilter)
-{
-  auto& opt = settings.tChParam.eOptions;
-
-  if(loopFilter == LOOP_FILTER_MAX)
-    return false;
-
-  if(loopFilter == LOOP_FILTER_DISABLE)
-    opt = static_cast<AL_EChEncOption>(opt & ~(AL_OPT_LF | AL_OPT_LF_X_SLICE | AL_OPT_LF_X_TILE));
-  else // LoopFilter is enable
+  if(channel.bSubframeLatency)
   {
-    opt = static_cast<AL_EChEncOption>(opt | AL_OPT_LF);
-    switch(loopFilter)
-    {
-    case LOOP_FILTER_ENABLE_CROSS_TILE_AND_SLICE:
-    {
-      opt = static_cast<AL_EChEncOption>(opt | AL_OPT_LF | AL_OPT_LF_X_SLICE | AL_OPT_LF_X_TILE);
-      break;
-    }
-    case LOOP_FILTER_ENABLE_CROSS_TILE:
-    {
-      opt = static_cast<AL_EChEncOption>(opt | AL_OPT_LF | AL_OPT_LF_X_TILE);
-      break;
-    }
-    case LOOP_FILTER_ENABLE_CROSS_SLICE:
-    {
-      opt = static_cast<AL_EChEncOption>(opt | AL_OPT_LF | AL_OPT_LF_X_SLICE);
-      break;
-    }
-    default:
-      opt = static_cast<AL_EChEncOption>(opt | AL_OPT_LF);
-    }
+    timeInMilliseconds /= channel.uNumSlices;
+    timeInMilliseconds += 1.0; // overhead
   }
 
+  return ceil(timeInMilliseconds);
+}
+
+static bool CreateLowBandwidth(AL_TEncSettings const& settings)
+{
+  auto const channel = settings.tChParam[0];
+  return channel.pMeRange[SLICE_P][1] == 16;
+}
+
+static bool UpdateLowBandwidth(AL_TEncSettings& settings, bool const& isLowBandwidthEnabled)
+{
+  auto& channel = settings.tChParam[0];
+  channel.pMeRange[SLICE_P][1] = isLowBandwidthEnabled ? 16 : 32;
   return true;
 }
 
-bool EncMediatypeHEVC::IsEnableLowBandwidth() const
+static BufferCounts CreateBufferCounts(AL_TEncSettings const& settings)
 {
-  auto const chan = settings.tChParam;
-  return chan.pMeRange[SLICE_P][1] == 16;
-}
+  BufferCounts bufferCounts;
+  auto const channel = settings.tChParam[0];
+  auto const gopParam = channel.tGopParam;
 
-bool EncMediatypeHEVC::SetEnableLowBandwidth(bool const& enable)
-{
-  auto& chan = settings.tChParam;
-  auto bw = enable ? 16 : 32;
-  chan.pMeRange[SLICE_P][1] = bw;
-  return true;
-}
+  auto const intermediate = 1;
+  auto const buffer = 1;
+  auto const buffers = buffer + intermediate + gopParam.uNumB;
 
-vector<Format> EncMediatypeHEVC::FormatsSupported() const
-{
-  vector<Format> formatsSupported;
+  bufferCounts.input = bufferCounts.output = buffers;
 
-  for(auto const& color : colors)
+  if(channel.bSubframeLatency)
   {
-    for(auto const& bitdepth : bitdepths)
-    {
-      Format format;
-      format.color = color;
-      format.bitdepth = bitdepth;
-      formatsSupported.push_back(format);
-    }
+    auto const numSlices = channel.uNumSlices;
+    bufferCounts.output *= numSlices;
+  }
+  return bufferCounts;
+}
+
+static LoopFilterType CreateLoopFilter(AL_TEncSettings const& settings)
+{
+  auto const channel = settings.tChParam[0];
+  return ConvertSoftToModuleLoopFilter(channel.eOptions);
+}
+
+static bool CheckLoopFilter(LoopFilterType const& loopFilter)
+{
+  if(loopFilter == LoopFilterType::LOOP_FILTER_MAX_ENUM)
+    return false;
+
+  return true;
+}
+
+static bool UpdateLoopFilter(AL_TEncSettings& settings, LoopFilterType const& loopFilter)
+{
+  if(!CheckLoopFilter(loopFilter))
+    return false;
+
+  auto& options = settings.tChParam[0].eOptions;
+  options = static_cast<AL_EChEncOption>(options | ConvertModuleToSoftLoopFilter(loopFilter));
+
+  return true;
+}
+
+MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Get(std::string index, void* settings) const
+{
+  if(!settings)
+    return ERROR_SETTINGS_BAD_PARAMETER;
+
+  if(index == "SETTINGS_INDEX_MIMES")
+  {
+    *(static_cast<Mimes*>(settings)) = CreateMimes();
+    return ERROR_SETTINGS_NONE;
   }
 
-  return formatsSupported;
+  if(index == "SETTINGS_INDEX_CLOCK")
+  {
+    *(static_cast<Clock*>(settings)) = CreateClock(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_GROUP_OF_PICTURES")
+  {
+    *(static_cast<Gop*>(settings)) = CreateGroupOfPictures(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_LATENCY")
+  {
+    *(static_cast<int*>(settings)) = CreateLatency(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_LOW_BANDWIDTH")
+  {
+    *(static_cast<bool*>(settings)) = CreateLowBandwidth(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_CONSTRAINED_INTRA_PREDICTION")
+  {
+    *(static_cast<bool*>(settings)) = CreateConstrainedIntraPrediction(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_VIDEO_MODE")
+  {
+    *(static_cast<VideoModeType*>(settings)) = CreateVideoMode(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_VIDEO_MODES_SUPPORTED")
+  {
+    *(static_cast<vector<VideoModeType>*>(settings)) = this->videoModes;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_BITRATE")
+  {
+    *(static_cast<Bitrate*>(settings)) = CreateBitrate(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_CACHE_LEVEL2")
+  {
+    *(static_cast<bool*>(settings)) = CreateCacheLevel2(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_BUFFER_COUNTS")
+  {
+    *(static_cast<BufferCounts*>(settings)) = CreateBufferCounts(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_FILLER_DATA")
+  {
+    *(static_cast<bool*>(settings)) = CreateFillerData(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_ASPECT_RATIO")
+  {
+    *(static_cast<AspectRatioType*>(settings)) = CreateAspectRatio(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_SCALING_LIST")
+  {
+    *(static_cast<ScalingListType*>(settings)) = CreateScalingList(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_QUANTIZATION_PARAMETER")
+  {
+    *(static_cast<QPs*>(settings)) = CreateQuantizationParameter(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_LOOP_FILTER")
+  {
+    *(static_cast<LoopFilterType*>(settings)) = CreateLoopFilter(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED")
+  {
+    *(static_cast<vector<ProfileLevelType>*>(settings)) = CreateHEVCProfileLevelSupported(profiles, levels);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_FORMATS_SUPPORTED")
+  {
+    *(static_cast<vector<Format>*>(settings)) = CreateFormatsSupported(colors, bitdepths);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_SLICE_PARAMETER")
+  {
+    *(static_cast<Slices*>(settings)) = CreateSlicesParameter(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  return ERROR_SETTINGS_BAD_INDEX;
+}
+
+MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, void const* settings)
+{
+  if(!settings)
+    return ERROR_SETTINGS_BAD_PARAMETER;
+
+  if(index == "SETTINGS_INDEX_CLOCK")
+  {
+    auto clock = *(static_cast<Clock const*>(settings));
+
+    if(!UpdateClock(this->settings, clock))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_GROUP_OF_PICTURES")
+  {
+    auto const gop = *(static_cast<Gop const*>(settings));
+
+    if(!UpdateGroupOfPictures(this->settings, gop))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_LOW_BANDWIDTH")
+  {
+    auto const isLowBandwidthEnabled = *(static_cast<bool const*>(settings));
+
+    if(!UpdateLowBandwidth(this->settings, isLowBandwidthEnabled))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_CONSTRAINED_INTRA_PREDICTION")
+  {
+    auto const isConstrainedIntraPredictionEnabled = *(static_cast<bool const*>(settings));
+
+    if(!UpdateConstrainedIntraPrediction(this->settings, isConstrainedIntraPredictionEnabled))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_VIDEO_MODE")
+  {
+    auto const videoMode = *(static_cast<VideoModeType const*>(settings));
+
+    if(!UpdateVideoMode(this->settings, videoMode))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_BITRATE")
+  {
+    auto const bitrate = *(static_cast<Bitrate const*>(settings));
+
+    if(!UpdateBitrate(this->settings, bitrate))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_CACHE_LEVEL2")
+  {
+    auto const isCacheLevel2Enabled = *(static_cast<bool const*>(settings));
+
+    if(!UpdateCacheLevel2(this->settings, isCacheLevel2Enabled))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_FILLER_DATA")
+  {
+    auto const isFillerDataEnabled = *(static_cast<bool const*>(settings));
+
+    if(!UpdateFillerData(this->settings, isFillerDataEnabled))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_ASPECT_RATIO")
+  {
+    auto const aspectRatio = *(static_cast<AspectRatioType const*>(settings));
+
+    if(!UpdateAspectRatio(this->settings, aspectRatio))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_SCALING_LIST")
+  {
+    auto const scalingList = *(static_cast<ScalingListType const*>(settings));
+
+    if(!UpdateScalingList(this->settings, scalingList))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_QUANTIZATION_PARAMETER")
+  {
+    auto const qps = *(static_cast<QPs const*>(settings));
+
+    if(!UpdateQuantizationParameter(this->settings, qps))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_LOOP_FILTER")
+  {
+    auto const loopFilter = *(static_cast<LoopFilterType const*>(settings));
+
+    if(!UpdateLoopFilter(this->settings, loopFilter))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_SLICE_PARAMETER")
+  {
+    auto const slices = *(static_cast<Slices const*>(settings));
+
+    if(!UpdateSlicesParameter(this->settings, slices))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+
+    return ERROR_SETTINGS_NONE;
+  }
+
+  return ERROR_SETTINGS_BAD_INDEX;
 }
 

@@ -44,7 +44,7 @@
 
 #include "base/omx_module/omx_device_dec_hardware_mcu.h"
 
-#include <string.h>
+#include <cstring>
 #include <memory>
 #include <functional>
 #include <stdexcept>
@@ -57,12 +57,13 @@ extern "C" {
 
 static AL_TAllocator* createDmaAlloc(string deviceName)
 {
-  auto alloc = DmaAlloc_Create(deviceName.c_str());
+  auto alloc = AL_DmaAlloc_Create(deviceName.c_str());
 
   if(alloc == nullptr)
     throw runtime_error(string("Couldnt allocate dma allocator (tried using ") + deviceName + string(")"));
   return alloc;
 }
+
 
 
 #include "base/omx_codec/omx_expertise_dec_avc.h"
@@ -71,46 +72,45 @@ static AL_TAllocator* createDmaAlloc(string deviceName)
 
 static DecCodec* GenerateAvcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
-  unique_ptr<DecMediatypeAVC> mediatype(new DecMediatypeAVC);
+  shared_ptr<DecMediatypeAVC> media(new DecMediatypeAVC);
   unique_ptr<DecDeviceHardwareMcu> device(new DecDeviceHardwareMcu);
   deleted_unique_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroDecodeIP"), [](AL_TAllocator* allocator) {
     AL_Allocator_Destroy(allocator);
   });
-  unique_ptr<DecModule> module(new DecModule(move(mediatype), move(device), move(allocator)));
+  unique_ptr<DecModule> module(new DecModule(media, move(device), move(allocator)));
   unique_ptr<DecExpertiseAVC> expertise(new DecExpertiseAVC);
-  return new DecCodec(hComponent, move(module), cComponentName, cRole, move(expertise));
+  return new DecCodec(hComponent, media, move(module), cComponentName, cRole, move(expertise));
 }
 
 
 static DecCodec* GenerateHevcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
-  unique_ptr<DecMediatypeHEVC> mediatype(new DecMediatypeHEVC);
+  shared_ptr<DecMediatypeHEVC> media(new DecMediatypeHEVC);
   unique_ptr<DecDeviceHardwareMcu> device(new DecDeviceHardwareMcu);
   deleted_unique_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroDecodeIP"), [](AL_TAllocator* allocator) {
     AL_Allocator_Destroy(allocator);
   });
-  unique_ptr<DecModule> module(new DecModule(move(mediatype), move(device), move(allocator)));
+  unique_ptr<DecModule> module(new DecModule(media, move(device), move(allocator)));
   unique_ptr<DecExpertiseHEVC> expertise(new DecExpertiseHEVC);
-  return new DecCodec(hComponent, move(module), cComponentName, cRole, move(expertise));
+  return new DecCodec(hComponent, media, move(module), cComponentName, cRole, move(expertise));
 }
 
 
 static OMX_PTR GenerateDefaultCodec(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_STRING cRole)
 {
-  OMX_PTR dec = nullptr;
 
   if(!strncmp(cComponentName, "OMX.allegro.h265.hardware.decoder", strlen(cComponentName)))
-    dec = GenerateHevcCodecHardware(hComponent, cComponentName, cRole);
+    return GenerateHevcCodecHardware(hComponent, cComponentName, cRole);
 
   if(!strncmp(cComponentName, "OMX.allegro.h265.decoder", strlen(cComponentName)))
-    dec = GenerateHevcCodecHardware(hComponent, cComponentName, cRole);
+    return GenerateHevcCodecHardware(hComponent, cComponentName, cRole);
 
   if(!strncmp(cComponentName, "OMX.allegro.h264.hardware.decoder", strlen(cComponentName)))
-    dec = GenerateAvcCodecHardware(hComponent, cComponentName, cRole);
+    return GenerateAvcCodecHardware(hComponent, cComponentName, cRole);
 
   if(!strncmp(cComponentName, "OMX.allegro.h264.decoder", strlen(cComponentName)))
-    dec = GenerateAvcCodecHardware(hComponent, cComponentName, cRole);
-  return dec;
+    return GenerateAvcCodecHardware(hComponent, cComponentName, cRole);
+  return nullptr;
 }
 
 extern "C"

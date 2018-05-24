@@ -45,7 +45,7 @@ typedef enum OMX_ALG_BUFFER_MODE
 {
   OMX_ALG_BUF_NORMAL = 0x0,
   OMX_ALG_BUF_DMA = 0x1,
-  OMX_ALG_BUF_MAX = 0x7FFFFFFF,
+  OMX_ALG_BUF_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_BUFFER_MODE;
 
 /** Port buffers configuration */

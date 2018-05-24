@@ -57,12 +57,10 @@ extern "C"
 class DecModule : public ModuleInterface
 {
 public:
-  DecModule(std::unique_ptr<DecMediatypeInterface>&& media, std::unique_ptr<DecDevice>&& device, deleted_unique_ptr<AL_TAllocator>&& allocator);
+  DecModule(std::shared_ptr<DecMediatypeInterface> media, std::unique_ptr<DecDevice>&& device, deleted_unique_ptr<AL_TAllocator>&& allocator);
+  ~DecModule();
 
-  ~DecModule()
-  {
-  }
-
+  int GetDisplayPictureType() const; // This can only be called on filled callback !
   void ResetRequirements();
   BufferRequirements GetBufferRequirements() const;
 
@@ -71,6 +69,8 @@ public:
   Mimes GetMimes() const;
   Format GetFormat() const;
   std::vector<Format> GetFormatsSupported() const;
+  std::vector<VideoModeType> GetVideoModesSupported() const;
+  VideoModeType GetVideoMode() const;
   ProfileLevelType GetProfileLevel() const;
   std::vector<ProfileLevelType> GetProfileLevelSupported() const;
   int GetLatency() const;
@@ -86,9 +86,10 @@ public:
   bool SetProfileLevel(ProfileLevelType const& profileLevel);
   bool SetFileDescriptors(FileDescriptors const& fds);
   bool SetDecodedPictureBuffer(DecodedPictureBufferType const& decodedPictureBuffer);
-  bool SetInternalEntropyBuffers(int const& num);
-  bool SetEnableSubframe(bool const& enableSubframe);
+  bool SetInternalEntropyBuffers(int num);
+  bool SetEnableSubframe(bool enableSubframe);
   bool SetGop(Gop const& gop);
+  bool SetVideoMode(VideoModeType const& videoMode);
 
   bool CheckParam();
   bool Create();
@@ -102,8 +103,8 @@ public:
 
   bool SetCallbacks(Callbacks callbacks);
 
-  bool Empty(uint8_t* buffer, int offset, int size, void* handle);
-  bool Fill(uint8_t* buffer, int offset, int size);
+  bool Empty(BufferHandleInterface* handle);
+  bool Fill(BufferHandleInterface* handle);
 
   ErrorType Run(bool shouldPrealloc);
   bool Pause();
@@ -114,18 +115,17 @@ public:
   ErrorType GetDynamic(std::string index, void* param);
 
 private:
-  std::unique_ptr<DecMediatypeInterface> media;
+  std::shared_ptr<DecMediatypeInterface> const media;
   std::unique_ptr<DecDevice> device;
   deleted_unique_ptr<AL_TAllocator> allocator;
 
+  int currentDisplayPictureType = -1;
+
   Callbacks callbacks;
-  ThreadSafeMap<AL_TBuffer*, uint8_t*> translateIn;
-  ThreadSafeMap<AL_TBuffer*, void*> handleMap;
-
-  ThreadSafeMap<AL_TBuffer*, uint8_t*> translateOut;
-  ThreadSafeMap<uint8_t*, AL_TBuffer*> dpb;
-  ThreadSafeMap<AL_TBuffer*, uint8_t*> shouldBeCopied;
-
+  ThreadSafeMap<AL_TBuffer*, BufferHandleInterface*> handlesIn;
+  ThreadSafeMap<AL_TBuffer*, BufferHandleInterface*> handlesOut;
+  ThreadSafeMap<char*, AL_TBuffer*> dpb;
+  ThreadSafeMap<AL_TBuffer*, char*> shouldBeCopied;
 
   ThreadSafeMap<void*, AL_HANDLE> allocated;
   ThreadSafeMap<int, AL_HANDLE> allocatedDMA;
@@ -142,8 +142,8 @@ private:
   bool isCreated;
   void CopyIfRequired(AL_TBuffer* frameToDisplay, int size);
 
-  AL_TBuffer* CreateInputBuffer(uint8_t* buffer, int const& size);
-  AL_TBuffer* CreateOutputBuffer(uint8_t* buffer, int const& size);
+  AL_TBuffer* CreateInputBuffer(char* buffer, int size);
+  AL_TBuffer* CreateOutputBuffer(char* buffer, int size);
 
   static void RedirectionEndDecoding(AL_TBuffer* decodedFrame, void* userParam)
   {
@@ -165,7 +165,7 @@ private:
     auto pThis = static_cast<DecModule*>(userParam);
     pThis->ResolutionFound(buffersNumber, bufferSize, *settings, *crop);
   };
-  void ResolutionFound(int const& bufferNumber, int const& bufferSize, AL_TStreamSettings const& settings, AL_TCropInfo const& crop);
+  void ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSettings const& settings, AL_TCropInfo const& crop);
 
   static void RedirectionInputBufferDestroy(AL_TBuffer* input)
   {
@@ -173,13 +173,6 @@ private:
     pThis->InputBufferDestroy(input);
   };
   void InputBufferDestroy(AL_TBuffer* input);
-
-  static void RedirectionInputDmaBufferDestroy(AL_TBuffer* input)
-  {
-    auto pThis = static_cast<DecModule*>(AL_Buffer_GetUserData(input));
-    pThis->InputDmaBufferDestroy(input);
-  };
-  void InputDmaBufferDestroy(AL_TBuffer* input);
 
   static void RedirectionOutputBufferDestroy(AL_TBuffer* output)
   {

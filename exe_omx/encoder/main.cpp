@@ -70,6 +70,8 @@ extern "C"
 #include <OMX_VideoExt.h>
 #include <OMX_ComponentExt.h>
 #include <OMX_IndexExt.h>
+#include <OMX_IndexAlg.h>
+#include <OMX_IVCommonAlg.h>
 }
 
 #include "CommandsSender.h"
@@ -182,6 +184,17 @@ static int user_slice = 0;
 
 static OMX_PARAM_PORTDEFINITIONTYPE paramPort;
 
+static OMX_ERRORTYPE setEnableLongTerm(Application& app)
+{
+  OMX_ALG_VIDEO_PARAM_LONG_TERM lt;
+  initHeader(lt);
+  lt.nPortIndex = 0;
+  OMX_CALL(OMX_GetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLongTerm), &lt));
+  lt.bEnableLongTerm = OMX_TRUE;
+  OMX_CALL(OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLongTerm), &lt));
+  return OMX_ErrorNone;
+}
+
 static OMX_ERRORTYPE setPortParameters(Application& app)
 {
   OMX_VIDEO_PARAM_PORTFORMATTYPE inParamFormat;
@@ -236,43 +249,50 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   OMX_CALL(OMX_GetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPortForActual));
   paramPortForActual.nBufferCountActual = paramPortForActual.nBufferCountMin + 4; // alloc max for b frames
   OMX_CALL(OMX_SetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPortForActual));
-
   OMX_CALL(OMX_GetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPort));
+
+  setEnableLongTerm(app);
 
   LOGV("Input picture: %ux%u", app.settings.width, app.settings.height);
   return OMX_ErrorNone;
-};
+}
 
 static void Usage(CommandLineParser& opt, char* ExeName)
 {
   cerr << "Usage: " << ExeName << " <InputFile> [options]" << endl;
   cerr << "Options:" << endl;
+
   for(auto& command: opt.displayOrder)
     cerr << "  " << opt.descs[command] << endl;
+}
+
+static bool fourCCExist(string const& fourcc)
+{
+  return fourcc == "y800" || fourcc == "rxma" || fourcc == "nv12" || fourcc == "rx0a" || fourcc == "nv16" || fourcc == "rx2a";
 }
 
 static void parseCommandLine(int argc, char** argv, Application& app)
 {
   Settings& settings = app.settings;
-  string user_chroma = "NV12";
   bool help = false;
+  string fourcc = "nv12";
 
   auto opt = CommandLineParser();
   opt.addString("input_file", &input_file, "Input file");
-  opt.addFlag("--help,-help,-h", &help, "Show this help");
-  opt.addInt("--width,-w", &settings.width, "Input width");
-  opt.addInt("--height,-h", &settings.height, "Input height");
-  opt.addInt("--framerate,-r", &settings.framerate, "Input fps");
-  opt.addString("--out,-o", &output_file, "Output compressed file name");
-  opt.addString("--chroma,-chroma", &user_chroma, "<NV12 || RX0A || NV16 || RX2A> ('NV12' default)");
-  opt.addFlag("--hevc,-hevc", &settings.codec, "", HEVC);
-  opt.addFlag("--avc,-avc", &settings.codec, "", AVC);
-  opt.addFlag("--hevc_hard,-hevc_hard", &settings.codec, "Use hard hevc decoder", HEVC_HARD);
-  opt.addFlag("--avc_hard,-hevc_hard", &settings.codec, "Use hard avc decoder", AVC_HARD);
-  opt.addFlag("--dma-in,-dma-in", &app.input.isDMA, "Use dmabufs for input port");
-  opt.addFlag("--dma-out,-dma-out", &app.output.isDMA, "Use dmabufs for output port");
-  opt.addInt("--subframe,-subframe", &user_slice, "<4 || 8 || 16>: activate subframe latency");
-  opt.addString("--cmd_file,-cmd_file", &cmd_file, "File to precise dynamic cmd");
+  opt.addFlag("--help", &help, "Show this help");
+  opt.addInt("--width", &settings.width, "Input width ('176')");
+  opt.addInt("--height", &settings.height, "Input height ('144')");
+  opt.addInt("--framerate", &settings.framerate, "Input fps ('1')");
+  opt.addString("--out", &output_file, "Output compressed file name");
+  opt.addString("--fourcc", &fourcc, "Input file fourcc <y800 || rxma || nv12 || rx0a || nv16 || rx2a> '(nv12)'");
+  opt.addFlag("--hevc", &settings.codec, "", HEVC);
+  opt.addFlag("--avc", &settings.codec, "", AVC);
+  opt.addFlag("--hevc_hard", &settings.codec, "Use hard hevc encoder", HEVC_HARD);
+  opt.addFlag("--avc_hard", &settings.codec, "Use hard avc encoder", AVC_HARD);
+  opt.addFlag("--dma-in", &app.input.isDMA, "Use dmabufs on input port");
+  opt.addFlag("--dma-out", &app.output.isDMA, "Use dmabufs on output port");
+  opt.addInt("--subframe", &user_slice, "<4 || 8 || 16>: activate subframe latency '(0)'");
+  opt.addString("--cmd_file", &cmd_file, "File to precise for dynamic cmd");
 
   opt.parse(argc, argv);
 
@@ -282,20 +302,30 @@ static void parseCommandLine(int argc, char** argv, Application& app)
     exit(0);
   }
 
-  if(user_chroma == "NV12")
-    settings.format = OMX_COLOR_FormatYUV420SemiPlanar;
-  else if(user_chroma == "NV16")
-    settings.format = OMX_COLOR_FormatYUV422SemiPlanar;
-  else if(user_chroma == "RX0A")
-    settings.format = (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked;
-  else if(user_chroma == "RX2A")
-    settings.format = (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
-  else
+  if(!fourCCExist(fourcc))
   {
+    cerr << "[Error] fourcc doesn't exist" << endl;
     Usage(opt, argv[0]);
-    cerr << "[Error] chroma parameter was incorrectly set" << endl;
     exit(1);
   }
+
+  if(fourcc == "y800")
+    settings.format = OMX_COLOR_FormatL8;
+
+  if(fourcc == "rxma")
+    settings.format = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitPacked);
+
+  if(fourcc == "nv12")
+    settings.format = OMX_COLOR_FormatYUV420SemiPlanar;
+
+  if(fourcc == "rx0a")
+    settings.format = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked);
+
+  if(fourcc == "nv16")
+    settings.format = OMX_COLOR_FormatYUV422SemiPlanar;
+
+  if(fourcc == "rx2a")
+    settings.format = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked);
 
   if(!(user_slice == 0 || user_slice == 4 || user_slice == 8 || user_slice == 16))
   {
@@ -333,7 +363,7 @@ static void parseCommandLine(int argc, char** argv, Application& app)
       break;
     }
   }
-};
+}
 
 static bool readOneYuvFrame(OMX_BUFFERHEADERTYPE* pBufferHdr, Application const& app)
 {
@@ -374,7 +404,7 @@ static bool readOneYuvFrame(OMX_BUFFERHEADERTYPE* pBufferHdr, Application const&
   Buffer_UnmapData((char*)pBufferHdr->pBuffer, pBufferHdr->nAllocLen, app.input.isDMA);
 
   return true;
-};
+}
 
 // Callbacks implementation of the video encoder component
 static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent, OMX_U32 Data1, OMX_U32 Data2, OMX_PTR /*pEventData*/)
@@ -534,15 +564,15 @@ static void useBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Application& app)
 
       if(!hBuf)
       {
-        LOGE( "Failed to allocate Buffer for dma");
+        LOGE("Failed to allocate Buffer for dma");
         assert(0);
       }
-      auto fd = AL_LinuxDmaAllocator_ExportToFd((AL_TLinuxDmaAllocator*)(app.pAllocator), hBuf);
+      auto fd = AL_LinuxDmaAllocator_GetFd((AL_TLinuxDmaAllocator*)(app.pAllocator), hBuf);
       pBufData = (OMX_U8*)(uintptr_t)dup(fd);
 
       if(!pBufData)
       {
-        LOGE( "Failed to ExportToFd %p", hBuf);
+        LOGE("Failed to ExportToFd %p", hBuf);
         assert(0);
       }
 
@@ -619,6 +649,18 @@ string chooseComponent(EncCodec codec)
   }
 }
 
+static OMX_ERRORTYPE showComponentVersion(Application& app)
+{
+  char name[128];
+  OMX_VERSIONTYPE compType;
+  OMX_VERSIONTYPE ilType;
+
+  OMX_CALL(OMX_GetComponentVersion(app.hEncoder, (OMX_STRING)name, &compType, &ilType, nullptr));
+
+  LOGI("Component : %s (v.%u) made for OMX_IL client : %u.%u.%u", name, compType.nVersion, ilType.s.nVersionMajor, ilType.s.nVersionMinor, ilType.s.nRevision);
+  return OMX_ErrorNone;
+}
+
 static OMX_ERRORTYPE safeMain(int argc, char** argv)
 {
   Application app;
@@ -640,35 +682,29 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
     cerr << "Error in opening output file '" << output_file.c_str() << "'" << endl;
     return OMX_ErrorUndefined;
   }
+
   LOGI("cmd file = %s\n", cmd_file.c_str());
   ifstream cmdfile(cmd_file != "" ? cmd_file.c_str() : "/dev/null");
   auto encCmd = CEncCmdMngr(cmdfile, 3, -1);
   app.encCmd = &encCmd;
 
   OMX_CALL(OMX_Init());
-
+  auto scopeOMX = scopeExit([]() {
+    OMX_Deinit();
+  });
   auto component = chooseComponent(app.settings.codec);
 
-  OMX_CALLBACKTYPE const videoEncoderCallbacks =
-  {
-    .EventHandler = onComponentEvent,
-    .EmptyBufferDone = onInputBufferAvailable,
-    .FillBufferDone = onOutputBufferAvailable
-  };
+  OMX_CALLBACKTYPE videoEncoderCallbacks;
+  videoEncoderCallbacks.EventHandler = onComponentEvent;
+  videoEncoderCallbacks.EmptyBufferDone = onInputBufferAvailable;
+  videoEncoderCallbacks.FillBufferDone = onOutputBufferAvailable;
 
-  /** getting video encoder handle */
   OMX_CALL(OMX_GetHandle(&app.hEncoder, (OMX_STRING)component.c_str(), &app, const_cast<OMX_CALLBACKTYPE*>(&videoEncoderCallbacks)));
+  auto scopeHandle = scopeExit([&]() {
+    OMX_FreeHandle(app.hEncoder);
+  });
 
-  auto name = (OMX_STRING)calloc(OMX_MAX_STRINGNAME_SIZE, sizeof(char));
-  OMX_VERSIONTYPE compType;
-  OMX_VERSIONTYPE ilType;
-
-  OMX_CALL(OMX_GetComponentVersion(app.hEncoder, (OMX_STRING)name, &compType, &ilType, nullptr));
-
-  LOGI("Component : %s (v.%u) made for OMX_IL client : %u.%u.%u", name, compType.nVersion, ilType.s.nVersionMajor, ilType.s.nVersionMinor, ilType.s.nRevision);
-
-  free(name);
-
+  OMX_CALL(showComponentVersion(app));
   auto const ret = setPortParameters(app);
 
   if(ret != OMX_ErrorNone)
@@ -679,7 +715,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   if(app.input.isDMA || app.output.isDMA)
   {
     auto constexpr deviceName = "/dev/allegroIP";
-    app.pAllocator = DmaAlloc_Create(deviceName);
+    app.pAllocator = AL_DmaAlloc_Create(deviceName);
 
     if(!app.pAllocator)
       throw runtime_error(string("Couldn't create dma allocator (using ") + deviceName + string(")"));
@@ -697,7 +733,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
      (app.settings.format != (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked) &&
      (app.settings.format != (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked))
   {
-    LOGE( "Unsupported color format : 0X%.8X", app.settings.format);
+    LOGE("Unsupported color format : 0X%.8X", app.settings.format);
     return OMX_ErrorUnsupportedSetting;
   }
 
@@ -765,9 +801,6 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   get.IsComponentSupplier(app.output.index) ? freeAllocBuffers(app.input.index, app) : freeUseBuffers(app.output.index, app);
 
   app.encoderEventState.wait();
-
-  OMX_FreeHandle(app.hEncoder);
-  OMX_Deinit();
 
   infile.close();
   outfile.close();

@@ -40,7 +40,7 @@
 extern "C"
 {
 #include <lib_common_dec/DecDpbMode.h>
-#include <lib_common_dec/DecChanParam.h>
+#include <lib_common_dec/DecSynchro.h>
 }
 
 #include "base/omx_module/omx_module_enums.h"

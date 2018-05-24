@@ -41,13 +41,12 @@ AL_EChromaMode ConvertModuleToSoftChroma(ColorType const& color)
 {
   switch(color)
   {
-  case COLOR_MONO: return CHROMA_MONO;
-  case COLOR_420: return CHROMA_4_2_0;
-  case COLOR_422: return CHROMA_4_2_2;
-  case COLOR_444: return CHROMA_4_4_4;
-  case COLOR_MAX: // fallthrough
-  default:
-    return CHROMA_MAX_ENUM;
+  case ColorType::COLOR_400: return CHROMA_4_0_0;
+  case ColorType::COLOR_420: return CHROMA_4_2_0;
+  case ColorType::COLOR_422: return CHROMA_4_2_2;
+  case ColorType::COLOR_444: return CHROMA_4_4_4;
+  case ColorType::COLOR_MAX_ENUM: return CHROMA_MAX_ENUM;
+  default: return CHROMA_MAX_ENUM;
   }
 
   return CHROMA_MAX_ENUM;
@@ -57,14 +56,40 @@ ColorType ConvertSoftToModuleColor(AL_EChromaMode const& chroma)
 {
   switch(chroma)
   {
-  case CHROMA_4_0_0: return COLOR_MONO;
-  case CHROMA_4_2_0: return COLOR_420;
-  case CHROMA_4_2_2: return COLOR_422;
-  case CHROMA_4_4_4: return COLOR_444;
-  case CHROMA_MAX_ENUM: // fallthrough
-  default: return COLOR_MAX;
+  case CHROMA_4_0_0: return ColorType::COLOR_400;
+  case CHROMA_4_2_0: return ColorType::COLOR_420;
+  case CHROMA_4_2_2: return ColorType::COLOR_422;
+  case CHROMA_4_4_4: return ColorType::COLOR_444;
+  case CHROMA_MAX_ENUM: return ColorType::COLOR_MAX_ENUM;
+  default: return ColorType::COLOR_MAX_ENUM;
   }
 
-  return COLOR_MAX;
+  return ColorType::COLOR_MAX_ENUM;
+}
+
+AL_EEntropyMode ConvertModuleToSoftEntropyCoding(EntropyCodingType const& entropy)
+{
+  switch(entropy)
+  {
+  case EntropyCodingType::ENTROPY_CODING_CABAC: return AL_MODE_CABAC;
+  case EntropyCodingType::ENTROPY_CODING_CAVLC: return AL_MODE_CAVLC;
+  case EntropyCodingType::ENTROPY_CODING_MAX_ENUM: return AL_MODE_MAX_ENUM;
+  default: return AL_MODE_MAX_ENUM;
+  }
+
+  return AL_MODE_MAX_ENUM;
+}
+
+EntropyCodingType ConvertSoftToModuleEntropyCoding(AL_EEntropyMode const& entropy)
+{
+  switch(entropy)
+  {
+  case AL_MODE_CABAC: return EntropyCodingType::ENTROPY_CODING_CABAC;
+  case AL_MODE_CAVLC: return EntropyCodingType::ENTROPY_CODING_CAVLC;
+  case AL_MODE_MAX_ENUM: return EntropyCodingType::ENTROPY_CODING_MAX_ENUM;
+  default: return EntropyCodingType::ENTROPY_CODING_MAX_ENUM;
+  }
+
+  return EntropyCodingType::ENTROPY_CODING_MAX_ENUM;
 }
 

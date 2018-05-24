@@ -53,17 +53,12 @@ struct DecMediatypeInterface : public MediatypeInterface
   {
   }
 
-  virtual CompressionType Compression() const = 0;
-  virtual std::string Mime() const = 0;
   virtual void Reset() = 0;
+  virtual ErrorSettingsType Get(std::string index, void* settings) const = 0;
+  virtual ErrorSettingsType Set(std::string index, void const* settings) = 0;
 
-  virtual std::vector<ProfileLevelType> ProfileLevelSupported() const = 0;
-  virtual Format GetFormat() const = 0;
-  virtual std::vector<Format> FormatsSupported() const = 0;
   virtual ProfileLevelType ProfileLevel() const = 0;
   virtual bool SetProfileLevel(ProfileLevelType const& profileLevel) = 0;
-
-  virtual int GetRequiredOutputBuffers() const = 0;
 
   AL_TDecSettings settings;
   int const strideAlignment = 64;

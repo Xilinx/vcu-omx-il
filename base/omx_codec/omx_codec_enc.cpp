@@ -40,6 +40,8 @@
 
 #include <OMX_VideoExt.h>
 #include <OMX_ComponentAlg.h>
+#include <OMX_IVCommonAlg.h>
+
 #include <cmath>
 
 #include "base/omx_checker/omx_checker.h"
@@ -53,7 +55,7 @@
 
 #define OMX_CATCH() \
   } \
-  catch(OMX_ERRORTYPE & e) \
+  catch(OMX_ERRORTYPE& e) \
   { \
     LOGE("%s", ToStringOMXError.at(e)); \
     return e; \
@@ -62,7 +64,7 @@
 
 #define OMX_CATCH_L(f) \
   } \
-  catch(OMX_ERRORTYPE & e) \
+  catch(OMX_ERRORTYPE& e) \
   { \
     LOGE("%s", ToStringOMXError.at(e)); \
     f(e); \
@@ -72,35 +74,30 @@
 
 #define OMX_CATCH_PARAMETER() \
   } \
-  catch(OMX_ERRORTYPE & e) \
+  catch(OMX_ERRORTYPE& e) \
   { \
     LOGE("%s : %s", ToStringOMXIndex.at(index), ToStringOMXError.at(e)); \
     return e; \
   } \
   void FORCE_SEMICOLON()
 
+using namespace std;
+
 static EncModule& ToEncModule(ModuleInterface& module)
 {
   return dynamic_cast<EncModule &>(module);
 }
 
-EncCodec::EncCodec(OMX_HANDLETYPE component, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<EncExpertise>&& expertise) :
-  Codec(component, std::move(module), name, role), expertise(std::move(expertise))
+EncCodec::EncCodec(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<EncExpertise>&& expertise) :
+  Codec(component, media, std::move(module), name, role), expertise(std::move(expertise))
 {
 }
 
-EncCodec::~EncCodec()
+EncCodec::~EncCodec() = default;
+
+void EncCodec::EmptyThisBufferCallBack(BufferHandleInterface* handle)
 {
-}
-
-void EncCodec::EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size, void* handle)
-{
-  (void)offset, (void)size, (void)handle;
-
-  if(!emptied)
-    assert(0);
-
-  auto header = map.Pop(emptied);
+  auto header = ((OMXBufferHandle*)(handle))->header;
 
   ClearPropagatedData(header);
 
@@ -112,51 +109,52 @@ void EncCodec::EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size, v
 
   if(callbacks.EmptyBufferDone)
     callbacks.EmptyBufferDone(component, app, header);
+
+  delete handle;
 }
 
-static void AddEncoderFlags(OMX_BUFFERHEADERTYPE* header, EncModule& module)
+static void AddEncoderFlags(OMXBufferHandle* handle, EncModule& module)
 {
-  auto const flags = module.GetFlags(header->pBuffer);
+  auto const flags = module.GetFlags(handle);
 
   if(flags.isSync)
-    header->nFlags |= OMX_BUFFERFLAG_SYNCFRAME;
+    handle->header->nFlags |= OMX_BUFFERFLAG_SYNCFRAME;
 
   if(flags.isEndOfFrame)
-    header->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
+    handle->header->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
 
   if(flags.isEndOfSlice)
-    header->nFlags |= OMX_BUFFERFLAG_ENDOFSUBFRAME;
+    handle->header->nFlags |= OMX_BUFFERFLAG_ENDOFSUBFRAME;
 }
 
-void EncCodec::AssociateCallBack(uint8_t* empty, uint8_t* fill)
+void EncCodec::AssociateCallBack(BufferHandleInterface* empty_, BufferHandleInterface* fill_)
 {
-  auto emptyHeader = map.Get(empty);
-  assert(emptyHeader);
-  auto fillHeader = map.Get(fill);
-  assert(fillHeader);
+  auto empty = (OMXBufferHandle*)(empty_);
+  auto fill = (OMXBufferHandle*)(fill_);
+  auto emptyHeader = empty->header;
+  auto fillHeader = fill->header;
 
   PropagateHeaderData(emptyHeader, fillHeader);
-  AddEncoderFlags(fillHeader, ToEncModule(*module));
+  AddEncoderFlags(fill, ToEncModule(*module));
 
   if(IsEOSDetected(emptyHeader->nFlags))
     callbacks.EventHandler(component, app, OMX_EventBufferFlag, output.index, emptyHeader->nFlags, nullptr);
 
-  if(IsCompMarked(emptyHeader->hMarkTargetComponent, component) && callbacks.EventHandler)
+  if(IsCompMarked(emptyHeader->hMarkTargetComponent, component))
     callbacks.EventHandler(component, app, OMX_EventMark, 0, 0, emptyHeader->pMarkData);
 }
 
-void EncCodec::FillThisBufferCallBack(uint8_t* filled, int offset, int size)
+void EncCodec::FillThisBufferCallBack(BufferHandleInterface* filled, int offset, int size)
 {
-  if(!filled)
-    assert(0);
-
-  auto header = map.Pop(filled);
+  assert(filled);
+  auto header = (OMX_BUFFERHEADERTYPE*)(((OMXBufferHandle*)(filled))->header);
 
   header->nOffset = offset;
   header->nFilledLen = size;
 
   if(callbacks.FillBufferDone)
     callbacks.FillBufferDone(component, app, header);
+  delete filled;
 }
 
 static OMX_PARAM_PORTDEFINITIONTYPE ConstructPortDefinition(Port& port, EncModule const& module)
@@ -188,7 +186,7 @@ static OMX_PARAM_PORTDEFINITIONTYPE ConstructPortDefinition(Port& port, EncModul
   v.nFrameHeight = moduleResolution.height;
   v.nStride = moduleResolution.stride;
   v.nSliceHeight = moduleResolution.sliceHeight;
-  v.nBitrate = module.GetBitrates().target;
+  v.nBitrate = module.GetBitrate().target;
   v.xFramerate = ConvertToOMXFramerate(moduleClock);
   v.bFlagErrorConcealment = ConvertToOMXBool(false); // XXX
   v.eCompressionFormat = ConvertToOMXCompression(moduleMime.compression);
@@ -239,9 +237,9 @@ static OMX_VIDEO_PARAM_BITRATETYPE ConstructVideoBitrate(Port const& port, EncMo
   OMX_VIDEO_PARAM_BITRATETYPE b;
   OMXChecker::SetHeaderVersion(b);
   b.nPortIndex = port.index;
-  auto const moduleBitrates = module.GetBitrates();
-  b.eControlRate = ConvertToOMXControlRate(moduleBitrates.mode);
-  b.nTargetBitrate = moduleBitrates.target;
+  auto const moduleBitrate = module.GetBitrate();
+  b.eControlRate = ConvertToOMXControlRate(moduleBitrate.mode);
+  b.nTargetBitrate = moduleBitrate.target;
   return b;
 }
 
@@ -281,8 +279,8 @@ static OMX_ALG_VIDEO_PARAM_MAX_BITRATE ConstructVideoMaxBitrate(Port const& port
   OMX_ALG_VIDEO_PARAM_MAX_BITRATE b;
   OMXChecker::SetHeaderVersion(b);
   b.nPortIndex = port.index;
-  auto const moduleBitrates = module.GetBitrates();
-  b.nMaxBitrate = moduleBitrates.max;
+  auto const moduleBitrate = module.GetBitrate();
+  b.nMaxBitrate = moduleBitrate.max;
   return b;
 }
 
@@ -311,8 +309,8 @@ static OMX_ALG_VIDEO_PARAM_SCENE_CHANGE_RESILIENCE ConstructVideoSceneChangeResi
   OMX_ALG_VIDEO_PARAM_SCENE_CHANGE_RESILIENCE r;
   OMXChecker::SetHeaderVersion(r);
   r.nPortIndex = port.index;
-  auto const moduleBitrates = module.GetBitrates();
-  r.bDisableSceneChangeResilience = ConvertToOMXDisableSceneChangeResilience(moduleBitrates.option);
+  auto const moduleBitrate = module.GetBitrate();
+  r.bDisableSceneChangeResilience = ConvertToOMXDisableSceneChangeResilience(moduleBitrate.option);
   return r;
 }
 
@@ -340,9 +338,9 @@ static OMX_ALG_VIDEO_PARAM_CODED_PICTURE_BUFFER ConstructVideoCodedPictureBuffer
   OMX_ALG_VIDEO_PARAM_CODED_PICTURE_BUFFER cpb;
   OMXChecker::SetHeaderVersion(cpb);
   cpb.nPortIndex = port.index;
-  auto const moduleBitrates = module.GetBitrates();
-  cpb.nCodedPictureBufferSize = moduleBitrates.cpb;
-  cpb.nInitialRemovalDelay = moduleBitrates.ird;
+  auto const moduleBitrate = module.GetBitrate();
+  cpb.nCodedPictureBufferSize = moduleBitrate.cpb;
+  cpb.nInitialRemovalDelay = moduleBitrate.ird;
   return cpb;
 }
 
@@ -416,6 +414,38 @@ static bool GetVideoPortFormatSupported(OMX_VIDEO_PARAM_PORTFORMATTYPE& format, 
   format.xFramerate = ConvertToOMXFramerate(moduleClock);
 
   return true;
+}
+
+static OMX_INTERLACEFORMATTYPE ConstructVideoModesSupported(Port const& port, EncModule const& module)
+{
+  OMX_INTERLACEFORMATTYPE interlace;
+  OMXChecker::SetHeaderVersion(interlace);
+  interlace.nPortIndex = port.index;
+  auto const modes = module.GetVideoModesSupported();
+
+  for(auto const mode : modes)
+    interlace.nFormat |= ConvertToOMXInterlaceFlag(mode);
+
+  return interlace;
+}
+
+static OMX_INTERLACEFORMATTYPE ConstructVideoModeCurrent(Port const& port, EncModule const& module)
+{
+  OMX_INTERLACEFORMATTYPE interlace;
+  OMXChecker::SetHeaderVersion(interlace);
+  interlace.nPortIndex = port.index;
+  interlace.nFormat = ConvertToOMXInterlaceFlag(module.GetVideoMode());
+
+  return interlace;
+}
+
+static OMX_ALG_VIDEO_PARAM_LONG_TERM ConstructVideoLongTerm(Port const& port, EncModule const& module)
+{
+  OMX_ALG_VIDEO_PARAM_LONG_TERM longTerm;
+  OMXChecker::SetHeaderVersion(longTerm);
+  longTerm.nPortIndex = port.index;
+  longTerm.bEnableLongTerm = ConvertToOMXBool(module.GetGop().isLongTermEnabled);
+  return longTerm;
 }
 
 OMX_ERRORTYPE EncCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR param)
@@ -499,6 +529,18 @@ OMX_ERRORTYPE EncCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
   {
     auto const port = getCurrentPort(param);
     expertise->GetExpertise(param, *port, ToEncModule(*module));
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamVideoInterlaceFormatSupported: // GetParameter only
+  {
+    auto const port = getCurrentPort(param);
+    *(OMX_INTERLACEFORMATTYPE*)param = ConstructVideoModesSupported(*port, ToEncModule(*module));
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamVideoInterlaceFormatCurrent:
+  {
+    auto const port = getCurrentPort(param);
+    *(OMX_INTERLACEFORMATTYPE*)param = ConstructVideoModeCurrent(*port, ToEncModule(*module));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexParamVideoQuantizationControl:
@@ -596,6 +638,12 @@ OMX_ERRORTYPE EncCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
     *(OMX_ALG_PORT_PARAM_BUFFER_MODE*)param = ConstructPortBufferMode(*port, ToEncModule(*module));
     return OMX_ErrorNone;
   }
+  case OMX_ALG_IndexParamVideoLongTerm:
+  {
+    auto const port = getCurrentPort(param);
+    *(OMX_ALG_VIDEO_PARAM_LONG_TERM*)param = ConstructVideoLongTerm(*port, ToEncModule(*module));
+    return OMX_ErrorNone;
+  }
   default:
     LOGE("%s is unsupported", ToStringOMXIndex.at(index));
     return OMX_ErrorUnsupportedIndex;
@@ -614,7 +662,7 @@ static bool SetFormat(OMX_COLOR_FORMATTYPE const& color, EncModule& module)
   return module.SetFormat(moduleFormat);
 }
 
-static bool SetClock(OMX_U32 const& framerateInQ16, EncModule& module)
+static bool SetClock(OMX_U32 framerateInQ16, EncModule& module)
 {
   auto moduleClock = module.GetClock();
   auto const clock = ConvertToModuleClock(framerateInQ16);
@@ -633,16 +681,17 @@ static bool SetResolution(OMX_VIDEO_PORTDEFINITIONTYPE const& definition, EncMod
   return module.SetResolution(moduleResolution);
 }
 
-static bool SetTargetBitrate(OMX_U32 const& bitrate, EncModule& module)
+static bool SetTargetBitrate(OMX_U32 bitrate, EncModule& module)
 {
-  auto moduleBitrates = module.GetBitrates();
-  moduleBitrates.target = bitrate;
-  if(moduleBitrates.max < moduleBitrates.target)
-    moduleBitrates.max = moduleBitrates.target;
-  return module.SetBitrates(moduleBitrates);
+  auto moduleBitrate = module.GetBitrate();
+  moduleBitrate.target = bitrate;
+
+  if(moduleBitrate.max < moduleBitrate.target)
+    moduleBitrate.max = moduleBitrate.target;
+  return module.SetBitrate(moduleBitrate);
 }
 
-static bool SetQuantization(OMX_U32 const& qpI, OMX_U32 const& qpP, OMX_U32 const& qpB, EncModule& module)
+static bool SetQuantization(OMX_U32 qpI, OMX_U32 qpP, OMX_U32 qpB, EncModule& module)
 {
   auto moduleQPs = module.GetQPs();
   moduleQPs.initial = ConvertToModuleQPInitial(qpI);
@@ -658,7 +707,7 @@ static bool SetQuantizationControl(OMX_ALG_EQpCtrlMode const& mode, EncModule& m
   return module.SetQPs(moduleQPs);
 }
 
-static bool SetQuantizationExtension(OMX_S32 const& qpMin, OMX_S32 const& qpMax, EncModule& module)
+static bool SetQuantizationExtension(OMX_S32 qpMin, OMX_S32 qpMax, EncModule& module)
 {
   auto moduleQPs = module.GetQPs();
   moduleQPs.min = ConvertToModuleQPMin(qpMin);
@@ -666,14 +715,16 @@ static bool SetQuantizationExtension(OMX_S32 const& qpMin, OMX_S32 const& qpMax,
   return module.SetQPs(moduleQPs);
 }
 
-static bool SetBitrateMode(OMX_U32 target, OMX_VIDEO_CONTROLRATETYPE mode, EncModule& module)
+static bool SetModeBitrate(OMX_U32 target, OMX_VIDEO_CONTROLRATETYPE mode, EncModule& module)
 {
-  auto moduleBitrates = module.GetBitrates();
-  moduleBitrates.mode = ConvertToModuleControlRate(mode);
-  moduleBitrates.target = target;
-  if(moduleBitrates.max < moduleBitrates.target)
-    moduleBitrates.max = moduleBitrates.target;
-  return module.SetBitrates(moduleBitrates);
+  auto moduleBitrate = module.GetBitrate();
+  moduleBitrate.mode = ConvertToModuleControlRate(mode);
+  moduleBitrate.target = target;
+
+  if(moduleBitrate.max < moduleBitrate.target)
+    moduleBitrate.max = moduleBitrate.target;
+
+  return module.SetBitrate(moduleBitrate);
 }
 
 static bool SetAspectRatio(OMX_ALG_EAspectRatio const& aspectRatio, EncModule& module)
@@ -683,13 +734,13 @@ static bool SetAspectRatio(OMX_ALG_EAspectRatio const& aspectRatio, EncModule& m
 
 static bool SetMaxBitrate(OMX_U32 max, EncModule& module)
 {
-  auto moduleBitrates = module.GetBitrates();
-  moduleBitrates.max = max;
+  auto moduleBitrate = module.GetBitrate();
+  moduleBitrate.max = max;
 
-  if(moduleBitrates.target > moduleBitrates.max)
-    moduleBitrates.target = moduleBitrates.max;
+  if(moduleBitrate.target > moduleBitrate.max)
+    moduleBitrate.target = moduleBitrate.max;
 
-  return module.SetBitrates(moduleBitrates);
+  return module.SetBitrate(moduleBitrate);
 }
 
 static bool SetLowBandwidth(OMX_BOOL enableLowBandwidth, EncModule& module)
@@ -705,29 +756,29 @@ static bool SetGopControl(OMX_ALG_EGopCtrlMode const& mode, OMX_ALG_EGdrMode con
   return module.SetGop(moduleGop);
 }
 
-static bool SetSceneChangeResilience(OMX_BOOL const& disableSceneChangeResilience, EncModule& module)
+static bool SetSceneChangeResilience(OMX_BOOL disableSceneChangeResilience, EncModule& module)
 {
-  auto moduleBitrates = module.GetBitrates();
-  moduleBitrates.option = ConvertToModuleDisableSceneChangeResilience(disableSceneChangeResilience);
-  return module.SetBitrates(moduleBitrates);
+  auto moduleBitrate = module.GetBitrate();
+  moduleBitrate.option = ConvertToModuleDisableSceneChangeResilience(disableSceneChangeResilience);
+  return module.SetBitrate(moduleBitrate);
 }
 
-static bool SetInstantaneousDecodingRefresh(OMX_U32 const& instantaneousDecodingRefreshFrequency, EncModule& module)
+static bool SetInstantaneousDecodingRefresh(OMX_U32 instantaneousDecodingRefreshFrequency, EncModule& module)
 {
   auto moduleGop = module.GetGop();
   moduleGop.idrFrequency = instantaneousDecodingRefreshFrequency;
   return module.SetGop(moduleGop);
 }
 
-static bool SetCodedPictureBuffer(OMX_U32 const& codedPictureBufferSize, OMX_U32 const& initialRemovalDelay, EncModule& module)
+static bool SetCodedPictureBuffer(OMX_U32 codedPictureBufferSize, OMX_U32 initialRemovalDelay, EncModule& module)
 {
-  auto moduleBitrates = module.GetBitrates();
-  moduleBitrates.cpb = codedPictureBufferSize;
-  moduleBitrates.ird = initialRemovalDelay;
-  return module.SetBitrates(moduleBitrates);
+  auto moduleBitrate = module.GetBitrate();
+  moduleBitrate.cpb = codedPictureBufferSize;
+  moduleBitrate.ird = initialRemovalDelay;
+  return module.SetBitrate(moduleBitrate);
 }
 
-static bool SetPrefetchBuffer(OMX_BOOL const& enablePrefetchBuffer, EncModule& module)
+static bool SetPrefetchBuffer(OMX_BOOL enablePrefetchBuffer, EncModule& module)
 {
   return module.SetEnablePrefetchBuffer(ConvertToModuleBool(enablePrefetchBuffer));
 }
@@ -737,12 +788,12 @@ static bool SetScalingList(OMX_ALG_EScalingList const& scalingListMode, EncModul
   return module.SetScalingList(ConvertToModuleScalingList(scalingListMode));
 }
 
-static bool SetFillerData(OMX_BOOL const& disableFillerData, EncModule& module)
+static bool SetFillerData(OMX_BOOL disableFillerData, EncModule& module)
 {
   return module.SetEnableFillerData(!ConvertToModuleBool(disableFillerData));
 }
 
-static bool SetSlices(OMX_U32 const& numSlices, OMX_U32 const& slicesSize, OMX_BOOL dependentSlices, EncModule& module)
+static bool SetSlices(OMX_U32 numSlices, OMX_U32 slicesSize, OMX_BOOL dependentSlices, EncModule& module)
 {
   auto moduleSlices = module.GetSlices();
   moduleSlices.num = numSlices;
@@ -751,7 +802,7 @@ static bool SetSlices(OMX_U32 const& numSlices, OMX_U32 const& slicesSize, OMX_B
   return module.SetSlices(moduleSlices);
 }
 
-static bool SetSubframe(OMX_BOOL const& enableSubframe, EncModule& module)
+static bool SetSubframe(OMX_BOOL enableSubframe, EncModule& module)
 {
   return module.SetEnableSubframe(ConvertToModuleBool(enableSubframe));
 }
@@ -787,13 +838,13 @@ static bool SetPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port
     return false;
   }
 
-  if(!SetTargetBitrate(video.nBitrate, module))
+  if(!SetResolution(video, module))
   {
     SetPortDefinition(rollback, port, module);
     return false;
   }
 
-  if(!SetResolution(video, module))
+  if(!SetTargetBitrate(video.nBitrate, module))
   {
     SetPortDefinition(rollback, port, module);
     return false;
@@ -863,7 +914,7 @@ static bool SetVideoBitrate(OMX_VIDEO_PARAM_BITRATETYPE const& bitrate, Port con
 {
   auto const rollback = ConstructVideoBitrate(port, module);
 
-  if(!SetBitrateMode(bitrate.nTargetBitrate, bitrate.eControlRate, module))
+  if(!SetModeBitrate(bitrate.nTargetBitrate, bitrate.eControlRate, module))
   {
     SetVideoBitrate(rollback, port, module);
     return false;
@@ -1041,6 +1092,42 @@ static bool SetPortExpectedBuffer(OMX_PARAM_PORTDEFINITIONTYPE const& settings, 
   return true;
 }
 
+static bool SetInterlaceMode(OMX_U32 flag, EncModule& module)
+{
+  return module.SetVideoMode(ConvertToModuleVideoMode(flag));
+}
+
+static bool SetVideoModeCurrent(OMX_INTERLACEFORMATTYPE const& interlace, Port const& port, EncModule& module)
+{
+  auto const rollback = ConstructVideoModeCurrent(port, module);
+
+  if(!SetInterlaceMode(interlace.nFormat, module))
+  {
+    SetVideoModeCurrent(rollback, port, module);
+    return false;
+  }
+  return true;
+}
+
+static bool SetLongTerm(OMX_BOOL isLongTermEnabled, EncModule& module)
+{
+  auto moduleGop = module.GetGop();
+  moduleGop.isLongTermEnabled = ConvertToModuleBool(isLongTermEnabled);
+  return module.SetGop(moduleGop);
+}
+
+static bool SetVideoLongTerm(OMX_ALG_VIDEO_PARAM_LONG_TERM const& longTerm, Port const& port, EncModule& module)
+{
+  auto const rollback = ConstructVideoLongTerm(port, module);
+
+  if(!SetLongTerm(longTerm.bEnableLongTerm, module))
+  {
+    SetVideoLongTerm(rollback, port, module);
+    return false;
+  }
+  return true;
+}
+
 OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param)
 {
   OMX_TRY();
@@ -1053,7 +1140,15 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
                           return GetPort(index);
                         };
 
-  isSettingsInit = false;
+  Port* port;
+
+  if(OMX_U32(index) != OMX_IndexParamStandardComponentRole)
+  {
+    port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+  }
   switch(static_cast<OMX_U32>(index)) // all indexes are 32u
   {
   case OMX_IndexParamStandardComponentRole:
@@ -1070,11 +1165,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_IndexParamPortDefinition:
   {
-    auto port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const settings = static_cast<OMX_PARAM_PORTDEFINITIONTYPE*>(param);
 
     if(!SetPortExpectedBuffer(*settings, const_cast<Port &>(*port), ToEncModule(*module)))
@@ -1086,21 +1176,11 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_IndexParamCompBufferSupplier:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     // Do nothing
     return OMX_ErrorNone;
   }
   case OMX_IndexParamVideoPortFormat:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const format = static_cast<OMX_VIDEO_PARAM_PORTFORMATTYPE*>(param);
 
     if(!SetVideoPortFormat(*format, *port, ToEncModule(*module)))
@@ -1109,22 +1189,12 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_IndexParamVideoProfileLevelCurrent:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     if(!expertise->SetProfileLevel(param, *port, ToEncModule(*module)))
       throw OMX_ErrorBadParameter;
     return OMX_ErrorNone;
   }
   case OMX_IndexParamVideoQuantization:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const quantization = static_cast<OMX_VIDEO_PARAM_QUANTIZATIONTYPE*>(param);
 
     if(!SetVideoQuantization(*quantization, *port, ToEncModule(*module)))
@@ -1133,11 +1203,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_IndexParamVideoBitrate:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const bitrate = static_cast<OMX_VIDEO_PARAM_BITRATETYPE*>(param);
 
     if(!SetVideoBitrate(*bitrate, *port, ToEncModule(*module)))
@@ -1147,22 +1212,20 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_IndexParamVideoAvc:
   case OMX_ALG_IndexParamVideoHevc:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     if(!expertise->SetExpertise(param, *port, ToEncModule(*module)))
+      throw OMX_ErrorBadParameter;
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamVideoInterlaceFormatCurrent:
+  {
+    auto const interlaced = static_cast<OMX_INTERLACEFORMATTYPE*>(param);
+
+    if(!SetVideoModeCurrent(*interlaced, *port, ToEncModule(*module)))
       throw OMX_ErrorBadParameter;
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexParamVideoQuantizationControl:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const quantizationControl = static_cast<OMX_ALG_VIDEO_PARAM_QUANTIZATION_CONTROL*>(param);
 
     if(!SetVideoQuantizationControl(*quantizationControl, *port, ToEncModule(*module)))
@@ -1171,11 +1234,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoQuantizationExtension:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const quantizationExtension = static_cast<OMX_ALG_VIDEO_PARAM_QUANTIZATION_EXTENSION*>(param);
 
     if(!SetVideoQuantizationExtension(*quantizationExtension, *port, ToEncModule(*module)))
@@ -1184,11 +1242,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoAspectRatio:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const aspectRatio = static_cast<OMX_ALG_VIDEO_PARAM_ASPECT_RATIO*>(param);
 
     if(!SetVideoAspectRatio(*aspectRatio, *port, ToEncModule(*module)))
@@ -1197,11 +1250,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoMaxBitrate:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const maxBitrate = static_cast<OMX_ALG_VIDEO_PARAM_MAX_BITRATE*>(param);
 
     if(!SetVideoMaxBitrate(*maxBitrate, *port, ToEncModule(*module)))
@@ -1210,11 +1258,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoLowBandwidth:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const lowBandwidth = static_cast<OMX_ALG_VIDEO_PARAM_LOW_BANDWIDTH*>(param);
 
     if(!SetVideoLowBandwidth(*lowBandwidth, *port, ToEncModule(*module)))
@@ -1223,11 +1266,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoGopControl:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const gopControl = static_cast<OMX_ALG_VIDEO_PARAM_GOP_CONTROL*>(param);
 
     if(!SetVideoGopControl(*gopControl, *port, ToEncModule(*module)))
@@ -1236,11 +1274,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoSceneChangeResilience:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const sceneChangeResilience = static_cast<OMX_ALG_VIDEO_PARAM_SCENE_CHANGE_RESILIENCE*>(param);
 
     if(!SetVideoSceneChangeResilience(*sceneChangeResilience, *port, ToEncModule(*module)))
@@ -1249,11 +1282,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoInstantaneousDecodingRefresh:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const instantaneousDecodingRefresh = static_cast<OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH*>(param);
 
     if(!SetVideoInstantaneousDecodingRefresh(*instantaneousDecodingRefresh, *port, ToEncModule(*module)))
@@ -1262,11 +1290,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoCodedPictureBuffer:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const codedPictureBuffer = static_cast<OMX_ALG_VIDEO_PARAM_CODED_PICTURE_BUFFER*>(param);
 
     if(!SetVideoCodedPictureBuffer(*codedPictureBuffer, *port, ToEncModule(*module)))
@@ -1275,11 +1298,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoPrefetchBuffer:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const prefetchBuffer = static_cast<OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER*>(param);
 
     if(!SetVideoPrefetchBuffer(*prefetchBuffer, *port, ToEncModule(*module)))
@@ -1288,11 +1306,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoScalingList:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const scalingList = static_cast<OMX_ALG_VIDEO_PARAM_SCALING_LIST*>(param);
 
     if(!SetVideoScalingList(*scalingList, *port, ToEncModule(*module)))
@@ -1301,11 +1314,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoFillerData:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const fillerData = static_cast<OMX_ALG_VIDEO_PARAM_FILLER_DATA*>(param);
 
     if(!SetVideoFillerData(*fillerData, *port, ToEncModule(*module)))
@@ -1314,11 +1322,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoSlices:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const slices = static_cast<OMX_ALG_VIDEO_PARAM_SLICES*>(param);
 
     if(!SetVideoSlices(*slices, *port, ToEncModule(*module)))
@@ -1327,11 +1330,6 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoSubframe:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const subframe = static_cast<OMX_ALG_VIDEO_PARAM_SUBFRAME*>(param);
 
     if(!SetVideoSubframe(*subframe, *port, ToEncModule(*module)))
@@ -1340,14 +1338,17 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexPortParamBufferMode:
   {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
     auto const portBufferMode = static_cast<OMX_ALG_PORT_PARAM_BUFFER_MODE*>(param);
 
     if(!SetPortBufferMode(*portBufferMode, *port, ToEncModule(*module)))
+      throw OMX_ErrorBadParameter;
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamVideoLongTerm:
+  {
+    auto const longTerm = static_cast<OMX_ALG_VIDEO_PARAM_LONG_TERM*>(param);
+
+    if(!SetVideoLongTerm(*longTerm, *port, ToEncModule(*module)))
       throw OMX_ErrorBadParameter;
     return OMX_ErrorNone;
   }
@@ -1493,8 +1494,7 @@ OMX_ERRORTYPE EncCodec::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADER
   auto port = GetPort(index);
 
   if((transientState != TransientIdleToLoaded) && (!port->isTransientToDisable))
-    if(callbacks.EventHandler)
-      callbacks.EventHandler(component, app, OMX_EventError, OMX_ErrorPortUnpopulated, 0, nullptr);
+    callbacks.EventHandler(component, app, OMX_EventError, OMX_ErrorPortUnpopulated, 0, nullptr);
 
   if(isBufferAllocatedByModule(header))
   {
@@ -1526,7 +1526,6 @@ void EncCodec::TreatEmptyBufferCommand(Task* task)
   auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
   assert(header);
   AttachMark(header);
-  map.Add(header->pBuffer, header);
 
   if(shouldPushROI && header->nFilledLen)
   {
@@ -1536,7 +1535,8 @@ void EncCodec::TreatEmptyBufferCommand(Task* task)
     roiMap.Add(header, roiBuffer);
   }
 
-  auto success = module->Empty(header->pBuffer, header->nOffset, header->nFilledLen, header);
+  auto handle = new OMXBufferHandle(header);
+  auto success = module->Empty(handle);
 
   shouldClearROI = true;
   assert(success);

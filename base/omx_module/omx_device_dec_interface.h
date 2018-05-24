@@ -42,7 +42,6 @@
 extern "C"
 {
 #include <lib_decode/lib_decode.h>
-#include <lib_common_dec/DecChanParam.h>
 #include <lib_fpga/DmaAlloc.h>
 }
 
@@ -51,7 +50,7 @@ struct DecDevice
   virtual ~DecDevice()
   {
   };
-  virtual AL_TIDecChannel* Init(AL_EDecUnit const& decoderUnit, AL_TAllocator const& allocator) = 0;
+  virtual AL_TIDecChannel* Init(AL_TAllocator const& allocator) = 0;
   virtual void Deinit() = 0;
   virtual AllocationRequirements GetAllocationRequirements() = 0;
 };

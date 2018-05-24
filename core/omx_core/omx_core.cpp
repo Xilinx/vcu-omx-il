@@ -35,9 +35,8 @@
 *
 ******************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 #include <string>
 #include <dlfcn.h>
 #include <iostream>
@@ -47,7 +46,6 @@
 #include <stdexcept>
 
 using namespace std;
-typedef OMX_ERRORTYPE CreateComponentFuncType (OMX_IN OMX_HANDLETYPE, OMX_IN OMX_STRING, OMX_IN OMX_STRING, OMX_IN OMX_PTR, OMX_IN OMX_CALLBACKTYPE*);
 
 static const omx_comp_type* getComp(char* cComponentName)
 {
@@ -76,10 +74,7 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_Init(void)
   string env = "/usr/lib";
 
   if(getenv("OMX_ALLEGRO_PATH"))
-  {
     env = getenv("OMX_ALLEGRO_PATH");
-    cout << "using libraries at OMX_ALLEGRO_PATH=\"" << env << "\"" << endl;
-  }
 
   strncpy(path, env.c_str(), OMX_MAX_STRINGNAME_SIZE);
   strncat(path, "/", strlen("/"));
@@ -100,7 +95,7 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_Init(void)
     strncat(cCodecName, cMajorVersion.c_str(), cMajorVersion.length());
     AL_COMP_LIST[i].pLibHandle = dlopen(cCodecName, RTLD_LAZY);
 
-    if(!AL_COMP_LIST[i].pLibHandle)
+    if(AL_COMP_LIST[i].pLibHandle == NULL)
       cerr << dlerror() << endl;
     else
       uNumLibraryLoad++;
@@ -108,7 +103,7 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_Init(void)
 
   if(uNumLibraryLoad == 0)
   {
-    cout << "No library found ! Did you set OMX_ALLEGRO_PATH ?" << endl;
+    cerr << "No library found ! Did you set OMX_ALLEGRO_PATH ?" << endl;
     return OMX_ErrorUndefined;
   }
 
@@ -134,13 +129,15 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_ComponentNameEnum(OMX_OUT OMX_STRING cComponentNa
   if(!cComponentName)
     return OMX_ErrorBadParameter;
 
-  if(nIndex < NB_OF_COMP)
-    strncpy(cComponentName, AL_COMP_LIST[nIndex].name, nNameLength);
-  else
+  if(nIndex >= NB_OF_COMP)
     return OMX_ErrorNoMore;
+
+  strncpy(cComponentName, AL_COMP_LIST[nIndex].name, nNameLength);
 
   return OMX_ErrorNone;
 }
+
+typedef OMX_ERRORTYPE CreateComponentFuncType (OMX_IN OMX_HANDLETYPE, OMX_IN OMX_STRING, OMX_IN OMX_STRING, OMX_IN OMX_PTR, OMX_IN OMX_CALLBACKTYPE*);
 
 static OMX_HANDLETYPE CreateComponent(const omx_comp_type* pComponent, char const* cFunctionName, OMX_PTR pAppData, OMX_CALLBACKTYPE* pCallBacks)
 {

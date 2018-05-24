@@ -54,26 +54,12 @@ struct EncMediatypeInterface : public MediatypeInterface
   {
   }
 
-  virtual CompressionType Compression() const = 0;
-  virtual std::string Mime() const = 0;
   virtual void Reset() = 0;
+  virtual ErrorSettingsType Get(std::string index, void* settings) const = 0;
+  virtual ErrorSettingsType Set(std::string index, void const* settings) = 0;
 
-  virtual std::vector<ProfileLevelType> ProfileLevelSupported() const = 0;
-  virtual std::vector<Format> FormatsSupported() const = 0;
   virtual ProfileLevelType ProfileLevel() const = 0;
   virtual bool SetProfileLevel(ProfileLevelType const& profileLevel) = 0;
-
-  virtual EntropyCodingType EntropyCoding() const = 0;
-  virtual bool SetEntropyCoding(EntropyCodingType const& entropyCoding) = 0;
-
-  virtual bool IsConstrainedIntraPrediction() const = 0;
-  virtual bool SetConstrainedIntraPrediction(bool const& constrainedIntraPrediction) = 0;
-
-  virtual bool IsEnableLowBandwidth() const = 0;
-  virtual bool SetEnableLowBandwidth(bool const& enableLowBandwidth) = 0;
-
-  virtual LoopFilterType LoopFilter() const = 0;
-  virtual bool SetLoopFilter(LoopFilterType const& loopFilter) = 0;
 
   AL_TEncSettings settings;
   int const strideAlignment = 32;

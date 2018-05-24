@@ -38,13 +38,12 @@ extern "C" {
 *****************************************************************************/
 typedef enum
 {
-  OMX_ALG_GOP_MODE_DEFAULT = 0x00,
-  OMX_ALG_GOP_MODE_PYRAMIDAL = 0x01,
-
-  OMX_ALG_GOP_FLAG_LOW_DELAY = 0x80,
-  OMX_ALG_GOP_MODE_LOW_DELAY_P = OMX_ALG_GOP_FLAG_LOW_DELAY | 0x00,
-  OMX_ALG_GOP_MODE_LOW_DELAY_B = OMX_ALG_GOP_FLAG_LOW_DELAY | 0x01,
-  OMX_ALG_GOP_MODE_MAX,
+  OMX_ALG_GOP_MODE_DEFAULT,
+  OMX_ALG_GOP_MODE_PYRAMIDAL,
+  OMX_ALG_GOP_MODE_ADAPTIVE,
+  OMX_ALG_GOP_MODE_LOW_DELAY_P,
+  OMX_ALG_GOP_MODE_LOW_DELAY_B,
+  OMX_ALG_GOP_MODE_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_EGopCtrlMode;
 
 /*************************************************************************//*!
@@ -52,12 +51,10 @@ typedef enum
 *****************************************************************************/
 typedef enum
 {
-  OMX_ALG_GDR_OFF = 0x00,
-
-  OMX_ALG_GDR_ON = 0x02,
-  OMX_ALG_GDR_VERTICAL = OMX_ALG_GDR_ON |0x00,
-  OMX_ALG_GDR_HORIZONTAL = OMX_ALG_GDR_ON |0x01,
-  OMX_ALG_GDR_MAX,
+  OMX_ALG_GDR_OFF,
+  OMX_ALG_GDR_VERTICAL,
+  OMX_ALG_GDR_HORIZONTAL,
+  OMX_ALG_GDR_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_EGdrMode;
 
 /*************************************************************************//*!
@@ -65,9 +62,9 @@ typedef enum
 *****************************************************************************/
 typedef enum
 {
-  OMX_ALG_SCL_FLAT = 0x00,
-  OMX_ALG_SCL_DEFAULT = 0x01,
-  OMX_ALG_SCL_MAX,
+  OMX_ALG_SCL_FLAT,
+  OMX_ALG_SCL_DEFAULT,
+  OMX_ALG_SCL_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_EScalingList;
 
 /*************************************************************************//*!
@@ -75,10 +72,10 @@ typedef enum
 *****************************************************************************/
 typedef enum
 {
-  OMX_ALG_UNIFORM_QP = 0x000, /*!< default behaviour */
-  OMX_ALG_ROI_QP = 0x006, /*!< must be set for dynamic roi */
-  OMX_ALG_AUTO_QP = 0x400, /*!< compute Qp by MB on the fly */
-  OMX_ALG_MAX_QP,
+  OMX_ALG_UNIFORM_QP, /*!< default behaviour */
+  OMX_ALG_ROI_QP, /*!< must be set for dynamic roi */
+  OMX_ALG_AUTO_QP, /*!< compute Qp by MB on the fly */
+  OMX_ALG_MAX_ENUM_QP = 0x7FFFFFFF,
 }OMX_ALG_EQpCtrlMode;
 
 /*************************************************************************//*!
@@ -86,11 +83,11 @@ typedef enum
 *****************************************************************************/
 typedef enum
 {
-  OMX_ALG_ASPECT_RATIO_AUTO = 0x00,
-  OMX_ALG_ASPECT_RATIO_4_3 = 0x01,
-  OMX_ALG_ASPECT_RATIO_16_9 = 0x02,
-  OMX_ALG_ASPECT_RATIO_NONE = 0x03,
-  OMX_ALG_ASPECT_RATIO_MAX,
+  OMX_ALG_ASPECT_RATIO_AUTO,
+  OMX_ALG_ASPECT_RATIO_4_3,
+  OMX_ALG_ASPECT_RATIO_16_9,
+  OMX_ALG_ASPECT_RATIO_NONE,
+  OMX_ALG_ASPECT_RATIO_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_EAspectRatio;
 
 /*************************************************************************//*!
@@ -100,16 +97,19 @@ typedef enum
 {
   OMX_ALG_DPB_NORMAL,
   OMX_ALG_DPB_LOW_REF,
-  OMX_ALG_DPB_MAX,
+  OMX_ALG_DPB_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_EDpbMode;
 
+/*************************************************************************//*!
+   Region of interest quality
+*****************************************************************************/
 typedef enum
 {
   OMX_ALG_ROI_QUALITY_HIGH,
   OMX_ALG_ROI_QUALITY_MEDIUM,
   OMX_ALG_ROI_QUALITY_LOW,
   OMX_ALG_ROI_QUALITY_DONT_CARE,
-  OMX_ALG_ROI_QUALITY_MAX_ENUM,
+  OMX_ALG_ROI_QUALITY_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_ERoiQuality;
 
 #ifdef __cplusplus

@@ -37,8 +37,8 @@
 
 #include "omx_settings_enc_avc.h"
 #include "omx_settings_enc_common.h"
-#include "omx_settings_common_avc.h"
-#include "omx_settings_common.h"
+#include "base/omx_mediatype/omx_mediatype_common_avc.h"
+#include "base/omx_mediatype/omx_mediatype_common.h"
 
 #include "omx_settings_checks.h"
 #include "omx_settings_utils.h"
@@ -66,16 +66,16 @@ ErrorSettingsType EncSettingsAVC::Reset()
   alignments.stride = 32;
   alignments.sliceHeight = 8;
 
-  bufferHandles.input = BUFFER_HANDLE_CHAR_PTR;
-  bufferHandles.output = BUFFER_HANDLE_CHAR_PTR;
+  bufferHandles.input = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
+  bufferHandles.output = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
   bufferBytesAlignments.input = 0;
   bufferBytesAlignments.output = 0;
   bufferContiguities.input = false;
   bufferContiguities.output = false;
 
   AL_Settings_SetDefaults(&settings);
-  auto& channel = settings.tChParam;
-  channel.eProfile = AL_PROFILE_AVC_BASELINE;
+  auto& channel = settings.tChParam[0];
+  channel.eProfile = AL_PROFILE_AVC_C_BASELINE;
   AL_Settings_SetDefaultParam(&settings);
   channel.uLevel = 10;
   channel.uWidth = 176;
@@ -86,7 +86,9 @@ ErrorSettingsType EncSettingsAVC::Reset()
   rateCtrl.eOptions = AL_RC_OPT_SCN_CHG_RES;
   rateCtrl.uMaxBitRate = rateCtrl.uTargetBitRate = 64000;
   rateCtrl.uFrameRate = 15;
+
   settings.bEnableAUD = false;
+  settings.iPrefetchLevel2 = 0;
   return ERROR_SETTINGS_NONE;
 }
 
@@ -109,68 +111,16 @@ ErrorSettingsType EncSettingsAVC::Set(string index, void const* settings)
     return ERROR_SETTINGS_NONE;
   }
 
-  if(index == SETTINGS_INDEX_CLOCK)
-  {
-    if(!UpdateClock(this->settings, *(static_cast<Clock const*>(settings))))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
-  }
-
   if(index == SETTINGS_INDEX_PROFILE_LEVEL)
     return ERROR_SETTINGS_NOT_IMPLEMENTED;
 
-  if(index == SETTINGS_INDEX_GROUP_OF_PICTURES)
-  {
-    if(!UpdateGroupOfPictures(this->settings, *(static_cast<Gop const*>(settings))))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
-  }
-
   return ERROR_SETTINGS_BAD_INDEX;
-}
-
-static Mimes CreateMimes()
-{
-  Mimes mimes;
-  auto& input = mimes.input;
-
-  input.mime = "video/x-raw";
-  input.compression = COMPRESSION_UNUSED;
-
-  auto& output = mimes.output;
-
-  output.mime = "video/x-h264";
-  output.compression = COMPRESSION_AVC;
-
-  return mimes;
-}
-
-static BufferCounts CreateBufferCounts(AL_TEncSettings const& settings)
-{
-  BufferCounts bufferCounts;
-  auto const channel = settings.tChParam;
-  auto const gop = channel.tGopParam;
-  bufferCounts.input = 1 + gop.uNumB;
-  bufferCounts.output = 2 + gop.uNumB; // intermediate
-
-  if(channel.bSubframeLatency)
-  {
-    auto const numSlices = channel.uNumSlices;
-    bufferCounts.output *= numSlices;
-  }
-  return bufferCounts;
 }
 
 ErrorSettingsType EncSettingsAVC::Get(string index, void* settings)
 {
   if(!settings)
     return ERROR_SETTINGS_BAD_PARAMETER;
-
-  if(index == SETTINGS_INDEX_MIMES)
-  {
-    *(static_cast<Mimes*>(settings)) = CreateMimes();
-    return ERROR_SETTINGS_NONE;
-  }
 
   if(index == SETTINGS_INDEX_RESOLUTION)
   {
@@ -190,21 +140,9 @@ ErrorSettingsType EncSettingsAVC::Get(string index, void* settings)
     return ERROR_SETTINGS_NONE;
   }
 
-  if(index == SETTINGS_INDEX_CLOCK)
-  {
-    *(static_cast<Clock*>(settings)) = CreateClock(this->settings);
-    return ERROR_SETTINGS_NONE;
-  }
-
-  if(index == SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED)
-  {
-    *(static_cast<vector<ProfileLevelType>*>(settings)) = CreateAVCProfileLevelSupported(this->profiles, this->levels);
-    return ERROR_SETTINGS_NONE;
-  }
-
   if(index == SETTINGS_INDEX_PROFILE_LEVEL)
   {
-    *(static_cast<ProfileLevelType*>(settings)) = CreateAVCProfileLevel(this->settings.tChParam.eProfile, this->settings.tChParam.uLevel);
+    *(static_cast<ProfileLevelType*>(settings)) = CreateAVCProfileLevel(this->settings.tChParam[0].eProfile, this->settings.tChParam[0].uLevel);
     return ERROR_SETTINGS_NONE;
   }
 
@@ -220,15 +158,9 @@ ErrorSettingsType EncSettingsAVC::Get(string index, void* settings)
     return ERROR_SETTINGS_NONE;
   }
 
-  if(index == SETTINGS_INDEX_BUFFER_COUNTS)
-  {
-    *(static_cast<BufferCounts*>(settings)) = CreateBufferCounts(this->settings);
-    return ERROR_SETTINGS_NONE;
-  }
-
   if(index == SETTINGS_INDEX_BUFFER_SIZES)
   {
-    *(static_cast<BufferSizes*>(settings)) = CreateBufferSizes(this->settings);
+    *(static_cast<BufferSizes*>(settings)) = CreateBufferSizes(this->settings, this->alignments);
     return ERROR_SETTINGS_NONE;
   }
 
@@ -244,18 +176,6 @@ ErrorSettingsType EncSettingsAVC::Get(string index, void* settings)
     return ERROR_SETTINGS_NONE;
   }
 
-  if(index == SETTINGS_INDEX_LATENCY)
-  {
-    *(static_cast<int*>(settings)) = CreateMillisecondsLatency(this->settings, CreateBufferCounts(this->settings));
-    return ERROR_SETTINGS_NONE;
-  }
-
-  if(index == SETTINGS_INDEX_GROUP_OF_PICTURES)
-  {
-    *(static_cast<Gop*>(settings)) = CreateGroupOfPictures(this->settings);
-    return ERROR_SETTINGS_NONE;
-  }
-  else
-    return ERROR_SETTINGS_BAD_INDEX;
+  return ERROR_SETTINGS_BAD_INDEX;
 }
 

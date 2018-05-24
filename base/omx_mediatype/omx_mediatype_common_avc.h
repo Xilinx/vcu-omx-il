@@ -35,25 +35,18 @@
 *
 ******************************************************************************/
 
-#include "omx_settings_common.h"
+#pragma once
 
-using namespace std;
+#include <vector>
+#include "base/omx_module/omx_module_enums.h"
+#include "base/omx_module/omx_module_structs.h"
 
-vector<Format> CreateFormatsSupported(vector<ColorType> const& colors, vector<int> const& bitdepths)
+extern "C"
 {
-  vector<Format> formatsSupported;
-
-  for(auto const& color : colors)
-  {
-    for(auto const& bitdepth : bitdepths)
-    {
-      Format format;
-      format.color = color;
-      format.bitdepth = bitdepth;
-      formatsSupported.push_back(format);
-    }
-  }
-
-  return formatsSupported;
+#include <lib_common/SliceConsts.h>
 }
+
+std::vector<ProfileLevelType> CreateAVCProfileLevelSupported(std::vector<AVCProfileType> const& profiles, std::vector<int> const& levels);
+
+ProfileLevelType CreateAVCProfileLevel(AL_EProfile const& profile, int level);
 

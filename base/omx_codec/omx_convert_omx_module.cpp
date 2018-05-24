@@ -37,23 +37,22 @@
 
 #include "omx_convert_omx_module.h"
 
-#include <OMX_VideoExt.h>
 #include <stdexcept>
 #include <cassert>
 #include <cmath>
 
 using namespace std;
 
-OMX_BOOL ConvertToOMXBool(bool const& boolean)
+OMX_BOOL ConvertToOMXBool(bool boolean)
 {
   return (!boolean) ? OMX_FALSE : OMX_TRUE;
 }
 
-OMX_COLOR_FORMATTYPE ConvertToOMXColor(ColorType const& color, int const& bitdepth)
+OMX_COLOR_FORMATTYPE ConvertToOMXColor(ColorType const& color, int bitdepth)
 {
   switch(color)
   {
-  case COLOR_MONO:
+  case ColorType::COLOR_400:
   {
     if(bitdepth == 8)
       return OMX_COLOR_FormatL8;
@@ -63,7 +62,7 @@ OMX_COLOR_FORMATTYPE ConvertToOMXColor(ColorType const& color, int const& bitdep
 
     throw invalid_argument("bitdepth");
   }
-  case COLOR_420:
+  case ColorType::COLOR_420:
   {
     if(bitdepth == 8)
       return OMX_COLOR_FormatYUV420SemiPlanar;
@@ -73,7 +72,7 @@ OMX_COLOR_FORMATTYPE ConvertToOMXColor(ColorType const& color, int const& bitdep
 
     throw invalid_argument("bitdepth");
   }
-  case COLOR_422:
+  case ColorType::COLOR_422:
   {
     if(bitdepth == 8)
       return OMX_COLOR_FormatYUV422SemiPlanar;
@@ -83,7 +82,7 @@ OMX_COLOR_FORMATTYPE ConvertToOMXColor(ColorType const& color, int const& bitdep
 
     throw invalid_argument("bitdepth");
   }
-  case COLOR_MAX: return OMX_COLOR_FormatMax;
+  case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
   default:
     throw invalid_argument("color");
   }
@@ -93,11 +92,11 @@ OMX_VIDEO_CODINGTYPE ConvertToOMXCompression(CompressionType const& compression)
 {
   switch(compression)
   {
-  case COMPRESSION_UNUSED: return OMX_VIDEO_CodingUnused;
-  case COMPRESSION_MAX: return OMX_VIDEO_CodingMax;
-  case COMPRESSION_AVC: return OMX_VIDEO_CodingAVC;
-  case COMPRESSION_VP9: return static_cast<OMX_VIDEO_CODINGTYPE>(OMX_ALG_VIDEO_CodingVP9);
-  case COMPRESSION_HEVC: return static_cast<OMX_VIDEO_CODINGTYPE>(OMX_ALG_VIDEO_CodingHEVC);
+  case CompressionType::COMPRESSION_UNUSED: return OMX_VIDEO_CodingUnused;
+  case CompressionType::COMPRESSION_MAX_ENUM: return OMX_VIDEO_CodingMax;
+  case CompressionType::COMPRESSION_AVC: return OMX_VIDEO_CodingAVC;
+  case CompressionType::COMPRESSION_VP9: return static_cast<OMX_VIDEO_CODINGTYPE>(OMX_ALG_VIDEO_CodingVP9);
+  case CompressionType::COMPRESSION_HEVC: return static_cast<OMX_VIDEO_CODINGTYPE>(OMX_ALG_VIDEO_CodingHEVC);
   default:
     throw invalid_argument("compression");
   }
@@ -109,7 +108,7 @@ OMX_U32 ConvertToOMXFramerate(Clock const& clock)
   return ceil(f);
 }
 
-OMX_ALG_BUFFER_MODE ConvertToOMXBufferMode(bool const& useFd)
+OMX_ALG_BUFFER_MODE ConvertToOMXBufferMode(bool useFd)
 {
   if(useFd)
     return OMX_ALG_BUF_DMA;
@@ -117,7 +116,7 @@ OMX_ALG_BUFFER_MODE ConvertToOMXBufferMode(bool const& useFd)
     return OMX_ALG_BUF_NORMAL;
 }
 
-bool ConvertToModuleBool(OMX_BOOL const& boolean)
+bool ConvertToModuleBool(OMX_BOOL boolean)
 {
   if(boolean == OMX_FALSE)
     return false;
@@ -128,11 +127,11 @@ CompressionType ConvertToModuleCompression(OMX_VIDEO_CODINGTYPE const& coding)
 {
   switch(static_cast<OMX_U32>(coding))
   {
-  case OMX_VIDEO_CodingUnused: return COMPRESSION_UNUSED;
-  case OMX_VIDEO_CodingAVC: return COMPRESSION_AVC;
-  case OMX_ALG_VIDEO_CodingHEVC: return COMPRESSION_HEVC;
-  case OMX_ALG_VIDEO_CodingVP9: return COMPRESSION_VP9;
-  case OMX_VIDEO_CodingMax: return COMPRESSION_MAX;
+  case OMX_VIDEO_CodingUnused: return CompressionType::COMPRESSION_UNUSED;
+  case OMX_VIDEO_CodingAVC: return CompressionType::COMPRESSION_AVC;
+  case OMX_ALG_VIDEO_CodingHEVC: return CompressionType::COMPRESSION_HEVC;
+  case OMX_ALG_VIDEO_CodingVP9: return CompressionType::COMPRESSION_VP9;
+  case OMX_VIDEO_CodingMax: return CompressionType::COMPRESSION_MAX_ENUM;
   default:
     throw invalid_argument("coding");
   }
@@ -146,14 +145,14 @@ ColorType ConvertToModuleColor(OMX_COLOR_FORMATTYPE const& format)
   {
   case OMX_COLOR_FormatL8:
   case OMX_ALG_COLOR_FormatL10bitPacked:
-    return COLOR_MONO;
+    return ColorType::COLOR_400;
   case OMX_COLOR_FormatYUV420SemiPlanar:
   case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked:
-    return COLOR_420;
+    return ColorType::COLOR_420;
   case OMX_COLOR_FormatYUV422SemiPlanar:
   case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked:
-    return COLOR_422;
-  case OMX_COLOR_FormatMax: return COLOR_MAX;
+    return ColorType::COLOR_422;
+  case OMX_COLOR_FormatMax: return ColorType::COLOR_MAX_ENUM;
   default:
     throw invalid_argument("format");
   }
@@ -181,7 +180,7 @@ int ConvertToModuleBitdepth(OMX_COLOR_FORMATTYPE const& format)
   throw invalid_argument("color");
 }
 
-Clock ConvertToModuleClock(OMX_U32 const& framerateInQ16)
+Clock ConvertToModuleClock(OMX_U32 framerateInQ16)
 {
   Clock clock;
   clock.framerate = ceil(framerateInQ16 / 65536.0);
@@ -195,7 +194,7 @@ bool ConvertToModuleFileDescriptor(OMX_ALG_BUFFER_MODE const& bufferMode)
   {
   case OMX_ALG_BUF_NORMAL: return false;
   case OMX_ALG_BUF_DMA: return true;
-  case OMX_ALG_BUF_MAX: // fallthrough
+  case OMX_ALG_BUF_MAX_ENUM: // fallthrough
   default:
     throw invalid_argument("bufferMode");
   }
@@ -207,56 +206,56 @@ DecodedPictureBufferType ConvertToModuleDecodedPictureBuffer(OMX_ALG_EDpbMode co
 {
   switch(mode)
   {
-  case OMX_ALG_DPB_NORMAL: return DECODED_PICTURE_BUFFER_NORMAL;
-  case OMX_ALG_DPB_LOW_REF: return DECODED_PICTURE_BUFFER_LOW_REFERENCE;
-  case OMX_ALG_DPB_MAX: // fallthrough
-  default: return DECODED_PICTURE_BUFFER_MAX;
+  case OMX_ALG_DPB_NORMAL: return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NORMAL;
+  case OMX_ALG_DPB_LOW_REF: return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_LOW_REFERENCE;
+  case OMX_ALG_DPB_MAX_ENUM: return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM;
+  default: return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM;
   }
 
-  return DECODED_PICTURE_BUFFER_MAX;
+  return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM;
 }
 
 OMX_ALG_EDpbMode ConvertToOMXDecodedPictureBuffer(DecodedPictureBufferType const& mode)
 {
   switch(mode)
   {
-  case DECODED_PICTURE_BUFFER_NORMAL: return OMX_ALG_DPB_NORMAL;
-  case DECODED_PICTURE_BUFFER_LOW_REFERENCE: return OMX_ALG_DPB_LOW_REF;
-  case DECODED_PICTURE_BUFFER_MAX: // fallthrough
-  default: return OMX_ALG_DPB_MAX;
+  case DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NORMAL: return OMX_ALG_DPB_NORMAL;
+  case DecodedPictureBufferType::DECODED_PICTURE_BUFFER_LOW_REFERENCE: return OMX_ALG_DPB_LOW_REF;
+  case DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM: return OMX_ALG_DPB_MAX_ENUM;
+  default: return OMX_ALG_DPB_MAX_ENUM;
   }
 
-  return OMX_ALG_DPB_MAX;
+  return OMX_ALG_DPB_MAX_ENUM;
 }
 
 static inline AVCProfileType ConvertToModuleAVCProfile(OMX_VIDEO_AVCPROFILETYPE const& profile)
 {
-  switch(static_cast<OMX_U32>(profile)) // all indexes are in OMX_U32
+  switch(static_cast<OMX_U32>(profile))
   {
-  case OMX_VIDEO_AVCProfileBaseline: return AVC_PROFILE_BASELINE;
-  case OMX_VIDEO_AVCProfileMain: return AVC_PROFILE_MAIN;
-  case OMX_VIDEO_AVCProfileExtended: return AVC_PROFILE_EXTENDED;
-  case OMX_VIDEO_AVCProfileHigh: return AVC_PROFILE_HIGH;
-  case OMX_VIDEO_AVCProfileHigh10: return AVC_PROFILE_HIGH_10;
-  case OMX_VIDEO_AVCProfileHigh422: return AVC_PROFILE_HIGH_422;
-  case OMX_VIDEO_AVCProfileHigh444: return AVC_PROFILE_HIGH_444_PREDICTIVE;
-  case OMX_ALG_VIDEO_AVCProfileConstrainedBaseline: return AVC_PROFILE_CONSTRAINED_BASELINE;
-  case OMX_ALG_VIDEO_AVCProfileProgressiveHigh: return AVC_PROFILE_PROGRESSIVE_HIGH;
-  case OMX_ALG_VIDEO_AVCProfileConstrainedHigh: return AVC_PROFILE_CONSTRAINED_HIGH;
-  case OMX_ALG_VIDEO_AVCProfileHigh10_Intra: return AVC_PROFILE_HIGH_10_INTRA;
-  case OMX_ALG_VIDEO_AVCProfileHigh422_Intra: return AVC_PROFILE_HIGH_422_INTRA;
-  case OMX_ALG_VIDEO_AVCProfileHigh444_Intra: return AVC_PROFILE_HIGH_444_INTRA;
-  case OMX_ALG_VIDEO_AVCProfileCAVLC444_Intra: return AVC_PROFILE_CAVLC_444_INTRA;
-  case OMX_VIDEO_AVCProfileMax: return AVC_PROFILE_MAX;
-  default: return AVC_PROFILE_MAX;
+  case OMX_VIDEO_AVCProfileBaseline: return AVCProfileType::AVC_PROFILE_BASELINE;
+  case OMX_VIDEO_AVCProfileMain: return AVCProfileType::AVC_PROFILE_MAIN;
+  case OMX_VIDEO_AVCProfileExtended: return AVCProfileType::AVC_PROFILE_EXTENDED;
+  case OMX_VIDEO_AVCProfileHigh: return AVCProfileType::AVC_PROFILE_HIGH;
+  case OMX_VIDEO_AVCProfileHigh10: return AVCProfileType::AVC_PROFILE_HIGH_10;
+  case OMX_VIDEO_AVCProfileHigh422: return AVCProfileType::AVC_PROFILE_HIGH_422;
+  case OMX_VIDEO_AVCProfileHigh444: return AVCProfileType::AVC_PROFILE_HIGH_444_PREDICTIVE;
+  case OMX_ALG_VIDEO_AVCProfileConstrainedBaseline: return AVCProfileType::AVC_PROFILE_CONSTRAINED_BASELINE;
+  case OMX_ALG_VIDEO_AVCProfileProgressiveHigh: return AVCProfileType::AVC_PROFILE_PROGRESSIVE_HIGH;
+  case OMX_ALG_VIDEO_AVCProfileConstrainedHigh: return AVCProfileType::AVC_PROFILE_CONSTRAINED_HIGH;
+  case OMX_ALG_VIDEO_AVCProfileHigh10_Intra: return AVCProfileType::AVC_PROFILE_HIGH_10_INTRA;
+  case OMX_ALG_VIDEO_AVCProfileHigh422_Intra: return AVCProfileType::AVC_PROFILE_HIGH_422_INTRA;
+  case OMX_ALG_VIDEO_AVCProfileHigh444_Intra: return AVCProfileType::AVC_PROFILE_HIGH_444_INTRA;
+  case OMX_ALG_VIDEO_AVCProfileCAVLC444_Intra: return AVCProfileType::AVC_PROFILE_CAVLC_444_INTRA;
+  case OMX_VIDEO_AVCProfileMax: return AVCProfileType::AVC_PROFILE_MAX_ENUM;
+  default: return AVCProfileType::AVC_PROFILE_MAX_ENUM;
   }
 
-  return AVC_PROFILE_MAX;
+  return AVCProfileType::AVC_PROFILE_MAX_ENUM;
 }
 
 static inline int ConvertToModuleAVCLevel(OMX_VIDEO_AVCLEVELTYPE const& level)
 {
-  switch(level)
+  switch(static_cast<OMX_U32>(level))
   {
   case OMX_VIDEO_AVCLevel1b: return 9;
   case OMX_VIDEO_AVCLevel1: return 10;
@@ -274,19 +273,11 @@ static inline int ConvertToModuleAVCLevel(OMX_VIDEO_AVCLEVELTYPE const& level)
   case OMX_VIDEO_AVCLevel42: return 42;
   case OMX_VIDEO_AVCLevel5: return 50;
   case OMX_VIDEO_AVCLevel51: return 51;
+  case OMX_ALG_VIDEO_AVCLevel52: return 52;
+  case OMX_ALG_VIDEO_AVCLevel60: return 60;
+  case OMX_ALG_VIDEO_AVCLevel61: return 61;
+  case OMX_ALG_VIDEO_AVCLevel62: return 62;
   default:
-
-    if(level == static_cast<OMX_VIDEO_AVCLEVELTYPE>(OMX_ALG_VIDEO_AVCLevel52))
-      return 52;
-
-    if(level == static_cast<OMX_VIDEO_AVCLEVELTYPE>(OMX_ALG_VIDEO_AVCLevel60))
-      return 60;
-
-    if(level == static_cast<OMX_VIDEO_AVCLEVELTYPE>(OMX_ALG_VIDEO_AVCLevel61))
-      return 61;
-
-    if(level == static_cast<OMX_VIDEO_AVCLEVELTYPE>(OMX_ALG_VIDEO_AVCLevel62))
-      return 62;
     return 0;
   }
 
@@ -305,20 +296,20 @@ OMX_VIDEO_AVCPROFILETYPE ConvertToOMXAVCProfile(ProfileLevelType const& profileL
 {
   switch(profileLevel.profile.avc)
   {
-  case AVC_PROFILE_BASELINE: return OMX_VIDEO_AVCProfileBaseline;
-  case AVC_PROFILE_MAIN: return OMX_VIDEO_AVCProfileMain;
-  case AVC_PROFILE_EXTENDED: return OMX_VIDEO_AVCProfileExtended;
-  case AVC_PROFILE_HIGH: return OMX_VIDEO_AVCProfileHigh;
-  case AVC_PROFILE_HIGH_10: return OMX_VIDEO_AVCProfileHigh10;
-  case AVC_PROFILE_HIGH_422: return OMX_VIDEO_AVCProfileHigh422;
-  case AVC_PROFILE_HIGH_444_PREDICTIVE: return OMX_VIDEO_AVCProfileHigh444;
-  case AVC_PROFILE_CONSTRAINED_BASELINE: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileConstrainedBaseline);
-  case AVC_PROFILE_PROGRESSIVE_HIGH: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileProgressiveHigh);
-  case AVC_PROFILE_CONSTRAINED_HIGH: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileConstrainedHigh);
-  case AVC_PROFILE_HIGH_10_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileHigh10_Intra);
-  case AVC_PROFILE_HIGH_422_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileHigh422_Intra);
-  case AVC_PROFILE_HIGH_444_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileHigh444_Intra);
-  case AVC_PROFILE_CAVLC_444_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileCAVLC444_Intra);
+  case AVCProfileType::AVC_PROFILE_BASELINE: return OMX_VIDEO_AVCProfileBaseline;
+  case AVCProfileType::AVC_PROFILE_MAIN: return OMX_VIDEO_AVCProfileMain;
+  case AVCProfileType::AVC_PROFILE_EXTENDED: return OMX_VIDEO_AVCProfileExtended;
+  case AVCProfileType::AVC_PROFILE_HIGH: return OMX_VIDEO_AVCProfileHigh;
+  case AVCProfileType::AVC_PROFILE_HIGH_10: return OMX_VIDEO_AVCProfileHigh10;
+  case AVCProfileType::AVC_PROFILE_HIGH_422: return OMX_VIDEO_AVCProfileHigh422;
+  case AVCProfileType::AVC_PROFILE_HIGH_444_PREDICTIVE: return OMX_VIDEO_AVCProfileHigh444;
+  case AVCProfileType::AVC_PROFILE_CONSTRAINED_BASELINE: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileConstrainedBaseline);
+  case AVCProfileType::AVC_PROFILE_PROGRESSIVE_HIGH: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileProgressiveHigh);
+  case AVCProfileType::AVC_PROFILE_CONSTRAINED_HIGH: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileConstrainedHigh);
+  case AVCProfileType::AVC_PROFILE_HIGH_10_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileHigh10_Intra);
+  case AVCProfileType::AVC_PROFILE_HIGH_422_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileHigh422_Intra);
+  case AVCProfileType::AVC_PROFILE_HIGH_444_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileHigh444_Intra);
+  case AVCProfileType::AVC_PROFILE_CAVLC_444_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileCAVLC444_Intra);
   default: return OMX_VIDEO_AVCProfileMax;
   }
 
@@ -353,76 +344,76 @@ OMX_VIDEO_AVCLEVELTYPE ConvertToOMXAVCLevel(ProfileLevelType const& profileLevel
   }
 
   return OMX_VIDEO_AVCLevelMax;
-};
+}
 
 LoopFilterType ConvertToModuleAVCLoopFilter(OMX_VIDEO_AVCLOOPFILTERTYPE const& loopFilter)
 {
   switch(loopFilter)
   {
-  case OMX_VIDEO_AVCLoopFilterDisable: return LOOP_FILTER_DISABLE;
-  case OMX_VIDEO_AVCLoopFilterDisableSliceBoundary: return LOOP_FILTER_ENABLE;
-  case OMX_VIDEO_AVCLoopFilterEnable: return LOOP_FILTER_ENABLE_CROSS_SLICE;
-  case OMX_VIDEO_AVCLoopFilterMax:
-  default: return LOOP_FILTER_MAX;
+  case OMX_VIDEO_AVCLoopFilterDisable: return LoopFilterType::LOOP_FILTER_DISABLE;
+  case OMX_VIDEO_AVCLoopFilterDisableSliceBoundary: return LoopFilterType::LOOP_FILTER_ENABLE;
+  case OMX_VIDEO_AVCLoopFilterEnable: return LoopFilterType::LOOP_FILTER_ENABLE_CROSS_SLICE;
+  case OMX_VIDEO_AVCLoopFilterMax: return LoopFilterType::LOOP_FILTER_MAX_ENUM;
+  default: return LoopFilterType::LOOP_FILTER_MAX_ENUM;
   }
 
-  return LOOP_FILTER_MAX;
+  return LoopFilterType::LOOP_FILTER_MAX_ENUM;
 }
 
 OMX_VIDEO_AVCLOOPFILTERTYPE ConvertToOMXAVCLoopFilter(LoopFilterType const& loopFilter)
 {
   switch(loopFilter)
   {
-  case LOOP_FILTER_DISABLE: return OMX_VIDEO_AVCLoopFilterDisable;
-  case LOOP_FILTER_ENABLE: return OMX_VIDEO_AVCLoopFilterDisableSliceBoundary;
-  case LOOP_FILTER_ENABLE_CROSS_SLICE: return OMX_VIDEO_AVCLoopFilterEnable;
-  case LOOP_FILTER_ENABLE_CROSS_TILE: // Don't exist in AVC
-  case LOOP_FILTER_ENABLE_CROSS_TILE_AND_SLICE: // Don't exist in AVC
-  case LOOP_FILTER_MAX: return OMX_VIDEO_AVCLoopFilterMax;
+  case LoopFilterType::LOOP_FILTER_DISABLE: return OMX_VIDEO_AVCLoopFilterDisable;
+  case LoopFilterType::LOOP_FILTER_ENABLE: return OMX_VIDEO_AVCLoopFilterDisableSliceBoundary;
+  case LoopFilterType::LOOP_FILTER_ENABLE_CROSS_SLICE: return OMX_VIDEO_AVCLoopFilterEnable;
+  case LoopFilterType::LOOP_FILTER_ENABLE_CROSS_TILE: return OMX_VIDEO_AVCLoopFilterMax;
+  case LoopFilterType::LOOP_FILTER_ENABLE_CROSS_TILE_AND_SLICE: return OMX_VIDEO_AVCLoopFilterMax;
+  case LoopFilterType::LOOP_FILTER_MAX_ENUM: return OMX_VIDEO_AVCLoopFilterMax;
   default: return OMX_VIDEO_AVCLoopFilterMax;
   }
 
   return OMX_VIDEO_AVCLoopFilterMax;
 }
 
-int ConvertToModuleBFrames(OMX_U32 const& bFrames, OMX_U32 const& pFrames)
+int ConvertToModuleBFrames(OMX_U32 bFrames, OMX_U32 pFrames)
 {
   return bFrames / (pFrames + 1);
 }
 
-int ConvertToModuleGopLength(OMX_U32 const& bFrames, OMX_U32 const& pFrames)
+int ConvertToModuleGopLength(OMX_U32 bFrames, OMX_U32 pFrames)
 {
   return pFrames + bFrames + 1;
 }
 
-EntropyCodingType ConvertToModuleEntropyCoding(OMX_BOOL const& isCabac)
+EntropyCodingType ConvertToModuleEntropyCoding(OMX_BOOL isCabac)
 {
   if(isCabac == OMX_FALSE)
-    return ENTROPY_CODING_CAVLC;
-  return ENTROPY_CODING_CABAC;
+    return EntropyCodingType::ENTROPY_CODING_CAVLC;
+  return EntropyCodingType::ENTROPY_CODING_CABAC;
 }
 
-int ConvertToModuleQPInitial(OMX_U32 const& qpI)
+int ConvertToModuleQPInitial(OMX_U32 qpI)
 {
   return qpI;
 }
 
-int ConvertToModuleQPDeltaIP(OMX_U32 const& qpI, OMX_U32 const& qpP)
+int ConvertToModuleQPDeltaIP(OMX_U32 qpI, OMX_U32 qpP)
 {
   return qpP - qpI;
 }
 
-int ConvertToModuleQPDeltaPB(OMX_U32 const& qpP, OMX_U32 const& qpB)
+int ConvertToModuleQPDeltaPB(OMX_U32 qpP, OMX_U32 qpB)
 {
   return qpB - qpP;
 }
 
-int ConvertToModuleQPMin(OMX_S32 const& qpMin)
+int ConvertToModuleQPMin(OMX_S32 qpMin)
 {
   return qpMin;
 }
 
-int ConvertToModuleQPMax(OMX_S32 const& qpMax)
+int ConvertToModuleQPMax(OMX_S32 qpMax)
 {
   return qpMax;
 }
@@ -431,99 +422,101 @@ QPControlType ConvertToModuleQPControl(OMX_ALG_EQpCtrlMode const& mode)
 {
   switch(mode)
   {
-  case OMX_ALG_UNIFORM_QP: return QP_UNIFORM;
-  case OMX_ALG_ROI_QP: return QP_ROI;
-  case OMX_ALG_AUTO_QP: return QP_AUTO;
-  case OMX_ALG_MAX_QP: return QP_MAX;
-  default: return QP_MAX;
+  case OMX_ALG_UNIFORM_QP: return QPControlType::QP_UNIFORM;
+  case OMX_ALG_ROI_QP: return QPControlType::QP_ROI;
+  case OMX_ALG_AUTO_QP: return QPControlType::QP_AUTO;
+  case OMX_ALG_MAX_ENUM_QP: return QPControlType::QP_MAX_ENUM;
+  default: return QPControlType::QP_MAX_ENUM;
   }
 
-  return QP_MAX;
+  return QPControlType::QP_MAX_ENUM;
 }
 
 RateControlType ConvertToModuleControlRate(OMX_VIDEO_CONTROLRATETYPE const& mode)
 {
   switch(static_cast<OMX_U32>(mode)) // all indexes are in OMX_U32
   {
-  case OMX_Video_ControlRateDisable: return RATE_CONTROL_CONSTANT_QUANTIZATION;
-  case OMX_Video_ControlRateConstant: return RATE_CONTROL_CONSTANT_BITRATE;
-  case OMX_Video_ControlRateVariable: return RATE_CONTROL_VARIABLE_BITRATE;
-  case OMX_ALG_Video_ControlRateLowLatency: return RATE_CONTROL_LOW_LATENCY;
-  default: return RATE_CONTROL_MAX;
+  case OMX_Video_ControlRateDisable: return RateControlType::RATE_CONTROL_CONSTANT_QUANTIZATION;
+  case OMX_Video_ControlRateConstant: return RateControlType::RATE_CONTROL_CONSTANT_BITRATE;
+  case OMX_Video_ControlRateVariable: return RateControlType::RATE_CONTROL_VARIABLE_BITRATE;
+  case OMX_ALG_Video_ControlRateLowLatency: return RateControlType::RATE_CONTROL_LOW_LATENCY;
+  case OMX_ALG_Video_ControlRateMaxEnum: return RateControlType::RATE_CONTROL_MAX_ENUM;
+  default: return RateControlType::RATE_CONTROL_MAX_ENUM;
   }
 
-  return RATE_CONTROL_MAX;
+  return RateControlType::RATE_CONTROL_MAX_ENUM;
 }
 
 AspectRatioType ConvertToModuleAspectRatio(OMX_ALG_EAspectRatio const& aspectRatio)
 {
   switch(aspectRatio)
   {
-  case OMX_ALG_ASPECT_RATIO_NONE: return ASPECT_RATIO_NONE;
-  case OMX_ALG_ASPECT_RATIO_4_3: return ASPECT_RATIO_4_3;
-  case OMX_ALG_ASPECT_RATIO_16_9: return ASPECT_RATIO_16_9;
-  case OMX_ALG_ASPECT_RATIO_AUTO: return ASPECT_RATIO_AUTO;
-  case OMX_ALG_ASPECT_RATIO_MAX: return ASPECT_RATIO_MAX;
-  default: return ASPECT_RATIO_MAX;
+  case OMX_ALG_ASPECT_RATIO_NONE: return AspectRatioType::ASPECT_RATIO_NONE;
+  case OMX_ALG_ASPECT_RATIO_4_3: return AspectRatioType::ASPECT_RATIO_4_3;
+  case OMX_ALG_ASPECT_RATIO_16_9: return AspectRatioType::ASPECT_RATIO_16_9;
+  case OMX_ALG_ASPECT_RATIO_AUTO: return AspectRatioType::ASPECT_RATIO_AUTO;
+  case OMX_ALG_ASPECT_RATIO_MAX_ENUM: return AspectRatioType::ASPECT_RATIO_MAX_ENUM;
+  default: return AspectRatioType::ASPECT_RATIO_MAX_ENUM;
   }
 
-  return ASPECT_RATIO_MAX;
+  return AspectRatioType::ASPECT_RATIO_MAX_ENUM;
 }
 
 GopControlType ConvertToModuleGopControl(OMX_ALG_EGopCtrlMode const& mode)
 {
   switch(mode)
   {
-  case OMX_ALG_GOP_MODE_DEFAULT: return GOP_CONTROL_DEFAULT;
-  case OMX_ALG_GOP_MODE_PYRAMIDAL: return GOP_CONTROL_PYRAMIDAL;
-  case OMX_ALG_GOP_MODE_LOW_DELAY_P: return GOP_CONTROL_LOW_DELAY_P;
-  case OMX_ALG_GOP_MODE_LOW_DELAY_B: return GOP_CONTROL_LOW_DELAY_B;
-  case OMX_ALG_GOP_MODE_MAX: return GOP_CONTROL_MAX;
-  default: return GOP_CONTROL_MAX;
+  case OMX_ALG_GOP_MODE_DEFAULT: return GopControlType::GOP_CONTROL_DEFAULT;
+  case OMX_ALG_GOP_MODE_PYRAMIDAL: return GopControlType::GOP_CONTROL_PYRAMIDAL;
+  case OMX_ALG_GOP_MODE_ADAPTIVE: return GopControlType::GOP_CONTROL_ADAPTIVE;
+  case OMX_ALG_GOP_MODE_LOW_DELAY_P: return GopControlType::GOP_CONTROL_LOW_DELAY_P;
+  case OMX_ALG_GOP_MODE_LOW_DELAY_B: return GopControlType::GOP_CONTROL_LOW_DELAY_B;
+  case OMX_ALG_GOP_MODE_MAX_ENUM: return GopControlType::GOP_CONTROL_MAX_ENUM;
+  default: return GopControlType::GOP_CONTROL_MAX_ENUM;
   }
 
-  return GOP_CONTROL_MAX;
+  return GopControlType::GOP_CONTROL_MAX_ENUM;
 }
 
 GdrType ConvertToModuleGdr(OMX_ALG_EGdrMode const& gdr)
 {
   switch(gdr)
   {
-  case OMX_ALG_GDR_OFF: return GDR_OFF;
-  case OMX_ALG_GDR_HORIZONTAL: return GDR_HORTIZONTAL;
-  case OMX_ALG_GDR_VERTICAL: return GDR_VERTICAL;
-  case OMX_ALG_GDR_MAX: return GDR_MAX;
-  default: return GDR_MAX;
+  case OMX_ALG_GDR_OFF: return GdrType::GDR_OFF;
+  case OMX_ALG_GDR_HORIZONTAL: return GdrType::GDR_HORTIZONTAL;
+  case OMX_ALG_GDR_VERTICAL: return GdrType::GDR_VERTICAL;
+  case OMX_ALG_GDR_MAX_ENUM: return GdrType::GDR_MAX_ENUM;
+  default: return GdrType::GDR_MAX_ENUM;
   }
 
-  return GDR_MAX;
+  return GdrType::GDR_MAX_ENUM;
 }
 
-RateControlOptionType ConvertToModuleDisableSceneChangeResilience(OMX_BOOL const& disable)
+RateControlOptionType ConvertToModuleDisableSceneChangeResilience(OMX_BOOL disable)
 {
-  return (disable == OMX_TRUE) ? RATE_CONTROL_OPTION_NONE : RATE_CONTROL_OPTION_SCENE_CHANGE_RESILIENCE;
+  return (disable == OMX_TRUE) ? RateControlOptionType::RATE_CONTROL_OPTION_NONE : RateControlOptionType::RATE_CONTROL_OPTION_SCENE_CHANGE_RESILIENCE;
 }
 
 ScalingListType ConvertToModuleScalingList(OMX_ALG_EScalingList const& scalingListMode)
 {
   switch(scalingListMode)
   {
-  case OMX_ALG_SCL_DEFAULT: return SCALING_LIST_DEFAULT;
-  case OMX_ALG_SCL_FLAT: return SCALING_LIST_FLAT;
-  case OMX_ALG_SCL_MAX: return SCALING_LIST_MAX;
-  default: return SCALING_LIST_MAX;
+  case OMX_ALG_SCL_DEFAULT: return ScalingListType::SCALING_LIST_DEFAULT;
+  case OMX_ALG_SCL_FLAT: return ScalingListType::SCALING_LIST_FLAT;
+  case OMX_ALG_SCL_MAX_ENUM: return ScalingListType::SCALING_LIST_MAX_ENUM;
+  default: return ScalingListType::SCALING_LIST_MAX_ENUM;
   }
 
-  return SCALING_LIST_MAX;
+  return ScalingListType::SCALING_LIST_MAX_ENUM;
 }
 
 OMX_BOOL ConvertToOMXEntropyCoding(EntropyCodingType const& mode)
 {
   switch(mode)
   {
-  case ENTROPY_CODING_CABAC: return OMX_TRUE;
-  case ENTROPY_CODING_CAVLC: return OMX_FALSE;
-  case ENTROPY_CODING_MAX: return OMX_FALSE;
+  case EntropyCodingType::ENTROPY_CODING_CABAC: return OMX_TRUE;
+  case EntropyCodingType::ENTROPY_CODING_CAVLC: return OMX_FALSE;
+  case EntropyCodingType::ENTROPY_CODING_MAX_ENUM: return OMX_FALSE;
   default: return OMX_FALSE;
   }
 
@@ -571,23 +564,24 @@ OMX_ALG_EQpCtrlMode ConvertToOMXQpControl(QPs const& qps)
 {
   switch(qps.mode)
   {
-  case QP_UNIFORM: return OMX_ALG_UNIFORM_QP;
-  case QP_AUTO: return OMX_ALG_AUTO_QP;
-  case QP_MAX: return OMX_ALG_MAX_QP;
-  default: return OMX_ALG_MAX_QP;
+  case QPControlType::QP_UNIFORM: return OMX_ALG_UNIFORM_QP;
+  case QPControlType::QP_AUTO: return OMX_ALG_AUTO_QP;
+  case QPControlType::QP_MAX_ENUM: return OMX_ALG_MAX_ENUM_QP;
+  default: return OMX_ALG_MAX_ENUM_QP;
   }
 
-  return OMX_ALG_MAX_QP;
+  return OMX_ALG_MAX_ENUM_QP;
 }
 
 OMX_VIDEO_CONTROLRATETYPE ConvertToOMXControlRate(RateControlType const& mode)
 {
   switch(mode)
   {
-  case RATE_CONTROL_CONSTANT_QUANTIZATION: return OMX_Video_ControlRateDisable;
-  case RATE_CONTROL_CONSTANT_BITRATE: return OMX_Video_ControlRateConstant;
-  case RATE_CONTROL_VARIABLE_BITRATE: return OMX_Video_ControlRateVariable;
-  case RATE_CONTROL_LOW_LATENCY: return static_cast<OMX_VIDEO_CONTROLRATETYPE>(OMX_ALG_Video_ControlRateLowLatency);
+  case RateControlType::RATE_CONTROL_CONSTANT_QUANTIZATION: return OMX_Video_ControlRateDisable;
+  case RateControlType::RATE_CONTROL_CONSTANT_BITRATE: return OMX_Video_ControlRateConstant;
+  case RateControlType::RATE_CONTROL_VARIABLE_BITRATE: return OMX_Video_ControlRateVariable;
+  case RateControlType::RATE_CONTROL_LOW_LATENCY: return static_cast<OMX_VIDEO_CONTROLRATETYPE>(OMX_ALG_Video_ControlRateLowLatency);
+  case RateControlType::RATE_CONTROL_MAX_ENUM: return OMX_Video_ControlRateMax;
   default: return OMX_Video_ControlRateMax;
   }
 
@@ -598,47 +592,48 @@ OMX_ALG_EAspectRatio ConvertToOMXAspectRatio(AspectRatioType const& aspectRatio)
 {
   switch(aspectRatio)
   {
-  case ASPECT_RATIO_NONE: return OMX_ALG_ASPECT_RATIO_NONE;
-  case ASPECT_RATIO_4_3: return OMX_ALG_ASPECT_RATIO_4_3;
-  case ASPECT_RATIO_16_9: return OMX_ALG_ASPECT_RATIO_16_9;
-  case ASPECT_RATIO_AUTO: return OMX_ALG_ASPECT_RATIO_AUTO;
-  case ASPECT_RATIO_MAX: return OMX_ALG_ASPECT_RATIO_MAX;
-  default: return OMX_ALG_ASPECT_RATIO_MAX;
+  case AspectRatioType::ASPECT_RATIO_NONE: return OMX_ALG_ASPECT_RATIO_NONE;
+  case AspectRatioType::ASPECT_RATIO_4_3: return OMX_ALG_ASPECT_RATIO_4_3;
+  case AspectRatioType::ASPECT_RATIO_16_9: return OMX_ALG_ASPECT_RATIO_16_9;
+  case AspectRatioType::ASPECT_RATIO_AUTO: return OMX_ALG_ASPECT_RATIO_AUTO;
+  case AspectRatioType::ASPECT_RATIO_MAX_ENUM: return OMX_ALG_ASPECT_RATIO_MAX_ENUM;
+  default: return OMX_ALG_ASPECT_RATIO_MAX_ENUM;
   }
 
-  return OMX_ALG_ASPECT_RATIO_MAX;
+  return OMX_ALG_ASPECT_RATIO_MAX_ENUM;
 }
 
 OMX_ALG_EGopCtrlMode ConvertToOMXGopControl(GopControlType const& mode)
 {
   switch(mode)
   {
-  case GOP_CONTROL_DEFAULT: return OMX_ALG_GOP_MODE_DEFAULT;
-  case GOP_CONTROL_PYRAMIDAL: return OMX_ALG_GOP_MODE_PYRAMIDAL;
-  case GOP_CONTROL_LOW_DELAY_P: return OMX_ALG_GOP_MODE_LOW_DELAY_P;
-  case GOP_CONTROL_LOW_DELAY_B: return OMX_ALG_GOP_MODE_LOW_DELAY_B;
-  default: return OMX_ALG_GOP_MODE_MAX;
+  case GopControlType::GOP_CONTROL_DEFAULT: return OMX_ALG_GOP_MODE_DEFAULT;
+  case GopControlType::GOP_CONTROL_PYRAMIDAL: return OMX_ALG_GOP_MODE_PYRAMIDAL;
+  case GopControlType::GOP_CONTROL_ADAPTIVE: return OMX_ALG_GOP_MODE_ADAPTIVE;
+  case GopControlType::GOP_CONTROL_LOW_DELAY_P: return OMX_ALG_GOP_MODE_LOW_DELAY_P;
+  case GopControlType::GOP_CONTROL_LOW_DELAY_B: return OMX_ALG_GOP_MODE_LOW_DELAY_B;
+  default: return OMX_ALG_GOP_MODE_MAX_ENUM;
   }
 
-  return OMX_ALG_GOP_MODE_MAX;
+  return OMX_ALG_GOP_MODE_MAX_ENUM;
 }
 
 OMX_ALG_EGdrMode ConvertToOMXGdr(GdrType const& gdr)
 {
   switch(gdr)
   {
-  case GDR_OFF: return OMX_ALG_GDR_OFF;
-  case GDR_VERTICAL: return OMX_ALG_GDR_VERTICAL;
-  case GDR_HORTIZONTAL: return OMX_ALG_GDR_HORIZONTAL;
-  default: return OMX_ALG_GDR_MAX;
+  case GdrType::GDR_OFF: return OMX_ALG_GDR_OFF;
+  case GdrType::GDR_VERTICAL: return OMX_ALG_GDR_VERTICAL;
+  case GdrType::GDR_HORTIZONTAL: return OMX_ALG_GDR_HORIZONTAL;
+  default: return OMX_ALG_GDR_MAX_ENUM;
   }
 
-  return OMX_ALG_GDR_MAX;
+  return OMX_ALG_GDR_MAX_ENUM;
 }
 
 OMX_BOOL ConvertToOMXDisableSceneChangeResilience(RateControlOptionType const& option)
 {
-  if(option == RATE_CONTROL_OPTION_SCENE_CHANGE_RESILIENCE)
+  if(option == RateControlOptionType::RATE_CONTROL_OPTION_SCENE_CHANGE_RESILIENCE)
     return OMX_FALSE; // Because it's bDisableSceneChangeResilience
 
   return OMX_TRUE;
@@ -648,122 +643,121 @@ OMX_ALG_EScalingList ConvertToOMXScalingList(ScalingListType const& scalingLisgt
 {
   switch(scalingLisgt)
   {
-  case SCALING_LIST_DEFAULT: return OMX_ALG_SCL_DEFAULT;
-  case SCALING_LIST_FLAT: return OMX_ALG_SCL_FLAT;
-  case SCALING_LIST_MAX: return OMX_ALG_SCL_MAX;
-  default: return OMX_ALG_SCL_MAX;
+  case ScalingListType::SCALING_LIST_DEFAULT: return OMX_ALG_SCL_DEFAULT;
+  case ScalingListType::SCALING_LIST_FLAT: return OMX_ALG_SCL_FLAT;
+  case ScalingListType::SCALING_LIST_MAX_ENUM: return OMX_ALG_SCL_MAX_ENUM;
+  default: return OMX_ALG_SCL_MAX_ENUM;
   }
 
-  return OMX_ALG_SCL_MAX;
+  return OMX_ALG_SCL_MAX_ENUM;
 }
 
 LoopFilterType ConvertToModuleHEVCLoopFilter(OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE const& loopFilter)
 {
   switch(loopFilter)
   {
-  case OMX_ALG_VIDEO_HEVCLoopFilterDisable: return LOOP_FILTER_DISABLE;
-  case OMX_ALG_VIDEO_HEVCLoopFilterEnable: return LOOP_FILTER_ENABLE_CROSS_TILE_AND_SLICE;
-  case OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossSlice: return LOOP_FILTER_ENABLE_CROSS_TILE;
-  case OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossTile: return LOOP_FILTER_ENABLE_CROSS_SLICE;
-  case OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossSliceAndTile: return LOOP_FILTER_ENABLE;
-  case OMX_ALG_VIDEO_HEVCLoopFilterMax: return LOOP_FILTER_MAX;
-  default: return LOOP_FILTER_MAX;
+  case OMX_ALG_VIDEO_HEVCLoopFilterDisable: return LoopFilterType::LOOP_FILTER_DISABLE;
+  case OMX_ALG_VIDEO_HEVCLoopFilterEnable: return LoopFilterType::LOOP_FILTER_ENABLE_CROSS_TILE_AND_SLICE;
+  case OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossSlice: return LoopFilterType::LOOP_FILTER_ENABLE_CROSS_TILE;
+  case OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossTile: return LoopFilterType::LOOP_FILTER_ENABLE_CROSS_SLICE;
+  case OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossSliceAndTile: return LoopFilterType::LOOP_FILTER_ENABLE;
+  case OMX_ALG_VIDEO_HEVCLoopFilterMaxEnum: return LoopFilterType::LOOP_FILTER_MAX_ENUM;
+  default: return LoopFilterType::LOOP_FILTER_MAX_ENUM;
   }
 
-  return LOOP_FILTER_MAX;
+  return LoopFilterType::LOOP_FILTER_MAX_ENUM;
 }
 
 OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE ConvertToOMXHEVCLoopFilter(LoopFilterType const& loopFilter)
 {
   switch(loopFilter)
   {
-  case LOOP_FILTER_DISABLE: return OMX_ALG_VIDEO_HEVCLoopFilterDisable;
-  case LOOP_FILTER_ENABLE: return OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossSliceAndTile;
-  case LOOP_FILTER_ENABLE_CROSS_SLICE: return OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossTile;
-  case LOOP_FILTER_ENABLE_CROSS_TILE: return OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossSlice;
-  case LOOP_FILTER_ENABLE_CROSS_TILE_AND_SLICE: return OMX_ALG_VIDEO_HEVCLoopFilterEnable;
-  case LOOP_FILTER_MAX: return OMX_ALG_VIDEO_HEVCLoopFilterMax;
-  default: return OMX_ALG_VIDEO_HEVCLoopFilterMax;
+  case LoopFilterType::LOOP_FILTER_DISABLE: return OMX_ALG_VIDEO_HEVCLoopFilterDisable;
+  case LoopFilterType::LOOP_FILTER_ENABLE: return OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossSliceAndTile;
+  case LoopFilterType::LOOP_FILTER_ENABLE_CROSS_SLICE: return OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossTile;
+  case LoopFilterType::LOOP_FILTER_ENABLE_CROSS_TILE: return OMX_ALG_VIDEO_HEVCLoopFilterDisableCrossSlice;
+  case LoopFilterType::LOOP_FILTER_ENABLE_CROSS_TILE_AND_SLICE: return OMX_ALG_VIDEO_HEVCLoopFilterEnable;
+  case LoopFilterType::LOOP_FILTER_MAX_ENUM: return OMX_ALG_VIDEO_HEVCLoopFilterMaxEnum;
+  default: return OMX_ALG_VIDEO_HEVCLoopFilterMaxEnum;
   }
 
-  return OMX_ALG_VIDEO_HEVCLoopFilterMax;
+  return OMX_ALG_VIDEO_HEVCLoopFilterMaxEnum;
 }
 
-static inline HEVCProfileType ConvertToModuleHEVCMainProfile(OMX_ALG_VIDEO_HEVCPROFILETYPE const& profile)
+static inline HEVCProfileType ConvertToModuleHEVCMainTierProfile(OMX_ALG_VIDEO_HEVCPROFILETYPE const& profile)
 {
   switch(profile)
   {
-    case OMX_ALG_VIDEO_HEVCProfileMain: return HEVC_PROFILE_MAIN;
-    case OMX_ALG_VIDEO_HEVCProfileMain10: return HEVC_PROFILE_MAIN_10;
-    case OMX_ALG_VIDEO_HEVCProfileMainStill: return HEVC_PROFILE_MAIN_STILL;
-    case OMX_ALG_VIDEO_HEVCProfileMonochrome: return HEVC_PROFILE_MONOCHROME;
-    case OMX_ALG_VIDEO_HEVCProfileMonochrome10: return HEVC_PROFILE_MONOCHROME_10;
-    case OMX_ALG_VIDEO_HEVCProfileMonochrome12: return HEVC_PROFILE_MONOCHROME_12;
-    case OMX_ALG_VIDEO_HEVCProfileMonochrome16: return HEVC_PROFILE_MONOCHROME_16;
-    case OMX_ALG_VIDEO_HEVCProfileMain12: return HEVC_PROFILE_MAIN_12;
-    case OMX_ALG_VIDEO_HEVCProfileMain422: return HEVC_PROFILE_MAIN_422;
-    case OMX_ALG_VIDEO_HEVCProfileMain422_10: return HEVC_PROFILE_MAIN_422_10;
-    case OMX_ALG_VIDEO_HEVCProfileMain422_12: return HEVC_PROFILE_MAIN_422_12;
-    case OMX_ALG_VIDEO_HEVCProfileMain444: return HEVC_PROFILE_MAIN_444;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_10: return HEVC_PROFILE_MAIN_444_10;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_12: return HEVC_PROFILE_MAIN_444_12;
-    case OMX_ALG_VIDEO_HEVCProfileMain_Intra: return HEVC_PROFILE_MAIN_INTRA;
-    case OMX_ALG_VIDEO_HEVCProfileMain10_Intra: return HEVC_PROFILE_MAIN_10_INTRA;
-    case OMX_ALG_VIDEO_HEVCProfileMain12_Intra: return HEVC_PROFILE_MAIN_12_INTRA;
-    case OMX_ALG_VIDEO_HEVCProfileMain422_Intra: return HEVC_PROFILE_MAIN_422_INTRA;
-    case OMX_ALG_VIDEO_HEVCProfileMain422_10_Intra: return HEVC_PROFILE_MAIN_422_10_INTRA;
-    case OMX_ALG_VIDEO_HEVCProfileMain422_12_Intra: return HEVC_PROFILE_MAIN_422_12_INTRA;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_Intra: return HEVC_PROFILE_MAIN_444_INTRA;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_10_Intra: return HEVC_PROFILE_MAIN_444_10_INTRA;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_12_Intra: return HEVC_PROFILE_MAIN_444_12_INTRA;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_16_Intra: return HEVC_PROFILE_MAIN_444_16_INTRA;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_Still: return HEVC_PROFILE_MAIN_444_STILL;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_16_Still: return HEVC_PROFILE_MAIN_444_16_STILL;
-    case OMX_ALG_VIDEO_HEVCProfileHighThroughtPut444_16_Intra: return HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA;
-    case OMX_ALG_VIDEO_HEVCProfileMax: return HEVC_PROFILE_MAX;
-    default: return HEVC_PROFILE_MAX;
+  case OMX_ALG_VIDEO_HEVCProfileMain: return HEVCProfileType::HEVC_PROFILE_MAIN;
+  case OMX_ALG_VIDEO_HEVCProfileMain10: return HEVCProfileType::HEVC_PROFILE_MAIN_10;
+  case OMX_ALG_VIDEO_HEVCProfileMainStill: return HEVCProfileType::HEVC_PROFILE_MAIN_STILL;
+  case OMX_ALG_VIDEO_HEVCProfileMonochrome: return HEVCProfileType::HEVC_PROFILE_MONOCHROME;
+  case OMX_ALG_VIDEO_HEVCProfileMonochrome10: return HEVCProfileType::HEVC_PROFILE_MONOCHROME_10;
+  case OMX_ALG_VIDEO_HEVCProfileMonochrome12: return HEVCProfileType::HEVC_PROFILE_MONOCHROME_12;
+  case OMX_ALG_VIDEO_HEVCProfileMonochrome16: return HEVCProfileType::HEVC_PROFILE_MONOCHROME_16;
+  case OMX_ALG_VIDEO_HEVCProfileMain12: return HEVCProfileType::HEVC_PROFILE_MAIN_12;
+  case OMX_ALG_VIDEO_HEVCProfileMain422: return HEVCProfileType::HEVC_PROFILE_MAIN_422;
+  case OMX_ALG_VIDEO_HEVCProfileMain422_10: return HEVCProfileType::HEVC_PROFILE_MAIN_422_10;
+  case OMX_ALG_VIDEO_HEVCProfileMain422_12: return HEVCProfileType::HEVC_PROFILE_MAIN_422_12;
+  case OMX_ALG_VIDEO_HEVCProfileMain444: return HEVCProfileType::HEVC_PROFILE_MAIN_444;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_10: return HEVCProfileType::HEVC_PROFILE_MAIN_444_10;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_12: return HEVCProfileType::HEVC_PROFILE_MAIN_444_12;
+  case OMX_ALG_VIDEO_HEVCProfileMain_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_INTRA;
+  case OMX_ALG_VIDEO_HEVCProfileMain10_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_10_INTRA;
+  case OMX_ALG_VIDEO_HEVCProfileMain12_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_12_INTRA;
+  case OMX_ALG_VIDEO_HEVCProfileMain422_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_422_INTRA;
+  case OMX_ALG_VIDEO_HEVCProfileMain422_10_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_422_10_INTRA;
+  case OMX_ALG_VIDEO_HEVCProfileMain422_12_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_422_12_INTRA;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_444_INTRA;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_10_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_444_10_INTRA;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_12_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_444_12_INTRA;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_16_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_444_16_INTRA;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_Still: return HEVCProfileType::HEVC_PROFILE_MAIN_444_STILL;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_16_Still: return HEVCProfileType::HEVC_PROFILE_MAIN_444_16_STILL;
+  case OMX_ALG_VIDEO_HEVCProfileHighThroughtPut444_16_Intra: return HEVCProfileType::HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA;
+  case OMX_ALG_VIDEO_HEVCProfileMaxEnum: return HEVCProfileType::HEVC_PROFILE_MAX_ENUM;
+  default: return HEVCProfileType::HEVC_PROFILE_MAX_ENUM;
   }
 
-  return HEVC_PROFILE_MAX;
+  return HEVCProfileType::HEVC_PROFILE_MAX_ENUM;
 }
 
 static inline HEVCProfileType ConvertToModuleHEVCHighTierProfile(OMX_ALG_VIDEO_HEVCPROFILETYPE const& profile)
 {
   switch(profile)
   {
-    case OMX_ALG_VIDEO_HEVCProfileMain: return HEVC_PROFILE_MAIN_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain10: return HEVC_PROFILE_MAIN_10_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMainStill: return HEVC_PROFILE_MAIN_STILL_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMonochrome: return HEVC_PROFILE_MONOCHROME_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMonochrome10: return HEVC_PROFILE_MONOCHROME_10_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMonochrome12: return HEVC_PROFILE_MONOCHROME_12_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMonochrome16: return HEVC_PROFILE_MONOCHROME_16_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain12: return HEVC_PROFILE_MAIN_12_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain422: return HEVC_PROFILE_MAIN_422_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain422_10: return HEVC_PROFILE_MAIN_422_10_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain422_12: return HEVC_PROFILE_MAIN_422_12_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain444: return HEVC_PROFILE_MAIN_444_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_10: return HEVC_PROFILE_MAIN_444_10_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_12: return HEVC_PROFILE_MAIN_444_12_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain_Intra: return HEVC_PROFILE_MAIN_INTRA_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain10_Intra: return HEVC_PROFILE_MAIN_10_INTRA_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain12_Intra: return HEVC_PROFILE_MAIN_12_INTRA_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain422_Intra: return HEVC_PROFILE_MAIN_422_INTRA_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain422_10_Intra: return HEVC_PROFILE_MAIN_422_10_INTRA_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain422_12_Intra: return HEVC_PROFILE_MAIN_422_12_INTRA_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_Intra: return HEVC_PROFILE_MAIN_444_INTRA_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_10_Intra: return HEVC_PROFILE_MAIN_444_10_INTRA_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_12_Intra: return HEVC_PROFILE_MAIN_444_12_INTRA_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_16_Intra: return HEVC_PROFILE_MAIN_444_16_INTRA_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_Still: return HEVC_PROFILE_MAIN_444_STILL_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMain444_16_Still: return HEVC_PROFILE_MAIN_444_16_STILL_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileHighThroughtPut444_16_Intra: return HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA_HIGH_TIER;
-    case OMX_ALG_VIDEO_HEVCProfileMax: return HEVC_PROFILE_MAX;
-    default: return HEVC_PROFILE_MAX;
+  case OMX_ALG_VIDEO_HEVCProfileMain: return HEVCProfileType::HEVC_PROFILE_MAIN_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain10: return HEVCProfileType::HEVC_PROFILE_MAIN_10_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMainStill: return HEVCProfileType::HEVC_PROFILE_MAIN_STILL_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMonochrome: return HEVCProfileType::HEVC_PROFILE_MONOCHROME_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMonochrome10: return HEVCProfileType::HEVC_PROFILE_MONOCHROME_10_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMonochrome12: return HEVCProfileType::HEVC_PROFILE_MONOCHROME_12_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMonochrome16: return HEVCProfileType::HEVC_PROFILE_MONOCHROME_16_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain12: return HEVCProfileType::HEVC_PROFILE_MAIN_12_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain422: return HEVCProfileType::HEVC_PROFILE_MAIN_422_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain422_10: return HEVCProfileType::HEVC_PROFILE_MAIN_422_10_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain422_12: return HEVCProfileType::HEVC_PROFILE_MAIN_422_12_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain444: return HEVCProfileType::HEVC_PROFILE_MAIN_444_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_10: return HEVCProfileType::HEVC_PROFILE_MAIN_444_10_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_12: return HEVCProfileType::HEVC_PROFILE_MAIN_444_12_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_INTRA_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain10_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_10_INTRA_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain12_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_12_INTRA_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain422_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_422_INTRA_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain422_10_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_422_10_INTRA_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain422_12_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_422_12_INTRA_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_444_INTRA_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_10_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_444_10_INTRA_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_12_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_444_12_INTRA_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_16_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_444_16_INTRA_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_Still: return HEVCProfileType::HEVC_PROFILE_MAIN_444_STILL_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMain444_16_Still: return HEVCProfileType::HEVC_PROFILE_MAIN_444_16_STILL_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileHighThroughtPut444_16_Intra: return HEVCProfileType::HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileMaxEnum: return HEVCProfileType::HEVC_PROFILE_MAX_ENUM;
+  default: return HEVCProfileType::HEVC_PROFILE_MAX_ENUM;
   }
 
-
-  return HEVC_PROFILE_MAX;
+  return HEVCProfileType::HEVC_PROFILE_MAX_ENUM;
 }
 
 static inline int ConvertToModuleHEVCLevel(OMX_ALG_VIDEO_HEVCLEVELTYPE const& level)
@@ -819,7 +813,7 @@ static inline bool IsMainTier(OMX_ALG_VIDEO_HEVCLEVELTYPE const& level)
 ProfileLevelType ConvertToModuleHEVCProfileLevel(OMX_ALG_VIDEO_HEVCPROFILETYPE const& profile, OMX_ALG_VIDEO_HEVCLEVELTYPE const& level)
 {
   ProfileLevelType pf;
-  pf.profile.hevc = IsMainTier(level) ? ConvertToModuleHEVCMainProfile(profile) : ConvertToModuleHEVCHighTierProfile(profile);
+  pf.profile.hevc = IsMainTier(level) ? ConvertToModuleHEVCMainTierProfile(profile) : ConvertToModuleHEVCHighTierProfile(profile);
   pf.level = ConvertToModuleHEVCLevel(level);
   return pf;
 }
@@ -828,64 +822,64 @@ OMX_ALG_VIDEO_HEVCPROFILETYPE ConvertToOMXHEVCProfile(ProfileLevelType const& pr
 {
   switch(profileLevel.profile.hevc)
   {
-  case HEVC_PROFILE_MAIN:
-  case HEVC_PROFILE_MAIN_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain;
-  case HEVC_PROFILE_MAIN_10:
-  case HEVC_PROFILE_MAIN_10_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain10;
-  case HEVC_PROFILE_MAIN_STILL:
-  case HEVC_PROFILE_MAIN_STILL_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMainStill;
-  case HEVC_PROFILE_MONOCHROME:
-  case HEVC_PROFILE_MONOCHROME_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMonochrome;
-  case HEVC_PROFILE_MONOCHROME_10:
-  case HEVC_PROFILE_MONOCHROME_10_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMonochrome10;
-  case HEVC_PROFILE_MONOCHROME_12:
-  case HEVC_PROFILE_MONOCHROME_12_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMonochrome12;
-  case HEVC_PROFILE_MONOCHROME_16:
-  case HEVC_PROFILE_MONOCHROME_16_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMonochrome16;
-  case HEVC_PROFILE_MAIN_12:
-  case HEVC_PROFILE_MAIN_12_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain12;
-  case HEVC_PROFILE_MAIN_422:
-  case HEVC_PROFILE_MAIN_422_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain422;
-  case HEVC_PROFILE_MAIN_422_10:
-  case HEVC_PROFILE_MAIN_422_10_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain422_10;
-  case HEVC_PROFILE_MAIN_422_12:
-  case HEVC_PROFILE_MAIN_422_12_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain422_12;
-  case HEVC_PROFILE_MAIN_444:
-  case HEVC_PROFILE_MAIN_444_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444;
-  case HEVC_PROFILE_MAIN_444_10:
-  case HEVC_PROFILE_MAIN_444_10_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_10;
-  case HEVC_PROFILE_MAIN_444_12:
-  case HEVC_PROFILE_MAIN_444_12_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_12;
-  case HEVC_PROFILE_MAIN_INTRA:
-  case HEVC_PROFILE_MAIN_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain_Intra;
-  case HEVC_PROFILE_MAIN_10_INTRA:
-  case HEVC_PROFILE_MAIN_10_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain10_Intra;
-  case HEVC_PROFILE_MAIN_12_INTRA:
-  case HEVC_PROFILE_MAIN_12_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain12_Intra;
-  case HEVC_PROFILE_MAIN_422_INTRA:
-  case HEVC_PROFILE_MAIN_422_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain422_Intra;
-  case HEVC_PROFILE_MAIN_422_10_INTRA:
-  case HEVC_PROFILE_MAIN_422_10_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain422_10_Intra;
-  case HEVC_PROFILE_MAIN_422_12_INTRA:
-  case HEVC_PROFILE_MAIN_422_12_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain422_12_Intra;
-  case HEVC_PROFILE_MAIN_444_INTRA:
-  case HEVC_PROFILE_MAIN_444_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_Intra;
-  case HEVC_PROFILE_MAIN_444_10_INTRA:
-  case HEVC_PROFILE_MAIN_444_10_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_10_Intra;
-  case HEVC_PROFILE_MAIN_444_12_INTRA:
-  case HEVC_PROFILE_MAIN_444_12_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_12_Intra;
-  case HEVC_PROFILE_MAIN_444_16_INTRA:
-  case HEVC_PROFILE_MAIN_444_16_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_16_Intra;
-  case HEVC_PROFILE_MAIN_444_STILL:
-  case HEVC_PROFILE_MAIN_444_STILL_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_Still;
-  case HEVC_PROFILE_MAIN_444_16_STILL:
-  case HEVC_PROFILE_MAIN_444_16_STILL_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_Still;
-  case HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA:
-  case HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileHighThroughtPut444_16_Intra;
-  default: return OMX_ALG_VIDEO_HEVCProfileMax;
+  case HEVCProfileType::HEVC_PROFILE_MAIN:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_10:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_10_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain10;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_STILL:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_STILL_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMainStill;
+  case HEVCProfileType::HEVC_PROFILE_MONOCHROME:
+  case HEVCProfileType::HEVC_PROFILE_MONOCHROME_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMonochrome;
+  case HEVCProfileType::HEVC_PROFILE_MONOCHROME_10:
+  case HEVCProfileType::HEVC_PROFILE_MONOCHROME_10_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMonochrome10;
+  case HEVCProfileType::HEVC_PROFILE_MONOCHROME_12:
+  case HEVCProfileType::HEVC_PROFILE_MONOCHROME_12_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMonochrome12;
+  case HEVCProfileType::HEVC_PROFILE_MONOCHROME_16:
+  case HEVCProfileType::HEVC_PROFILE_MONOCHROME_16_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMonochrome16;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_12:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_12_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain12;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain422;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_10:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_10_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain422_10;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_12:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_12_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain422_12;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_10:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_10_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_10;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_12:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_12_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_12;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain_Intra;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_10_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_10_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain10_Intra;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_12_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_12_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain12_Intra;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain422_Intra;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_10_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_10_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain422_10_Intra;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_12_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_12_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain422_12_Intra;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_Intra;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_10_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_10_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_10_Intra;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_12_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_12_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_12_Intra;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_16_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_16_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_16_Intra;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_STILL:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_STILL_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_Still;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_16_STILL:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_16_STILL_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_Still;
+  case HEVCProfileType::HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileHighThroughtPut444_16_Intra;
+  default: return OMX_ALG_VIDEO_HEVCProfileMaxEnum;
   }
 
-  return OMX_ALG_VIDEO_HEVCProfileMax;
+  return OMX_ALG_VIDEO_HEVCProfileMaxEnum;
 }
 
 static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertToOMXHEVCMainLevel(ProfileLevelType const& profileLevel)
@@ -905,10 +899,10 @@ static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertToOMXHEVCMainLevel(ProfileLevel
   case 60: return OMX_ALG_VIDEO_HEVCMainTierLevel6;
   case 61: return OMX_ALG_VIDEO_HEVCMainTierLevel61;
   case 62: return OMX_ALG_VIDEO_HEVCMainTierLevel62;
-  default: return OMX_ALG_VIDEO_HEVCLevelMax;
+  default: return OMX_ALG_VIDEO_HEVCLevelMaxEnum;
   }
 
-  return OMX_ALG_VIDEO_HEVCLevelMax;
+  return OMX_ALG_VIDEO_HEVCLevelMaxEnum;
 }
 
 static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertToOMXHEVCHighLevel(ProfileLevelType const& profileLevel)
@@ -923,21 +917,21 @@ static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertToOMXHEVCHighLevel(ProfileLevel
   case 60: return OMX_ALG_VIDEO_HEVCHighTierLevel6;
   case 61: return OMX_ALG_VIDEO_HEVCHighTierLevel61;
   case 62: return OMX_ALG_VIDEO_HEVCHighTierLevel62;
-  default: return OMX_ALG_VIDEO_HEVCLevelMax;
+  default: return OMX_ALG_VIDEO_HEVCLevelMaxEnum;
   }
 
-  return OMX_ALG_VIDEO_HEVCLevelMax;
-};
+  return OMX_ALG_VIDEO_HEVCLevelMaxEnum;
+}
 
 static inline bool IsMainTier(ProfileLevelType const& profileLevel)
 {
   switch(profileLevel.profile.hevc)
   {
-  case HEVC_PROFILE_MAIN_HIGH_TIER:
-  case HEVC_PROFILE_MAIN_10_HIGH_TIER:
-  case HEVC_PROFILE_MAIN_422_HIGH_TIER:
-  case HEVC_PROFILE_MAIN_422_10_HIGH_TIER:
-  case HEVC_PROFILE_MAIN_STILL_HIGH_TIER: return false;
+  case HEVCProfileType::HEVC_PROFILE_MAIN_HIGH_TIER:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_10_HIGH_TIER:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_HIGH_TIER:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_10_HIGH_TIER:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_STILL_HIGH_TIER: return false;
   default: return true;
   }
 
@@ -953,42 +947,72 @@ BufferModeType ConvertToModuleBufferMode(OMX_ALG_VIDEO_BUFFER_MODE const& mode)
 {
   switch(mode)
   {
-  case OMX_ALG_VIDEO_BUFFER_MODE_FRAME: return BUFFER_MODE_FRAME;
-  case OMX_ALG_VIDEO_BUFFER_MODE_FRAME_NO_REORDERING: return BUFFER_MODE_FRAME_NO_REORDERING;
-  case OMX_ALG_VIDEO_BUFFER_MODE_SLICE: return BUFFER_MODE_SLICE;
-  case OMX_ALG_VIDEO_BUFFER_MODE_MAX: // fallthrough;
-  default: return BUFFER_MODE_MAX;
+  case OMX_ALG_VIDEO_BUFFER_MODE_FRAME: return BufferModeType::BUFFER_MODE_FRAME;
+  case OMX_ALG_VIDEO_BUFFER_MODE_FRAME_NO_REORDERING: return BufferModeType::BUFFER_MODE_FRAME_NO_REORDERING;
+  case OMX_ALG_VIDEO_BUFFER_MODE_SLICE: return BufferModeType::BUFFER_MODE_SLICE;
+  case OMX_ALG_VIDEO_BUFFER_MODE_MAX_ENUM: return BufferModeType::BUFFER_MODE_MAX_ENUM;
+  default: return BufferModeType::BUFFER_MODE_MAX_ENUM;
   }
 
-  return BUFFER_MODE_MAX;
+  return BufferModeType::BUFFER_MODE_MAX_ENUM;
 }
 
 OMX_ALG_VIDEO_BUFFER_MODE ConvertToOMXBufferMode(BufferModeType const& mode)
 {
   switch(mode)
   {
-  case BUFFER_MODE_FRAME: return OMX_ALG_VIDEO_BUFFER_MODE_FRAME;
-  case BUFFER_MODE_FRAME_NO_REORDERING: return OMX_ALG_VIDEO_BUFFER_MODE_FRAME_NO_REORDERING;
-  case BUFFER_MODE_SLICE: return OMX_ALG_VIDEO_BUFFER_MODE_SLICE;
-  case BUFFER_MODE_MAX: // fallthrough
-  default: return OMX_ALG_VIDEO_BUFFER_MODE_MAX;
+  case BufferModeType::BUFFER_MODE_FRAME: return OMX_ALG_VIDEO_BUFFER_MODE_FRAME;
+  case BufferModeType::BUFFER_MODE_FRAME_NO_REORDERING: return OMX_ALG_VIDEO_BUFFER_MODE_FRAME_NO_REORDERING;
+  case BufferModeType::BUFFER_MODE_SLICE: return OMX_ALG_VIDEO_BUFFER_MODE_SLICE;
+  case BufferModeType::BUFFER_MODE_MAX_ENUM: return OMX_ALG_VIDEO_BUFFER_MODE_MAX_ENUM;
+  default: return OMX_ALG_VIDEO_BUFFER_MODE_MAX_ENUM;
   }
 
-  return OMX_ALG_VIDEO_BUFFER_MODE_MAX;
+  return OMX_ALG_VIDEO_BUFFER_MODE_MAX_ENUM;
 }
 
 QualityType ConvertToModuleQuality(OMX_ALG_ERoiQuality const& quality)
 {
   switch(quality)
   {
-  case OMX_ALG_ROI_QUALITY_HIGH: return REGION_OF_INTEREST_QUALITY_HIGH;
-  case OMX_ALG_ROI_QUALITY_MEDIUM: return REGION_OF_INTEREST_QUALITY_MEDIUM;
-  case OMX_ALG_ROI_QUALITY_LOW: return REGION_OF_INTEREST_QUALITY_LOW;
-  case OMX_ALG_ROI_QUALITY_DONT_CARE: return REGION_OF_INTEREST_QUALITY_DONT_CARE;
-  case OMX_ALG_ROI_QUALITY_MAX_ENUM: return REGION_OF_INTEREST_QUALITY_MAX_ENUM;
-  default: return REGION_OF_INTEREST_QUALITY_MAX_ENUM;
+  case OMX_ALG_ROI_QUALITY_HIGH: return QualityType::REGION_OF_INTEREST_QUALITY_HIGH;
+  case OMX_ALG_ROI_QUALITY_MEDIUM: return QualityType::REGION_OF_INTEREST_QUALITY_MEDIUM;
+  case OMX_ALG_ROI_QUALITY_LOW: return QualityType::REGION_OF_INTEREST_QUALITY_LOW;
+  case OMX_ALG_ROI_QUALITY_DONT_CARE: return QualityType::REGION_OF_INTEREST_QUALITY_DONT_CARE;
+  case OMX_ALG_ROI_QUALITY_MAX_ENUM: return QualityType::REGION_OF_INTEREST_QUALITY_MAX_ENUM;
+  default: return QualityType::REGION_OF_INTEREST_QUALITY_MAX_ENUM;
   }
 
-  return REGION_OF_INTEREST_QUALITY_MAX_ENUM;
+  return QualityType::REGION_OF_INTEREST_QUALITY_MAX_ENUM;
+}
+
+OMX_U32 ConvertToOMXInterlaceFlag(VideoModeType const& mode)
+{
+  switch(mode)
+  {
+  case VideoModeType::VIDEO_MODE_PROGRESSIVE: return OMX_InterlaceFrameProgressive;
+  case VideoModeType::VIDEO_MODE_ALTERNATE_TOP_BOTTOM_FIELD: return OMX_ALG_InterlaceAlternateTopFieldFirst;
+  case VideoModeType::VIDEO_MODE_ALTERNATE_BOTTOM_TOP_FIELD: return OMX_ALG_InterlaceAlternateBottomFieldFirst;
+  case VideoModeType::VIDEO_MODE_MAX_ENUM: assert(0);
+  default: assert(0);
+  }
+
+  assert(0);
+  return 0;
+}
+
+VideoModeType ConvertToModuleVideoMode(OMX_U32 flag)
+{
+  switch(flag)
+  {
+  case OMX_InterlaceFrameProgressive: return VideoModeType::VIDEO_MODE_PROGRESSIVE;
+  case OMX_ALG_InterlaceAlternateTopFieldFirst: return VideoModeType::VIDEO_MODE_ALTERNATE_TOP_BOTTOM_FIELD;
+  case OMX_ALG_InterlaceAlternateBottomFieldFirst: return VideoModeType::VIDEO_MODE_ALTERNATE_BOTTOM_TOP_FIELD;
+  default: assert(0);
+    return VideoModeType::VIDEO_MODE_MAX_ENUM;
+  }
+
+  assert(0);
+  return VideoModeType::VIDEO_MODE_MAX_ENUM;
 }
 

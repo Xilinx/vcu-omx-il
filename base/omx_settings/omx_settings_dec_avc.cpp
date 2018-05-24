@@ -37,8 +37,8 @@
 
 #include "omx_settings_dec_avc.h"
 #include "omx_settings_dec_common.h"
-#include "omx_settings_common_avc.h"
-#include "omx_settings_common.h"
+#include "base/omx_mediatype/omx_mediatype_common_avc.h"
+#include "base/omx_mediatype/omx_mediatype_common.h"
 
 #include <cstring>
 
@@ -59,7 +59,7 @@ static void resetStreamSettings(AL_TStreamSettings& stream)
   stream.eChroma = CHROMA_4_2_0;
   stream.iBitDepth = 8;
   stream.iLevel = 10;
-  stream.iProfileIdc = AL_PROFILE_AVC_BASELINE;
+  stream.iProfileIdc = AL_PROFILE_AVC_C_BASELINE;
 }
 
 ErrorSettingsType DecSettingsAVC::Reset()
@@ -67,8 +67,8 @@ ErrorSettingsType DecSettingsAVC::Reset()
   alignments.stride = 64;
   alignments.sliceHeight = 64;
 
-  bufferHandles.input = BUFFER_HANDLE_CHAR_PTR;
-  bufferHandles.output = BUFFER_HANDLE_CHAR_PTR;
+  bufferHandles.input = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
+  bufferHandles.output = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
   bufferBytesAlignments.input = 0;
   bufferBytesAlignments.output = 0;
   bufferContiguities.input = false;
@@ -82,7 +82,7 @@ ErrorSettingsType DecSettingsAVC::Reset()
   settings.eDecUnit = AL_AU_UNIT;
   settings.eDpbMode = AL_DPB_NORMAL;
   settings.eFBStorageMode = AL_FB_RASTER;
-  settings.bIsAvc = true;
+  settings.eCodec = AL_CODEC_AVC;
 
   resetStreamSettings(settings.tStream);
 
@@ -108,54 +108,16 @@ ErrorSettingsType DecSettingsAVC::Set(string index, void const* settings)
     return ERROR_SETTINGS_NONE;
   }
 
-  if(index == SETTINGS_INDEX_CLOCK)
-  {
-    if(!UpdateClock(this->settings, *(static_cast<Clock const*>(settings))))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
-  }
-
   if(index == SETTINGS_INDEX_PROFILE_LEVEL)
     return ERROR_SETTINGS_NOT_IMPLEMENTED;
 
   return ERROR_SETTINGS_BAD_INDEX;
 }
 
-static Mimes CreateMimes()
-{
-  Mimes mimes;
-  auto& input = mimes.input;
-
-  input.mime = "video/x-h264";
-  input.compression = COMPRESSION_AVC;
-
-  auto& output = mimes.output;
-
-  output.mime = "video/x-raw";
-  output.compression = COMPRESSION_UNUSED;
-
-  return mimes;
-}
-
-static BufferCounts CreateBufferCounts(AL_TDecSettings const& settings)
-{
-  BufferCounts bufferCounts;
-  bufferCounts.input = 2;
-  auto const stream = settings.tStream;
-  bufferCounts.output = AL_AVC_GetMinOutputBuffersNeeded(stream, settings.iStackSize, settings.eDpbMode);
-  return bufferCounts;
-}
-
 ErrorSettingsType DecSettingsAVC::Get(string index, void* settings)
 {
   if(!settings)
     return ERROR_SETTINGS_BAD_PARAMETER;
-
-  if(index == SETTINGS_INDEX_MIMES)
-  {
-    *(static_cast<Mimes*>(settings)) = CreateMimes();
-    return ERROR_SETTINGS_NONE;
-  }
 
   if(index == SETTINGS_INDEX_RESOLUTION)
   {
@@ -172,18 +134,6 @@ ErrorSettingsType DecSettingsAVC::Get(string index, void* settings)
   if(index == SETTINGS_INDEX_FORMATS_SUPPORTED)
   {
     *(static_cast<vector<Format>*>(settings)) = CreateFormatsSupported(this->colors, this->bitdepths);
-    return ERROR_SETTINGS_NONE;
-  }
-
-  if(index == SETTINGS_INDEX_CLOCK)
-  {
-    *(static_cast<Clock*>(settings)) = CreateClock(this->settings);
-    return ERROR_SETTINGS_NONE;
-  }
-
-  if(index == SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED)
-  {
-    *(static_cast<vector<ProfileLevelType>*>(settings)) = CreateAVCProfileLevelSupported(this->profiles, this->levels);
     return ERROR_SETTINGS_NONE;
   }
 
@@ -205,15 +155,9 @@ ErrorSettingsType DecSettingsAVC::Get(string index, void* settings)
     return ERROR_SETTINGS_NONE;
   }
 
-  if(index == SETTINGS_INDEX_BUFFER_COUNTS)
-  {
-    *(static_cast<BufferCounts*>(settings)) = CreateBufferCounts(this->settings);
-    return ERROR_SETTINGS_NONE;
-  }
-
   if(index == SETTINGS_INDEX_BUFFER_SIZES)
   {
-    *(static_cast<BufferSizes*>(settings)) = CreateBufferSizes(this->settings);
+    *(static_cast<BufferSizes*>(settings)) = CreateBufferSizes(this->settings, this->alignments);
     return ERROR_SETTINGS_NONE;
   }
 
@@ -226,18 +170,6 @@ ErrorSettingsType DecSettingsAVC::Get(string index, void* settings)
   if(index == SETTINGS_INDEX_BUFFER_CONTIGUITIES)
   {
     *(static_cast<BufferContiguities*>(settings)) = this->bufferContiguities;
-    return ERROR_SETTINGS_NONE;
-  }
-
-  if(index == SETTINGS_INDEX_LATENCY)
-  {
-    *(static_cast<int*>(settings)) = CreateMillisecondsLatency(this->settings, CreateBufferCounts(this->settings));
-    return ERROR_SETTINGS_NONE;
-  }
-
-  if(index == SETTINGS_INDEX_INTERNAL_ENTROPY_BUFFER)
-  {
-    *(static_cast<int*>(settings)) = CreateInternalEntropyBuffer(this->settings);
     return ERROR_SETTINGS_NONE;
   }
 

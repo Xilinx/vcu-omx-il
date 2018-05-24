@@ -58,9 +58,9 @@ private:
 
   std::vector<ColorType> const colors
   {
-    COLOR_MONO,
-    COLOR_420,
-    COLOR_422,
+    ColorType::COLOR_400,
+    ColorType::COLOR_420,
+    ColorType::COLOR_422,
   };
 
   std::vector<int> const bitdepths
@@ -71,11 +71,15 @@ private:
 
   std::vector<AVCProfileType> const profiles
   {
-    AVCProfileType::AVC_PROFILE_BASELINE,
     AVCProfileType::AVC_PROFILE_MAIN,
     AVCProfileType::AVC_PROFILE_HIGH,
     AVCProfileType::AVC_PROFILE_HIGH_10,
     AVCProfileType::AVC_PROFILE_HIGH_422,
+    AVCProfileType::AVC_PROFILE_CONSTRAINED_BASELINE,
+    AVCProfileType::AVC_PROFILE_PROGRESSIVE_HIGH,
+    AVCProfileType::AVC_PROFILE_CONSTRAINED_HIGH,
+    AVCProfileType::AVC_PROFILE_HIGH_10_INTRA,
+    AVCProfileType::AVC_PROFILE_HIGH_422_INTRA,
   };
 
   std::vector<int> const levels
@@ -100,6 +104,11 @@ private:
     60,
     61,
     62,
+  };
+
+  std::vector<VideoModeType> const videoModes
+  {
+    VideoModeType::VIDEO_MODE_PROGRESSIVE,
   };
 };
 

@@ -50,28 +50,40 @@ extern "C"
 
 #include <cmath>
 
-int CreateMillisecondsLatency(AL_TDecSettings const& settings, BufferCounts const& bufferCounts)
+static int RawAllocationSize(AL_TStreamSettings const& stream, Alignments const& alignments)
 {
-  auto outputBufferCount = bufferCounts.output;
+  auto const IP_WIDTH_ALIGNMENT = 64;
+  auto const IP_HEIGHT_ALIGNMENT = 64;
+  auto const widthAlignment = alignments.stride;
+  auto const heightAlignment = alignments.sliceHeight;
+  assert(widthAlignment % IP_WIDTH_ALIGNMENT == 0); // IP requirements
+  assert(heightAlignment % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
 
-  if(settings.eDpbMode == AL_DPB_LOW_REF)
-    outputBufferCount -= settings.iStackSize;
+  auto const adjustedWidthAlignment = widthAlignment > IP_WIDTH_ALIGNMENT ? widthAlignment : IP_WIDTH_ALIGNMENT;
+  int const adjustedHeightAlignment = heightAlignment > IP_HEIGHT_ALIGNMENT ? heightAlignment : IP_HEIGHT_ALIGNMENT;
 
-  if(settings.eDecUnit == AL_VCL_NAL_UNIT)
-    outputBufferCount = 1;
+  auto const width = stream.tDim.iWidth;
+  auto const height = stream.tDim.iHeight;
+  auto const bitdepthWidth = stream.iBitDepth == 8 ? width : (width + 2) / 3 * 4;
+  auto const adjustedWidth = RoundUp(bitdepthWidth, adjustedWidthAlignment);
+  auto const adjustedHeight = RoundUp(height, adjustedHeightAlignment);
 
-  auto const realFramerate = (static_cast<double>(settings.uFrameRate) / static_cast<double>(settings.uClkRatio));
-  auto const timeInMilliseconds = (static_cast<double>(outputBufferCount * 1000.0) / realFramerate);
-
-  return ceil(timeInMilliseconds);
+  auto size = adjustedWidth * adjustedHeight;
+  switch(stream.eChroma)
+  {
+  case CHROMA_MONO: return size;
+  case CHROMA_4_2_0: return (3 * size) / 2;
+  case CHROMA_4_2_2: return 2 * size;
+  default: return -1;
+  }
 }
 
-BufferSizes CreateBufferSizes(AL_TDecSettings const& settings)
+BufferSizes CreateBufferSizes(AL_TDecSettings const& settings, Alignments const& alignments)
 {
   BufferSizes bufferSizes;
   auto const stream = settings.tStream;
   bufferSizes.input = AL_GetMaxNalSize(stream.tDim, stream.eChroma, stream.iBitDepth);
-  bufferSizes.output = AL_GetAllocSize_Frame(stream.tDim, stream.eChroma, stream.iBitDepth, false, settings.eFBStorageMode);
+  bufferSizes.output = RawAllocationSize(stream, alignments);
   return bufferSizes;
 }
 
@@ -81,8 +93,8 @@ Resolution CreateResolution(AL_TDecSettings const& settings, Alignments const& a
   auto const stream = settings.tStream;
   resolution.width = stream.tDim.iWidth;
   resolution.height = stream.tDim.iHeight;
-  resolution.stride = RoundUp(AL_Decoder_RoundPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode), alignments.stride);
-  resolution.sliceHeight = RoundUp(AL_Decoder_RoundHeight(stream.tDim.iHeight), alignments.sliceHeight);
+  resolution.stride = RoundUp(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode), alignments.stride);
+  resolution.sliceHeight = RoundUp(AL_Decoder_GetMinStrideHeight(stream.tDim.iHeight), alignments.sliceHeight);
   return resolution;
 }
 
@@ -119,27 +131,6 @@ bool UpdateResolution(AL_TDecSettings& settings, Alignments& alignments, Resolut
   return true;
 }
 
-Clock CreateClock(AL_TDecSettings const& settings)
-{
-  Clock clock;
-
-  clock.framerate = settings.uFrameRate / 1000;
-  clock.clockratio = settings.uClkRatio;
-
-  return clock;
-}
-
-bool UpdateClock(AL_TDecSettings& settings, Clock const& clock)
-{
-  if(!CheckClock(clock))
-    return false;
-
-  settings.uFrameRate = clock.framerate * 1000;
-  settings.uClkRatio = clock.clockratio;
-
-  return true;
-}
-
 Format CreateFormat(AL_TDecSettings const& settings)
 {
   Format format;
@@ -165,17 +156,12 @@ bool UpdateFormat(AL_TDecSettings& settings, Format const& format)
 
 BufferModeType CreateBufferMode(AL_TDecSettings const& settings)
 {
-  if(ConvertSoftToModuleDecodeUnit(settings.eDecUnit) == DECODE_UNIT_SLICE)
-    return BUFFER_MODE_SLICE;
+  if(ConvertSoftToModuleDecodeUnit(settings.eDecUnit) == DecodeUnitType::DECODE_UNIT_SLICE)
+    return BufferModeType::BUFFER_MODE_SLICE;
 
-  if(ConvertSoftToModuleDecodedPictureBuffer(settings.eDpbMode) == DECODED_PICTURE_BUFFER_LOW_REFERENCE)
-    return BUFFER_MODE_FRAME_NO_REORDERING;
+  if(ConvertSoftToModuleDecodedPictureBuffer(settings.eDpbMode) == DecodedPictureBufferType::DECODED_PICTURE_BUFFER_LOW_REFERENCE)
+    return BufferModeType::BUFFER_MODE_FRAME_NO_REORDERING;
 
-  return BUFFER_MODE_FRAME;
-}
-
-int CreateInternalEntropyBuffer(AL_TDecSettings const& settings)
-{
-  return settings.iStackSize;
+  return BufferModeType::BUFFER_MODE_FRAME;
 }
 

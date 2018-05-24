@@ -37,16 +37,15 @@
 
 #pragma once
 
-#include <vector>
-#include "base/omx_module/omx_module_enums.h"
 #include "base/omx_module/omx_module_structs.h"
 
-extern "C"
-{
-#include <lib_common/SliceConsts.h>
-}
-
-std::vector<ProfileLevelType> CreateAVCProfileLevelSupported(std::vector<AVCProfileType> const& profiles, std::vector<int> const& levels);
-
-ProfileLevelType CreateAVCProfileLevel(AL_EProfile const& profile, int const& level);
+bool CheckClock(Clock const& clock);
+bool CheckGroupOfPictures(Gop const& gop);
+bool CheckInternalEntropyBuffer(int const& internalEntropyBuffer);
+bool CheckVideoMode(VideoModeType const& videoMode);
+bool CheckBitrate(Bitrate const& bitrate, Clock const& clock);
+bool CheckAspectRatio(AspectRatioType const& aspectRatio);
+bool CheckScalingList(ScalingListType const& scalingList);
+bool CheckQuantizationParameter(QPs const& qps);
+bool CheckSlicesParameter(Slices const& slices);
 

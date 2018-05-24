@@ -94,7 +94,7 @@ void DecExpertiseHEVC::GetExpertise(OMX_PTR param, Port const& port, DecModule c
   hevc.eProfile = ConvertToOMXHEVCProfile(module.GetProfileLevel());
   hevc.eLevel = ConvertToOMXHEVCLevel(module.GetProfileLevel());
   hevc.bConstIpred = OMX_FALSE; // XXX
-  hevc.eLoopFilterMode = OMX_ALG_VIDEO_HEVCLoopFilterMax; // XXX
+  hevc.eLoopFilterMode = OMX_ALG_VIDEO_HEVCLoopFilterMaxEnum; // XXX
 }
 
 bool DecExpertiseHEVC::SetExpertise(OMX_PTR param, Port const& port, DecModule& module)

@@ -39,16 +39,15 @@
 
 extern "C"
 {
-AL_TIDecChannel* AL_DecChannelMcu_Create();
+#include "lib_common/HardwareDriver.h"
+AL_TIDecChannel* AL_DecChannelMcu_Create(AL_TDriver* driver);
 }
 
-DecDeviceHardwareMcu::~DecDeviceHardwareMcu()
-{
-}
+DecDeviceHardwareMcu::~DecDeviceHardwareMcu() = default;
 
-AL_TIDecChannel* DecDeviceHardwareMcu::Init(AL_EDecUnit const &, AL_TAllocator const &)
+AL_TIDecChannel* DecDeviceHardwareMcu::Init(AL_TAllocator const &)
 {
-  return AL_DecChannelMcu_Create();
+  return AL_DecChannelMcu_Create(AL_GetHardwareDriver());
 }
 
 void DecDeviceHardwareMcu::Deinit()

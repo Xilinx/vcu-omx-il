@@ -45,18 +45,13 @@ extern "C"
 #include <lib_encode/lib_encoder.h>
 }
 
-int CreateMillisecondsLatency(AL_TEncSettings const& settings, BufferCounts const& bufferCounts);
-
-BufferSizes CreateBufferSizes(AL_TEncSettings const& settings);
+BufferSizes CreateBufferSizes(AL_TEncSettings const& settings, Alignments const& alignments);
 
 Gop CreateGroupOfPictures(AL_TEncSettings const& settings);
 bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop const& gop);
 
 Resolution CreateResolution(AL_TEncSettings const& settings, Alignments const& alignments);
 bool UpdateResolution(AL_TEncSettings& settings, Alignments& alignments, Resolution const& resolution);
-
-Clock CreateClock(AL_TEncSettings const& settings);
-bool UpdateClock(AL_TEncSettings& settings, Clock const& clock);
 
 Format CreateFormat(AL_TEncSettings const& settings);
 bool UpdateFormat(AL_TEncSettings& settings, Format const& format);

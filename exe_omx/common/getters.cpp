@@ -62,7 +62,7 @@ int Getters::GetLatency()
   return lat.nLatency;
 }
 
-int Getters::GetBuffersSize(int const& index)
+int Getters::GetBuffersSize(int index)
 {
   OMX_PARAM_PORTDEFINITIONTYPE p;
   initHeader(p);
@@ -71,7 +71,7 @@ int Getters::GetBuffersSize(int const& index)
   return p.nBufferSize;
 }
 
-int Getters::GetBuffersCount(int const& index)
+int Getters::GetBuffersCount(int index)
 {
   OMX_PARAM_PORTDEFINITIONTYPE p;
   initHeader(p);
@@ -90,7 +90,7 @@ static inline bool IsOutputSupplier(OMX_DIRTYPE const& dir, OMX_BUFFERSUPPLIERTY
   return (dir == OMX_DirOutput) && (sup == OMX_BufferSupplyOutput);
 }
 
-bool Getters::IsComponentSupplier(int const& index)
+bool Getters::IsComponentSupplier(int index)
 {
   OMX_PARAM_PORTDEFINITIONTYPE p;
   initHeader(p);

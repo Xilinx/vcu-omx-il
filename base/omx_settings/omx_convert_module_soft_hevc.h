@@ -44,6 +44,6 @@ extern "C"
 }
 
 HEVCProfileType ConvertSoftToModuleHEVCMainTierProfile(AL_EProfile const& profile);
-AL_EProfile ConvertModuleToSoftHEVCProfile(HEVCProfileType const& profile);
 HEVCProfileType ConvertSoftToModuleHEVCHighTierProfile(AL_EProfile const& profile);
+AL_EProfile ConvertModuleToSoftHEVCProfile(HEVCProfileType const& profile);
 

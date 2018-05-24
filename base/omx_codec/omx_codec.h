@@ -39,8 +39,9 @@
 
 #include "base/omx_base/omx_base.h"
 #include "base/omx_module/omx_module_interface.h"
+#include "base/omx_mediatype/omx_mediatype_interface.h"
 #include "base/omx_utils/processor_fifo.h"
-#include "base/omx_utils/threadsafe_map.h"
+#include "omx_buffer_handle.h"
 
 #include <algorithm>
 #include <condition_variable>
@@ -92,7 +93,7 @@ struct Task
 
 struct Port
 {
-  Port(int const& index, int const& expected) :
+  Port(int index, int expected) :
     index(index), expected(expected)
   {
   };
@@ -169,38 +170,38 @@ private:
 class Codec : public OMXBase
 {
 public:
-  Codec(OMX_HANDLETYPE component, std::unique_ptr<ModuleInterface>&& module, OMX_STRING name, OMX_STRING role);
+  Codec(OMX_HANDLETYPE component, std::shared_ptr<MediatypeInterface> media, std::unique_ptr<ModuleInterface>&& module, OMX_STRING name, OMX_STRING role);
   ~Codec();
-  OMX_ERRORTYPE SendCommand(OMX_IN OMX_COMMANDTYPE cmd, OMX_IN OMX_U32 param, OMX_IN OMX_PTR data);
+  OMX_ERRORTYPE SendCommand(OMX_IN OMX_COMMANDTYPE cmd, OMX_IN OMX_U32 param, OMX_IN OMX_PTR data) override;
 
-  OMX_ERRORTYPE EmptyThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header);
-  OMX_ERRORTYPE FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header);
+  OMX_ERRORTYPE EmptyThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header) override;
+  OMX_ERRORTYPE FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header) override;
 
-  OMX_ERRORTYPE GetState(OMX_OUT OMX_STATETYPE* state);
-  OMX_ERRORTYPE SetCallbacks(OMX_IN OMX_CALLBACKTYPE* callbacks, OMX_IN OMX_PTR app);
-  virtual OMX_ERRORTYPE UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size, OMX_IN OMX_U8* buffer);
-  virtual OMX_ERRORTYPE AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size);
-  virtual OMX_ERRORTYPE FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADERTYPE* header);
-  void ComponentDeInit();
-  OMX_ERRORTYPE GetComponentVersion(OMX_OUT OMX_STRING name, OMX_OUT OMX_VERSIONTYPE* version, OMX_OUT OMX_VERSIONTYPE* spec);
-  virtual OMX_ERRORTYPE GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR param);
-  virtual OMX_ERRORTYPE SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param);
-  virtual OMX_ERRORTYPE GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_INDEXTYPE* index);
-  OMX_ERRORTYPE GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR config);
-  OMX_ERRORTYPE SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR config);
-  OMX_ERRORTYPE ComponentTunnelRequest(OMX_IN OMX_U32 index, OMX_IN OMX_HANDLETYPE comp, OMX_IN OMX_U32 tunneledIndex, OMX_INOUT OMX_TUNNELSETUPTYPE* setup);
-  OMX_ERRORTYPE UseEGLImage(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN void* eglImage);
-  OMX_ERRORTYPE ComponentRoleEnum(OMX_OUT OMX_U8* role, OMX_IN OMX_U32 index);
+  OMX_ERRORTYPE GetState(OMX_OUT OMX_STATETYPE* state) override;
+  OMX_ERRORTYPE SetCallbacks(OMX_IN OMX_CALLBACKTYPE* callbacks, OMX_IN OMX_PTR app) override;
+  virtual OMX_ERRORTYPE UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size, OMX_IN OMX_U8* buffer) override;
+  virtual OMX_ERRORTYPE AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size) override;
+  virtual OMX_ERRORTYPE FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADERTYPE* header) override;
+  void ComponentDeInit() override;
+  OMX_ERRORTYPE GetComponentVersion(OMX_OUT OMX_STRING name, OMX_OUT OMX_VERSIONTYPE* version, OMX_OUT OMX_VERSIONTYPE* spec) override;
+  virtual OMX_ERRORTYPE GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR param) override;
+  virtual OMX_ERRORTYPE SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param) override;
+  virtual OMX_ERRORTYPE GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_INDEXTYPE* index) override;
+  OMX_ERRORTYPE GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR config) override;
+  OMX_ERRORTYPE SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR config) override;
+  OMX_ERRORTYPE ComponentTunnelRequest(OMX_IN OMX_U32 index, OMX_IN OMX_HANDLETYPE comp, OMX_IN OMX_U32 tunneledIndex, OMX_INOUT OMX_TUNNELSETUPTYPE* setup) override;
+  OMX_ERRORTYPE UseEGLImage(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN void* eglImage) override;
+  OMX_ERRORTYPE ComponentRoleEnum(OMX_OUT OMX_U8* role, OMX_IN OMX_U32 index) override;
 
 protected:
   OMX_HANDLETYPE const component;
+  std::shared_ptr<MediatypeInterface> media;
   std::unique_ptr<ModuleInterface> module;
   Port input;
   Port output;
   bool shouldPrealloc;
   bool shouldClearROI;
   bool shouldPushROI;
-  bool isSettingsInit;
 
   OMX_STRING name;
   OMX_STRING role;
@@ -211,7 +212,6 @@ protected:
   OMX_VERSIONTYPE version;
   OMX_VERSIONTYPE spec;
   OMX_PORT_PARAM_TYPE ports;
-  ThreadSafeMap<uint8_t*, OMX_BUFFERHEADERTYPE*> map;
   std::queue<OMX_MARKTYPE*> marks;
   std::mutex moduleMutex {};
 
@@ -240,15 +240,15 @@ protected:
   void TreatDynamicCommand(Task* task);
   void AttachMark(OMX_BUFFERHEADERTYPE* header);
 
-  virtual void EmptyThisBufferCallBack(uint8_t* emptied, int offset, int size, void* handle);
-  virtual void AssociateCallBack(uint8_t* empty, uint8_t* fill);
-  virtual void FillThisBufferCallBack(uint8_t* filled, int offset, int size);
-  virtual void ReleaseCallBack(bool isInput, uint8_t* buf);
+  virtual void EmptyThisBufferCallBack(BufferHandleInterface* emptied);
+  virtual void AssociateCallBack(BufferHandleInterface* empty, BufferHandleInterface* fill);
+  virtual void FillThisBufferCallBack(BufferHandleInterface* filled, int offset, int size);
+  virtual void ReleaseCallBack(bool isInput, BufferHandleInterface* buf);
   virtual void EventCallBack(CallbackEventType type, void* data);
 
 private:
-  void ReturnFilledBuffer(uint8_t* filled, int offset, int size);
-  void ReturnEmptiedBuffer(uint8_t* emptied);
+  void ReturnFilledBuffer(OMX_BUFFERHEADERTYPE* filled, int offset, int size);
+  void ReturnEmptiedBuffer(OMX_BUFFERHEADERTYPE* emptied);
 };
 
 inline bool IsEOSDetected(OMX_U32 flags)
