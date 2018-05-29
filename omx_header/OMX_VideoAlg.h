@@ -41,6 +41,7 @@ extern "C" {
  */
 #include <OMX_Video.h>
 #include <OMX_Allegro.h>
+#include <OMX_IVCommonAlg.h>
 
 /** Enum for vendor video codingtype extensions */
 typedef enum OMX_ALG_VIDEO_CODINGTYPE
