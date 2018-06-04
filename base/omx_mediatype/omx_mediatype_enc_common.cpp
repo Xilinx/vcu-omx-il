@@ -228,7 +228,13 @@ bool UpdateQuantizationParameter(AL_TEncSettings& settings, QPs const& qps)
   auto& rateCtrl = settings.tChParam[0].tRCParam;
   rateCtrl.iInitialQP = qps.initial;
   rateCtrl.uIPDelta = qps.deltaIP;
+  if(rateCtrl.uIPDelta < -1)
+	  rateCtrl.uIPDelta = -1;
+
   rateCtrl.uPBDelta = qps.deltaPB;
+  if(rateCtrl.uPBDelta < - 1)
+  rateCtrl.uPBDelta = -1;
+
   rateCtrl.iMinQP = qps.min;
   rateCtrl.iMaxQP = qps.max;
 

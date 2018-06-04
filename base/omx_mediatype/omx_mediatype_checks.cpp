@@ -131,12 +131,6 @@ bool CheckQuantizationParameter(QPs const& qps)
   if(qps.initial < 0)
     return false;
 
-  if(qps.deltaIP < -1) // -1 means default
-    return false;
-
-  if(qps.deltaPB < -1) // -1 means default
-    return false;
-
   return true;
 }
 
