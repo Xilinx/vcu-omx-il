@@ -1227,6 +1227,10 @@ void Codec::TreatDisablePortCommand(Task* task)
   if(port->isTransientToDisable)
   {
     port->WaitEmpty();
+
+    if(port->error)
+	    return;
+
     port->isTransientToDisable = false;
   }
 
@@ -1246,8 +1250,12 @@ void Codec::TreatEnablePortCommand(Task* task)
     if(state != OMX_StateLoaded && state != OMX_StateWaitForResources)
       port->WaitFull();
 
+    if(port->error)
+	    return;
+
     port->isTransientToEnable = false;
   }
+
 
   callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandPortEnable, index, nullptr);
 }
