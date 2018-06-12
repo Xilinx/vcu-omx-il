@@ -224,10 +224,10 @@ bool DecModule::IsEnableSubframe() const
 
 bool DecModule::SetResolution(Resolution const& resolution)
 {
-  if((resolution.width % 8) != 0)
+  if((resolution.width % 2) != 0)
     return false;
 
-  if((resolution.height % 8) != 0)
+  if((resolution.height % 2) != 0)
     return false;
 
   auto& streamSettings = media->settings.tStream;

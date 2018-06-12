@@ -42,13 +42,13 @@ bool CheckResolution(Resolution const& resolution)
   if(resolution.width <= 0) // Min value could be determined
     return false;
 
-  if((resolution.width % 8) != 0)
+  if((resolution.width % 2) != 0)
     return false;
 
   if(resolution.height <= 0) // Min value could be determined
     return false;
 
-  if((resolution.height % 8) != 0)
+  if((resolution.height % 2) != 0)
     return false;
 
   if(resolution.stride < 0)
