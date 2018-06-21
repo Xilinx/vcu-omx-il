@@ -875,7 +875,7 @@ OMX_ERRORTYPE setWorstCaseParameters(Application& app)
   }
 
   settings.framerate = 1 << 16;
-  settings.chroma = OMX_COLOR_FormatYUV422SemiPlanar;
+  settings.chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked);
   settings.sequencePicture = OMX_ALG_SEQUENCE_PICTURE_UNKNOWN;
 
   return setPreallocParameters(app);
