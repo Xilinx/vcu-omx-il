@@ -41,9 +41,9 @@
 
 struct EncDeviceHardwareMcu : public EncDevice
 {
-  ~EncDeviceHardwareMcu();
-  TScheduler* Init(AL_TEncSettings const& settings, AL_TAllocator const& allocator);
-  void Deinit(TScheduler* scheduler);
-  AllocationRequirements GetAllocationRequirements();
+  ~EncDeviceHardwareMcu() override;
+  TScheduler* Init(AL_TEncSettings settings, AL_TAllocator const& allocator) override;
+  void Deinit(TScheduler* scheduler) override;
+  AllocationRequirements GetAllocationRequirements() override;
 };
 

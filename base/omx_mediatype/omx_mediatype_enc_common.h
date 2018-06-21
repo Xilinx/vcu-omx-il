@@ -44,36 +44,36 @@ extern "C"
 #include <lib_common_enc/Settings.h>
 }
 
-Clock CreateClock(AL_TEncSettings const& settings);
-bool UpdateClock(AL_TEncSettings& settings, Clock const& clock);
+Clock CreateClock(AL_TEncSettings settings);
+bool UpdateClock(AL_TEncSettings& settings, Clock clock);
 
-Gop CreateGroupOfPictures(AL_TEncSettings const& settings);
-bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop const& gop);
+Gop CreateGroupOfPictures(AL_TEncSettings settings);
+bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop gop);
 
-bool CreateConstrainedIntraPrediction(AL_TEncSettings const& settings);
-bool UpdateConstrainedIntraPrediction(AL_TEncSettings& settings, bool const& isConstrainedIntraPredictionEnabled);
+bool CreateConstrainedIntraPrediction(AL_TEncSettings settings);
+bool UpdateConstrainedIntraPrediction(AL_TEncSettings& settings, bool isConstrainedIntraPredictionEnabled);
 
-VideoModeType CreateVideoMode(AL_TEncSettings const& settings);
-bool UpdateVideoMode(AL_TEncSettings& settings, VideoModeType const& videoMode);
+VideoModeType CreateVideoMode(AL_TEncSettings settings);
+bool UpdateVideoMode(AL_TEncSettings& settings, VideoModeType videoMode);
 
-Bitrate CreateBitrate(AL_TEncSettings const& settings);
-bool UpdateBitrate(AL_TEncSettings& settings, Bitrate const& bitrate);
+Bitrate CreateBitrate(AL_TEncSettings settings);
+bool UpdateBitrate(AL_TEncSettings& settings, Bitrate bitrate);
 
-bool CreateCacheLevel2(AL_TEncSettings const& settings);
-bool UpdateCacheLevel2(AL_TEncSettings& settings, bool const& isCacheLevel2Enabled);
+bool CreateCacheLevel2(AL_TEncSettings settings);
+bool UpdateCacheLevel2(AL_TEncSettings& settings, bool isCacheLevel2Enabled);
 
-bool CreateFillerData(AL_TEncSettings const& settings);
-bool UpdateFillerData(AL_TEncSettings& settings, bool const& isFillerDataEnabled);
+bool CreateFillerData(AL_TEncSettings settings);
+bool UpdateFillerData(AL_TEncSettings& settings, bool isFillerDataEnabled);
 
-AspectRatioType CreateAspectRatio(AL_TEncSettings const& settings);
-bool UpdateAspectRatio(AL_TEncSettings& settings, AspectRatioType const& aspectRatio);
+AspectRatioType CreateAspectRatio(AL_TEncSettings settings);
+bool UpdateAspectRatio(AL_TEncSettings& settings, AspectRatioType aspectRatio);
 
-ScalingListType CreateScalingList(AL_TEncSettings const& settings);
-bool UpdateScalingList(AL_TEncSettings& settings, ScalingListType const& scalingList);
+ScalingListType CreateScalingList(AL_TEncSettings settings);
+bool UpdateScalingList(AL_TEncSettings& settings, ScalingListType scalingList);
 
-QPs CreateQuantizationParameter(AL_TEncSettings const& settings);
-bool UpdateQuantizationParameter(AL_TEncSettings& settings, QPs const& qps);
+QPs CreateQuantizationParameter(AL_TEncSettings settings);
+bool UpdateQuantizationParameter(AL_TEncSettings& settings, QPs qps);
 
-Slices CreateSlicesParameter(AL_TEncSettings const& settings);
-bool UpdateSlicesParameter(AL_TEncSettings& settings, Slices const& slices);
+Slices CreateSlicesParameter(AL_TEncSettings settings);
+bool UpdateSlicesParameter(AL_TEncSettings& settings, Slices slices);
 

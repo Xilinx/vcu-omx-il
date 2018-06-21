@@ -41,8 +41,8 @@
 static bool SetModuleProfileLevel(OMX_VIDEO_AVCPROFILETYPE const& profile, OMX_VIDEO_AVCLEVELTYPE const& level, DecModule& module)
 {
   ProfileLevelType p;
-  p.profile.avc = ConvertToModuleAVCProfileLevel(profile, level).profile.avc;
-  p.level = ConvertToModuleAVCProfileLevel(profile, level).level;
+  p.profile.avc = ConvertOMXToModuleAVCProfileLevel(profile, level).profile.avc;
+  p.level = ConvertOMXToModuleAVCProfileLevel(profile, level).level;
   return module.SetProfileLevel(p);
 }
 
@@ -54,8 +54,8 @@ bool DecExpertiseAVC::GetProfileLevelSupported(OMX_PTR param, DecModule const& m
   if(pl.nProfileIndex >= supported.size())
     return false;
 
-  pl.eProfile = ConvertToOMXAVCProfile(supported[pl.nProfileIndex]);
-  pl.eLevel = ConvertToOMXAVCLevel(supported[pl.nProfileIndex]);
+  pl.eProfile = ConvertModuleToOMXAVCProfile(supported[pl.nProfileIndex]);
+  pl.eLevel = ConvertModuleToOMXAVCLevel(supported[pl.nProfileIndex]);
 
   return true;
 }
@@ -64,17 +64,17 @@ void DecExpertiseAVC::GetProfileLevel(OMX_PTR param, Port const& port, DecModule
 {
   auto& pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
   pl.nPortIndex = port.index;
-  pl.eProfile = ConvertToOMXAVCProfile(module.GetProfileLevel());
-  pl.eLevel = ConvertToOMXAVCLevel(module.GetProfileLevel());
+  pl.eProfile = ConvertModuleToOMXAVCProfile(module.GetProfileLevel());
+  pl.eLevel = ConvertModuleToOMXAVCLevel(module.GetProfileLevel());
 }
 
 bool DecExpertiseAVC::SetProfileLevel(OMX_PTR param, Port const& port, DecModule& module)
 {
   OMX_VIDEO_PARAM_PROFILELEVELTYPE rollback;
   GetProfileLevel(&rollback, port, module);
-  auto const pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
-  auto const profile = static_cast<OMX_VIDEO_AVCPROFILETYPE>(pl.eProfile);
-  auto const level = static_cast<OMX_VIDEO_AVCLEVELTYPE>(pl.eLevel);
+  auto pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
+  auto profile = static_cast<OMX_VIDEO_AVCPROFILETYPE>(pl.eProfile);
+  auto level = static_cast<OMX_VIDEO_AVCLEVELTYPE>(pl.eLevel);
 
   if(!SetModuleProfileLevel(profile, level, module))
   {
@@ -99,8 +99,8 @@ void DecExpertiseAVC::GetExpertise(OMX_PTR param, Port const& port, DecModule co
   avc.bEnableFMO = OMX_FALSE; // XXX
   avc.bEnableASO = OMX_FALSE; // XXX
   avc.bEnableRS = OMX_FALSE; // XXX
-  avc.eProfile = ConvertToOMXAVCProfile(module.GetProfileLevel());
-  avc.eLevel = ConvertToOMXAVCLevel(module.GetProfileLevel());
+  avc.eProfile = ConvertModuleToOMXAVCProfile(module.GetProfileLevel());
+  avc.eLevel = ConvertModuleToOMXAVCLevel(module.GetProfileLevel());
   avc.nAllowedPictureTypes = OMX_VIDEO_PictureTypeI | OMX_VIDEO_PictureTypeP | OMX_VIDEO_PictureTypeB; // XXX
   avc.bFrameMBsOnly = OMX_TRUE; // XXX
   avc.bMBAFF = OMX_FALSE; // XXX
@@ -118,7 +118,7 @@ bool DecExpertiseAVC::SetExpertise(OMX_PTR param, Port const& port, DecModule& m
 {
   OMX_VIDEO_PARAM_AVCTYPE rollback;
   GetExpertise(&rollback, port, module);
-  auto const avc = *(OMX_VIDEO_PARAM_AVCTYPE*)param;
+  auto avc = *(OMX_VIDEO_PARAM_AVCTYPE*)param;
 
   if(!SetModuleProfileLevel(avc.eProfile, avc.eLevel, module))
   {

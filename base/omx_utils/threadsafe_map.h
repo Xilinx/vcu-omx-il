@@ -64,7 +64,7 @@ public:
   V Pop(K const& key)
   {
     std::lock_guard<std::mutex> lock(mutex);
-    auto const val = _Get(key);
+    auto val = _Get(key);
     _Remove(key);
     return val;
   }

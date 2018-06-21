@@ -40,8 +40,9 @@
 #include "omx_convert_module_soft.h"
 #include "omx_settings_utils.h"
 #include "omx_settings_checks.h"
-#include "base/omx_utils/roundup.h"
+#include "base/omx_utils/round.h"
 
+#include <cassert>
 #include <cmath>
 
 extern "C"
@@ -52,21 +53,21 @@ extern "C"
 
 static int RawAllocationSize(AL_TEncChanParam const& channel, Alignments const& alignments)
 {
-  auto const IP_WIDTH_ALIGNMENT = 32;
-  auto const IP_HEIGHT_ALIGNMENT = 8;
-  auto const widthAlignment = alignments.stride;
-  auto const heightAlignment = alignments.sliceHeight;
+  auto IP_WIDTH_ALIGNMENT = 32;
+  auto IP_HEIGHT_ALIGNMENT = 8;
+  auto widthAlignment = alignments.stride;
+  auto heightAlignment = alignments.sliceHeight;
   assert(widthAlignment % IP_WIDTH_ALIGNMENT == 0); // IP requirements
   assert(heightAlignment % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
 
-  auto const adjustedWidthAlignment = widthAlignment > IP_WIDTH_ALIGNMENT ? widthAlignment : IP_WIDTH_ALIGNMENT;
+  auto adjustedWidthAlignment = widthAlignment > IP_WIDTH_ALIGNMENT ? widthAlignment : IP_WIDTH_ALIGNMENT;
   int const adjustedHeightAlignment = heightAlignment > IP_HEIGHT_ALIGNMENT ? heightAlignment : IP_HEIGHT_ALIGNMENT;
 
-  auto const width = channel.uWidth;
-  auto const height = channel.uHeight;
-  auto const bitdepthWidth = AL_GET_BITDEPTH(channel.ePicFormat) == 8 ? width : (width + 2) / 3 * 4;
-  auto const adjustedWidth = RoundUp(bitdepthWidth, adjustedWidthAlignment);
-  auto const adjustedHeight = RoundUp(height, adjustedHeightAlignment);
+  auto width = channel.uWidth;
+  auto height = channel.uHeight;
+  auto bitdepthWidth = AL_GET_BITDEPTH(channel.ePicFormat) == 8 ? width : (width + 2) / 3 * 4;
+  auto adjustedWidth = RoundUp(bitdepthWidth, adjustedWidthAlignment);
+  auto adjustedHeight = RoundUp(height, adjustedHeightAlignment);
 
   auto size = adjustedWidth * adjustedHeight;
   switch(AL_GET_CHROMA_MODE(channel.ePicFormat))
@@ -81,13 +82,13 @@ static int RawAllocationSize(AL_TEncChanParam const& channel, Alignments const& 
 BufferSizes CreateBufferSizes(AL_TEncSettings const& settings, Alignments const& alignments)
 {
   BufferSizes bufferSizes;
-  auto const channel = settings.tChParam[0];
+  auto channel = settings.tChParam[0];
   bufferSizes.input = RawAllocationSize(channel, alignments);
   bufferSizes.output = AL_GetMaxNalSize({ channel.uWidth, channel.uHeight }, AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat));
 
   if(channel.bSubframeLatency)
   {
-    auto const numSlices = channel.uNumSlices;
+    auto numSlices = channel.uNumSlices;
     auto& size = bufferSizes.output;
     size /= numSlices;
     size += 4095 * 2; /* we need space for the headers on each slice */
@@ -100,7 +101,7 @@ BufferSizes CreateBufferSizes(AL_TEncSettings const& settings, Alignments const&
 Resolution CreateResolution(AL_TEncSettings const& settings, Alignments const& alignments)
 {
   Resolution resolution;
-  auto const channel = settings.tChParam[0];
+  auto channel = settings.tChParam[0];
   resolution.width = channel.uWidth;
   resolution.height = channel.uHeight;
   resolution.stride = RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), alignments.stride);
@@ -146,7 +147,7 @@ bool UpdateResolution(AL_TEncSettings& settings, Alignments& alignments, Resolut
 Format CreateFormat(AL_TEncSettings const& settings)
 {
   Format format;
-  auto const channel = settings.tChParam[0];
+  auto channel = settings.tChParam[0];
 
   format.color = ConvertSoftToModuleColor(AL_GET_CHROMA_MODE(channel.ePicFormat));
   format.bitdepth = AL_GET_BITDEPTH(channel.ePicFormat);
@@ -173,12 +174,12 @@ static inline bool isSeiEndOfFrameEnabled(AL_TEncSettings const& settings)
 
 BufferModeType CreateBufferMode(AL_TEncSettings const& settings)
 {
-  auto const channel = settings.tChParam[0];
+  auto channel = settings.tChParam[0];
 
   if(channel.bSubframeLatency)
     return BufferModeType::BUFFER_MODE_SLICE;
 
-  auto const gop = channel.tGopParam;
+  auto gop = channel.tGopParam;
 
   if(gop.uNumB == 0 && isSeiEndOfFrameEnabled(settings))
     return BufferModeType::BUFFER_MODE_FRAME_NO_REORDERING;

@@ -41,27 +41,27 @@
 static bool SetModuleGop(OMX_U32 bFrames, OMX_U32 pFrames, EncModule& module)
 {
   auto moduleGop = module.GetGop();
-  moduleGop.b = ConvertToModuleBFrames(bFrames, pFrames);
-  moduleGop.length = ConvertToModuleGopLength(bFrames, pFrames);
+  moduleGop.b = ConvertOMXToModuleBFrames(bFrames, pFrames);
+  moduleGop.length = ConvertOMXToModuleGopLength(bFrames, pFrames);
   return module.SetGop(moduleGop);
 }
 
 static bool SetModuleProfileLevel(OMX_ALG_VIDEO_HEVCPROFILETYPE const& profile, OMX_ALG_VIDEO_HEVCLEVELTYPE const& level, EncModule& module)
 {
   ProfileLevelType p;
-  p.profile.hevc = ConvertToModuleHEVCProfileLevel(profile, level).profile.hevc;
-  p.level = ConvertToModuleHEVCProfileLevel(profile, level).level;
+  p.profile.hevc = ConvertOMXToModuleHEVCProfileLevel(profile, level).profile.hevc;
+  p.level = ConvertOMXToModuleHEVCProfileLevel(profile, level).level;
   return module.SetProfileLevel(p);
 }
 
 static bool SetModuleConstrainedIntraPrediction(OMX_BOOL constrainedIntraPrediction, EncModule& module)
 {
-  return module.SetConstrainedIntraPrediction(ConvertToModuleBool(constrainedIntraPrediction));
+  return module.SetConstrainedIntraPrediction(ConvertOMXToModuleBool(constrainedIntraPrediction));
 }
 
 static bool SetModuleLoopFilter(OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE const& loopFilter, EncModule& module)
 {
-  return module.SetLoopFilter(ConvertToModuleHEVCLoopFilter(loopFilter));
+  return module.SetLoopFilter(ConvertOMXToModuleHEVCLoopFilter(loopFilter));
 }
 
 bool EncExpertiseHEVC::GetProfileLevelSupported(OMX_PTR param, EncModule const& module)
@@ -72,8 +72,8 @@ bool EncExpertiseHEVC::GetProfileLevelSupported(OMX_PTR param, EncModule const& 
   if(pl.nProfileIndex >= supported.size())
     return false;
 
-  pl.eProfile = ConvertToOMXHEVCProfile(supported[pl.nProfileIndex]);
-  pl.eLevel = ConvertToOMXHEVCLevel(supported[pl.nProfileIndex]);
+  pl.eProfile = ConvertModuleToOMXHEVCProfile(supported[pl.nProfileIndex]);
+  pl.eLevel = ConvertModuleToOMXHEVCLevel(supported[pl.nProfileIndex]);
 
   return true;
 }
@@ -82,17 +82,17 @@ void EncExpertiseHEVC::GetProfileLevel(OMX_PTR param, Port const& port, EncModul
 {
   auto& pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
   pl.nPortIndex = port.index;
-  pl.eProfile = ConvertToOMXHEVCProfile(module.GetProfileLevel());
-  pl.eLevel = ConvertToOMXHEVCLevel(module.GetProfileLevel());
+  pl.eProfile = ConvertModuleToOMXHEVCProfile(module.GetProfileLevel());
+  pl.eLevel = ConvertModuleToOMXHEVCLevel(module.GetProfileLevel());
 }
 
 bool EncExpertiseHEVC::SetProfileLevel(OMX_PTR param, Port const& port, EncModule& module)
 {
   OMX_VIDEO_PARAM_PROFILELEVELTYPE rollback;
   GetProfileLevel(&rollback, port, module);
-  auto const pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
-  auto const profile = static_cast<OMX_ALG_VIDEO_HEVCPROFILETYPE>(pl.eProfile);
-  auto const level = static_cast<OMX_ALG_VIDEO_HEVCLEVELTYPE>(pl.eLevel);
+  auto pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
+  auto profile = static_cast<OMX_ALG_VIDEO_HEVCPROFILETYPE>(pl.eProfile);
+  auto level = static_cast<OMX_ALG_VIDEO_HEVCLEVELTYPE>(pl.eLevel);
 
   if(!SetModuleProfileLevel(profile, level, module))
   {
@@ -107,19 +107,19 @@ void EncExpertiseHEVC::GetExpertise(OMX_PTR param, Port const& port, EncModule c
 {
   auto& hevc = *(OMX_ALG_VIDEO_PARAM_HEVCTYPE*)param;
   hevc.nPortIndex = port.index;
-  hevc.nBFrames = ConvertToOMXBFrames(module.GetGop());
-  hevc.nPFrames = ConvertToOMXPFrames(module.GetGop());
-  hevc.eProfile = ConvertToOMXHEVCProfile(module.GetProfileLevel());
-  hevc.eLevel = ConvertToOMXHEVCLevel(module.GetProfileLevel());
-  hevc.bConstIpred = ConvertToOMXBool(module.IsConstrainedIntraPrediction());
-  hevc.eLoopFilterMode = ConvertToOMXHEVCLoopFilter(module.GetLoopFilter());
+  hevc.nBFrames = ConvertModuleToOMXBFrames(module.GetGop());
+  hevc.nPFrames = ConvertModuleToOMXPFrames(module.GetGop());
+  hevc.eProfile = ConvertModuleToOMXHEVCProfile(module.GetProfileLevel());
+  hevc.eLevel = ConvertModuleToOMXHEVCLevel(module.GetProfileLevel());
+  hevc.bConstIpred = ConvertModuleToOMXBool(module.IsConstrainedIntraPrediction());
+  hevc.eLoopFilterMode = ConvertModuleToOMXHEVCLoopFilter(module.GetLoopFilter());
 }
 
 bool EncExpertiseHEVC::SetExpertise(OMX_PTR param, Port const& port, EncModule& module)
 {
   OMX_ALG_VIDEO_PARAM_HEVCTYPE rollback;
   GetExpertise(&rollback, port, module);
-  auto const hevc = *(OMX_ALG_VIDEO_PARAM_HEVCTYPE*)param;
+  auto hevc = *(OMX_ALG_VIDEO_PARAM_HEVCTYPE*)param;
 
   if(!SetModuleGop(hevc.nBFrames, hevc.nPFrames, module))
   {

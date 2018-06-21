@@ -52,7 +52,7 @@
 using namespace std;
 
 extern "C" {
-#include "lib_fpga/DmaAlloc.h"
+#include <lib_fpga/DmaAlloc.h>
 }
 
 static AL_TAllocator* createDmaAlloc(string deviceName)
@@ -72,26 +72,26 @@ static AL_TAllocator* createDmaAlloc(string deviceName)
 
 static EncCodec* GenerateAvcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
-  shared_ptr<EncMediatypeAVC> media(new EncMediatypeAVC);
+  shared_ptr<EncMediatypeAVC> media(new EncMediatypeAVC());
   unique_ptr<EncDeviceHardwareMcu> device(new EncDeviceHardwareMcu);
-  deleted_unique_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroIP"), [](AL_TAllocator* allocator) {
+  shared_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroIP"), [](AL_TAllocator* allocator) {
     AL_Allocator_Destroy(allocator);
   });
-  unique_ptr<EncModule> module(new EncModule(media, move(device), move(allocator)));
-  unique_ptr<EncExpertiseAVC> expertise(new EncExpertiseAVC);
+  unique_ptr<EncModule> module(new EncModule(media, move(device), allocator));
+  unique_ptr<EncExpertiseAVC> expertise(new EncExpertiseAVC());
   return new EncCodec(hComponent, media, move(module), cComponentName, cRole, move(expertise));
 }
 
 
 static EncCodec* GenerateHevcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
-  shared_ptr<EncMediatypeHEVC> media(new EncMediatypeHEVC);
+  shared_ptr<EncMediatypeHEVC> media(new EncMediatypeHEVC());
   unique_ptr<EncDeviceHardwareMcu> device(new EncDeviceHardwareMcu);
-  deleted_unique_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroIP"), [](AL_TAllocator* allocator) {
+  shared_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroIP"), [](AL_TAllocator* allocator) {
     AL_Allocator_Destroy(allocator);
   });
-  unique_ptr<EncModule> module(new EncModule(media, move(device), move(allocator)));
-  unique_ptr<EncExpertiseHEVC> expertise(new EncExpertiseHEVC);
+  unique_ptr<EncModule> module(new EncModule(media, move(device), allocator));
+  unique_ptr<EncExpertiseHEVC> expertise(new EncExpertiseHEVC());
   return new EncCodec(hComponent, media, move(module), cComponentName, cRole, move(expertise));
 }
 

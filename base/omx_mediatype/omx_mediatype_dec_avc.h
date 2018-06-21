@@ -39,6 +39,8 @@
 
 #include "omx_mediatype_dec_interface.h"
 
+#include <vector>
+
 struct DecMediatypeAVC : DecMediatypeInterface
 {
   DecMediatypeAVC();
@@ -49,7 +51,7 @@ struct DecMediatypeAVC : DecMediatypeInterface
   ErrorSettingsType Set(std::string index, void const* settings) override;
 
   ProfileLevelType ProfileLevel() const;
-  bool SetProfileLevel(ProfileLevelType const& profileLevel);
+  bool SetProfileLevel(ProfileLevelType profileLevel);
 
 private:
   std::vector<AVCProfileType> const profiles
@@ -89,8 +91,6 @@ private:
     61,
     62,
   };
-  bool IsInProfilesSupported(AVCProfileType const& profile);
-  bool IsInLevelsSupported(int level);
 
   std::vector<ColorType> const colors
   {
@@ -105,11 +105,10 @@ private:
     10,
   };
 
-  VideoModeType videoMode;
-
-  std::vector<VideoModeType> const videoModes
+  std::vector<SequencePictureModeType> const sequenceModes
   {
-    VideoModeType::VIDEO_MODE_PROGRESSIVE,
+    SequencePictureModeType::SEQUENCE_PICTURE_MODE_UNKNOWN,
+    SequencePictureModeType::SEQUENCE_PICTURE_MODE_FRAME,
   };
 };
 

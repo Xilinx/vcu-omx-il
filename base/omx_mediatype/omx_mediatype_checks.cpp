@@ -37,7 +37,7 @@
 
 #include "omx_mediatype_checks.h"
 
-bool CheckClock(Clock const& clock)
+bool CheckClock(Clock clock)
 {
   if(clock.framerate <= 0)
     return false;
@@ -48,7 +48,7 @@ bool CheckClock(Clock const& clock)
   return true;
 }
 
-bool CheckGroupOfPictures(Gop const& gop)
+bool CheckGroupOfPictures(Gop gop)
 {
   if(gop.b < 0)
     return false;
@@ -65,7 +65,7 @@ bool CheckGroupOfPictures(Gop const& gop)
   return true;
 }
 
-bool CheckInternalEntropyBuffer(int const& internalEntropyBuffer)
+bool CheckInternalEntropyBuffer(int internalEntropyBuffer)
 {
   if(internalEntropyBuffer < 1)
     return false;
@@ -76,12 +76,17 @@ bool CheckInternalEntropyBuffer(int const& internalEntropyBuffer)
   return true;
 }
 
-bool CheckVideoMode(VideoModeType const& videoMode)
+bool CheckVideoMode(VideoModeType videoMode)
 {
   return videoMode != VideoModeType::VIDEO_MODE_MAX_ENUM;
 }
 
-bool CheckBitrate(Bitrate const& bitrate, Clock const& clock)
+bool CheckSequenceMode(SequencePictureModeType sequenceMode)
+{
+  return sequenceMode != SequencePictureModeType::SEQUENCE_PICTURE_MODE_MAX_ENUM;
+}
+
+bool CheckBitrate(Bitrate bitrate, Clock clock)
 {
   if(bitrate.target <= 0)
     return false;
@@ -107,17 +112,17 @@ bool CheckBitrate(Bitrate const& bitrate, Clock const& clock)
   return true;
 }
 
-bool CheckAspectRatio(AspectRatioType const& aspectRatio)
+bool CheckAspectRatio(AspectRatioType aspectRatio)
 {
   return aspectRatio != AspectRatioType::ASPECT_RATIO_MAX_ENUM;
 }
 
-bool CheckScalingList(ScalingListType const& scalingList)
+bool CheckScalingList(ScalingListType scalingList)
 {
   return scalingList != ScalingListType::SCALING_LIST_MAX_ENUM;
 }
 
-bool CheckQuantizationParameter(QPs const& qps)
+bool CheckQuantizationParameter(QPs qps)
 {
   if(qps.mode == QPControlType::QP_MAX_ENUM)
     return false;
@@ -131,10 +136,16 @@ bool CheckQuantizationParameter(QPs const& qps)
   if(qps.initial < 0)
     return false;
 
+  if(qps.deltaIP < -1) // -1 means default
+    return false;
+
+  if(qps.deltaPB < -1) // -1 means default
+    return false;
+
   return true;
 }
 
-bool CheckSlicesParameter(Slices const& slices)
+bool CheckSlicesParameter(Slices slices)
 {
   if(slices.num <= 0)
     return false;

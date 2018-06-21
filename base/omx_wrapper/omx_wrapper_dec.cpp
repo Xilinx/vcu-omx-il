@@ -52,7 +52,7 @@
 using namespace std;
 
 extern "C" {
-#include "lib_fpga/DmaAlloc.h"
+#include <lib_fpga/DmaAlloc.h>
 }
 
 static AL_TAllocator* createDmaAlloc(string deviceName)
@@ -72,26 +72,26 @@ static AL_TAllocator* createDmaAlloc(string deviceName)
 
 static DecCodec* GenerateAvcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
-  shared_ptr<DecMediatypeAVC> media(new DecMediatypeAVC);
+  shared_ptr<DecMediatypeAVC> media(new DecMediatypeAVC());
   unique_ptr<DecDeviceHardwareMcu> device(new DecDeviceHardwareMcu);
-  deleted_unique_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroDecodeIP"), [](AL_TAllocator* allocator) {
+  shared_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroDecodeIP"), [](AL_TAllocator* allocator) {
     AL_Allocator_Destroy(allocator);
   });
-  unique_ptr<DecModule> module(new DecModule(media, move(device), move(allocator)));
-  unique_ptr<DecExpertiseAVC> expertise(new DecExpertiseAVC);
+  unique_ptr<DecModule> module(new DecModule(media, move(device), allocator));
+  unique_ptr<DecExpertiseAVC> expertise(new DecExpertiseAVC());
   return new DecCodec(hComponent, media, move(module), cComponentName, cRole, move(expertise));
 }
 
 
 static DecCodec* GenerateHevcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
-  shared_ptr<DecMediatypeHEVC> media(new DecMediatypeHEVC);
+  shared_ptr<DecMediatypeHEVC> media(new DecMediatypeHEVC());
   unique_ptr<DecDeviceHardwareMcu> device(new DecDeviceHardwareMcu);
-  deleted_unique_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroDecodeIP"), [](AL_TAllocator* allocator) {
+  shared_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroDecodeIP"), [](AL_TAllocator* allocator) {
     AL_Allocator_Destroy(allocator);
   });
-  unique_ptr<DecModule> module(new DecModule(media, move(device), move(allocator)));
-  unique_ptr<DecExpertiseHEVC> expertise(new DecExpertiseHEVC);
+  unique_ptr<DecModule> module(new DecModule(media, move(device), allocator));
+  unique_ptr<DecExpertiseHEVC> expertise(new DecExpertiseHEVC());
   return new DecCodec(hComponent, media, move(module), cComponentName, cRole, move(expertise));
 }
 

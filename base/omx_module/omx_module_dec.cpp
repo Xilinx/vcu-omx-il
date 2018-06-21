@@ -52,14 +52,14 @@ extern "C"
 #include "base/omx_settings/omx_convert_module_soft.h"
 #include "base/omx_settings/omx_convert_module_soft_dec.h"
 #include "base/omx_settings/omx_settings_structs.h"
-#include "base/omx_utils/roundup.h"
+#include "base/omx_utils/round.h"
 
 using namespace std;
 
-DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, unique_ptr<DecDevice>&& device, deleted_unique_ptr<AL_TAllocator>&& allocator) :
+DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, unique_ptr<DecDevice>&& device, shared_ptr<AL_TAllocator> allocator) :
   media(media),
   device(move(device)),
-  allocator(move(allocator))
+  allocator(allocator)
 {
   assert(this->media);
   assert(this->device);
@@ -79,8 +79,8 @@ void DecModule::ResetRequirements()
 
 static int RawAllocationSize(int stride, int sliceHeight, AL_EChromaMode eChromaMode)
 {
-  auto const IP_WIDTH_ALIGNMENT = 64;
-  auto const IP_HEIGHT_ALIGNMENT = 64;
+  auto IP_WIDTH_ALIGNMENT = 64;
+  auto IP_HEIGHT_ALIGNMENT = 64;
   assert(stride % IP_WIDTH_ALIGNMENT == 0); // IP requirements
   assert(sliceHeight % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
   auto size = stride * sliceHeight;
@@ -95,7 +95,7 @@ static int RawAllocationSize(int stride, int sliceHeight, AL_EChromaMode eChroma
 
 BufferRequirements DecModule::GetBufferRequirements() const
 {
-  auto const streamSettings = media->settings.tStream;
+  auto streamSettings = media->settings.tStream;
   BufferRequirements b;
   BufferCounts bufferCounts;
   media->Get(SETTINGS_INDEX_BUFFER_COUNTS, &bufferCounts);
@@ -117,7 +117,7 @@ BufferRequirements DecModule::GetBufferRequirements() const
 
 Resolution DecModule::GetResolution() const
 {
-  auto const streamSettings = media->settings.tStream;
+  auto streamSettings = media->settings.tStream;
   Resolution resolution;
   resolution.width = streamSettings.tDim.iWidth;
   resolution.height = streamSettings.tDim.iHeight;
@@ -144,7 +144,7 @@ Mimes DecModule::GetMimes() const
 Format DecModule::GetFormat() const
 {
   Format format;
-  auto const streamSettings = media->settings.tStream;
+  auto streamSettings = media->settings.tStream;
 
   format.color = ConvertSoftToModuleColor(streamSettings.eChroma);
   format.bitdepth = streamSettings.iBitDepth;
@@ -157,26 +157,6 @@ vector<Format> DecModule::GetFormatsSupported() const
   vector<Format> formats;
   media->Get(SETTINGS_INDEX_FORMATS_SUPPORTED, &formats);
   return formats;
-}
-
-vector<VideoModeType> DecModule::GetVideoModesSupported() const
-{
-  vector<VideoModeType> videoModesSupported;
-  media->Get(SETTINGS_INDEX_VIDEO_MODES_SUPPORTED, &videoModesSupported);
-  return videoModesSupported;
-}
-
-VideoModeType DecModule::GetVideoMode() const
-{
-  VideoModeType videoMode;
-  media->Get(SETTINGS_INDEX_VIDEO_MODE, &videoMode);
-  return videoMode;
-}
-
-bool DecModule::SetVideoMode(VideoModeType const& videoMode)
-{
-  auto ret = media->Set(SETTINGS_INDEX_VIDEO_MODE, &videoMode);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
 }
 
 ProfileLevelType DecModule::GetProfileLevel() const
@@ -205,7 +185,7 @@ FileDescriptors DecModule::GetFileDescriptors() const
 
 DecodedPictureBufferType DecModule::GetDecodedPictureBuffer() const
 {
-  auto const settings = media->settings;
+  auto settings = media->settings;
   return ConvertSoftToModuleDecodedPictureBuffer(settings.eDpbMode);
 }
 
@@ -218,7 +198,7 @@ int DecModule::GetInternalEntropyBuffers() const
 
 bool DecModule::IsEnableSubframe() const
 {
-  auto const settings = media->settings;
+  auto settings = media->settings;
   return DecodeUnitType::DECODE_UNIT_SLICE == ConvertSoftToModuleDecodeUnit(settings.eDecUnit);
 }
 
@@ -233,10 +213,10 @@ bool DecModule::SetResolution(Resolution const& resolution)
   auto& streamSettings = media->settings.tStream;
   streamSettings.tDim = { resolution.width, resolution.height };
 
-  auto minStride = (int)RoundUp(AL_Decoder_GetMinPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
+  auto minStride = RoundUp(AL_Decoder_GetMinPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
   media->stride = max(minStride, RoundUp(resolution.stride, media->strideAlignment));
 
-  auto minSliceHeight = (int)RoundUp(AL_Decoder_GetMinStrideHeight(streamSettings.tDim.iHeight), media->sliceHeightAlignment);
+  auto minSliceHeight = RoundUp(AL_Decoder_GetMinStrideHeight(streamSettings.tDim.iHeight), media->sliceHeightAlignment);
   media->sliceHeight = max(minSliceHeight, RoundUp(resolution.sliceHeight, media->sliceHeightAlignment));
 
   return true;
@@ -358,7 +338,7 @@ void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
     return;
   }
 
-  auto const rhandleOut = handlesOut.Get(decodedFrame);
+  auto rhandleOut = handlesOut.Get(decodedFrame);
   assert(rhandleOut);
 
   callbacks.associate(nullptr, rhandleOut);
@@ -366,10 +346,8 @@ void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
 
 void DecModule::ReleaseBufs(AL_TBuffer* frame)
 {
-  auto const rhandleOut = handlesOut.Get(frame);
-  assert(rhandleOut);
+  auto rhandleOut = handlesOut.Pop(frame);
   dpb.Remove(rhandleOut->data);
-  handlesOut.Remove(frame);
   callbacks.release(false, rhandleOut);
   AL_Buffer_Unref(frame);
   return;
@@ -386,20 +364,20 @@ void DecModule::CopyIfRequired(AL_TBuffer* frameToDisplay, int size)
 
 void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
 {
-  auto const isRelease = (frameToDisplay && info == nullptr);
+  auto isRelease = (frameToDisplay && info == nullptr);
 
   if(isRelease)
     return ReleaseBufs(frameToDisplay);
 
-  auto const isEOS = (frameToDisplay == nullptr && info == nullptr);
+  auto isEOS = (frameToDisplay == nullptr && info == nullptr);
 
   if(isEOS)
   {
-    auto const rhandleOut = handlesOut.Pop(eosHandles.output);
+    auto rhandleOut = handlesOut.Pop(eosHandles.output);
     dpb.Remove(rhandleOut->data);
 
-    auto const rhandleIn = handlesIn.Get(eosHandles.input);
-    auto const eosIsSent = rhandleIn != nullptr;
+    auto rhandleIn = handlesIn.Get(eosHandles.input);
+    auto eosIsSent = rhandleIn != nullptr;
 
     if(eosIsSent)
     {
@@ -420,7 +398,7 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
     return;
   }
 
-  auto const size = GetBufferRequirements().output.size;
+  auto size = GetBufferRequirements().output.size;
   CopyIfRequired(frameToDisplay, size);
   currentDisplayPictureType = info->ePicStruct;
   auto rhandleOut = handlesOut.Pop(frameToDisplay);
@@ -608,7 +586,7 @@ bool DecModule::SetCallbacks(Callbacks callbacks)
 
 void DecModule::InputBufferDestroy(AL_TBuffer* input)
 {
-  auto const rhandleIn = handlesIn.Pop(input);
+  auto rhandleIn = handlesIn.Pop(input);
 
   AL_Buffer_Destroy(input);
 
@@ -623,7 +601,7 @@ AL_TBuffer* DecModule::CreateInputBuffer(char* buffer, int size)
 
   if(fds.input)
   {
-    auto const fd = static_cast<int>((intptr_t)buffer);
+    auto fd = static_cast<int>((intptr_t)buffer);
 
     if(fd < 0)
       throw invalid_argument("fd");
@@ -668,7 +646,7 @@ bool DecModule::Empty(BufferHandleInterface* handle)
 
   handlesIn.Add(input, handle);
 
-  auto const eos = (handle->payload == 0);
+  auto eos = (handle->payload == 0);
 
   if(eos)
   {
@@ -677,7 +655,7 @@ bool DecModule::Empty(BufferHandleInterface* handle)
     return true;
   }
 
-  auto const pushed = AL_Decoder_PushBuffer(decoder, input, handle->payload);
+  auto pushed = AL_Decoder_PushBuffer(decoder, input, handle->payload);
   AL_Buffer_Unref(input);
 
   return pushed;
@@ -685,9 +663,9 @@ bool DecModule::Empty(BufferHandleInterface* handle)
 
 static AL_TMetaData* CreateSourceMeta(AL_TStreamSettings const& streamSettings, Resolution const& resolution)
 {
-  auto const fourCC = AL_GetDecFourCC({ streamSettings.eChroma, static_cast<uint8_t>(streamSettings.iBitDepth), AL_FB_RASTER });
-  auto const stride = resolution.stride;
-  auto const sliceHeight = resolution.sliceHeight;
+  auto fourCC = AL_GetDecFourCC({ streamSettings.eChroma, static_cast<uint8_t>(streamSettings.iBitDepth), AL_FB_RASTER });
+  auto stride = resolution.stride;
+  auto sliceHeight = resolution.sliceHeight;
   AL_TPitches const pitches = { stride, stride };
   AL_TOffsetYC const offsetYC = { 0, stride * sliceHeight };
   return (AL_TMetaData*)(AL_SrcMetaData_Create({ resolution.width, resolution.height }, pitches, offsetYC, fourCC));
@@ -713,7 +691,7 @@ void DecModule::OutputBufferDestroyAndFree(AL_TBuffer* output)
 
 AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
 {
-  auto const sourceMeta = CreateSourceMeta(media->settings.tStream, GetResolution());
+  auto sourceMeta = CreateSourceMeta(media->settings.tStream, GetResolution());
 
   if(!sourceMeta)
     return nullptr;
@@ -722,7 +700,7 @@ AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
 
   if(fds.output)
   {
-    auto const fd = static_cast<int>((intptr_t)buffer);
+    auto fd = static_cast<int>((intptr_t)buffer);
 
     if(fd < 0)
       throw invalid_argument("fd");
@@ -757,7 +735,7 @@ AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
     return nullptr;
   }
 
-  auto const attachedSourceMeta = AL_Buffer_AddMetaData(output, (AL_TMetaData*)sourceMeta);
+  auto attachedSourceMeta = AL_Buffer_AddMetaData(output, (AL_TMetaData*)sourceMeta);
   assert(attachedSourceMeta);
 
   AL_Buffer_SetUserData(output, this);
@@ -835,7 +813,7 @@ bool DecModule::Flush()
 
 void DecModule::FlushEosHandles()
 {
-  auto const rhandleOut = handlesOut.Get(eosHandles.output);
+  auto rhandleOut = handlesOut.Get(eosHandles.output);
 
   if(rhandleOut)
   {

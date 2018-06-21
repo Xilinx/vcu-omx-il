@@ -37,7 +37,7 @@
 
 #include "omx_convert_module_soft.h"
 
-AL_EChromaMode ConvertModuleToSoftChroma(ColorType const& color)
+AL_EChromaMode ConvertModuleToSoftChroma(ColorType color)
 {
   switch(color)
   {
@@ -52,7 +52,7 @@ AL_EChromaMode ConvertModuleToSoftChroma(ColorType const& color)
   return CHROMA_MAX_ENUM;
 }
 
-ColorType ConvertSoftToModuleColor(AL_EChromaMode const& chroma)
+ColorType ConvertSoftToModuleColor(AL_EChromaMode chroma)
 {
   switch(chroma)
   {
@@ -67,7 +67,7 @@ ColorType ConvertSoftToModuleColor(AL_EChromaMode const& chroma)
   return ColorType::COLOR_MAX_ENUM;
 }
 
-AL_EEntropyMode ConvertModuleToSoftEntropyCoding(EntropyCodingType const& entropy)
+AL_EEntropyMode ConvertModuleToSoftEntropyCoding(EntropyCodingType entropy)
 {
   switch(entropy)
   {
@@ -80,7 +80,7 @@ AL_EEntropyMode ConvertModuleToSoftEntropyCoding(EntropyCodingType const& entrop
   return AL_MODE_MAX_ENUM;
 }
 
-EntropyCodingType ConvertSoftToModuleEntropyCoding(AL_EEntropyMode const& entropy)
+EntropyCodingType ConvertSoftToModuleEntropyCoding(AL_EEntropyMode entropy)
 {
   switch(entropy)
   {
@@ -91,5 +91,61 @@ EntropyCodingType ConvertSoftToModuleEntropyCoding(AL_EEntropyMode const& entrop
   }
 
   return EntropyCodingType::ENTROPY_CODING_MAX_ENUM;
+}
+
+VideoModeType ConvertSoftToModuleVideoMode(AL_EVideoMode videoMode)
+{
+  switch(videoMode)
+  {
+  case AL_VM_PROGRESSIVE: return VideoModeType::VIDEO_MODE_PROGRESSIVE;
+  case AL_VM_INTERLACED_TOP: return VideoModeType::VIDEO_MODE_ALTERNATE_TOP_BOTTOM_FIELD;
+  case AL_VM_INTERLACED_BOTTOM: return VideoModeType::VIDEO_MODE_ALTERNATE_BOTTOM_TOP_FIELD;
+  case AL_VM_MAX_ENUM: return VideoModeType::VIDEO_MODE_MAX_ENUM;
+  default: return VideoModeType::VIDEO_MODE_MAX_ENUM;
+  }
+
+  return VideoModeType::VIDEO_MODE_MAX_ENUM;
+}
+
+AL_EVideoMode ConvertModuleToSoftVideoMode(VideoModeType videoMode)
+{
+  switch(videoMode)
+  {
+  case VideoModeType::VIDEO_MODE_PROGRESSIVE: return AL_VM_PROGRESSIVE;
+  case VideoModeType::VIDEO_MODE_ALTERNATE_TOP_BOTTOM_FIELD: return AL_VM_INTERLACED_TOP;
+  case VideoModeType::VIDEO_MODE_ALTERNATE_BOTTOM_TOP_FIELD: return AL_VM_INTERLACED_BOTTOM;
+  case VideoModeType::VIDEO_MODE_MAX_ENUM: return AL_VM_MAX_ENUM;
+  default: return AL_VM_MAX_ENUM;
+  }
+
+  return AL_VM_MAX_ENUM;
+}
+
+SequencePictureModeType ConvertSoftToModuleSequenceMode(AL_ESequenceMode sequenceMode)
+{
+  switch(sequenceMode)
+  {
+  case AL_SM_UNKNOWN: return SequencePictureModeType::SEQUENCE_PICTURE_MODE_UNKNOWN;
+  case AL_SM_PROGRESSIVE: return SequencePictureModeType::SEQUENCE_PICTURE_MODE_FRAME;
+  case AL_SM_INTERLACED: return SequencePictureModeType::SEQUENCE_PICTURE_MODE_FIELD;
+  case AL_SM_MAX_ENUM: return SequencePictureModeType::SEQUENCE_PICTURE_MODE_MAX_ENUM;
+  default: return SequencePictureModeType::SEQUENCE_PICTURE_MODE_MAX_ENUM;
+  }
+
+  return SequencePictureModeType::SEQUENCE_PICTURE_MODE_MAX_ENUM;
+}
+
+AL_ESequenceMode ConvertModuleToSoftSequenceMode(SequencePictureModeType sequenceMode)
+{
+  switch(sequenceMode)
+  {
+  case SequencePictureModeType::SEQUENCE_PICTURE_MODE_UNKNOWN: return AL_SM_UNKNOWN;
+  case SequencePictureModeType::SEQUENCE_PICTURE_MODE_FRAME: return AL_SM_PROGRESSIVE;
+  case SequencePictureModeType::SEQUENCE_PICTURE_MODE_FIELD: return AL_SM_INTERLACED;
+  case SequencePictureModeType::SEQUENCE_PICTURE_MODE_MAX_ENUM: return AL_SM_MAX_ENUM;
+  default: return AL_SM_MAX_ENUM;
+  }
+
+  return AL_SM_MAX_ENUM;
 }
 

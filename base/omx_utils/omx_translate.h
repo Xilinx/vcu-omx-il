@@ -338,6 +338,12 @@ static std::map<OMX_INDEXTYPE, const char*> ToStringOMXIndex =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoGroupOfPictures), "OMX_ALG_IndexConfigVideoGroupOfPictures" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoRegionOfInterest), "OMX_ALG_IndexConfigVideoRegionOfInterest" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoNotifySceneChange), "OMX_ALG_IndexConfigVideoNotifySceneChange" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertLongTerm), "OMX_ALG_IndexConfigVideoInsertLongTerm" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoUseLongTerm), "OMX_ALG_IndexConfigVideoUseLongTerm" },
+
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexVendorCommonStartUnused), "OMX_ALG_IndexVendorCommonStartUnused" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamCommonSequencePictureModeCurrent), "OMX_ALG_IndexParamCommonSequencePictureModeCurrent" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamCommonSequencePictureModeQuerySupported), "OMX_ALG_IndexParamCommonSequencePictureModeQuerySupported" },
 
   { OMX_IndexMax, "OMX_IndexMax" },
 };

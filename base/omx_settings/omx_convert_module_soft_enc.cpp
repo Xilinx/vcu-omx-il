@@ -37,7 +37,7 @@
 
 #include "omx_convert_module_soft_enc.h"
 
-RateControlType ConvertSoftToModuleRateControl(AL_ERateCtrlMode const& mode)
+RateControlType ConvertSoftToModuleRateControl(AL_ERateCtrlMode mode)
 {
   switch(mode)
   {
@@ -52,7 +52,7 @@ RateControlType ConvertSoftToModuleRateControl(AL_ERateCtrlMode const& mode)
   return RateControlType::RATE_CONTROL_MAX_ENUM;
 }
 
-AspectRatioType ConvertSoftToModuleAspectRatio(AL_EAspectRatio const& aspectRatio)
+AspectRatioType ConvertSoftToModuleAspectRatio(AL_EAspectRatio aspectRatio)
 {
   switch(aspectRatio)
   {
@@ -67,7 +67,7 @@ AspectRatioType ConvertSoftToModuleAspectRatio(AL_EAspectRatio const& aspectRati
   return AspectRatioType::ASPECT_RATIO_MAX_ENUM;
 }
 
-GopControlType ConvertSoftToModuleGopControl(AL_EGopCtrlMode const& mode)
+GopControlType ConvertSoftToModuleGopControl(AL_EGopCtrlMode mode)
 {
   switch(mode)
   {
@@ -83,7 +83,7 @@ GopControlType ConvertSoftToModuleGopControl(AL_EGopCtrlMode const& mode)
   return GopControlType::GOP_CONTROL_MAX_ENUM;
 }
 
-GdrType ConvertSoftToModuleGdr(AL_EGdrMode const& gdr)
+GdrType ConvertSoftToModuleGdr(AL_EGdrMode gdr)
 {
   switch(gdr)
   {
@@ -97,7 +97,7 @@ GdrType ConvertSoftToModuleGdr(AL_EGdrMode const& gdr)
   return GdrType::GDR_MAX_ENUM;
 }
 
-RateControlOptionType ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption const& option)
+RateControlOptionType ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption option)
 {
   switch(option)
   {
@@ -110,7 +110,7 @@ RateControlOptionType ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption co
   return RateControlOptionType::RATE_CONTROL_OPTION_MAX_ENUM;
 }
 
-QPControlType ConvertSoftToModuleQPControl(AL_EQpCtrlMode const& mode)
+QPControlType ConvertSoftToModuleQPControl(AL_EQpCtrlMode mode)
 {
   switch(mode)
   {
@@ -124,7 +124,7 @@ QPControlType ConvertSoftToModuleQPControl(AL_EQpCtrlMode const& mode)
   return QPControlType::QP_MAX_ENUM;
 }
 
-ScalingListType ConvertSoftToModuleScalingList(AL_EScalingList const& scalingList)
+ScalingListType ConvertSoftToModuleScalingList(AL_EScalingList scalingList)
 {
   switch(scalingList)
   {
@@ -137,21 +137,7 @@ ScalingListType ConvertSoftToModuleScalingList(AL_EScalingList const& scalingLis
   return ScalingListType::SCALING_LIST_MAX_ENUM;
 }
 
-VideoModeType ConvertSoftToModuleVideoMode(AL_EVideoMode const& videoMode)
-{
-  switch(videoMode)
-  {
-  case AL_VM_PROGRESSIVE: return VideoModeType::VIDEO_MODE_PROGRESSIVE;
-  case AL_VM_INTERLACED_TOP: return VideoModeType::VIDEO_MODE_ALTERNATE_TOP_BOTTOM_FIELD;
-  case AL_VM_INTERLACED_BOTTOM: return VideoModeType::VIDEO_MODE_ALTERNATE_BOTTOM_TOP_FIELD;
-  case AL_VM_MAX_ENUM: return VideoModeType::VIDEO_MODE_MAX_ENUM;
-  default: return VideoModeType::VIDEO_MODE_MAX_ENUM;
-  }
-
-  return VideoModeType::VIDEO_MODE_MAX_ENUM;
-}
-
-AL_ERateCtrlMode ConvertModuleToSoftRateControl(RateControlType const& mode)
+AL_ERateCtrlMode ConvertModuleToSoftRateControl(RateControlType mode)
 {
   switch(mode)
   {
@@ -166,7 +152,7 @@ AL_ERateCtrlMode ConvertModuleToSoftRateControl(RateControlType const& mode)
   return AL_RC_MAX_ENUM;
 }
 
-AL_EAspectRatio ConvertModuleToSoftAspectRatio(AspectRatioType const& aspectRatio)
+AL_EAspectRatio ConvertModuleToSoftAspectRatio(AspectRatioType aspectRatio)
 {
   switch(aspectRatio)
   {
@@ -181,7 +167,7 @@ AL_EAspectRatio ConvertModuleToSoftAspectRatio(AspectRatioType const& aspectRati
   return AL_ASPECT_RATIO_NONE;
 }
 
-AL_EGopCtrlMode ConvertModuleToSoftGopControl(GopControlType const& mode)
+AL_EGopCtrlMode ConvertModuleToSoftGopControl(GopControlType mode)
 {
   switch(mode)
   {
@@ -197,7 +183,7 @@ AL_EGopCtrlMode ConvertModuleToSoftGopControl(GopControlType const& mode)
   return AL_GOP_MODE_MAX_ENUM;
 }
 
-AL_EScalingList ConvertModuleToSoftScalingList(ScalingListType const& scalingList)
+AL_EScalingList ConvertModuleToSoftScalingList(ScalingListType scalingList)
 {
   switch(scalingList)
   {
@@ -210,7 +196,7 @@ AL_EScalingList ConvertModuleToSoftScalingList(ScalingListType const& scalingLis
   return AL_SCL_MAX_ENUM;
 }
 
-AL_EGdrMode ConvertModuleToSoftGdr(GdrType const& gdr)
+AL_EGdrMode ConvertModuleToSoftGdr(GdrType gdr)
 {
   switch(gdr)
   {
@@ -224,7 +210,7 @@ AL_EGdrMode ConvertModuleToSoftGdr(GdrType const& gdr)
   return AL_GDR_MAX_ENUM;
 }
 
-AL_ERateCtrlOption ConvertModuleToSoftRateControlOption(RateControlOptionType const& option)
+AL_ERateCtrlOption ConvertModuleToSoftRateControlOption(RateControlOptionType option)
 {
   switch(option)
   {
@@ -236,7 +222,7 @@ AL_ERateCtrlOption ConvertModuleToSoftRateControlOption(RateControlOptionType co
   return AL_RC_OPT_MAX_ENUM;
 }
 
-AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType const& mode)
+AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType mode)
 {
   switch(mode)
   {
@@ -250,21 +236,7 @@ AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType const& mode)
   return QP_MAX_ENUM;
 }
 
-AL_EVideoMode ConvertModuleToSoftVideoMode(VideoModeType const& videoMode)
-{
-  switch(videoMode)
-  {
-  case VideoModeType::VIDEO_MODE_PROGRESSIVE: return AL_VM_PROGRESSIVE;
-  case VideoModeType::VIDEO_MODE_ALTERNATE_TOP_BOTTOM_FIELD: return AL_VM_INTERLACED_TOP;
-  case VideoModeType::VIDEO_MODE_ALTERNATE_BOTTOM_TOP_FIELD: return AL_VM_INTERLACED_BOTTOM;
-  case VideoModeType::VIDEO_MODE_MAX_ENUM: return AL_VM_MAX_ENUM;
-  default: return AL_VM_MAX_ENUM;
-  }
-
-  return AL_VM_MAX_ENUM;
-}
-
-LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncOption const& option)
+LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncOption option)
 {
   auto loopFilterFlags = AL_OPT_LF | AL_OPT_LF_X_SLICE | AL_OPT_LF_X_TILE;
   auto loopFilterOptions = option & loopFilterFlags;
@@ -287,7 +259,7 @@ LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncOption const& option)
   return LoopFilterType::LOOP_FILTER_MAX_ENUM;
 }
 
-AL_EChEncOption ConvertModuleToSoftLoopFilter(LoopFilterType const& loopFilter)
+AL_EChEncOption ConvertModuleToSoftLoopFilter(LoopFilterType loopFilter)
 {
   switch(loopFilter)
   {

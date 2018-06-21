@@ -171,7 +171,7 @@ class Codec : public OMXBase
 {
 public:
   Codec(OMX_HANDLETYPE component, std::shared_ptr<MediatypeInterface> media, std::unique_ptr<ModuleInterface>&& module, OMX_STRING name, OMX_STRING role);
-  ~Codec();
+  ~Codec() override;
   OMX_ERRORTYPE SendCommand(OMX_IN OMX_COMMANDTYPE cmd, OMX_IN OMX_U32 param, OMX_IN OMX_PTR data) override;
 
   OMX_ERRORTYPE EmptyThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header) override;
@@ -298,7 +298,7 @@ inline bool IsInputPort(int index)
 
 static inline void CheckVersionExistance(OMX_PTR ptr)
 {
-  auto const size = *static_cast<OMX_U32*>(ptr);
+  auto size = *static_cast<OMX_U32*>(ptr);
 
   if(size < (sizeof(OMX_U32) + sizeof(OMX_VERSIONTYPE)))
     throw OMX_ErrorBadParameter;

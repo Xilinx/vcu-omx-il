@@ -45,7 +45,7 @@ extern "C"
 
 EncDeviceHardwareMcu::~EncDeviceHardwareMcu() = default;
 
-TScheduler* EncDeviceHardwareMcu::Init(AL_TEncSettings const &, AL_TAllocator const& allocator)
+TScheduler* EncDeviceHardwareMcu::Init(AL_TEncSettings, AL_TAllocator const& allocator)
 {
   return AL_SchedulerMcu_Create(AL_GetHardwareDriver(), &const_cast<AL_TAllocator &>(allocator));
 }

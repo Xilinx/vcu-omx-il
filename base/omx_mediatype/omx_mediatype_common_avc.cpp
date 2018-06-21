@@ -40,13 +40,13 @@
 
 using namespace std;
 
-vector<ProfileLevelType> CreateAVCProfileLevelSupported(vector<AVCProfileType> const& profiles, vector<int> const& levels)
+vector<ProfileLevelType> CreateAVCProfileLevelSupported(vector<AVCProfileType> profiles, vector<int> levels)
 {
   vector<ProfileLevelType> plSupported;
 
-  for(auto const& profile : profiles)
+  for(auto profile : profiles)
   {
-    for(auto const& level : levels)
+    for(auto level : levels)
     {
       ProfileLevelType pl;
       pl.profile.avc = profile;
@@ -58,7 +58,7 @@ vector<ProfileLevelType> CreateAVCProfileLevelSupported(vector<AVCProfileType> c
   return plSupported;
 }
 
-ProfileLevelType CreateAVCProfileLevel(AL_EProfile const& profile, int level)
+ProfileLevelType CreateAVCProfileLevel(AL_EProfile profile, int level)
 {
   ProfileLevelType pl;
   pl.profile.avc = ConvertSoftToModuleAVCProfile(profile);

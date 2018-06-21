@@ -37,16 +37,10 @@
 
 #pragma once
 
-#include <mutex>
-#include <condition_variable>
-
 extern "C"
 {
 #include <lib_common/BufferAPI.h>
 }
-
-template<typename T>
-using deleted_unique_ptr = std::unique_ptr<T, std::function<void(T*)>>;
 
 struct EOSHandles
 {

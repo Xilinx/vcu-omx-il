@@ -62,6 +62,7 @@ extern "C"
 #include <OMX_VideoExt.h>
 #include <OMX_ComponentExt.h>
 #include <OMX_IndexAlg.h>
+#include <OMX_IVCommonAlg.h>
 }
 
 #include "base/omx_utils/locked_queue.h"
@@ -214,6 +215,7 @@ struct Settings
   OMX_U32 level = OMX_VIDEO_HEVCLevelUnknown;
   OMX_U32 profile = OMX_VIDEO_HEVCProfileUnknown;
   OMX_U32 framerate = 1 << 16;
+  OMX_ALG_SEQUENCE_PICTURE_MODE sequencePicture = OMX_ALG_SEQUENCE_PICTURE_FRAME;
   bool hasPrealloc = false;
 };
 
@@ -272,7 +274,20 @@ void getExpectedSeparator(stringstream& ss, char expectedSep)
   ss >> sep;
 
   if(sep != expectedSep)
-    throw runtime_error("wrong separator in prealloc arguments format");
+    throw runtime_error("wrong separator in prealloc separator");
+}
+
+bool setSequence(string user_seq, OMX_ALG_SEQUENCE_PICTURE_MODE* seqpicture)
+{
+  if(user_seq == "UNKWN")
+    *seqpicture = OMX_ALG_SEQUENCE_PICTURE_UNKNOWN;
+  else if(user_seq == "PROGR")
+    *seqpicture = OMX_ALG_SEQUENCE_PICTURE_FRAME;
+  else if(user_seq == "INTER")
+    *seqpicture = OMX_ALG_SEQUENCE_PICTURE_FIELD;
+  else
+    return false;
+  return true;
 }
 
 bool invalidPreallocSettings(Settings const& settings)
@@ -286,11 +301,19 @@ void parsePreAllocArgs(Settings* settings, string& toParse)
   stringstream ss(toParse);
   ss.unsetf(ios::dec);
   ss.unsetf(ios::hex);
-  char chroma[5] {};
   ss >> settings->width;
   getExpectedSeparator(ss, 'x');
   ss >> settings->height;
   getExpectedSeparator(ss, ':');
+  char seq[6] {};
+  ss >> seq[0];
+  ss >> seq[1];
+  ss >> seq[2];
+  ss >> seq[3];
+  ss >> seq[4];
+  seq[5] = '\0';
+  getExpectedSeparator(ss, ':');
+  char chroma[5] {};
   ss >> chroma[0];
   ss >> chroma[1];
   ss >> chroma[2];
@@ -303,6 +326,9 @@ void parsePreAllocArgs(Settings* settings, string& toParse)
 
   if(!setChroma(chroma, &settings->chroma))
     throw runtime_error("wrong prealloc chroma format");
+
+  if(!setSequence(seq, &settings->sequencePicture))
+    throw runtime_error("wrong prealloc sequence picture format");
 
   if(ss.fail() || ss.tellg() != streampos(-1))
     throw runtime_error("wrong prealloc arguments format");
@@ -795,6 +821,17 @@ OMX_ERRORTYPE setFormat(Application& app)
   return OMX_ErrorNone;
 }
 
+OMX_ERRORTYPE setSequencePicture(Application& app)
+{
+  OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE param;
+  initHeader(param);
+  param.nPortIndex = 0;
+  OMX_CALL(OMX_GetParameter(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamCommonSequencePictureModeCurrent), &param));
+  param.eMode = app.settings.sequencePicture;
+  OMX_CALL(OMX_SetParameter(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamCommonSequencePictureModeCurrent), &param));
+  return OMX_ErrorNone;
+}
+
 OMX_ERRORTYPE setPreallocParameters(Application& app)
 {
   OMX_ERRORTYPE error = setProfileAndLevel(app);
@@ -808,6 +845,11 @@ OMX_ERRORTYPE setPreallocParameters(Application& app)
     return error;
 
   error = setFormat(app);
+
+  if(error != OMX_ErrorNone)
+    return error;
+
+  error = setSequencePicture(app);
 
   if(error != OMX_ErrorNone)
     return error;
@@ -834,6 +876,7 @@ OMX_ERRORTYPE setWorstCaseParameters(Application& app)
 
   settings.framerate = 1 << 16;
   settings.chroma = OMX_COLOR_FormatYUV422SemiPlanar;
+  settings.sequencePicture = OMX_ALG_SEQUENCE_PICTURE_UNKNOWN;
 
   return setPreallocParameters(app);
 }

@@ -41,8 +41,8 @@
 static bool SetModuleProfileLevel(OMX_ALG_VIDEO_HEVCPROFILETYPE const& profile, OMX_ALG_VIDEO_HEVCLEVELTYPE const& level, DecModule& module)
 {
   ProfileLevelType p;
-  p.profile.hevc = ConvertToModuleHEVCProfileLevel(profile, level).profile.hevc;
-  p.level = ConvertToModuleHEVCProfileLevel(profile, level).level;
+  p.profile.hevc = ConvertOMXToModuleHEVCProfileLevel(profile, level).profile.hevc;
+  p.level = ConvertOMXToModuleHEVCProfileLevel(profile, level).level;
   return module.SetProfileLevel(p);
 }
 
@@ -54,8 +54,8 @@ bool DecExpertiseHEVC::GetProfileLevelSupported(OMX_PTR param, DecModule const& 
   if(pl.nProfileIndex >= supported.size())
     return false;
 
-  pl.eProfile = ConvertToOMXHEVCProfile(supported[pl.nProfileIndex]);
-  pl.eLevel = ConvertToOMXHEVCLevel(supported[pl.nProfileIndex]);
+  pl.eProfile = ConvertModuleToOMXHEVCProfile(supported[pl.nProfileIndex]);
+  pl.eLevel = ConvertModuleToOMXHEVCLevel(supported[pl.nProfileIndex]);
 
   return true;
 }
@@ -64,17 +64,17 @@ void DecExpertiseHEVC::GetProfileLevel(OMX_PTR param, Port const& port, DecModul
 {
   auto& pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
   pl.nPortIndex = port.index;
-  pl.eProfile = ConvertToOMXHEVCProfile(module.GetProfileLevel());
-  pl.eLevel = ConvertToOMXHEVCLevel(module.GetProfileLevel());
+  pl.eProfile = ConvertModuleToOMXHEVCProfile(module.GetProfileLevel());
+  pl.eLevel = ConvertModuleToOMXHEVCLevel(module.GetProfileLevel());
 }
 
 bool DecExpertiseHEVC::SetProfileLevel(OMX_PTR param, Port const& port, DecModule& module)
 {
   OMX_VIDEO_PARAM_PROFILELEVELTYPE rollback;
   GetProfileLevel(&rollback, port, module);
-  auto const pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
-  auto const profile = static_cast<OMX_ALG_VIDEO_HEVCPROFILETYPE>(pl.eProfile);
-  auto const level = static_cast<OMX_ALG_VIDEO_HEVCLEVELTYPE>(pl.eLevel);
+  auto pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
+  auto profile = static_cast<OMX_ALG_VIDEO_HEVCPROFILETYPE>(pl.eProfile);
+  auto level = static_cast<OMX_ALG_VIDEO_HEVCLEVELTYPE>(pl.eLevel);
 
   if(!SetModuleProfileLevel(profile, level, module))
   {
@@ -91,8 +91,8 @@ void DecExpertiseHEVC::GetExpertise(OMX_PTR param, Port const& port, DecModule c
   hevc.nPortIndex = port.index;
   hevc.nBFrames = 0; // XXX
   hevc.nPFrames = 0; // XXX
-  hevc.eProfile = ConvertToOMXHEVCProfile(module.GetProfileLevel());
-  hevc.eLevel = ConvertToOMXHEVCLevel(module.GetProfileLevel());
+  hevc.eProfile = ConvertModuleToOMXHEVCProfile(module.GetProfileLevel());
+  hevc.eLevel = ConvertModuleToOMXHEVCLevel(module.GetProfileLevel());
   hevc.bConstIpred = OMX_FALSE; // XXX
   hevc.eLoopFilterMode = OMX_ALG_VIDEO_HEVCLoopFilterMaxEnum; // XXX
 }
@@ -101,7 +101,7 @@ bool DecExpertiseHEVC::SetExpertise(OMX_PTR param, Port const& port, DecModule& 
 {
   OMX_ALG_VIDEO_PARAM_HEVCTYPE rollback;
   GetExpertise(&rollback, port, module);
-  auto const hevc = *(OMX_ALG_VIDEO_PARAM_HEVCTYPE*)param;
+  auto hevc = *(OMX_ALG_VIDEO_PARAM_HEVCTYPE*)param;
 
   if(!SetModuleProfileLevel(hevc.eProfile, hevc.eLevel, module))
   {

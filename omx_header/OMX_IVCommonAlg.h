@@ -23,7 +23,7 @@
  */
 
 /**
- * @file OMX_IVCommon.h - OpenMax IL version 1.1.2
+ * @file OMX_IVCommonAlg.h
  *  The structures needed by Video and Image components to exchange
  *  parameters and configuration data with the components.
  */
@@ -60,6 +60,27 @@ typedef struct OMX_INTERLACEFORMATTYPE {
     OMX_U32 nFormat;
     OMX_TICKS nTimeStamp;
 } OMX_INTERLACEFORMATTYPE;
+
+typedef enum OMX_ALG_SEQUENCE_PICTURE_MODE
+{
+  OMX_ALG_SEQUENCE_PICTURE_UNKNOWN,
+  OMX_ALG_SEQUENCE_PICTURE_FRAME,
+  OMX_ALG_SEQUENCE_PICTURE_FIELD,
+  OMX_ALG_SEQUENCE_PICTURE_FRAME_AND_FIELD,
+  OMX_ALG_SEQUENCE_PICTURE_MAX_ENUM = 0x7FFFFFFF,
+}OMX_ALG_SEQUENCE_PICTURE_MODE;
+
+typedef struct OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_ALG_SEQUENCE_PICTURE_MODE eMode;
+  OMX_U32 nModeIndex;  /**< Used to query for individual profile support information,
+                               This parameter is valid only for
+                               OMX_ALG_IndexParamCommonSequencePictureModeQuerySupported index.
+                               For all other indices this parameter is to be ignored. */
+} OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE;
 
 /** @} */
 

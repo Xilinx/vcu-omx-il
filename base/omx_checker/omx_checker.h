@@ -39,7 +39,7 @@
 
 #include <OMX_Types.h>
 #include <OMX_Core.h>
-#include <string.h>
+#include <cstring>
 
 enum AL_ComponentMethods
 {
@@ -64,9 +64,8 @@ enum AL_ComponentMethods
 };
 
 /*****************************************************************************/
-class OMXChecker
+struct OMXChecker
 {
-public:
   /*************************************************************************//*!
      \brief  The CheckStateOperation method test if the OMX_Method can be called in the
             current state
@@ -75,14 +74,14 @@ public:
      \throw  OMX_ErrorInvalidState if the current state is invalid
              OMX_ErrorIncorrectStateOperation otherwise
   *****************************************************************************/
-  static void CheckStateOperation(const AL_ComponentMethods methodName, const OMX_STATETYPE curState);
+  static void CheckStateOperation(AL_ComponentMethods methodName, OMX_STATETYPE curState);
 
   /*************************************************************************//*!
      \brief  The CheckStateExistance method test if the state exist
      \param[in]  state
      \throw  OMX_ErrorBadParameter if the state doesn't exist
   *****************************************************************************/
-  static void CheckStateExistance(const OMX_STATETYPE state);
+  static void CheckStateExistance(OMX_STATETYPE state);
 
   /*************************************************************************//*!
      \brief  The CheckStateTransition method test if the transition between old state
@@ -92,7 +91,7 @@ public:
      \throw OMX_ErrorSameState if the new state equal the current state
             OMX_ErrorIncorrectStateTransition otherwise
   *****************************************************************************/
-  static void CheckStateTransition(const OMX_STATETYPE curState, const OMX_STATETYPE newState);
+  static void CheckStateTransition(OMX_STATETYPE curState, OMX_STATETYPE newState);
 
   /*************************************************************************//*!
      \brief  The CheckNotNull method test if the parameter send is not null
@@ -143,7 +142,7 @@ public:
   *****************************************************************************/
   static
   inline
-  void CheckHeaderVersion(OMX_VERSIONTYPE const version)
+  void CheckHeaderVersion(OMX_VERSIONTYPE version)
   {
     if(version.nVersion != OMX_VERSION)
       throw OMX_ErrorVersionMismatch;

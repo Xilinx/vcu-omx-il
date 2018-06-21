@@ -39,13 +39,13 @@
 
 using namespace std;
 
-vector<Format> CreateFormatsSupported(vector<ColorType> const& colors, vector<int> const& bitdepths)
+vector<Format> CreateFormatsSupported(vector<ColorType> colors, vector<int> bitdepths)
 {
   vector<Format> formatsSupported;
 
-  for(auto const& color : colors)
+  for(auto color : colors)
   {
-    for(auto const& bitdepth : bitdepths)
+    for(auto bitdepth : bitdepths)
     {
       Format format;
       format.color = color;

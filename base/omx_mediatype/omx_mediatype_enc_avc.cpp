@@ -40,9 +40,10 @@
 #include "omx_mediatype_common.h"
 #include "omx_mediatype_common_avc.h"
 #include "base/omx_settings/omx_convert_module_soft_avc.h"
-#include "base/omx_utils/roundup.h"
+#include "base/omx_utils/round.h"
 #include "base/omx_settings/omx_convert_module_soft_enc.h"
 #include "base/omx_settings/omx_convert_module_soft.h"
+#include "omx_mediatype_checks.h"
 #include <cmath>
 
 extern "C"
@@ -88,41 +89,19 @@ void EncMediatypeAVC::Reset()
 
 ProfileLevelType EncMediatypeAVC::ProfileLevel() const
 {
-  auto const chan = settings.tChParam[0];
+  auto chan = settings.tChParam[0];
   return CreateAVCProfileLevel(chan.eProfile, chan.uLevel);
 }
 
-bool EncMediatypeAVC::IsInProfilesSupported(AVCProfileType const& profile)
+bool EncMediatypeAVC::SetProfileLevel(ProfileLevelType profileLevel)
 {
-  for(auto const& p : profiles)
-  {
-    if(p == profile)
-      return true;
-  }
-
-  return false;
-}
-
-bool EncMediatypeAVC::IsInLevelsSupported(int level)
-{
-  for(auto const& l : levels)
-  {
-    if(l == level)
-      return true;
-  }
-
-  return false;
-}
-
-bool EncMediatypeAVC::SetProfileLevel(ProfileLevelType const& profileLevel)
-{
-  if(!IsInProfilesSupported(profileLevel.profile.avc))
+  if(!IsSupported(profileLevel.profile.avc, profiles))
     return false;
 
-  if(!IsInLevelsSupported(profileLevel.level))
+  if(!IsSupported(profileLevel.level, levels))
     return false;
 
-  auto const profile = ConvertModuleToSoftAVCProfile(profileLevel.profile.avc);
+  auto profile = ConvertModuleToSoftAVCProfile(profileLevel.profile.avc);
 
   if(profile == AL_PROFILE_AVC)
     return false;
@@ -149,17 +128,17 @@ static Mimes CreateMimes()
   return mimes;
 }
 
-static int CreateLatency(AL_TEncSettings const& settings)
+static int CreateLatency(AL_TEncSettings settings)
 {
-  auto const channel = settings.tChParam[0];
-  auto const rateCtrl = channel.tRCParam;
-  auto const gopParam = channel.tGopParam;
+  auto channel = settings.tChParam[0];
+  auto rateCtrl = channel.tRCParam;
+  auto gopParam = channel.tGopParam;
 
-  auto const intermediate = 1;
-  auto const buffer = 1;
-  auto const buffers = buffer + intermediate + gopParam.uNumB;
+  auto intermediate = 1;
+  auto buffer = 1;
+  auto buffers = buffer + intermediate + gopParam.uNumB;
 
-  auto const realFramerate = (static_cast<double>(rateCtrl.uFrameRate * rateCtrl.uClkRatio) / 1000.0);
+  auto realFramerate = (static_cast<double>(rateCtrl.uFrameRate * rateCtrl.uClkRatio) / 1000.0);
   auto timeInMilliseconds = (static_cast<double>(buffers * 1000.0) / realFramerate);
 
   if(channel.bSubframeLatency)
@@ -171,31 +150,31 @@ static int CreateLatency(AL_TEncSettings const& settings)
   return ceil(timeInMilliseconds);
 }
 
-static bool CreateLowBandwidth(AL_TEncSettings const& settings)
+static bool CreateLowBandwidth(AL_TEncSettings settings)
 {
-  auto const channel = settings.tChParam[0];
+  auto channel = settings.tChParam[0];
   return channel.pMeRange[SLICE_P][1] == 8;
 }
 
-static bool UpdateLowBandwidth(AL_TEncSettings& settings, bool const& isLowBandwidthEnabled)
+static bool UpdateLowBandwidth(AL_TEncSettings& settings, bool isLowBandwidthEnabled)
 {
   auto& channel = settings.tChParam[0];
   channel.pMeRange[SLICE_P][1] = isLowBandwidthEnabled ? 8 : 16;
   return true;
 }
 
-static EntropyCodingType CreateEntropyCoding(AL_TEncSettings const& settings)
+static EntropyCodingType CreateEntropyCoding(AL_TEncSettings settings)
 {
-  auto const channel = settings.tChParam[0];
+  auto channel = settings.tChParam[0];
   return ConvertSoftToModuleEntropyCoding(channel.eEntropyMode);
 }
 
-static bool CheckEntropyCoding(EntropyCodingType const& entropyCoding)
+static bool CheckEntropyCoding(EntropyCodingType entropyCoding)
 {
   return entropyCoding != EntropyCodingType::ENTROPY_CODING_MAX_ENUM;
 }
 
-static bool UpdateEntropyCoding(AL_TEncSettings& settings, EntropyCodingType const& entropyCoding)
+static bool UpdateEntropyCoding(AL_TEncSettings& settings, EntropyCodingType entropyCoding)
 {
   if(!CheckEntropyCoding(entropyCoding))
     return false;
@@ -205,33 +184,33 @@ static bool UpdateEntropyCoding(AL_TEncSettings& settings, EntropyCodingType con
   return true;
 }
 
-static BufferCounts CreateBufferCounts(AL_TEncSettings const& settings)
+static BufferCounts CreateBufferCounts(AL_TEncSettings settings)
 {
   BufferCounts bufferCounts;
-  auto const channel = settings.tChParam[0];
-  auto const gopParam = channel.tGopParam;
+  auto channel = settings.tChParam[0];
+  auto gopParam = channel.tGopParam;
 
-  auto const intermediate = 1;
-  auto const buffer = 1;
-  auto const buffers = buffer + intermediate + gopParam.uNumB;
+  auto intermediate = 1;
+  auto buffer = 1;
+  auto buffers = buffer + intermediate + gopParam.uNumB;
 
   bufferCounts.input = bufferCounts.output = buffers;
 
   if(channel.bSubframeLatency)
   {
-    auto const numSlices = channel.uNumSlices;
+    auto numSlices = channel.uNumSlices;
     bufferCounts.output *= numSlices;
   }
   return bufferCounts;
 }
 
-static LoopFilterType CreateLoopFilter(AL_TEncSettings const& settings)
+static LoopFilterType CreateLoopFilter(AL_TEncSettings settings)
 {
-  auto const channel = settings.tChParam[0];
+  auto channel = settings.tChParam[0];
   return ConvertSoftToModuleLoopFilter(channel.eOptions);
 }
 
-static bool CheckLoopFilter(LoopFilterType const& loopFilter)
+static bool CheckLoopFilter(LoopFilterType loopFilter)
 {
   if(loopFilter == LoopFilterType::LOOP_FILTER_MAX_ENUM)
     return false;
@@ -245,7 +224,7 @@ static bool CheckLoopFilter(LoopFilterType const& loopFilter)
   return true;
 }
 
-static bool UpdateLoopFilter(AL_TEncSettings& settings, LoopFilterType const& loopFilter)
+static bool UpdateLoopFilter(AL_TEncSettings& settings, LoopFilterType loopFilter)
 {
   if(!CheckLoopFilter(loopFilter))
     return false;
@@ -391,7 +370,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_CLOCK")
   {
-    auto const clock = *(static_cast<Clock const*>(settings));
+    auto clock = *(static_cast<Clock const*>(settings));
 
     if(!UpdateClock(this->settings, clock))
       return ERROR_SETTINGS_BAD_PARAMETER;
@@ -400,7 +379,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_GROUP_OF_PICTURES")
   {
-    auto const gop = *(static_cast<Gop const*>(settings));
+    auto gop = *(static_cast<Gop const*>(settings));
 
     if(!UpdateGroupOfPictures(this->settings, gop))
       return ERROR_SETTINGS_BAD_PARAMETER;
@@ -409,7 +388,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_LOW_BANDWIDTH")
   {
-    auto const isLowBandwidthEnabled = *(static_cast<bool const*>(settings));
+    auto isLowBandwidthEnabled = *(static_cast<bool const*>(settings));
 
     if(!UpdateLowBandwidth(this->settings, isLowBandwidthEnabled))
       return ERROR_SETTINGS_BAD_PARAMETER;
@@ -418,7 +397,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_CONSTRAINED_INTRA_PREDICTION")
   {
-    auto const isConstrainedIntraPredictionEnabled = *(static_cast<bool const*>(settings));
+    auto isConstrainedIntraPredictionEnabled = *(static_cast<bool const*>(settings));
 
     if(!UpdateConstrainedIntraPrediction(this->settings, isConstrainedIntraPredictionEnabled))
       return ERROR_SETTINGS_BAD_PARAMETER;
@@ -427,7 +406,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_ENTROPY_CODING")
   {
-    auto const entropyCoding = *(static_cast<EntropyCodingType const*>(settings));
+    auto entropyCoding = *(static_cast<EntropyCodingType const*>(settings));
 
     if(!UpdateEntropyCoding(this->settings, entropyCoding))
       return ERROR_SETTINGS_BAD_PARAMETER;
@@ -436,7 +415,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_VIDEO_MODE")
   {
-    auto const videoMode = *(static_cast<VideoModeType const*>(settings));
+    auto videoMode = *(static_cast<VideoModeType const*>(settings));
 
     if(!UpdateVideoMode(this->settings, videoMode))
       return ERROR_SETTINGS_BAD_PARAMETER;
@@ -445,7 +424,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_BITRATE")
   {
-    auto const bitrate = *(static_cast<Bitrate const*>(settings));
+    auto bitrate = *(static_cast<Bitrate const*>(settings));
 
     if(!UpdateBitrate(this->settings, bitrate))
       return ERROR_SETTINGS_BAD_PARAMETER;
@@ -454,7 +433,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_CACHE_LEVEL2")
   {
-    auto const isCacheLevel2Enabled = *(static_cast<bool const*>(settings));
+    auto isCacheLevel2Enabled = *(static_cast<bool const*>(settings));
 
     if(!UpdateCacheLevel2(this->settings, isCacheLevel2Enabled))
       return ERROR_SETTINGS_BAD_PARAMETER;
@@ -463,7 +442,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_FILLER_DATA")
   {
-    auto const isFillerDataEnabled = *(static_cast<bool const*>(settings));
+    auto isFillerDataEnabled = *(static_cast<bool const*>(settings));
 
     if(!UpdateFillerData(this->settings, isFillerDataEnabled))
       return ERROR_SETTINGS_BAD_PARAMETER;
@@ -472,7 +451,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_ASPECT_RATIO")
   {
-    auto const aspectRatio = *(static_cast<AspectRatioType const*>(settings));
+    auto aspectRatio = *(static_cast<AspectRatioType const*>(settings));
 
     if(!UpdateAspectRatio(this->settings, aspectRatio))
       return ERROR_SETTINGS_BAD_PARAMETER;
@@ -481,7 +460,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_SCALING_LIST")
   {
-    auto const scalingList = *(static_cast<ScalingListType const*>(settings));
+    auto scalingList = *(static_cast<ScalingListType const*>(settings));
 
     if(!UpdateScalingList(this->settings, scalingList))
       return ERROR_SETTINGS_BAD_PARAMETER;
@@ -490,7 +469,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_QUANTIZATION_PARAMETER")
   {
-    auto const qps = *(static_cast<QPs const*>(settings));
+    auto qps = *(static_cast<QPs const*>(settings));
 
     if(!UpdateQuantizationParameter(this->settings, qps))
       return ERROR_SETTINGS_BAD_PARAMETER;
@@ -499,7 +478,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_LOOP_FILTER")
   {
-    auto const loopFilter = *(static_cast<LoopFilterType const*>(settings));
+    auto loopFilter = *(static_cast<LoopFilterType const*>(settings));
 
     if(!UpdateLoopFilter(this->settings, loopFilter))
       return ERROR_SETTINGS_BAD_PARAMETER;
@@ -509,7 +488,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_SLICE_PARAMETER")
   {
-    auto const slices = *(static_cast<Slices const*>(settings));
+    auto slices = *(static_cast<Slices const*>(settings));
 
     if(!UpdateSlicesParameter(this->settings, slices))
       return ERROR_SETTINGS_BAD_PARAMETER;

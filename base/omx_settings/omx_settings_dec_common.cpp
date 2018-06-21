@@ -40,33 +40,32 @@
 #include "omx_convert_module_soft_dec.h"
 #include "omx_settings_utils.h"
 #include "omx_settings_checks.h"
-
-#include "base/omx_utils/roundup.h"
+#include "base/omx_utils/round.h"
+#include <cassert>
+#include <cmath>
 
 extern "C"
 {
 #include <lib_common/StreamBuffer.h>
 }
 
-#include <cmath>
-
 static int RawAllocationSize(AL_TStreamSettings const& stream, Alignments const& alignments)
 {
-  auto const IP_WIDTH_ALIGNMENT = 64;
-  auto const IP_HEIGHT_ALIGNMENT = 64;
-  auto const widthAlignment = alignments.stride;
-  auto const heightAlignment = alignments.sliceHeight;
+  auto IP_WIDTH_ALIGNMENT = 64;
+  auto IP_HEIGHT_ALIGNMENT = 64;
+  auto widthAlignment = alignments.stride;
+  auto heightAlignment = alignments.sliceHeight;
   assert(widthAlignment % IP_WIDTH_ALIGNMENT == 0); // IP requirements
   assert(heightAlignment % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
 
-  auto const adjustedWidthAlignment = widthAlignment > IP_WIDTH_ALIGNMENT ? widthAlignment : IP_WIDTH_ALIGNMENT;
+  auto adjustedWidthAlignment = widthAlignment > IP_WIDTH_ALIGNMENT ? widthAlignment : IP_WIDTH_ALIGNMENT;
   int const adjustedHeightAlignment = heightAlignment > IP_HEIGHT_ALIGNMENT ? heightAlignment : IP_HEIGHT_ALIGNMENT;
 
-  auto const width = stream.tDim.iWidth;
-  auto const height = stream.tDim.iHeight;
-  auto const bitdepthWidth = stream.iBitDepth == 8 ? width : (width + 2) / 3 * 4;
-  auto const adjustedWidth = RoundUp(bitdepthWidth, adjustedWidthAlignment);
-  auto const adjustedHeight = RoundUp(height, adjustedHeightAlignment);
+  auto width = stream.tDim.iWidth;
+  auto height = stream.tDim.iHeight;
+  auto bitdepthWidth = stream.iBitDepth == 8 ? width : (width + 2) / 3 * 4;
+  auto adjustedWidth = RoundUp(bitdepthWidth, adjustedWidthAlignment);
+  auto adjustedHeight = RoundUp(height, adjustedHeightAlignment);
 
   auto size = adjustedWidth * adjustedHeight;
   switch(stream.eChroma)
@@ -81,7 +80,7 @@ static int RawAllocationSize(AL_TStreamSettings const& stream, Alignments const&
 BufferSizes CreateBufferSizes(AL_TDecSettings const& settings, Alignments const& alignments)
 {
   BufferSizes bufferSizes;
-  auto const stream = settings.tStream;
+  auto stream = settings.tStream;
   bufferSizes.input = AL_GetMaxNalSize(stream.tDim, stream.eChroma, stream.iBitDepth);
   bufferSizes.output = RawAllocationSize(stream, alignments);
   return bufferSizes;
@@ -90,7 +89,7 @@ BufferSizes CreateBufferSizes(AL_TDecSettings const& settings, Alignments const&
 Resolution CreateResolution(AL_TDecSettings const& settings, Alignments const& alignments)
 {
   Resolution resolution;
-  auto const stream = settings.tStream;
+  auto stream = settings.tStream;
   resolution.width = stream.tDim.iWidth;
   resolution.height = stream.tDim.iHeight;
   resolution.stride = RoundUp(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode), alignments.stride);
@@ -134,7 +133,7 @@ bool UpdateResolution(AL_TDecSettings& settings, Alignments& alignments, Resolut
 Format CreateFormat(AL_TDecSettings const& settings)
 {
   Format format;
-  auto const stream = settings.tStream;
+  auto stream = settings.tStream;
 
   format.color = ConvertSoftToModuleColor(stream.eChroma);
   format.bitdepth = stream.iBitDepth;

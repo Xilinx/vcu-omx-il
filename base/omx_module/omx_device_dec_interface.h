@@ -47,9 +47,7 @@ extern "C"
 
 struct DecDevice
 {
-  virtual ~DecDevice()
-  {
-  };
+  virtual ~DecDevice() = 0;
   virtual AL_TIDecChannel* Init(AL_TAllocator const& allocator) = 0;
   virtual void Deinit() = 0;
   virtual AllocationRequirements GetAllocationRequirements() = 0;

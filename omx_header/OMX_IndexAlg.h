@@ -92,6 +92,11 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexConfigVideoInsertLongTerm,                     /**< reference: OMX_ALG_VIDEO_CONFIG_INSERT */
   OMX_ALG_IndexConfigVideoUseLongTerm,                        /**< reference: OMX_ALG_VIDEO_CONFIG_INSERT */
 
+  /* Vender Image & Video common configurations */
+  OMX_ALG_IndexVendorCommonStartUnused = OMX_IndexVendorStartUnused + 0x00700000,
+  OMX_ALG_IndexParamCommonSequencePictureModeCurrent,               /**< reference: OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE */
+  OMX_ALG_IndexParamCommonSequencePictureModeQuerySupported,        /**< reference: OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE */
+
   OMX_ALG_IndexMaxEnum = 0x7FFFFFFF,
 } OMX_ALG_INDEXTYPE;
 

@@ -35,25 +35,7 @@
 *
 ******************************************************************************/
 
-#include "omx_settings_mock.h"
+#include "omx_device_dec_interface.h"
 
-using namespace std;
-
-MockSettings::MockSettings() = default;
-MockSettings::~MockSettings() = default;
-
-ErrorSettingsType MockSettings::Reset()
-{
-  return ERROR_SETTINGS_NONE;
-}
-
-ErrorSettingsType MockSettings::Set(string, void const*)
-{
-  return ERROR_SETTINGS_NONE;
-}
-
-ErrorSettingsType MockSettings::Get(string, void*)
-{
-  return ERROR_SETTINGS_NONE;
-}
+DecDevice::~DecDevice() = default;
 

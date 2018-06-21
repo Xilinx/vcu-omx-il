@@ -37,8 +37,9 @@
 
 #include "omx_mediatype_dec_common.h"
 #include "omx_mediatype_checks.h"
+#include "base/omx_settings/omx_convert_module_soft.h"
 
-Clock CreateClock(AL_TDecSettings const& settings)
+Clock CreateClock(AL_TDecSettings settings)
 {
   Clock clock;
 
@@ -48,7 +49,7 @@ Clock CreateClock(AL_TDecSettings const& settings)
   return clock;
 }
 
-bool UpdateClock(AL_TDecSettings& settings, Clock const& clock)
+bool UpdateClock(AL_TDecSettings& settings, Clock clock)
 {
   if(!CheckClock(clock))
     return false;
@@ -60,18 +61,34 @@ bool UpdateClock(AL_TDecSettings& settings, Clock const& clock)
   return true;
 }
 
-int CreateInternalEntropyBuffer(AL_TDecSettings const& settings)
+int CreateInternalEntropyBuffer(AL_TDecSettings settings)
 {
   return settings.iStackSize;
 }
 
-bool UpdateInternalEntropyBuffer(AL_TDecSettings& settings, int const& internalEntropyBuffer)
+bool UpdateInternalEntropyBuffer(AL_TDecSettings& settings, int internalEntropyBuffer)
 {
   if(!CheckInternalEntropyBuffer(internalEntropyBuffer))
     return false;
 
   settings.iStackSize = internalEntropyBuffer;
 
+  return true;
+}
+
+SequencePictureModeType CreateSequenceMode(AL_TDecSettings settings)
+{
+  auto stream = settings.tStream;
+  return ConvertSoftToModuleSequenceMode(stream.eSequenceMode);
+}
+
+bool UpdateSequenceMode(AL_TDecSettings& settings, SequencePictureModeType sequenceMode)
+{
+  if(!CheckSequenceMode(sequenceMode))
+    return false;
+
+  auto& stream = settings.tStream;
+  stream.eSequenceMode = ConvertModuleToSoftSequenceMode(sequenceMode);
   return true;
 }
 

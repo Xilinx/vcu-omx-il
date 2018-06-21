@@ -38,7 +38,7 @@
 #include "omx_convert_module_soft_dec.h"
 #include <assert.h>
 
-AL_EDpbMode ConvertModuleToSoftDecodedPictureBuffer(DecodedPictureBufferType const& mode)
+AL_EDpbMode ConvertModuleToSoftDecodedPictureBuffer(DecodedPictureBufferType mode)
 {
   switch(mode)
   {
@@ -51,7 +51,7 @@ AL_EDpbMode ConvertModuleToSoftDecodedPictureBuffer(DecodedPictureBufferType con
   return AL_DPB_MAX_ENUM;
 }
 
-AL_EDecUnit ConvertModuleToSoftDecodeUnit(DecodeUnitType const& unit)
+AL_EDecUnit ConvertModuleToSoftDecodeUnit(DecodeUnitType unit)
 {
   switch(unit)
   {
@@ -65,7 +65,7 @@ AL_EDecUnit ConvertModuleToSoftDecodeUnit(DecodeUnitType const& unit)
   assert(0);
 }
 
-DecodedPictureBufferType ConvertSoftToModuleDecodedPictureBuffer(AL_EDpbMode const& mode)
+DecodedPictureBufferType ConvertSoftToModuleDecodedPictureBuffer(AL_EDpbMode mode)
 {
   switch(mode)
   {
@@ -78,7 +78,7 @@ DecodedPictureBufferType ConvertSoftToModuleDecodedPictureBuffer(AL_EDpbMode con
   return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM;
 }
 
-DecodeUnitType ConvertSoftToModuleDecodeUnit(AL_EDecUnit const& unit)
+DecodeUnitType ConvertSoftToModuleDecodeUnit(AL_EDecUnit unit)
 {
   switch(unit)
   {

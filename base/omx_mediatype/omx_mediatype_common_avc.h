@@ -46,7 +46,7 @@ extern "C"
 #include <lib_common/SliceConsts.h>
 }
 
-std::vector<ProfileLevelType> CreateAVCProfileLevelSupported(std::vector<AVCProfileType> const& profiles, std::vector<int> const& levels);
+std::vector<ProfileLevelType> CreateAVCProfileLevelSupported(std::vector<AVCProfileType> profiles, std::vector<int> levels);
 
-ProfileLevelType CreateAVCProfileLevel(AL_EProfile const& profile, int level);
+ProfileLevelType CreateAVCProfileLevel(AL_EProfile profile, int level);
 

@@ -35,17 +35,7 @@
 *
 ******************************************************************************/
 
-#pragma once
+#include "omx_device_enc_interface.h"
 
-#include "omx_settings_interface.h"
-
-struct MockSettings : SettingsInterface
-{
-  MockSettings();
-  ~MockSettings() override;
-
-  ErrorSettingsType Reset() override;
-  ErrorSettingsType Set(std::string index, void const* settings) override;
-  ErrorSettingsType Get(std::string index, void* settings) override;
-};
+EncDevice::~EncDevice() = default;
 

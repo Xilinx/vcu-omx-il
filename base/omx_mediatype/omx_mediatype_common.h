@@ -41,5 +41,5 @@
 #include "base/omx_module/omx_module_enums.h"
 #include "base/omx_module/omx_module_structs.h"
 
-std::vector<Format> CreateFormatsSupported(std::vector<ColorType> const& colors, std::vector<int> const& bitdepths);
+std::vector<Format> CreateFormatsSupported(std::vector<ColorType> colors, std::vector<int> bitdepths);
 

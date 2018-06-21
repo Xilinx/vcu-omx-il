@@ -41,32 +41,32 @@
 static bool SetModuleGop(OMX_U32 bFrames, OMX_U32 pFrames, EncModule& module)
 {
   auto moduleGop = module.GetGop();
-  moduleGop.b = ConvertToModuleBFrames(bFrames, pFrames);
-  moduleGop.length = ConvertToModuleGopLength(bFrames, pFrames);
+  moduleGop.b = ConvertOMXToModuleBFrames(bFrames, pFrames);
+  moduleGop.length = ConvertOMXToModuleGopLength(bFrames, pFrames);
   return module.SetGop(moduleGop);
 }
 
 static bool SetModuleProfileLevel(OMX_VIDEO_AVCPROFILETYPE const& profile, OMX_VIDEO_AVCLEVELTYPE const& level, EncModule& module)
 {
   ProfileLevelType p;
-  p.profile.avc = ConvertToModuleAVCProfileLevel(profile, level).profile.avc;
-  p.level = ConvertToModuleAVCProfileLevel(profile, level).level;
+  p.profile.avc = ConvertOMXToModuleAVCProfileLevel(profile, level).profile.avc;
+  p.level = ConvertOMXToModuleAVCProfileLevel(profile, level).level;
   return module.SetProfileLevel(p);
 }
 
 static bool SetModuleEntropyCoding(OMX_BOOL entropyCoding, EncModule& module)
 {
-  return module.SetEntropyCoding(ConvertToModuleEntropyCoding(entropyCoding));
+  return module.SetEntropyCoding(ConvertOMXToModuleEntropyCoding(entropyCoding));
 }
 
 static bool SetModuleConstrainedIntraPrediction(OMX_BOOL constrainedIntraPrediction, EncModule& module)
 {
-  return module.SetConstrainedIntraPrediction(ConvertToModuleBool(constrainedIntraPrediction));
+  return module.SetConstrainedIntraPrediction(ConvertOMXToModuleBool(constrainedIntraPrediction));
 }
 
 static bool SetModuleLoopFilter(OMX_VIDEO_AVCLOOPFILTERTYPE const& loopFilter, EncModule& module)
 {
-  return module.SetLoopFilter(ConvertToModuleAVCLoopFilter(loopFilter));
+  return module.SetLoopFilter(ConvertOMXToModuleAVCLoopFilter(loopFilter));
 }
 
 bool EncExpertiseAVC::GetProfileLevelSupported(OMX_PTR param, EncModule const& module)
@@ -77,8 +77,8 @@ bool EncExpertiseAVC::GetProfileLevelSupported(OMX_PTR param, EncModule const& m
   if(pl.nProfileIndex >= supported.size())
     return false;
 
-  pl.eProfile = ConvertToOMXAVCProfile(supported[pl.nProfileIndex]);
-  pl.eLevel = ConvertToOMXAVCLevel(supported[pl.nProfileIndex]);
+  pl.eProfile = ConvertModuleToOMXAVCProfile(supported[pl.nProfileIndex]);
+  pl.eLevel = ConvertModuleToOMXAVCLevel(supported[pl.nProfileIndex]);
 
   return true;
 }
@@ -87,17 +87,17 @@ void EncExpertiseAVC::GetProfileLevel(OMX_PTR param, Port const& port, EncModule
 {
   auto& pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
   pl.nPortIndex = port.index;
-  pl.eProfile = ConvertToOMXAVCProfile(module.GetProfileLevel());
-  pl.eLevel = ConvertToOMXAVCLevel(module.GetProfileLevel());
+  pl.eProfile = ConvertModuleToOMXAVCProfile(module.GetProfileLevel());
+  pl.eLevel = ConvertModuleToOMXAVCLevel(module.GetProfileLevel());
 }
 
 bool EncExpertiseAVC::SetProfileLevel(OMX_PTR param, Port const& port, EncModule& module)
 {
   OMX_VIDEO_PARAM_PROFILELEVELTYPE rollback;
   GetProfileLevel(&rollback, port, module);
-  auto const pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
-  auto const profile = static_cast<OMX_VIDEO_AVCPROFILETYPE>(pl.eProfile);
-  auto const level = static_cast<OMX_VIDEO_AVCLEVELTYPE>(pl.eLevel);
+  auto pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
+  auto profile = static_cast<OMX_VIDEO_AVCPROFILETYPE>(pl.eProfile);
+  auto level = static_cast<OMX_VIDEO_AVCLEVELTYPE>(pl.eLevel);
 
   if(!SetModuleProfileLevel(profile, level, module))
   {
@@ -112,8 +112,8 @@ void EncExpertiseAVC::GetExpertise(OMX_PTR param, Port const& port, EncModule co
 {
   auto& avc = *(OMX_VIDEO_PARAM_AVCTYPE*)param;
   avc.nPortIndex = port.index;
-  avc.nBFrames = ConvertToOMXBFrames(module.GetGop());
-  avc.nPFrames = ConvertToOMXPFrames(module.GetGop());
+  avc.nBFrames = ConvertModuleToOMXBFrames(module.GetGop());
+  avc.nPFrames = ConvertModuleToOMXPFrames(module.GetGop());
   avc.bUseHadamard = OMX_TRUE; // XXX
   avc.nRefFrames = 1; // XXX
   avc.nRefIdx10ActiveMinus1 = 0; // XXX
@@ -122,26 +122,26 @@ void EncExpertiseAVC::GetExpertise(OMX_PTR param, Port const& port, EncModule co
   avc.bEnableFMO = OMX_FALSE; // XXX
   avc.bEnableASO = OMX_FALSE; // XXX
   avc.bEnableRS = OMX_FALSE; // XXX
-  avc.eProfile = ConvertToOMXAVCProfile(module.GetProfileLevel());
-  avc.eLevel = ConvertToOMXAVCLevel(module.GetProfileLevel());
+  avc.eProfile = ConvertModuleToOMXAVCProfile(module.GetProfileLevel());
+  avc.eLevel = ConvertModuleToOMXAVCLevel(module.GetProfileLevel());
   avc.nAllowedPictureTypes = OMX_VIDEO_PictureTypeI | OMX_VIDEO_PictureTypeP | OMX_VIDEO_PictureTypeB; // XXX
   avc.bFrameMBsOnly = OMX_TRUE; // XXX
   avc.bMBAFF = OMX_FALSE; // XXX
-  avc.bEntropyCodingCABAC = ConvertToOMXEntropyCoding(module.GetEntropyCoding());
+  avc.bEntropyCodingCABAC = ConvertModuleToOMXEntropyCoding(module.GetEntropyCoding());
   avc.bWeightedPPrediction = OMX_FALSE; // XXX
   avc.nWeightedBipredicitonMode = OMX_FALSE; // XXX
-  avc.bconstIpred = ConvertToOMXBool(module.IsConstrainedIntraPrediction());
+  avc.bconstIpred = ConvertModuleToOMXBool(module.IsConstrainedIntraPrediction());
   avc.bDirect8x8Inference = OMX_TRUE; // XXX
   avc.bDirectSpatialTemporal = OMX_TRUE; // XXX
   avc.nCabacInitIdc = 0; // XXX
-  avc.eLoopFilterMode = ConvertToOMXAVCLoopFilter(module.GetLoopFilter());
+  avc.eLoopFilterMode = ConvertModuleToOMXAVCLoopFilter(module.GetLoopFilter());
 }
 
 bool EncExpertiseAVC::SetExpertise(OMX_PTR param, Port const& port, EncModule& module)
 {
   OMX_VIDEO_PARAM_AVCTYPE rollback;
   GetExpertise(&rollback, port, module);
-  auto const avc = *(OMX_VIDEO_PARAM_AVCTYPE*)param;
+  auto avc = *(OMX_VIDEO_PARAM_AVCTYPE*)param;
 
   if(!SetModuleGop(avc.nBFrames, avc.nPFrames, module))
   {

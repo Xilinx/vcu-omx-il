@@ -37,13 +37,13 @@
 
 #pragma once
 
-#include <cassert>
-
-template<typename T>
-static inline T RoundUp(T value, int round)
+static inline int RoundDown(int value, int multiple)
 {
-  assert(round > 0);
-  int const mask = round - 1;
-  return (value + mask) & ~mask;
+  return value >= 0 ? (value / multiple) * multiple : ((value - multiple + 1) / multiple) * multiple;
+}
+
+static inline int RoundUp(int value, int multiple)
+{
+  return value >= 0 ? ((value + multiple - 1) / multiple) * multiple : (value / multiple) * multiple;
 }
 

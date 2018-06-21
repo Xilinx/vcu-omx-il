@@ -43,7 +43,7 @@
 #include "omx_settings_checks.h"
 #include "omx_settings_utils.h"
 
-#include "base/omx_utils/roundup.h"
+#include "base/omx_utils/round.h"
 
 extern "C"
 {

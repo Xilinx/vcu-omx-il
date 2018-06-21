@@ -45,23 +45,21 @@ extern "C"
 
 #include "base/omx_module/omx_module_enums.h"
 
-RateControlType ConvertSoftToModuleRateControl(AL_ERateCtrlMode const& mode);
-AspectRatioType ConvertSoftToModuleAspectRatio(AL_EAspectRatio const& aspectRatio);
-GopControlType ConvertSoftToModuleGopControl(AL_EGopCtrlMode const& mode);
-GdrType ConvertSoftToModuleGdr(AL_EGdrMode const& gdr);
-RateControlOptionType ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption const& option);
-QPControlType ConvertSoftToModuleQPControl(AL_EQpCtrlMode const& mode);
-ScalingListType ConvertSoftToModuleScalingList(AL_EScalingList const& scalingList);
-VideoModeType ConvertSoftToModuleVideoMode(AL_EVideoMode const& videoMode);
-LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncOption const& option);
+RateControlType ConvertSoftToModuleRateControl(AL_ERateCtrlMode mode);
+AspectRatioType ConvertSoftToModuleAspectRatio(AL_EAspectRatio aspectRatio);
+GopControlType ConvertSoftToModuleGopControl(AL_EGopCtrlMode mode);
+GdrType ConvertSoftToModuleGdr(AL_EGdrMode gdr);
+RateControlOptionType ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption option);
+QPControlType ConvertSoftToModuleQPControl(AL_EQpCtrlMode mode);
+ScalingListType ConvertSoftToModuleScalingList(AL_EScalingList scalingList);
+LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncOption option);
 
-AL_ERateCtrlMode ConvertModuleToSoftRateControl(RateControlType const& mode);
-AL_EAspectRatio ConvertModuleToSoftAspectRatio(AspectRatioType const& aspectRatio);
-AL_EGopCtrlMode ConvertModuleToSoftGopControl(GopControlType const& mode);
-AL_EScalingList ConvertModuleToSoftScalingList(ScalingListType const& scalingList);
-AL_EGdrMode ConvertModuleToSoftGdr(GdrType const& gdr);
-AL_ERateCtrlOption ConvertModuleToSoftRateControlOption(RateControlOptionType const& option);
-AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType const& mode);
-AL_EVideoMode ConvertModuleToSoftVideoMode(VideoModeType const& videoMode);
-AL_EChEncOption ConvertModuleToSoftLoopFilter(LoopFilterType const& loopFilter);
+AL_ERateCtrlMode ConvertModuleToSoftRateControl(RateControlType mode);
+AL_EAspectRatio ConvertModuleToSoftAspectRatio(AspectRatioType aspectRatio);
+AL_EGopCtrlMode ConvertModuleToSoftGopControl(GopControlType mode);
+AL_EScalingList ConvertModuleToSoftScalingList(ScalingListType scalingList);
+AL_EGdrMode ConvertModuleToSoftGdr(GdrType gdr);
+AL_ERateCtrlOption ConvertModuleToSoftRateControlOption(RateControlOptionType option);
+AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType mode);
+AL_EChEncOption ConvertModuleToSoftLoopFilter(LoopFilterType loopFilter);
 

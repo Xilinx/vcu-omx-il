@@ -57,7 +57,7 @@ extern "C"
 class DecModule : public ModuleInterface
 {
 public:
-  DecModule(std::shared_ptr<DecMediatypeInterface> media, std::unique_ptr<DecDevice>&& device, deleted_unique_ptr<AL_TAllocator>&& allocator);
+  DecModule(std::shared_ptr<DecMediatypeInterface> media, std::unique_ptr<DecDevice>&& device, std::shared_ptr<AL_TAllocator> allocator);
   ~DecModule();
 
   int GetDisplayPictureType() const; // This can only be called on filled callback !
@@ -69,8 +69,6 @@ public:
   Mimes GetMimes() const;
   Format GetFormat() const;
   std::vector<Format> GetFormatsSupported() const;
-  std::vector<VideoModeType> GetVideoModesSupported() const;
-  VideoModeType GetVideoMode() const;
   ProfileLevelType GetProfileLevel() const;
   std::vector<ProfileLevelType> GetProfileLevelSupported() const;
   int GetLatency() const;
@@ -89,7 +87,6 @@ public:
   bool SetInternalEntropyBuffers(int num);
   bool SetEnableSubframe(bool enableSubframe);
   bool SetGop(Gop const& gop);
-  bool SetVideoMode(VideoModeType const& videoMode);
 
   bool CheckParam();
   bool Create();
@@ -117,7 +114,7 @@ public:
 private:
   std::shared_ptr<DecMediatypeInterface> const media;
   std::unique_ptr<DecDevice> device;
-  deleted_unique_ptr<AL_TAllocator> allocator;
+  std::shared_ptr<AL_TAllocator> allocator;
 
   int currentDisplayPictureType = -1;
 

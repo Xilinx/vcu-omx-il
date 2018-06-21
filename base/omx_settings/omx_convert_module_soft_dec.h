@@ -45,9 +45,9 @@ extern "C"
 
 #include "base/omx_module/omx_module_enums.h"
 
-AL_EDpbMode ConvertModuleToSoftDecodedPictureBuffer(DecodedPictureBufferType const& mode);
-AL_EDecUnit ConvertModuleToSoftDecodeUnit(DecodeUnitType const& unit);
+AL_EDpbMode ConvertModuleToSoftDecodedPictureBuffer(DecodedPictureBufferType mode);
+AL_EDecUnit ConvertModuleToSoftDecodeUnit(DecodeUnitType unit);
 
-DecodedPictureBufferType ConvertSoftToModuleDecodedPictureBuffer(AL_EDpbMode const& mode);
-DecodeUnitType ConvertSoftToModuleDecodeUnit(AL_EDecUnit const& unit);
+DecodedPictureBufferType ConvertSoftToModuleDecodedPictureBuffer(AL_EDpbMode mode);
+DecodeUnitType ConvertSoftToModuleDecodeUnit(AL_EDecUnit unit);
 

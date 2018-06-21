@@ -40,12 +40,19 @@
 extern "C"
 {
 #include <lib_common/SliceConsts.h>
+#include <lib_common/VideoMode.h>
 }
 #include "base/omx_module/omx_module_enums.h"
 
-AL_EChromaMode ConvertModuleToSoftChroma(ColorType const& color);
-ColorType ConvertSoftToModuleColor(AL_EChromaMode const& chroma);
+AL_EChromaMode ConvertModuleToSoftChroma(ColorType color);
+ColorType ConvertSoftToModuleColor(AL_EChromaMode chroma);
 
-AL_EEntropyMode ConvertModuleToSoftEntropyCoding(EntropyCodingType const& entropy);
-EntropyCodingType ConvertSoftToModuleEntropyCoding(AL_EEntropyMode const& entropy);
+AL_EEntropyMode ConvertModuleToSoftEntropyCoding(EntropyCodingType entropy);
+EntropyCodingType ConvertSoftToModuleEntropyCoding(AL_EEntropyMode entropy);
+
+VideoModeType ConvertSoftToModuleVideoMode(AL_EVideoMode videoMode);
+AL_EVideoMode ConvertModuleToSoftVideoMode(VideoModeType videoMode);
+
+SequencePictureModeType ConvertSoftToModuleSequenceMode(AL_ESequenceMode sequenceMode);
+AL_ESequenceMode ConvertModuleToSoftSequenceMode(SequencePictureModeType sequenceMode);
 

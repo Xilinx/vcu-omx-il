@@ -43,7 +43,7 @@
 #include "omx_mediatype_common_avc.h"
 #include "omx_mediatype_common.h"
 #include "base/omx_settings/omx_convert_module_soft_avc.h"
-#include "base/omx_utils/roundup.h"
+#include "base/omx_utils/round.h"
 
 using namespace std;
 
@@ -72,11 +72,10 @@ void DecMediatypeAVC::Reset()
   stream.iBitDepth = 8;
   stream.iLevel = 10;
   stream.iProfileIdc = AL_PROFILE_AVC_C_BASELINE;
+  stream.eSequenceMode = AL_SM_PROGRESSIVE;
 
   stride = RoundUp(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode), strideAlignment);
   sliceHeight = RoundUp(AL_Decoder_GetMinStrideHeight(stream.tDim.iHeight), sliceHeightAlignment);
-
-  videoMode = VideoModeType::VIDEO_MODE_PROGRESSIVE;
 }
 
 ProfileLevelType DecMediatypeAVC::ProfileLevel() const
@@ -85,37 +84,15 @@ ProfileLevelType DecMediatypeAVC::ProfileLevel() const
   return CreateAVCProfileLevel(static_cast<AL_EProfile>(stream.iProfileIdc), stream.iLevel);
 }
 
-bool DecMediatypeAVC::IsInProfilesSupported(AVCProfileType const& profile)
+bool DecMediatypeAVC::SetProfileLevel(ProfileLevelType profileLevel)
 {
-  for(auto const& p : profiles)
-  {
-    if(p == profile)
-      return true;
-  }
-
-  return false;
-}
-
-bool DecMediatypeAVC::IsInLevelsSupported(int level)
-{
-  for(auto const& l : levels)
-  {
-    if(l == level)
-      return true;
-  }
-
-  return false;
-}
-
-bool DecMediatypeAVC::SetProfileLevel(ProfileLevelType const& profileLevel)
-{
-  if(!IsInProfilesSupported(profileLevel.profile.avc))
+  if(!IsSupported(profileLevel.profile.avc, profiles))
     return false;
 
-  if(!IsInLevelsSupported(profileLevel.level))
+  if(!IsSupported(profileLevel.level, levels))
     return false;
 
-  auto const profile = ConvertModuleToSoftAVCProfile(profileLevel.profile.avc);
+  auto profile = ConvertModuleToSoftAVCProfile(profileLevel.profile.avc);
 
   if(profile == AL_PROFILE_AVC)
     return false;
@@ -141,9 +118,9 @@ static Mimes CreateMimes()
   return mimes;
 }
 
-static int CreateLatency(AL_TDecSettings const& settings)
+static int CreateLatency(AL_TDecSettings settings)
 {
-  auto const stream = settings.tStream;
+  auto stream = settings.tStream;
   auto buffers = AL_AVC_GetMinOutputBuffersNeeded(stream, settings.iStackSize, settings.eDpbMode);
 
   if(settings.eDpbMode == AL_DPB_LOW_REF)
@@ -152,26 +129,17 @@ static int CreateLatency(AL_TDecSettings const& settings)
   if(settings.eDecUnit == AL_VCL_NAL_UNIT)
     buffers = 1;
 
-  auto const realFramerate = (static_cast<double>(settings.uFrameRate) / static_cast<double>(settings.uClkRatio));
-  auto const timeInMilliseconds = (static_cast<double>(buffers * 1000.0) / realFramerate);
+  auto realFramerate = (static_cast<double>(settings.uFrameRate) / static_cast<double>(settings.uClkRatio));
+  auto timeInMilliseconds = (static_cast<double>(buffers * 1000.0) / realFramerate);
 
   return ceil(timeInMilliseconds);
 }
 
-static bool UpdateVideoMode(VideoModeType& currentVideoMode, VideoModeType const& videoMode)
-{
-  if(!CheckVideoMode(videoMode))
-    return false;
-
-  currentVideoMode = videoMode;
-  return true;
-}
-
-static BufferCounts CreateBufferCounts(AL_TDecSettings const& settings)
+static BufferCounts CreateBufferCounts(AL_TDecSettings settings)
 {
   BufferCounts bufferCounts;
   bufferCounts.input = 2;
-  auto const stream = settings.tStream;
+  auto stream = settings.tStream;
   bufferCounts.output = AL_AVC_GetMinOutputBuffersNeeded(stream, settings.iStackSize, settings.eDpbMode);
   return bufferCounts;
 }
@@ -205,15 +173,15 @@ MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Get(std::string index, vo
     return ERROR_SETTINGS_NONE;
   }
 
-  if(index == "SETTINGS_INDEX_VIDEO_MODE")
+  if(index == "SETTINGS_INDEX_SEQUENCE_PICTURE_MODE")
   {
-    *(static_cast<VideoModeType*>(settings)) = this->videoMode;
+    *(static_cast<SequencePictureModeType*>(settings)) = CreateSequenceMode(this->settings);
     return ERROR_SETTINGS_NONE;
   }
 
-  if(index == "SETTINGS_INDEX_VIDEO_MODES_SUPPORTED")
+  if(index == "SETTINGS_INDEX_SEQUENCE_PICTURE_MODES_SUPPORTED")
   {
-    *(static_cast<vector<VideoModeType>*>(settings)) = this->videoModes;
+    *(static_cast<vector<SequencePictureModeType>*>(settings)) = this->sequenceModes;
     return ERROR_SETTINGS_NONE;
   }
 
@@ -261,11 +229,14 @@ MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Set(std::string index, vo
     return ERROR_SETTINGS_NONE;
   }
 
-  if(index == "SETTINGS_INDEX_VIDEO_MODE")
+  if(index == "SETTINGS_INDEX_SEQUENCE_PICTURE_MODE")
   {
-    auto videoMode = *(static_cast<VideoModeType const*>(settings));
+    auto sequenceMode = *(static_cast<SequencePictureModeType const*>(settings));
 
-    if(!UpdateVideoMode(this->videoMode, videoMode))
+    if(sequenceMode == SequencePictureModeType::SEQUENCE_PICTURE_MODE_FIELD)
+      return ERROR_SETTINGS_BAD_PARAMETER;
+
+    if(!UpdateSequenceMode(this->settings, sequenceMode))
       return ERROR_SETTINGS_BAD_PARAMETER;
     return ERROR_SETTINGS_NONE;
   }

@@ -57,7 +57,7 @@ extern "C"
 #include "base/omx_settings/omx_convert_module_soft_enc.h"
 #include "base/omx_settings/omx_convert_module_soft.h"
 #include "base/omx_settings/omx_settings_structs.h"
-#include "base/omx_utils/roundup.h"
+#include "base/omx_utils/round.h"
 
 using namespace std;
 
@@ -93,16 +93,16 @@ static bool CheckValidity(AL_TEncSettings const& settings)
 
 static void LookCoherency(AL_TEncSettings& settings)
 {
-  auto const chan = settings.tChParam[0];
-  auto const fourCC = AL_EncGetSrcFourCC({ AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER });
+  auto chan = settings.tChParam[0];
+  auto fourCC = AL_EncGetSrcFourCC({ AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER });
   assert(AL_GET_BITDEPTH(chan.ePicFormat) == chan.uEncodingBitDepth);
   AL_Settings_CheckCoherency(&settings, &settings.tChParam[0], fourCC, stdout);
 }
 
-EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, unique_ptr<EncDevice>&& device, deleted_unique_ptr<AL_TAllocator>&& allocator) :
+EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, unique_ptr<EncDevice>&& device, shared_ptr<AL_TAllocator> allocator) :
   media(media),
   device(move(device)),
-  allocator(move(allocator))
+  allocator(allocator)
 {
   assert(this->media);
   assert(this->device);
@@ -148,7 +148,7 @@ ErrorType EncModule::CreateEncoder()
     return ERROR_UNDEFINED;
   }
 
-  auto const chan = media->settings.tChParam[0];
+  auto chan = media->settings.tChParam[0];
   roiCtx = AL_RoiMngr_Create(chan.uWidth, chan.uHeight, chan.eProfile, AL_ROI_QUALITY_MEDIUM, AL_ROI_INCOMING_ORDER);
 
   if(!roiCtx)
@@ -157,7 +157,7 @@ ErrorType EncModule::CreateEncoder()
     return ERROR_BAD_PARAMETER;
   }
 
-  auto& settings = media->settings;
+  auto settings = media->settings;
   scheduler = device->Init(settings, *allocator.get());
   auto errorCode = AL_Encoder_Create(&encoder, scheduler, allocator.get(), &media->settings, { EncModule::RedirectionEndEncoding, this });
 
@@ -290,8 +290,8 @@ void EncModule::ResetRequirements()
 
 static int RawAllocationSize(int stride, int sliceHeight, AL_EChromaMode eChromaMode)
 {
-  auto const IP_WIDTH_ALIGNMENT = 32;
-  auto const IP_HEIGHT_ALIGNMENT = 8;
+  auto IP_WIDTH_ALIGNMENT = 32;
+  auto IP_HEIGHT_ALIGNMENT = 8;
   assert(stride % IP_WIDTH_ALIGNMENT == 0); // IP requirements
   assert(sliceHeight % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
   auto size = stride * sliceHeight;
@@ -309,7 +309,7 @@ BufferRequirements EncModule::GetBufferRequirements() const
   BufferRequirements b;
   BufferCounts bufferCounts;
   media->Get(SETTINGS_INDEX_BUFFER_COUNTS, &bufferCounts);
-  auto const chan = media->settings.tChParam[0];
+  auto chan = media->settings.tChParam[0];
   auto& input = b.input;
   input.min = bufferCounts.input;
   input.size = RawAllocationSize(media->stride, media->sliceHeight, AL_GET_CHROMA_MODE(chan.ePicFormat));
@@ -510,9 +510,9 @@ void EncModule::UnuseDMA(BufferHandleInterface* handle)
 
 static AL_TMetaData* CreateSourceMeta(AL_TEncChanParam const& chan, Resolution const& resolution)
 {
-  auto const fourCC = AL_EncGetSrcFourCC({ AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER });
-  auto const stride = resolution.stride;
-  auto const sliceHeight = resolution.sliceHeight;
+  auto fourCC = AL_EncGetSrcFourCC({ AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER });
+  auto stride = resolution.stride;
+  auto sliceHeight = resolution.sliceHeight;
   AL_TPitches const pitches = { stride, stride };
   AL_TOffsetYC const offsetYC = { 0, stride * sliceHeight };
   return (AL_TMetaData*)(AL_SrcMetaData_Create({ chan.uWidth, chan.uHeight }, pitches, offsetYC, fourCC));
@@ -520,7 +520,7 @@ static AL_TMetaData* CreateSourceMeta(AL_TEncChanParam const& chan, Resolution c
 
 static bool CreateAndAttachSourceMeta(AL_TBuffer& buf, AL_TEncChanParam const& chan, Resolution const& resolution)
 {
-  auto const meta = CreateSourceMeta(chan, resolution);
+  auto meta = CreateSourceMeta(chan, resolution);
 
   if(!meta)
     return false;
@@ -558,7 +558,7 @@ bool EncModule::Empty(BufferHandleInterface* handle)
 
   handles.Add(input, handle);
 
-  auto const eos = (handle->payload == 0);
+  auto eos = (handle->payload == 0);
 
   if(eos)
   {
@@ -591,7 +591,7 @@ bool EncModule::Empty(BufferHandleInterface* handle)
 
 static bool CreateAndAttachStreamMeta(AL_TBuffer& buf)
 {
-  auto const meta = (AL_TMetaData*)(AL_StreamMetaData_Create(AL_MAX_SECTION));
+  auto meta = (AL_TMetaData*)(AL_StreamMetaData_Create(AL_MAX_SECTION));
 
   if(!meta)
     return false;
@@ -646,12 +646,12 @@ static void AppendBuffer(uint8_t*& dst, uint8_t const* src, size_t len)
 
 static int WriteOneSection(uint8_t*& dst, AL_TBuffer& stream, int numSection)
 {
-  auto const meta = (AL_TStreamMetaData*)AL_Buffer_GetMetaData(&stream, AL_META_TYPE_STREAM);
+  auto meta = (AL_TStreamMetaData*)AL_Buffer_GetMetaData(&stream, AL_META_TYPE_STREAM);
 
   if(!meta->pSections[numSection].uLength)
     return 0;
 
-  auto const size = stream.zSize - meta->pSections[numSection].uOffset;
+  auto size = stream.zSize - meta->pSections[numSection].uOffset;
 
   if(size < (meta->pSections[numSection]).uLength)
   {
@@ -669,7 +669,7 @@ static int ReconstructStream(AL_TBuffer& stream)
   auto origin = AL_Buffer_GetData(&stream);
   auto size = 0;
 
-  auto const meta = (AL_TStreamMetaData*)(AL_Buffer_GetMetaData(&stream, AL_META_TYPE_STREAM));
+  auto meta = (AL_TStreamMetaData*)(AL_Buffer_GetMetaData(&stream, AL_META_TYPE_STREAM));
   assert(meta);
 
   for(auto i = 0; i < meta->uNumSection; i++)
@@ -680,7 +680,7 @@ static int ReconstructStream(AL_TBuffer& stream)
 
 void EncModule::ReleaseBuf(AL_TBuffer const* buf, bool isDma, bool isSrc)
 {
-  auto const rhandle = handles.Pop(buf);
+  auto rhandle = handles.Pop(buf);
 
   if(isDma)
     UnuseDMA(rhandle);
@@ -698,8 +698,8 @@ bool EncModule::isEndOfFrame(AL_TBuffer* stream)
 
 void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 {
-  auto const isStreamRelease = (stream && source == nullptr);
-  auto const isSrcRelease = (stream == nullptr && source);
+  auto isStreamRelease = (stream && source == nullptr);
+  auto isSrcRelease = (stream == nullptr && source);
 
   auto errorCode = AL_Encoder_GetLastError(encoder);
 
@@ -723,16 +723,16 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
     return;
   }
 
-  auto const isEOS = (stream == nullptr && source == nullptr);
+  auto isEOS = (stream == nullptr && source == nullptr);
 
   auto end = [&](AL_TBuffer* source, AL_TBuffer* stream, int size)
              {
                assert(source);
                assert(stream);
-               auto const rhandleIn = handles.Get(source);
+               auto rhandleIn = handles.Get(source);
                assert(rhandleIn->data);
 
-               auto const rhandleOut = handles.Get(stream);
+               auto rhandleOut = handles.Get(stream);
                assert(rhandleOut->data);
 
                callbacks.associate(rhandleIn, rhandleOut);
@@ -772,7 +772,7 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
     return;
   }
 
-  auto const size = ReconstructStream(*stream);
+  auto size = ReconstructStream(*stream);
 
   if(shouldBeCopied.Exist(stream))
   {
@@ -785,7 +785,7 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 
 Resolution EncModule::GetResolution() const
 {
-  auto const chan = media->settings.tChParam[0];
+  auto chan = media->settings.tChParam[0];
   Resolution resolution;
   resolution.width = chan.uWidth;
   resolution.height = chan.uHeight;
@@ -812,7 +812,7 @@ Mimes EncModule::GetMimes() const
 Format EncModule::GetFormat() const
 {
   Format format;
-  auto const chan = media->settings.tChParam[0];
+  auto chan = media->settings.tChParam[0];
   format.color = ConvertSoftToModuleColor(AL_GET_CHROMA_MODE(chan.ePicFormat));
   assert(chan.uEncodingBitDepth == AL_GET_BITDEPTH(chan.ePicFormat));
   format.bitdepth = AL_GET_BITDEPTH(chan.ePicFormat);
@@ -944,7 +944,7 @@ Slices EncModule::GetSlices() const
 
 bool EncModule::IsEnableSubframe() const
 {
-  auto const chan = media->settings.tChParam[0];
+  auto chan = media->settings.tChParam[0];
   return chan.bSubframeLatency;
 }
 
@@ -1088,7 +1088,7 @@ bool EncModule::SetFileDescriptors(FileDescriptors const& fds)
 
 Flags EncModule::GetFlags(AL_TBuffer* stream)
 {
-  auto const meta = (AL_TStreamMetaData*)(AL_Buffer_GetMetaData(stream, AL_META_TYPE_STREAM));
+  auto meta = (AL_TStreamMetaData*)(AL_Buffer_GetMetaData(stream, AL_META_TYPE_STREAM));
   assert(meta);
 
   Flags flags {};
@@ -1123,7 +1123,7 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
 
   if(index == "DYNAMIC_INDEX_CLOCK")
   {
-    auto const clock = static_cast<Clock const*>(param);
+    auto clock = static_cast<Clock const*>(param);
 
     if(!SetClock(*clock))
       assert(0);
@@ -1134,7 +1134,7 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
 
   if(index == "DYNAMIC_INDEX_BITRATE")
   {
-    auto const bitrate = static_cast<int>((intptr_t)param) * 1000;
+    auto bitrate = static_cast<int>((intptr_t)param) * 1000;
     AL_Encoder_SetBitRate(encoder, bitrate);
     auto& rateCtrl = media->settings.tChParam[0].tRCParam;
     rateCtrl.uTargetBitRate = bitrate;
@@ -1153,7 +1153,7 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
 
   if(index == "DYNAMIC_INDEX_GOP")
   {
-    auto const gop = static_cast<Gop const*>(param);
+    auto gop = static_cast<Gop const*>(param);
 
     if(!SetGop(*gop))
       assert(0);
@@ -1165,7 +1165,7 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
   if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD")
   {
     assert(roiCtx);
-    auto const roi = static_cast<RegionQuality const*>(param);
+    auto roi = static_cast<RegionQuality const*>(param);
     auto ret = AL_RoiMngr_AddROI(roiCtx, roi->region.x, roi->region.y, roi->region.width, roi->region.height, ConvertModuleToSoftQuality(roi->quality));
     assert(ret);
     return SUCCESS;
@@ -1182,9 +1182,9 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
   {
     assert(roiCtx);
     auto bufferToEmpty = static_cast<char const*>(param);
-    auto const chan = media->settings.tChParam[0];
+    auto chan = media->settings.tChParam[0];
     AL_TDimension tDim = { chan.uWidth, chan.uHeight };
-    auto const size = AL_GetAllocSizeEP2(tDim, chan.uMaxCuSize);
+    auto size = AL_GetAllocSizeEP2(tDim, chan.uMaxCuSize);
     auto roiBuffer = AL_Buffer_Create_And_Allocate(allocator.get(), size, AL_Buffer_Destroy);
     AL_Buffer_Ref(roiBuffer);
     memcpy(AL_Buffer_GetData(roiBuffer), bufferToEmpty, size);
@@ -1194,7 +1194,7 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
 
   if(index == "DYNAMIC_INDEX_NOTIFY_SCENE_CHANGE")
   {
-    auto const lookAhead = static_cast<int>((intptr_t)param);
+    auto lookAhead = static_cast<int>((intptr_t)param);
     AL_Encoder_NotifySceneChange(encoder, lookAhead);
     return SUCCESS;
   }
@@ -1219,7 +1219,7 @@ ErrorType EncModule::GetDynamic(std::string index, void* param)
   if(index == "DYNAMIC_INDEX_CLOCK")
   {
     auto framerate = static_cast<Clock*>(param);
-    auto const f = GetClock();
+    auto f = GetClock();
     *framerate = f;
     return SUCCESS;
   }
@@ -1227,7 +1227,7 @@ ErrorType EncModule::GetDynamic(std::string index, void* param)
   if(index == "DYNAMIC_INDEX_BITRATE")
   {
     auto bitrate = (int*)param;
-    auto const rateCtrl = media->settings.tChParam[0].tRCParam;
+    auto rateCtrl = media->settings.tChParam[0].tRCParam;
     *bitrate = rateCtrl.uTargetBitRate / 1000;
     return SUCCESS;
   }
@@ -1250,7 +1250,7 @@ ErrorType EncModule::GetDynamic(std::string index, void* param)
   if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_SIZE")
   {
     auto size = (int*)param;
-    auto const chan = media->settings.tChParam[0];
+    auto chan = media->settings.tChParam[0];
     AL_TDimension tDim = { chan.uWidth, chan.uHeight };
     *size = AL_GetAllocSizeEP2(tDim, chan.uMaxCuSize);
     return SUCCESS;

@@ -84,12 +84,6 @@
 
 using namespace std;
 
-static inline void clear(std::queue<int>& q)
-{
-  std::queue<int> empty;
-  std::swap(q, empty);
-}
-
 static DecModule& ToDecModule(ModuleInterface& module)
 {
   return dynamic_cast<DecModule &>(module);
@@ -105,12 +99,11 @@ DecCodec::~DecCodec() = default;
 void DecCodec::EmptyThisBufferCallBack(BufferHandleInterface* handle)
 {
   auto header = (OMX_BUFFERHEADERTYPE*)((OMXBufferHandle*)handle)->header;
+  delete handle;
   ClearPropagatedData(header);
 
   if(callbacks.EmptyBufferDone)
     callbacks.EmptyBufferDone(component, app, header);
-
-  delete handle;
 }
 
 void DecCodec::AssociateCallBack(BufferHandleInterface*, BufferHandleInterface* fill)
@@ -146,6 +139,7 @@ void DecCodec::FillThisBufferCallBack(BufferHandleInterface* filled, int offset,
 {
   assert(filled);
   auto header = (OMX_BUFFERHEADERTYPE*)((OMXBufferHandle*)filled)->header;
+  delete filled;
 
   header->nOffset = offset;
   header->nFilledLen = size;
@@ -174,7 +168,6 @@ void DecCodec::FillThisBufferCallBack(BufferHandleInterface* filled, int offset,
 
   if(callbacks.FillBufferDone)
     callbacks.FillBufferDone(component, app, header);
-  delete filled;
 }
 
 void DecCodec::EventCallBack(CallbackEventType type, void* data)
@@ -204,34 +197,34 @@ static OMX_PARAM_PORTDEFINITIONTYPE ConstructPortDefinition(Port& port, DecModul
   OMXChecker::SetHeaderVersion(d);
   d.nPortIndex = port.index;
   d.eDir = IsInputPort(d.nPortIndex) ? OMX_DirInput : OMX_DirOutput;
-  auto const requirements = IsInputPort(d.nPortIndex) ? module.GetBufferRequirements().input : module.GetBufferRequirements().output;
+  auto requirements = IsInputPort(d.nPortIndex) ? module.GetBufferRequirements().input : module.GetBufferRequirements().output;
 
   if(port.expected < (size_t)requirements.min)
     port.expected = requirements.min;
   d.nBufferCountActual = port.expected;
-  d.bEnabled = ConvertToOMXBool(port.enable);
-  d.bPopulated = ConvertToOMXBool(port.playable);
+  d.bEnabled = ConvertModuleToOMXBool(port.enable);
+  d.bPopulated = ConvertModuleToOMXBool(port.playable);
   d.nBufferCountMin = requirements.min;
   d.nBufferSize = requirements.size;
-  d.bBuffersContiguous = ConvertToOMXBool(requirements.contiguous);
+  d.bBuffersContiguous = ConvertModuleToOMXBool(requirements.contiguous);
   d.nBufferAlignment = requirements.bytesAlignment;
   d.eDomain = OMX_PortDomainVideo;
 
   auto& v = d.format.video;
-  auto const moduleResolution = module.GetResolution();
-  auto const moduleFormat = module.GetFormat();
-  auto const moduleClock = module.GetClock();
-  auto const moduleMime = IsInputPort(d.nPortIndex) ? module.GetMimes().input : module.GetMimes().output;
+  auto moduleResolution = module.GetResolution();
+  auto moduleFormat = module.GetFormat();
+  auto moduleClock = module.GetClock();
+  auto moduleMime = IsInputPort(d.nPortIndex) ? module.GetMimes().input : module.GetMimes().output;
   v.pNativeRender = 0; // XXX
   v.nFrameWidth = moduleResolution.width;
   v.nFrameHeight = moduleResolution.height;
   v.nStride = moduleResolution.stride;
   v.nSliceHeight = moduleResolution.sliceHeight;
   v.nBitrate = 0; // XXX
-  v.xFramerate = ConvertToOMXFramerate(moduleClock);
-  v.bFlagErrorConcealment = ConvertToOMXBool(false); // XXX
-  v.eCompressionFormat = ConvertToOMXCompression(moduleMime.compression);
-  v.eColorFormat = ConvertToOMXColor(moduleFormat.color, moduleFormat.bitdepth);
+  v.xFramerate = ConvertModuleToOMXFramerate(moduleClock);
+  v.bFlagErrorConcealment = ConvertModuleToOMXBool(false); // XXX
+  v.eCompressionFormat = ConvertModuleToOMXCompression(moduleMime.compression);
+  v.eColorFormat = ConvertModuleToOMXColor(moduleFormat.color, moduleFormat.bitdepth);
   v.cMIMEType = const_cast<char*>(moduleMime.mime.c_str());
   v.pNativeWindow = 0; // XXX
   return d;
@@ -252,12 +245,12 @@ static OMX_VIDEO_PARAM_PORTFORMATTYPE ConstructVideoPortCurrentFormat(Port const
   OMXChecker::SetHeaderVersion(f);
   f.nPortIndex = port.index;
   f.nIndex = 0;
-  auto const moduleFormat = module.GetFormat();
-  auto const moduleClock = module.GetClock();
-  auto const moduleMime = IsInputPort(f.nPortIndex) ? module.GetMimes().input : module.GetMimes().output;
-  f.eCompressionFormat = ConvertToOMXCompression(moduleMime.compression);
-  f.eColorFormat = ConvertToOMXColor(moduleFormat.color, moduleFormat.bitdepth);
-  f.xFramerate = ConvertToOMXFramerate(moduleClock);
+  auto moduleFormat = module.GetFormat();
+  auto moduleClock = module.GetClock();
+  auto moduleMime = IsInputPort(f.nPortIndex) ? module.GetMimes().input : module.GetMimes().output;
+  f.eCompressionFormat = ConvertModuleToOMXCompression(moduleMime.compression);
+  f.eColorFormat = ConvertModuleToOMXColor(moduleFormat.color, moduleFormat.bitdepth);
+  f.xFramerate = ConvertModuleToOMXFramerate(moduleClock);
   return f;
 }
 
@@ -273,7 +266,7 @@ static OMX_ALG_PARAM_PREALLOCATION ConstructPreallocation(bool isEnabled)
 {
   OMX_ALG_PARAM_PREALLOCATION prealloc;
   OMXChecker::SetHeaderVersion(prealloc);
-  prealloc.bDisablePreallocation = ConvertToOMXBool(!isEnabled);
+  prealloc.bDisablePreallocation = ConvertModuleToOMXBool(!isEnabled);
   return prealloc;
 }
 
@@ -282,7 +275,7 @@ OMX_ALG_PORT_PARAM_BUFFER_MODE ConstructPortBufferMode(Port const& port, DecModu
   OMX_ALG_PORT_PARAM_BUFFER_MODE mode;
   OMXChecker::SetHeaderVersion(mode);
   mode.nPortIndex = port.index;
-  mode.eMode = IsInputPort(port.index) ? ConvertToOMXBufferMode(module.GetFileDescriptors().input) : ConvertToOMXBufferMode(module.GetFileDescriptors().output);
+  mode.eMode = IsInputPort(port.index) ? ConvertModuleToOMXBufferMode(module.GetFileDescriptors().input) : ConvertModuleToOMXBufferMode(module.GetFileDescriptors().output);
   return mode;
 }
 
@@ -291,7 +284,7 @@ OMX_ALG_VIDEO_PARAM_DECODED_PICTURE_BUFFER ConstructVideoDecodedPictureBuffer(Po
   OMX_ALG_VIDEO_PARAM_DECODED_PICTURE_BUFFER dpb;
   OMXChecker::SetHeaderVersion(dpb);
   dpb.nPortIndex = port.index;
-  dpb.eDecodedPictureBufferMode = ConvertToOMXDecodedPictureBuffer(module.GetDecodedPictureBuffer());
+  dpb.eDecodedPictureBufferMode = ConvertModuleToOMXDecodedPictureBuffer(module.GetDecodedPictureBuffer());
   return dpb;
 }
 
@@ -309,7 +302,7 @@ OMX_ALG_VIDEO_PARAM_SUBFRAME ConstructVideoSubframe(Port const& port, DecModule 
   OMX_ALG_VIDEO_PARAM_SUBFRAME subframe;
   OMXChecker::SetHeaderVersion(subframe);
   subframe.nPortIndex = port.index;
-  subframe.bEnableSubframe = ConvertToOMXBool(module.IsEnableSubframe());
+  subframe.bEnableSubframe = ConvertModuleToOMXBool(module.IsEnableSubframe());
   return subframe;
 }
 
@@ -320,36 +313,37 @@ static bool GetVideoPortFormatSupported(OMX_VIDEO_PARAM_PORTFORMATTYPE& format, 
   if(format.nIndex >= supported.size())
     return false;
 
-  auto const moduleMime = IsInputPort(format.nPortIndex) ? module.GetMimes().input : module.GetMimes().output;
-  format.eCompressionFormat = ConvertToOMXCompression(moduleMime.compression);
-  format.eColorFormat = ConvertToOMXColor(supported[format.nIndex].color, supported[format.nIndex].bitdepth);
-  auto const moduleClock = module.GetClock();
-  format.xFramerate = ConvertToOMXFramerate(moduleClock);
+  auto moduleMime = IsInputPort(format.nPortIndex) ? module.GetMimes().input : module.GetMimes().output;
+  format.eCompressionFormat = ConvertModuleToOMXCompression(moduleMime.compression);
+  format.eColorFormat = ConvertModuleToOMXColor(supported[format.nIndex].color, supported[format.nIndex].bitdepth);
+  auto moduleClock = module.GetClock();
+  format.xFramerate = ConvertModuleToOMXFramerate(moduleClock);
 
   return true;
 }
 
-static OMX_INTERLACEFORMATTYPE ConstructVideoModesSupported(Port const& port, DecModule const& module)
+bool ConstructCommonSequencePictureModesSupported(OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE* mode, shared_ptr<MediatypeInterface> media)
 {
-  OMX_INTERLACEFORMATTYPE interlace;
-  OMXChecker::SetHeaderVersion(interlace);
-  interlace.nPortIndex = port.index;
-  auto const modes = module.GetVideoModesSupported();
+  vector<SequencePictureModeType> modes;
+  auto supported = media->Get(SETTINGS_INDEX_SEQUENCE_PICTURE_MODES_SUPPORTED, &modes);
+  assert(supported == MediatypeInterface::ERROR_SETTINGS_NONE);
 
-  for(auto const mode : modes)
-    interlace.nFormat |= ConvertToOMXInterlaceFlag(mode);
+  if(mode->nModeIndex >= modes.size())
+    return false;
 
-  return interlace;
+  mode->eMode = ConvertModuleToOMXSequencePictureMode(modes[mode->nModeIndex]);
+  return true;
 }
 
-static OMX_INTERLACEFORMATTYPE ConstructVideoModeCurrent(Port const& port, DecModule const& module)
+OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE ConstructCommonSequencePictureMode(Port const& port, shared_ptr<MediatypeInterface> media)
 {
-  OMX_INTERLACEFORMATTYPE interlace;
-  OMXChecker::SetHeaderVersion(interlace);
-  interlace.nPortIndex = port.index;
-  interlace.nFormat = ConvertToOMXInterlaceFlag(module.GetVideoMode());
+  OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE mode;
+  OMXChecker::SetHeaderVersion(mode);
+  mode.nPortIndex = port.index;
+  auto supported = media->Get(SETTINGS_INDEX_SEQUENCE_PICTURE_MODE, &mode.eMode);
+  assert(supported == MediatypeInterface::ERROR_SETTINGS_NONE);
 
-  return interlace;
+  return mode;
 }
 
 OMX_ERRORTYPE DecCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR param)
@@ -361,7 +355,7 @@ OMX_ERRORTYPE DecCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
 
   auto getCurrentPort = [=](OMX_PTR param) -> Port*
                         {
-                          auto const index = *(((OMX_U32*)param) + 2);
+                          auto index = *(((OMX_U32*)param) + 2);
                           return GetPort(index);
                         };
   switch(static_cast<OMX_U32>(index)) // all indexes are 32u
@@ -386,13 +380,13 @@ OMX_ERRORTYPE DecCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
   }
   case OMX_IndexParamCompBufferSupplier:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
     *(OMX_PARAM_BUFFERSUPPLIERTYPE*)param = ConstructPortSupplier(*port);
     return OMX_ErrorNone;
   }
   case OMX_IndexParamVideoPortFormat:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
     auto p = (OMX_VIDEO_PARAM_PORTFORMATTYPE*)param;
 
     if(IsInputPort(index))
@@ -406,13 +400,13 @@ OMX_ERRORTYPE DecCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
   }
   case OMX_IndexParamVideoProfileLevelCurrent:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
     expertise->GetProfileLevel(param, *port, ToDecModule(*module));
     return OMX_ErrorNone;
   }
   case OMX_IndexParamVideoProfileLevelQuerySupported: // GetParameter only
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
     (void)port;
 
     if(!expertise->GetProfileLevelSupported(param, ToDecModule(*module)))
@@ -423,20 +417,8 @@ OMX_ERRORTYPE DecCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
   case OMX_IndexParamVideoAvc:
   case OMX_ALG_IndexParamVideoHevc:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
     expertise->GetExpertise(param, *port, ToDecModule(*module));
-    return OMX_ErrorNone;
-  }
-  case OMX_ALG_IndexParamVideoInterlaceFormatSupported: // GetParameter only
-  {
-    auto const port = getCurrentPort(param);
-    *(OMX_INTERLACEFORMATTYPE*)param = ConstructVideoModesSupported(*port, ToDecModule(*module));
-    return OMX_ErrorNone;
-  }
-  case OMX_ALG_IndexParamVideoInterlaceFormatCurrent:
-  {
-    auto const port = getCurrentPort(param);
-    *(OMX_INTERLACEFORMATTYPE*)param = ConstructVideoModeCurrent(*port, ToDecModule(*module));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexParamReportedLatency: // GetParameter only
@@ -451,26 +433,41 @@ OMX_ERRORTYPE DecCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
   }
   case OMX_ALG_IndexPortParamBufferMode:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
     *(OMX_ALG_PORT_PARAM_BUFFER_MODE*)param = ConstructPortBufferMode(*port, ToDecModule(*module));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexParamVideoDecodedPictureBuffer:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
     *(OMX_ALG_VIDEO_PARAM_DECODED_PICTURE_BUFFER*)param = ConstructVideoDecodedPictureBuffer(*port, ToDecModule(*module));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexParamVideoInternalEntropyBuffers:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
     *(OMX_ALG_VIDEO_PARAM_INTERNAL_ENTROPY_BUFFERS*)param = ConstructVideoInternalEntropyBuffers(*port, ToDecModule(*module));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexParamVideoSubframe:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
     *(OMX_ALG_VIDEO_PARAM_SUBFRAME*)param = ConstructVideoSubframe(*port, ToDecModule(*module));
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamCommonSequencePictureModeQuerySupported:
+  {
+    auto mode = (OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE*)param;
+
+    if(!ConstructCommonSequencePictureModesSupported(mode, media))
+      return OMX_ErrorNoMore;
+
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamCommonSequencePictureModeCurrent:
+  {
+    auto port = getCurrentPort(param);
+    *(OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE*)param = ConstructCommonSequencePictureMode(*port, media);
     return OMX_ErrorNone;
   }
   default:
@@ -486,15 +483,15 @@ OMX_ERRORTYPE DecCodec::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_P
 static bool SetFormat(OMX_COLOR_FORMATTYPE const& color, DecModule& module)
 {
   auto moduleFormat = module.GetFormat();
-  moduleFormat.color = ConvertToModuleColor(color);
-  moduleFormat.bitdepth = ConvertToModuleBitdepth(color);
+  moduleFormat.color = ConvertOMXToModuleColor(color);
+  moduleFormat.bitdepth = ConvertOMXToModuleBitdepth(color);
   return module.SetFormat(moduleFormat);
 }
 
 static bool SetClock(OMX_U32 framerateInQ16, DecModule& module)
 {
   auto moduleClock = module.GetClock();
-  auto const clock = ConvertToModuleClock(framerateInQ16);
+  auto clock = ConvertOMXToModuleClock(framerateInQ16);
   moduleClock.framerate = clock.framerate;
   moduleClock.clockratio = clock.clockratio;
   return module.SetClock(moduleClock);
@@ -513,20 +510,20 @@ static bool SetResolution(OMX_VIDEO_PORTDEFINITIONTYPE const& definition, DecMod
 static bool SetInputBufferMode(OMX_ALG_BUFFER_MODE mode, DecModule& module)
 {
   auto moduleFds = module.GetFileDescriptors();
-  moduleFds.input = ConvertToModuleFileDescriptor(mode);
+  moduleFds.input = ConvertOMXToModuleFileDescriptor(mode);
   return module.SetFileDescriptors(moduleFds);
 }
 
 static bool SetOutputBufferMode(OMX_ALG_BUFFER_MODE mode, DecModule& module)
 {
   auto moduleFds = module.GetFileDescriptors();
-  moduleFds.output = ConvertToModuleFileDescriptor(mode);
+  moduleFds.output = ConvertOMXToModuleFileDescriptor(mode);
   return module.SetFileDescriptors(moduleFds);
 }
 
 static bool SetDecodedPictureBuffer(OMX_ALG_EDpbMode mode, DecModule& module)
 {
-  return module.SetDecodedPictureBuffer(ConvertToModuleDecodedPictureBuffer(mode));
+  return module.SetDecodedPictureBuffer(ConvertOMXToModuleDecodedPictureBuffer(mode));
 }
 
 static bool SetInternalEntropyBuffers(OMX_U32 num, DecModule& module)
@@ -536,13 +533,13 @@ static bool SetInternalEntropyBuffers(OMX_U32 num, DecModule& module)
 
 static bool SetSubframe(OMX_BOOL enableSubframe, DecModule& module)
 {
-  return module.SetEnableSubframe(ConvertToModuleBool(enableSubframe));
+  return module.SetEnableSubframe(ConvertOMXToModuleBool(enableSubframe));
 }
 
 static bool SetPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port& port, DecModule& module)
 {
-  auto const rollback = ConstructPortDefinition(port, module);
-  auto const video = settings.format.video;
+  auto rollback = ConstructPortDefinition(port, module);
+  auto video = settings.format.video;
 
   if(!SetFormat(video.eColorFormat, module))
   {
@@ -567,7 +564,7 @@ static bool SetPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port
 
 static bool SetVideoPortFormat(OMX_VIDEO_PARAM_PORTFORMATTYPE const& format, Port const& port, DecModule& module)
 {
-  auto const rollback = ConstructVideoPortCurrentFormat(port, module);
+  auto rollback = ConstructVideoPortCurrentFormat(port, module);
 
   if(!SetClock(format.xFramerate, module))
   {
@@ -585,7 +582,7 @@ static bool SetVideoPortFormat(OMX_VIDEO_PARAM_PORTFORMATTYPE const& format, Por
 
 static bool SetPortBufferMode(OMX_ALG_PORT_PARAM_BUFFER_MODE const& portBufferMode, Port const& port, DecModule& module)
 {
-  auto const rollback = ConstructPortBufferMode(port, module);
+  auto rollback = ConstructPortBufferMode(port, module);
   auto& setBufferMode = IsInputPort(portBufferMode.nPortIndex) ? SetInputBufferMode : SetOutputBufferMode;
 
   if(!setBufferMode(portBufferMode.eMode, module))
@@ -599,7 +596,7 @@ static bool SetPortBufferMode(OMX_ALG_PORT_PARAM_BUFFER_MODE const& portBufferMo
 
 static bool SetVideoDecodedPictureBuffer(OMX_ALG_VIDEO_PARAM_DECODED_PICTURE_BUFFER const& dpb, Port const& port, DecModule& module)
 {
-  auto const rollback = ConstructVideoDecodedPictureBuffer(port, module);
+  auto rollback = ConstructVideoDecodedPictureBuffer(port, module);
 
   if(!SetDecodedPictureBuffer(dpb.eDecodedPictureBufferMode, module))
   {
@@ -612,7 +609,7 @@ static bool SetVideoDecodedPictureBuffer(OMX_ALG_VIDEO_PARAM_DECODED_PICTURE_BUF
 
 static bool SetVideoInternalEntropyBuffers(OMX_ALG_VIDEO_PARAM_INTERNAL_ENTROPY_BUFFERS const& ieb, Port const& port, DecModule& module)
 {
-  auto const rollback = ConstructVideoInternalEntropyBuffers(port, module);
+  auto rollback = ConstructVideoInternalEntropyBuffers(port, module);
 
   if(!SetInternalEntropyBuffers(ieb.nNumInternalEntropyBuffers, module))
   {
@@ -625,7 +622,7 @@ static bool SetVideoInternalEntropyBuffers(OMX_ALG_VIDEO_PARAM_INTERNAL_ENTROPY_
 
 static bool SetVideoSubframe(OMX_ALG_VIDEO_PARAM_SUBFRAME const& subframe, Port const& port, DecModule& module)
 {
-  auto const rollback = ConstructVideoSubframe(port, module);
+  auto rollback = ConstructVideoSubframe(port, module);
 
   if(!SetSubframe(subframe.bEnableSubframe, module))
   {
@@ -637,8 +634,8 @@ static bool SetVideoSubframe(OMX_ALG_VIDEO_PARAM_SUBFRAME const& subframe, Port 
 
 static bool SetPortExpectedBuffer(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port& port, DecModule const& module)
 {
-  auto const min = IsInputPort(settings.nPortIndex) ? module.GetBufferRequirements().input.min : module.GetBufferRequirements().output.min;
-  auto const actual = static_cast<int>(settings.nBufferCountActual);
+  auto min = IsInputPort(settings.nPortIndex) ? module.GetBufferRequirements().input.min : module.GetBufferRequirements().output.min;
+  auto actual = static_cast<int>(settings.nBufferCountActual);
 
   if(actual < min)
     return false;
@@ -648,20 +645,26 @@ static bool SetPortExpectedBuffer(OMX_PARAM_PORTDEFINITIONTYPE const& settings, 
   return true;
 }
 
-static bool SetInterlaceMode(OMX_U32 flag, DecModule& module)
+static bool SetSequencePictureMode(OMX_ALG_SEQUENCE_PICTURE_MODE mode, shared_ptr<MediatypeInterface> media)
 {
-  return module.SetVideoMode(ConvertToModuleVideoMode(flag));
+  auto ret = media->Set(SETTINGS_INDEX_SEQUENCE_PICTURE_MODE, &mode);
+
+  if(ret == MediatypeInterface::ERROR_SETTINGS_BAD_PARAMETER)
+    return false;
+
+  return true;
 }
 
-static bool SetVideoModeCurrent(OMX_INTERLACEFORMATTYPE const& interlace, Port const& port, DecModule& module)
+static bool SetCommonSequencePictureMode(OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE mode, Port const& port, shared_ptr<MediatypeInterface> media)
 {
-  auto const rollback = ConstructVideoModeCurrent(port, module);
+  auto rollback = ConstructCommonSequencePictureMode(port, media);
 
-  if(!SetInterlaceMode(interlace.nFormat, module))
+  if(!SetSequencePictureMode(mode.eMode, media))
   {
-    SetVideoModeCurrent(rollback, port, module);
+    SetCommonSequencePictureMode(rollback, port, media);
     return false;
   }
+
   return true;
 }
 
@@ -673,7 +676,7 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
 
   auto getCurrentPort = [=](OMX_PTR param) -> Port*
                         {
-                          auto const index = *(((OMX_U32*)param) + 2);
+                          auto index = *(((OMX_U32*)param) + 2);
                           return GetPort(index);
                         };
   switch(static_cast<OMX_U32>(index)) // all indexes are 32u
@@ -693,7 +696,7 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_ALG_IndexParamPreallocation:
   {
     auto p = (OMX_ALG_PARAM_PREALLOCATION*)param;
-    this->shouldPrealloc = !p->bDisablePreallocation;
+    this->shouldPrealloc = p->bDisablePreallocation == OMX_FALSE;
     return OMX_ErrorNone;
   }
   case OMX_IndexParamPortDefinition:
@@ -703,7 +706,7 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
 
-    auto const settings = static_cast<OMX_PARAM_PORTDEFINITIONTYPE*>(param);
+    auto settings = static_cast<OMX_PARAM_PORTDEFINITIONTYPE*>(param);
 
     if(!SetPortExpectedBuffer(*settings, const_cast<Port &>(*port), ToDecModule(*module)))
       throw OMX_ErrorBadParameter;
@@ -714,7 +717,7 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_IndexParamCompBufferSupplier:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
@@ -724,12 +727,12 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_IndexParamVideoPortFormat:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
 
-    auto const format = static_cast<OMX_VIDEO_PARAM_PORTFORMATTYPE*>(param);
+    auto format = static_cast<OMX_VIDEO_PARAM_PORTFORMATTYPE*>(param);
 
     if(!SetVideoPortFormat(*format, *port, ToDecModule(*module)))
       throw OMX_ErrorBadParameter;
@@ -737,7 +740,7 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_IndexParamVideoProfileLevelCurrent:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
@@ -749,7 +752,7 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   case OMX_IndexParamVideoAvc:
   case OMX_ALG_IndexParamVideoHevc:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
@@ -758,26 +761,13 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
       throw OMX_ErrorBadParameter;
     return OMX_ErrorNone;
   }
-  case OMX_ALG_IndexParamVideoInterlaceFormatCurrent:
-  {
-    auto const port = getCurrentPort(param);
-
-    if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
-
-    auto const interlaced = static_cast<OMX_INTERLACEFORMATTYPE*>(param);
-
-    if(!SetVideoModeCurrent(*interlaced, *port, ToDecModule(*module)))
-      throw OMX_ErrorBadParameter;
-    return OMX_ErrorNone;
-  }
   case OMX_ALG_IndexPortParamBufferMode:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
-    auto const portBufferMode = static_cast<OMX_ALG_PORT_PARAM_BUFFER_MODE*>(param);
+    auto portBufferMode = static_cast<OMX_ALG_PORT_PARAM_BUFFER_MODE*>(param);
 
     if(!SetPortBufferMode(*portBufferMode, *port, ToDecModule(*module)))
       throw OMX_ErrorBadParameter;
@@ -785,11 +775,11 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoDecodedPictureBuffer:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
-    auto const dpb = static_cast<OMX_ALG_VIDEO_PARAM_DECODED_PICTURE_BUFFER*>(param);
+    auto dpb = static_cast<OMX_ALG_VIDEO_PARAM_DECODED_PICTURE_BUFFER*>(param);
 
     if(!SetVideoDecodedPictureBuffer(*dpb, *port, ToDecModule(*module)))
       throw OMX_ErrorBadParameter;
@@ -797,11 +787,11 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoInternalEntropyBuffers:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
-    auto const ieb = static_cast<OMX_ALG_VIDEO_PARAM_INTERNAL_ENTROPY_BUFFERS*>(param);
+    auto ieb = static_cast<OMX_ALG_VIDEO_PARAM_INTERNAL_ENTROPY_BUFFERS*>(param);
 
     if(!SetVideoInternalEntropyBuffers(*ieb, *port, ToDecModule(*module)))
       throw OMX_ErrorBadParameter;
@@ -809,14 +799,27 @@ OMX_ERRORTYPE DecCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
   }
   case OMX_ALG_IndexParamVideoSubframe:
   {
-    auto const port = getCurrentPort(param);
+    auto port = getCurrentPort(param);
 
     if(!port->isTransientToDisable && port->enable)
       OMXChecker::CheckStateOperation(AL_SetParameter, state);
 
-    auto const subframe = static_cast<OMX_ALG_VIDEO_PARAM_SUBFRAME*>(param);
+    auto subframe = static_cast<OMX_ALG_VIDEO_PARAM_SUBFRAME*>(param);
 
     if(!SetVideoSubframe(*subframe, *port, ToDecModule(*module)))
+      throw OMX_ErrorBadParameter;
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamCommonSequencePictureModeCurrent:
+  {
+    auto port = getCurrentPort(param);
+
+    if(!port->isTransientToDisable && port->enable)
+      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+
+    auto spm = static_cast<OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE*>(param);
+
+    if(!SetCommonSequencePictureMode(*spm, *port, media))
       throw OMX_ErrorBadParameter;
     return OMX_ErrorNone;
   }
@@ -860,16 +863,16 @@ static inline bool isBufferAllocatedByModule(OMX_BUFFERHEADERTYPE const* header)
   if(!header->pInputPortPrivate || !header->pOutputPortPrivate)
     return false;
 
-  auto isInputAllocated = *(bool*)(header->pInputPortPrivate);
-  auto isOutputAllocated = *(bool*)(header->pOutputPortPrivate);
+  auto isInputAllocated = *(static_cast<bool*>(header->pInputPortPrivate));
+  auto isOutputAllocated = *(static_cast<bool*>(header->pOutputPortPrivate));
 
   return isInputAllocated || isOutputAllocated;
 }
 
 static void DeleteHeader(OMX_BUFFERHEADERTYPE* header)
 {
-  delete (bool*)header->pInputPortPrivate;
-  delete (bool*)header->pOutputPortPrivate;
+  delete static_cast<bool*>(header->pInputPortPrivate);
+  delete static_cast<bool*>(header->pOutputPortPrivate);
   delete header;
 }
 
@@ -885,7 +888,7 @@ OMX_ERRORTYPE DecCodec::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, 
   if(transientState != TransientLoadedToIdle && !(port->isTransientToEnable))
     throw OMX_ErrorIncorrectStateOperation;
 
-  auto const dmaOnPort = IsInputPort(index) ? ToDecModule(*module).GetFileDescriptors().input : ToDecModule(*module).GetFileDescriptors().output;
+  auto dmaOnPort = IsInputPort(index) ? ToDecModule(*module).GetFileDescriptors().input : ToDecModule(*module).GetFileDescriptors().output;
   auto buffer = dmaOnPort ? reinterpret_cast<OMX_U8*>(ToDecModule(*module).AllocateDMA(size * sizeof(OMX_U8))) : static_cast<OMX_U8*>(module->Allocate(size * sizeof(OMX_U8)));
 
   if(dmaOnPort ? (static_cast<int>((intptr_t)buffer) < 0) : !buffer)
@@ -914,7 +917,7 @@ OMX_ERRORTYPE DecCodec::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADER
   if((transientState != TransientIdleToLoaded) && (!port->isTransientToDisable))
     callbacks.EventHandler(component, app, OMX_EventError, OMX_ErrorPortUnpopulated, 0, nullptr);
 
-  auto const dmaOnPort = IsInputPort(index) ? ToDecModule(*module).GetFileDescriptors().input : ToDecModule(*module).GetFileDescriptors().output;
+  auto dmaOnPort = IsInputPort(index) ? ToDecModule(*module).GetFileDescriptors().input : ToDecModule(*module).GetFileDescriptors().output;
   dmaOnPort ? ToDecModule(*module).FreeDMA(static_cast<int>((intptr_t)header->pBuffer)) : module->Free(header->pBuffer);
 
   port->Remove(header);

@@ -58,20 +58,18 @@ extern "C"
 
 struct Flags
 {
-  Flags() :
-    isConfig(false), isSync(false), isEndOfSlice(false), isEndOfFrame(false)
-  {
-  };
-  bool isConfig;
-  bool isSync;
-  bool isEndOfSlice;
-  bool isEndOfFrame;
+  Flags() = default;
+  ~Flags() = default;
+  bool isConfig = false;
+  bool isSync = false;
+  bool isEndOfSlice = false;
+  bool isEndOfFrame = false;
 };
 
 class EncModule : public ModuleInterface
 {
 public:
-  EncModule(std::shared_ptr<EncMediatypeInterface> media, std::unique_ptr<EncDevice>&& device, deleted_unique_ptr<AL_TAllocator>&& allocator);
+  EncModule(std::shared_ptr<EncMediatypeInterface> media, std::unique_ptr<EncDevice>&& device, std::shared_ptr<AL_TAllocator> allocator);
   ~EncModule();
 
   void ResetRequirements();
@@ -153,7 +151,7 @@ public:
 private:
   std::shared_ptr<EncMediatypeInterface> const media;
   std::unique_ptr<EncDevice> const device;
-  deleted_unique_ptr<AL_TAllocator> const allocator;
+  std::shared_ptr<AL_TAllocator> const allocator;
   AL_HEncoder encoder;
   TScheduler* scheduler;
   Callbacks callbacks;

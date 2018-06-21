@@ -39,6 +39,8 @@
 
 #include "omx_mediatype_enc_interface.h"
 
+#include <vector>
+
 struct EncMediatypeAVC : EncMediatypeInterface
 {
   EncMediatypeAVC();
@@ -49,7 +51,7 @@ struct EncMediatypeAVC : EncMediatypeInterface
   ErrorSettingsType Set(std::string index, void const* settings) override;
 
   ProfileLevelType ProfileLevel() const;
-  bool SetProfileLevel(ProfileLevelType const& profileLevel);
+  bool SetProfileLevel(ProfileLevelType profileLevel);
 
 private:
   std::vector<AVCProfileType> const profiles
@@ -89,8 +91,6 @@ private:
     61,
     62,
   };
-  bool IsInProfilesSupported(AVCProfileType const& profile);
-  bool IsInLevelsSupported(int level);
 
   std::vector<ColorType> const colors
   {

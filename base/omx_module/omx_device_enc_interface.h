@@ -48,10 +48,8 @@ extern "C"
 
 struct EncDevice
 {
-  virtual ~EncDevice()
-  {
-  };
-  virtual TScheduler* Init(AL_TEncSettings const &, AL_TAllocator const& allocator) = 0;
+  virtual ~EncDevice() = 0;
+  virtual TScheduler* Init(AL_TEncSettings settings, AL_TAllocator const& allocator) = 0;
   virtual void Deinit(TScheduler* scheduler) = 0;
   virtual AllocationRequirements GetAllocationRequirements() = 0;
 };

@@ -38,14 +38,28 @@
 #pragma once
 
 #include "base/omx_module/omx_module_structs.h"
+#include <vector>
 
-bool CheckClock(Clock const& clock);
-bool CheckGroupOfPictures(Gop const& gop);
-bool CheckInternalEntropyBuffer(int const& internalEntropyBuffer);
-bool CheckVideoMode(VideoModeType const& videoMode);
-bool CheckBitrate(Bitrate const& bitrate, Clock const& clock);
-bool CheckAspectRatio(AspectRatioType const& aspectRatio);
-bool CheckScalingList(ScalingListType const& scalingList);
-bool CheckQuantizationParameter(QPs const& qps);
-bool CheckSlicesParameter(Slices const& slices);
+template<class T>
+bool IsSupported(T value, std::vector<T> supported)
+{
+  for(auto each: supported)
+  {
+    if(each == value)
+      return true;
+  }
+
+  return false;
+}
+
+bool CheckClock(Clock clock);
+bool CheckGroupOfPictures(Gop gop);
+bool CheckInternalEntropyBuffer(int internalEntropyBuffer);
+bool CheckVideoMode(VideoModeType videoMode);
+bool CheckSequenceMode(SequencePictureModeType sequenceMode);
+bool CheckBitrate(Bitrate bitrate, Clock clock);
+bool CheckAspectRatio(AspectRatioType aspectRatio);
+bool CheckScalingList(ScalingListType scalingList);
+bool CheckQuantizationParameter(QPs qps);
+bool CheckSlicesParameter(Slices slices);
 

@@ -40,7 +40,7 @@
 
 using namespace std;
 
-bool IsHighTierProfile(HEVCProfileType const& profile)
+bool IsHighTierProfile(HEVCProfileType profile)
 {
   switch(profile)
   {
@@ -77,20 +77,20 @@ bool IsHighTierProfile(HEVCProfileType const& profile)
   return false;
 }
 
-static bool isCompliant(HEVCProfileType const& profile, int level)
+static bool isCompliant(HEVCProfileType profile, int level)
 {
   if(IsHighTierProfile(profile) && level < 40)
     return false;
   return true;
 }
 
-vector<ProfileLevelType> CreateHEVCProfileLevelSupported(vector<HEVCProfileType> const& profiles, vector<int> const& levels)
+vector<ProfileLevelType> CreateHEVCProfileLevelSupported(vector<HEVCProfileType> profiles, vector<int> levels)
 {
   vector<ProfileLevelType> plSupported;
 
-  for(auto const& profile : profiles)
+  for(auto profile : profiles)
   {
-    for(auto const& level : levels)
+    for(auto level : levels)
     {
       if(isCompliant(profile, level))
       {
@@ -105,7 +105,7 @@ vector<ProfileLevelType> CreateHEVCProfileLevelSupported(vector<HEVCProfileType>
   return plSupported;
 }
 
-ProfileLevelType CreateHEVCMainTierProfileLevel(AL_EProfile const& profile, int level)
+ProfileLevelType CreateHEVCMainTierProfileLevel(AL_EProfile profile, int level)
 {
   ProfileLevelType pl;
   pl.profile.hevc = ConvertSoftToModuleHEVCMainTierProfile(profile);
@@ -113,7 +113,7 @@ ProfileLevelType CreateHEVCMainTierProfileLevel(AL_EProfile const& profile, int 
   return pl;
 }
 
-ProfileLevelType CreateHEVCHighTierProfileLevel(AL_EProfile const& profile, int level)
+ProfileLevelType CreateHEVCHighTierProfileLevel(AL_EProfile profile, int level)
 {
   ProfileLevelType pl;
   pl.profile.hevc = ConvertSoftToModuleHEVCHighTierProfile(profile);

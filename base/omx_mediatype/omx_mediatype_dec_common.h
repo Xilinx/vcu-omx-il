@@ -44,9 +44,12 @@ extern "C"
 #include <lib_decode/lib_decode.h>
 }
 
-Clock CreateClock(AL_TDecSettings const& settings);
-bool UpdateClock(AL_TDecSettings& settings, Clock const& clock);
+Clock CreateClock(AL_TDecSettings settings);
+bool UpdateClock(AL_TDecSettings& settings, Clock clock);
 
-int CreateInternalEntropyBuffer(AL_TDecSettings const& settings);
-bool UpdateInternalEntropyBuffer(AL_TDecSettings& settings, int const& internalEntropyBuffer);
+int CreateInternalEntropyBuffer(AL_TDecSettings settings);
+bool UpdateInternalEntropyBuffer(AL_TDecSettings& settings, int internalEntropyBuffer);
+
+SequencePictureModeType CreateSequenceMode(AL_TDecSettings settings);
+bool UpdateSequenceMode(AL_TDecSettings& settings, SequencePictureModeType videoMode);
 

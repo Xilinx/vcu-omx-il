@@ -40,8 +40,6 @@
 #include "omx_mediatype_interface.h"
 #include "base/omx_module/omx_module_structs.h"
 
-#include <vector>
-
 extern "C"
 {
 #include <lib_decode/lib_decode.h>
@@ -58,7 +56,7 @@ struct DecMediatypeInterface : public MediatypeInterface
   virtual ErrorSettingsType Set(std::string index, void const* settings) = 0;
 
   virtual ProfileLevelType ProfileLevel() const = 0;
-  virtual bool SetProfileLevel(ProfileLevelType const& profileLevel) = 0;
+  virtual bool SetProfileLevel(ProfileLevelType profileLevel) = 0;
 
   AL_TDecSettings settings;
   int const strideAlignment = 64;

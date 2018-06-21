@@ -37,18 +37,19 @@
 
 #include "omx_mediatype_enc_common.h"
 #include "omx_mediatype_checks.h"
+#include "base/omx_settings/omx_convert_module_soft.h"
 #include "base/omx_settings/omx_convert_module_soft_enc.h"
 
-Clock CreateClock(AL_TEncSettings const& settings)
+Clock CreateClock(AL_TEncSettings settings)
 {
   Clock clock;
-  auto const rateCtrl = settings.tChParam[0].tRCParam;
+  auto rateCtrl = settings.tChParam[0].tRCParam;
   clock.framerate = rateCtrl.uFrameRate;
   clock.clockratio = rateCtrl.uClkRatio;
   return clock;
 }
 
-bool UpdateClock(AL_TEncSettings& settings, Clock const& clock)
+bool UpdateClock(AL_TEncSettings& settings, Clock clock)
 {
   if(!CheckClock(clock))
     return false;
@@ -61,10 +62,10 @@ bool UpdateClock(AL_TEncSettings& settings, Clock const& clock)
   return true;
 }
 
-Gop CreateGroupOfPictures(AL_TEncSettings const& settings)
+Gop CreateGroupOfPictures(AL_TEncSettings settings)
 {
   Gop gop;
-  auto const gopParam = settings.tChParam[0].tGopParam;
+  auto gopParam = settings.tChParam[0].tGopParam;
 
   gop.b = gopParam.uNumB;
   gop.length = gopParam.uGopLength;
@@ -76,7 +77,7 @@ Gop CreateGroupOfPictures(AL_TEncSettings const& settings)
   return gop;
 }
 
-bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop const& gop)
+bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop gop)
 {
   if(!CheckGroupOfPictures(gop))
     return false;
@@ -92,13 +93,13 @@ bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop const& gop)
   return true;
 }
 
-bool CreateConstrainedIntraPrediction(AL_TEncSettings const& settings)
+bool CreateConstrainedIntraPrediction(AL_TEncSettings settings)
 {
-  auto const channel = settings.tChParam[0];
+  auto channel = settings.tChParam[0];
   return channel.eOptions & AL_OPT_CONST_INTRA_PRED;
 }
 
-bool UpdateConstrainedIntraPrediction(AL_TEncSettings& settings, bool const& isConstrainedIntraPredictionEnabled)
+bool UpdateConstrainedIntraPrediction(AL_TEncSettings& settings, bool isConstrainedIntraPredictionEnabled)
 {
   auto& opt = settings.tChParam[0].eOptions;
 
@@ -108,13 +109,13 @@ bool UpdateConstrainedIntraPrediction(AL_TEncSettings& settings, bool const& isC
   return true;
 }
 
-VideoModeType CreateVideoMode(AL_TEncSettings const& settings)
+VideoModeType CreateVideoMode(AL_TEncSettings settings)
 {
-  auto const channel = settings.tChParam[0];
+  auto channel = settings.tChParam[0];
   return ConvertSoftToModuleVideoMode(channel.eVideoMode);
 }
 
-bool UpdateVideoMode(AL_TEncSettings& settings, VideoModeType const& videoMode)
+bool UpdateVideoMode(AL_TEncSettings& settings, VideoModeType videoMode)
 {
   if(!CheckVideoMode(videoMode))
     return false;
@@ -124,10 +125,10 @@ bool UpdateVideoMode(AL_TEncSettings& settings, VideoModeType const& videoMode)
   return true;
 }
 
-Bitrate CreateBitrate(AL_TEncSettings const& settings)
+Bitrate CreateBitrate(AL_TEncSettings settings)
 {
   Bitrate bitrate;
-  auto const rateCtrl = settings.tChParam[0].tRCParam;
+  auto rateCtrl = settings.tChParam[0].tRCParam;
 
   bitrate.target = rateCtrl.uTargetBitRate / 1000;
   bitrate.max = rateCtrl.uMaxBitRate / 1000;
@@ -138,7 +139,7 @@ Bitrate CreateBitrate(AL_TEncSettings const& settings)
   return bitrate;
 }
 
-bool UpdateBitrate(AL_TEncSettings& settings, Bitrate const& bitrate)
+bool UpdateBitrate(AL_TEncSettings& settings, Bitrate bitrate)
 {
   auto clock = CreateClock(settings);
 
@@ -156,34 +157,34 @@ bool UpdateBitrate(AL_TEncSettings& settings, Bitrate const& bitrate)
   return true;
 }
 
-bool CreateCacheLevel2(AL_TEncSettings const& settings)
+bool CreateCacheLevel2(AL_TEncSettings settings)
 {
   return settings.iPrefetchLevel2 != 0;
 }
 
-bool UpdateCacheLevel2(AL_TEncSettings& settings, bool const& isCacheLevel2Enabled)
+bool UpdateCacheLevel2(AL_TEncSettings& settings, bool isCacheLevel2Enabled)
 {
   settings.iPrefetchLevel2 = isCacheLevel2Enabled ? !0 : 0;
   return true;
 }
 
-bool CreateFillerData(AL_TEncSettings const& settings)
+bool CreateFillerData(AL_TEncSettings settings)
 {
   return settings.bEnableFillerData;
 }
 
-bool UpdateFillerData(AL_TEncSettings& settings, bool const& isFillerDataEnabled)
+bool UpdateFillerData(AL_TEncSettings& settings, bool isFillerDataEnabled)
 {
   settings.bEnableFillerData = isFillerDataEnabled;
   return true;
 }
 
-AspectRatioType CreateAspectRatio(AL_TEncSettings const& settings)
+AspectRatioType CreateAspectRatio(AL_TEncSettings settings)
 {
   return ConvertSoftToModuleAspectRatio(settings.eAspectRatio);
 }
 
-bool UpdateAspectRatio(AL_TEncSettings& settings, AspectRatioType const& aspectRatio)
+bool UpdateAspectRatio(AL_TEncSettings& settings, AspectRatioType aspectRatio)
 {
   if(!CheckAspectRatio(aspectRatio))
     return false;
@@ -192,12 +193,12 @@ bool UpdateAspectRatio(AL_TEncSettings& settings, AspectRatioType const& aspectR
   return true;
 }
 
-ScalingListType CreateScalingList(AL_TEncSettings const& settings)
+ScalingListType CreateScalingList(AL_TEncSettings settings)
 {
   return ConvertSoftToModuleScalingList(settings.eScalingList);
 }
 
-bool UpdateScalingList(AL_TEncSettings& settings, ScalingListType const& scalingList)
+bool UpdateScalingList(AL_TEncSettings& settings, ScalingListType scalingList)
 {
   if(!CheckScalingList(scalingList))
     return false;
@@ -206,11 +207,11 @@ bool UpdateScalingList(AL_TEncSettings& settings, ScalingListType const& scaling
   return true;
 }
 
-QPs CreateQuantizationParameter(AL_TEncSettings const& settings)
+QPs CreateQuantizationParameter(AL_TEncSettings settings)
 {
   QPs qps;
   qps.mode = ConvertSoftToModuleQPControl(settings.eQpCtrlMode);
-  auto const rateCtrl = settings.tChParam[0].tRCParam;
+  auto rateCtrl = settings.tChParam[0].tRCParam;
   qps.initial = rateCtrl.iInitialQP;
   qps.deltaIP = rateCtrl.uIPDelta;
   qps.deltaPB = rateCtrl.uPBDelta;
@@ -219,8 +220,14 @@ QPs CreateQuantizationParameter(AL_TEncSettings const& settings)
   return qps;
 }
 
-bool UpdateQuantizationParameter(AL_TEncSettings& settings, QPs const& qps)
+bool UpdateQuantizationParameter(AL_TEncSettings& settings, QPs qps)
 {
+  if(qps.deltaIP < 0)
+    qps.deltaIP = -1;
+
+  if(qps.deltaPB < 0)
+    qps.deltaPB = -1;
+
   if(!CheckQuantizationParameter(qps))
     return false;
 
@@ -228,30 +235,24 @@ bool UpdateQuantizationParameter(AL_TEncSettings& settings, QPs const& qps)
   auto& rateCtrl = settings.tChParam[0].tRCParam;
   rateCtrl.iInitialQP = qps.initial;
   rateCtrl.uIPDelta = qps.deltaIP;
-  if(rateCtrl.uIPDelta < -1)
-	  rateCtrl.uIPDelta = -1;
-
   rateCtrl.uPBDelta = qps.deltaPB;
-  if(rateCtrl.uPBDelta < - 1)
-  rateCtrl.uPBDelta = -1;
-
   rateCtrl.iMinQP = qps.min;
   rateCtrl.iMaxQP = qps.max;
 
   return true;
 }
 
-Slices CreateSlicesParameter(AL_TEncSettings const& settings)
+Slices CreateSlicesParameter(AL_TEncSettings settings)
 {
   Slices slices;
   slices.dependent = settings.bDependentSlice;
-  auto const channel = settings.tChParam[0];
+  auto channel = settings.tChParam[0];
   slices.num = channel.uNumSlices;
   slices.size = channel.uSliceSize;
   return slices;
 }
 
-bool UpdateSlicesParameter(AL_TEncSettings& settings, Slices const& slices)
+bool UpdateSlicesParameter(AL_TEncSettings& settings, Slices slices)
 {
   if(!CheckSlicesParameter(slices))
     return false;

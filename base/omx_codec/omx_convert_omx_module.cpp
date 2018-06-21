@@ -43,12 +43,12 @@
 
 using namespace std;
 
-OMX_BOOL ConvertToOMXBool(bool boolean)
+OMX_BOOL ConvertModuleToOMXBool(bool boolean)
 {
   return (!boolean) ? OMX_FALSE : OMX_TRUE;
 }
 
-OMX_COLOR_FORMATTYPE ConvertToOMXColor(ColorType const& color, int bitdepth)
+OMX_COLOR_FORMATTYPE ConvertModuleToOMXColor(ColorType color, int bitdepth)
 {
   switch(color)
   {
@@ -88,7 +88,7 @@ OMX_COLOR_FORMATTYPE ConvertToOMXColor(ColorType const& color, int bitdepth)
   }
 }
 
-OMX_VIDEO_CODINGTYPE ConvertToOMXCompression(CompressionType const& compression)
+OMX_VIDEO_CODINGTYPE ConvertModuleToOMXCompression(CompressionType compression)
 {
   switch(compression)
   {
@@ -102,13 +102,13 @@ OMX_VIDEO_CODINGTYPE ConvertToOMXCompression(CompressionType const& compression)
   }
 }
 
-OMX_U32 ConvertToOMXFramerate(Clock const& clock)
+OMX_U32 ConvertModuleToOMXFramerate(Clock clock)
 {
-  auto const f = ((clock.framerate * 1000.0) / clock.clockratio) * 65536.0;
+  auto f = ((clock.framerate * 1000.0) / clock.clockratio) * 65536.0;
   return ceil(f);
 }
 
-OMX_ALG_BUFFER_MODE ConvertToOMXBufferMode(bool useFd)
+OMX_ALG_BUFFER_MODE ConvertModuleToOMXBufferMode(bool useFd)
 {
   if(useFd)
     return OMX_ALG_BUF_DMA;
@@ -116,14 +116,14 @@ OMX_ALG_BUFFER_MODE ConvertToOMXBufferMode(bool useFd)
     return OMX_ALG_BUF_NORMAL;
 }
 
-bool ConvertToModuleBool(OMX_BOOL boolean)
+bool ConvertOMXToModuleBool(OMX_BOOL boolean)
 {
   if(boolean == OMX_FALSE)
     return false;
   return true;
 }
 
-CompressionType ConvertToModuleCompression(OMX_VIDEO_CODINGTYPE const& coding)
+CompressionType ConvertOMXToModuleCompression(OMX_VIDEO_CODINGTYPE coding)
 {
   switch(static_cast<OMX_U32>(coding))
   {
@@ -139,7 +139,7 @@ CompressionType ConvertToModuleCompression(OMX_VIDEO_CODINGTYPE const& coding)
   throw invalid_argument("coding");
 }
 
-ColorType ConvertToModuleColor(OMX_COLOR_FORMATTYPE const& format)
+ColorType ConvertOMXToModuleColor(OMX_COLOR_FORMATTYPE format)
 {
   switch(static_cast<OMX_U32>(format))
   {
@@ -160,7 +160,7 @@ ColorType ConvertToModuleColor(OMX_COLOR_FORMATTYPE const& format)
   throw invalid_argument("format");
 }
 
-int ConvertToModuleBitdepth(OMX_COLOR_FORMATTYPE const& format)
+int ConvertOMXToModuleBitdepth(OMX_COLOR_FORMATTYPE format)
 {
   switch(static_cast<OMX_U32>(format))
   {
@@ -180,7 +180,7 @@ int ConvertToModuleBitdepth(OMX_COLOR_FORMATTYPE const& format)
   throw invalid_argument("color");
 }
 
-Clock ConvertToModuleClock(OMX_U32 framerateInQ16)
+Clock ConvertOMXToModuleClock(OMX_U32 framerateInQ16)
 {
   Clock clock;
   clock.framerate = ceil(framerateInQ16 / 65536.0);
@@ -188,7 +188,7 @@ Clock ConvertToModuleClock(OMX_U32 framerateInQ16)
   return clock;
 }
 
-bool ConvertToModuleFileDescriptor(OMX_ALG_BUFFER_MODE const& bufferMode)
+bool ConvertOMXToModuleFileDescriptor(OMX_ALG_BUFFER_MODE bufferMode)
 {
   switch(bufferMode)
   {
@@ -202,7 +202,7 @@ bool ConvertToModuleFileDescriptor(OMX_ALG_BUFFER_MODE const& bufferMode)
   throw invalid_argument("bufferMode");
 }
 
-DecodedPictureBufferType ConvertToModuleDecodedPictureBuffer(OMX_ALG_EDpbMode const& mode)
+DecodedPictureBufferType ConvertOMXToModuleDecodedPictureBuffer(OMX_ALG_EDpbMode mode)
 {
   switch(mode)
   {
@@ -215,7 +215,7 @@ DecodedPictureBufferType ConvertToModuleDecodedPictureBuffer(OMX_ALG_EDpbMode co
   return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM;
 }
 
-OMX_ALG_EDpbMode ConvertToOMXDecodedPictureBuffer(DecodedPictureBufferType const& mode)
+OMX_ALG_EDpbMode ConvertModuleToOMXDecodedPictureBuffer(DecodedPictureBufferType mode)
 {
   switch(mode)
   {
@@ -228,7 +228,7 @@ OMX_ALG_EDpbMode ConvertToOMXDecodedPictureBuffer(DecodedPictureBufferType const
   return OMX_ALG_DPB_MAX_ENUM;
 }
 
-static inline AVCProfileType ConvertToModuleAVCProfile(OMX_VIDEO_AVCPROFILETYPE const& profile)
+static inline AVCProfileType ConvertOMXToModuleAVCProfile(OMX_VIDEO_AVCPROFILETYPE profile)
 {
   switch(static_cast<OMX_U32>(profile))
   {
@@ -253,7 +253,7 @@ static inline AVCProfileType ConvertToModuleAVCProfile(OMX_VIDEO_AVCPROFILETYPE 
   return AVCProfileType::AVC_PROFILE_MAX_ENUM;
 }
 
-static inline int ConvertToModuleAVCLevel(OMX_VIDEO_AVCLEVELTYPE const& level)
+static inline int ConvertOMXToModuleAVCLevel(OMX_VIDEO_AVCLEVELTYPE level)
 {
   switch(static_cast<OMX_U32>(level))
   {
@@ -284,15 +284,15 @@ static inline int ConvertToModuleAVCLevel(OMX_VIDEO_AVCLEVELTYPE const& level)
   return 0;
 }
 
-ProfileLevelType ConvertToModuleAVCProfileLevel(OMX_VIDEO_AVCPROFILETYPE const& profile, OMX_VIDEO_AVCLEVELTYPE const& level)
+ProfileLevelType ConvertOMXToModuleAVCProfileLevel(OMX_VIDEO_AVCPROFILETYPE profile, OMX_VIDEO_AVCLEVELTYPE level)
 {
   ProfileLevelType pf;
-  pf.profile.avc = ConvertToModuleAVCProfile(profile);
-  pf.level = ConvertToModuleAVCLevel(level);
+  pf.profile.avc = ConvertOMXToModuleAVCProfile(profile);
+  pf.level = ConvertOMXToModuleAVCLevel(level);
   return pf;
 }
 
-OMX_VIDEO_AVCPROFILETYPE ConvertToOMXAVCProfile(ProfileLevelType const& profileLevel)
+OMX_VIDEO_AVCPROFILETYPE ConvertModuleToOMXAVCProfile(ProfileLevelType profileLevel)
 {
   switch(profileLevel.profile.avc)
   {
@@ -316,7 +316,7 @@ OMX_VIDEO_AVCPROFILETYPE ConvertToOMXAVCProfile(ProfileLevelType const& profileL
   return OMX_VIDEO_AVCProfileMax;
 }
 
-OMX_VIDEO_AVCLEVELTYPE ConvertToOMXAVCLevel(ProfileLevelType const& profileLevel)
+OMX_VIDEO_AVCLEVELTYPE ConvertModuleToOMXAVCLevel(ProfileLevelType profileLevel)
 {
   switch(profileLevel.level)
   {
@@ -346,7 +346,7 @@ OMX_VIDEO_AVCLEVELTYPE ConvertToOMXAVCLevel(ProfileLevelType const& profileLevel
   return OMX_VIDEO_AVCLevelMax;
 }
 
-LoopFilterType ConvertToModuleAVCLoopFilter(OMX_VIDEO_AVCLOOPFILTERTYPE const& loopFilter)
+LoopFilterType ConvertOMXToModuleAVCLoopFilter(OMX_VIDEO_AVCLOOPFILTERTYPE loopFilter)
 {
   switch(loopFilter)
   {
@@ -360,7 +360,7 @@ LoopFilterType ConvertToModuleAVCLoopFilter(OMX_VIDEO_AVCLOOPFILTERTYPE const& l
   return LoopFilterType::LOOP_FILTER_MAX_ENUM;
 }
 
-OMX_VIDEO_AVCLOOPFILTERTYPE ConvertToOMXAVCLoopFilter(LoopFilterType const& loopFilter)
+OMX_VIDEO_AVCLOOPFILTERTYPE ConvertModuleToOMXAVCLoopFilter(LoopFilterType loopFilter)
 {
   switch(loopFilter)
   {
@@ -376,49 +376,49 @@ OMX_VIDEO_AVCLOOPFILTERTYPE ConvertToOMXAVCLoopFilter(LoopFilterType const& loop
   return OMX_VIDEO_AVCLoopFilterMax;
 }
 
-int ConvertToModuleBFrames(OMX_U32 bFrames, OMX_U32 pFrames)
+int ConvertOMXToModuleBFrames(OMX_U32 bFrames, OMX_U32 pFrames)
 {
   return bFrames / (pFrames + 1);
 }
 
-int ConvertToModuleGopLength(OMX_U32 bFrames, OMX_U32 pFrames)
+int ConvertOMXToModuleGopLength(OMX_U32 bFrames, OMX_U32 pFrames)
 {
   return pFrames + bFrames + 1;
 }
 
-EntropyCodingType ConvertToModuleEntropyCoding(OMX_BOOL isCabac)
+EntropyCodingType ConvertOMXToModuleEntropyCoding(OMX_BOOL isCabac)
 {
   if(isCabac == OMX_FALSE)
     return EntropyCodingType::ENTROPY_CODING_CAVLC;
   return EntropyCodingType::ENTROPY_CODING_CABAC;
 }
 
-int ConvertToModuleQPInitial(OMX_U32 qpI)
+int ConvertOMXToModuleQPInitial(OMX_U32 qpI)
 {
   return qpI;
 }
 
-int ConvertToModuleQPDeltaIP(OMX_U32 qpI, OMX_U32 qpP)
+int ConvertOMXToModuleQPDeltaIP(OMX_U32 qpI, OMX_U32 qpP)
 {
   return qpP - qpI;
 }
 
-int ConvertToModuleQPDeltaPB(OMX_U32 qpP, OMX_U32 qpB)
+int ConvertOMXToModuleQPDeltaPB(OMX_U32 qpP, OMX_U32 qpB)
 {
   return qpB - qpP;
 }
 
-int ConvertToModuleQPMin(OMX_S32 qpMin)
+int ConvertOMXToModuleQPMin(OMX_S32 qpMin)
 {
   return qpMin;
 }
 
-int ConvertToModuleQPMax(OMX_S32 qpMax)
+int ConvertOMXToModuleQPMax(OMX_S32 qpMax)
 {
   return qpMax;
 }
 
-QPControlType ConvertToModuleQPControl(OMX_ALG_EQpCtrlMode const& mode)
+QPControlType ConvertOMXToModuleQPControl(OMX_ALG_EQpCtrlMode mode)
 {
   switch(mode)
   {
@@ -432,7 +432,7 @@ QPControlType ConvertToModuleQPControl(OMX_ALG_EQpCtrlMode const& mode)
   return QPControlType::QP_MAX_ENUM;
 }
 
-RateControlType ConvertToModuleControlRate(OMX_VIDEO_CONTROLRATETYPE const& mode)
+RateControlType ConvertOMXToModuleControlRate(OMX_VIDEO_CONTROLRATETYPE mode)
 {
   switch(static_cast<OMX_U32>(mode)) // all indexes are in OMX_U32
   {
@@ -447,7 +447,7 @@ RateControlType ConvertToModuleControlRate(OMX_VIDEO_CONTROLRATETYPE const& mode
   return RateControlType::RATE_CONTROL_MAX_ENUM;
 }
 
-AspectRatioType ConvertToModuleAspectRatio(OMX_ALG_EAspectRatio const& aspectRatio)
+AspectRatioType ConvertOMXToModuleAspectRatio(OMX_ALG_EAspectRatio aspectRatio)
 {
   switch(aspectRatio)
   {
@@ -462,7 +462,7 @@ AspectRatioType ConvertToModuleAspectRatio(OMX_ALG_EAspectRatio const& aspectRat
   return AspectRatioType::ASPECT_RATIO_MAX_ENUM;
 }
 
-GopControlType ConvertToModuleGopControl(OMX_ALG_EGopCtrlMode const& mode)
+GopControlType ConvertOMXToModuleGopControl(OMX_ALG_EGopCtrlMode mode)
 {
   switch(mode)
   {
@@ -478,7 +478,7 @@ GopControlType ConvertToModuleGopControl(OMX_ALG_EGopCtrlMode const& mode)
   return GopControlType::GOP_CONTROL_MAX_ENUM;
 }
 
-GdrType ConvertToModuleGdr(OMX_ALG_EGdrMode const& gdr)
+GdrType ConvertOMXToModuleGdr(OMX_ALG_EGdrMode gdr)
 {
   switch(gdr)
   {
@@ -492,12 +492,12 @@ GdrType ConvertToModuleGdr(OMX_ALG_EGdrMode const& gdr)
   return GdrType::GDR_MAX_ENUM;
 }
 
-RateControlOptionType ConvertToModuleDisableSceneChangeResilience(OMX_BOOL disable)
+RateControlOptionType ConvertOMXToModuleDisableSceneChangeResilience(OMX_BOOL disable)
 {
   return (disable == OMX_TRUE) ? RateControlOptionType::RATE_CONTROL_OPTION_NONE : RateControlOptionType::RATE_CONTROL_OPTION_SCENE_CHANGE_RESILIENCE;
 }
 
-ScalingListType ConvertToModuleScalingList(OMX_ALG_EScalingList const& scalingListMode)
+ScalingListType ConvertOMXToModuleScalingList(OMX_ALG_EScalingList scalingListMode)
 {
   switch(scalingListMode)
   {
@@ -510,7 +510,7 @@ ScalingListType ConvertToModuleScalingList(OMX_ALG_EScalingList const& scalingLi
   return ScalingListType::SCALING_LIST_MAX_ENUM;
 }
 
-OMX_BOOL ConvertToOMXEntropyCoding(EntropyCodingType const& mode)
+OMX_BOOL ConvertModuleToOMXEntropyCoding(EntropyCodingType mode)
 {
   switch(mode)
   {
@@ -523,44 +523,44 @@ OMX_BOOL ConvertToOMXEntropyCoding(EntropyCodingType const& mode)
   return OMX_FALSE;
 }
 
-OMX_U32 ConvertToOMXBFrames(Gop const& gop)
+OMX_U32 ConvertModuleToOMXBFrames(Gop gop)
 {
   assert(gop.b >= 0);
   return (gop.b * gop.length) / (1 + gop.b);
 }
 
-OMX_U32 ConvertToOMXPFrames(Gop const& gop)
+OMX_U32 ConvertModuleToOMXPFrames(Gop gop)
 {
   assert(gop.b >= 0);
   return (gop.b - gop.length + 1) / (-gop.b - 1);
 }
 
-OMX_U32 ConvertToOMXQpI(QPs const& qps)
+OMX_U32 ConvertModuleToOMXQpI(QPs qps)
 {
   return qps.initial;
 }
 
-OMX_U32 ConvertToOMXQpP(QPs const& qps)
+OMX_U32 ConvertModuleToOMXQpP(QPs qps)
 {
   return qps.deltaIP + qps.initial;
 }
 
-OMX_U32 ConvertToOMXQpB(QPs const& qps)
+OMX_U32 ConvertModuleToOMXQpB(QPs qps)
 {
   return qps.deltaIP + qps.deltaPB + qps.initial;
 }
 
-OMX_S32 ConvertToOMXQpMin(QPs const& qps)
+OMX_S32 ConvertModuleToOMXQpMin(QPs qps)
 {
   return qps.min;
 }
 
-OMX_S32 ConvertToOMXQpMax(QPs const& qps)
+OMX_S32 ConvertModuleToOMXQpMax(QPs qps)
 {
   return qps.max;
 }
 
-OMX_ALG_EQpCtrlMode ConvertToOMXQpControl(QPs const& qps)
+OMX_ALG_EQpCtrlMode ConvertModuleToOMXQpControl(QPs qps)
 {
   switch(qps.mode)
   {
@@ -573,7 +573,7 @@ OMX_ALG_EQpCtrlMode ConvertToOMXQpControl(QPs const& qps)
   return OMX_ALG_MAX_ENUM_QP;
 }
 
-OMX_VIDEO_CONTROLRATETYPE ConvertToOMXControlRate(RateControlType const& mode)
+OMX_VIDEO_CONTROLRATETYPE ConvertModuleToOMXControlRate(RateControlType mode)
 {
   switch(mode)
   {
@@ -588,7 +588,7 @@ OMX_VIDEO_CONTROLRATETYPE ConvertToOMXControlRate(RateControlType const& mode)
   return OMX_Video_ControlRateMax;
 }
 
-OMX_ALG_EAspectRatio ConvertToOMXAspectRatio(AspectRatioType const& aspectRatio)
+OMX_ALG_EAspectRatio ConvertModuleToOMXAspectRatio(AspectRatioType aspectRatio)
 {
   switch(aspectRatio)
   {
@@ -603,7 +603,7 @@ OMX_ALG_EAspectRatio ConvertToOMXAspectRatio(AspectRatioType const& aspectRatio)
   return OMX_ALG_ASPECT_RATIO_MAX_ENUM;
 }
 
-OMX_ALG_EGopCtrlMode ConvertToOMXGopControl(GopControlType const& mode)
+OMX_ALG_EGopCtrlMode ConvertModuleToOMXGopControl(GopControlType mode)
 {
   switch(mode)
   {
@@ -618,7 +618,7 @@ OMX_ALG_EGopCtrlMode ConvertToOMXGopControl(GopControlType const& mode)
   return OMX_ALG_GOP_MODE_MAX_ENUM;
 }
 
-OMX_ALG_EGdrMode ConvertToOMXGdr(GdrType const& gdr)
+OMX_ALG_EGdrMode ConvertModuleToOMXGdr(GdrType gdr)
 {
   switch(gdr)
   {
@@ -631,7 +631,7 @@ OMX_ALG_EGdrMode ConvertToOMXGdr(GdrType const& gdr)
   return OMX_ALG_GDR_MAX_ENUM;
 }
 
-OMX_BOOL ConvertToOMXDisableSceneChangeResilience(RateControlOptionType const& option)
+OMX_BOOL ConvertModuleToOMXDisableSceneChangeResilience(RateControlOptionType option)
 {
   if(option == RateControlOptionType::RATE_CONTROL_OPTION_SCENE_CHANGE_RESILIENCE)
     return OMX_FALSE; // Because it's bDisableSceneChangeResilience
@@ -639,7 +639,7 @@ OMX_BOOL ConvertToOMXDisableSceneChangeResilience(RateControlOptionType const& o
   return OMX_TRUE;
 }
 
-OMX_ALG_EScalingList ConvertToOMXScalingList(ScalingListType const& scalingLisgt)
+OMX_ALG_EScalingList ConvertModuleToOMXScalingList(ScalingListType scalingLisgt)
 {
   switch(scalingLisgt)
   {
@@ -652,7 +652,7 @@ OMX_ALG_EScalingList ConvertToOMXScalingList(ScalingListType const& scalingLisgt
   return OMX_ALG_SCL_MAX_ENUM;
 }
 
-LoopFilterType ConvertToModuleHEVCLoopFilter(OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE const& loopFilter)
+LoopFilterType ConvertOMXToModuleHEVCLoopFilter(OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE loopFilter)
 {
   switch(loopFilter)
   {
@@ -668,7 +668,7 @@ LoopFilterType ConvertToModuleHEVCLoopFilter(OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE co
   return LoopFilterType::LOOP_FILTER_MAX_ENUM;
 }
 
-OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE ConvertToOMXHEVCLoopFilter(LoopFilterType const& loopFilter)
+OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE ConvertModuleToOMXHEVCLoopFilter(LoopFilterType loopFilter)
 {
   switch(loopFilter)
   {
@@ -684,7 +684,7 @@ OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE ConvertToOMXHEVCLoopFilter(LoopFilterType const
   return OMX_ALG_VIDEO_HEVCLoopFilterMaxEnum;
 }
 
-static inline HEVCProfileType ConvertToModuleHEVCMainTierProfile(OMX_ALG_VIDEO_HEVCPROFILETYPE const& profile)
+static inline HEVCProfileType ConvertOMXToModuleHEVCMainTierProfile(OMX_ALG_VIDEO_HEVCPROFILETYPE profile)
 {
   switch(profile)
   {
@@ -722,7 +722,7 @@ static inline HEVCProfileType ConvertToModuleHEVCMainTierProfile(OMX_ALG_VIDEO_H
   return HEVCProfileType::HEVC_PROFILE_MAX_ENUM;
 }
 
-static inline HEVCProfileType ConvertToModuleHEVCHighTierProfile(OMX_ALG_VIDEO_HEVCPROFILETYPE const& profile)
+static inline HEVCProfileType ConvertOMXToModuleHEVCHighTierProfile(OMX_ALG_VIDEO_HEVCPROFILETYPE profile)
 {
   switch(profile)
   {
@@ -760,7 +760,7 @@ static inline HEVCProfileType ConvertToModuleHEVCHighTierProfile(OMX_ALG_VIDEO_H
   return HEVCProfileType::HEVC_PROFILE_MAX_ENUM;
 }
 
-static inline int ConvertToModuleHEVCLevel(OMX_ALG_VIDEO_HEVCLEVELTYPE const& level)
+static inline int ConvertOMXToModuleHEVCLevel(OMX_ALG_VIDEO_HEVCLEVELTYPE level)
 {
   switch(level)
   {
@@ -792,7 +792,7 @@ static inline int ConvertToModuleHEVCLevel(OMX_ALG_VIDEO_HEVCLEVELTYPE const& le
   return 0;
 }
 
-static inline bool IsMainTier(OMX_ALG_VIDEO_HEVCLEVELTYPE const& level)
+static inline bool IsMainTier(OMX_ALG_VIDEO_HEVCLEVELTYPE level)
 {
   switch(level)
   {
@@ -810,15 +810,15 @@ static inline bool IsMainTier(OMX_ALG_VIDEO_HEVCLEVELTYPE const& level)
   return true;
 }
 
-ProfileLevelType ConvertToModuleHEVCProfileLevel(OMX_ALG_VIDEO_HEVCPROFILETYPE const& profile, OMX_ALG_VIDEO_HEVCLEVELTYPE const& level)
+ProfileLevelType ConvertOMXToModuleHEVCProfileLevel(OMX_ALG_VIDEO_HEVCPROFILETYPE profile, OMX_ALG_VIDEO_HEVCLEVELTYPE level)
 {
   ProfileLevelType pf;
-  pf.profile.hevc = IsMainTier(level) ? ConvertToModuleHEVCMainTierProfile(profile) : ConvertToModuleHEVCHighTierProfile(profile);
-  pf.level = ConvertToModuleHEVCLevel(level);
+  pf.profile.hevc = IsMainTier(level) ? ConvertOMXToModuleHEVCMainTierProfile(profile) : ConvertOMXToModuleHEVCHighTierProfile(profile);
+  pf.level = ConvertOMXToModuleHEVCLevel(level);
   return pf;
 }
 
-OMX_ALG_VIDEO_HEVCPROFILETYPE ConvertToOMXHEVCProfile(ProfileLevelType const& profileLevel)
+OMX_ALG_VIDEO_HEVCPROFILETYPE ConvertModuleToOMXHEVCProfile(ProfileLevelType profileLevel)
 {
   switch(profileLevel.profile.hevc)
   {
@@ -882,7 +882,7 @@ OMX_ALG_VIDEO_HEVCPROFILETYPE ConvertToOMXHEVCProfile(ProfileLevelType const& pr
   return OMX_ALG_VIDEO_HEVCProfileMaxEnum;
 }
 
-static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertToOMXHEVCMainLevel(ProfileLevelType const& profileLevel)
+static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertModuleToOMXHEVCMainLevel(ProfileLevelType profileLevel)
 {
   switch(profileLevel.level)
   {
@@ -905,7 +905,7 @@ static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertToOMXHEVCMainLevel(ProfileLevel
   return OMX_ALG_VIDEO_HEVCLevelMaxEnum;
 }
 
-static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertToOMXHEVCHighLevel(ProfileLevelType const& profileLevel)
+static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertModuleToOMXHEVCHighLevel(ProfileLevelType profileLevel)
 {
   switch(profileLevel.level)
   {
@@ -923,7 +923,7 @@ static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertToOMXHEVCHighLevel(ProfileLevel
   return OMX_ALG_VIDEO_HEVCLevelMaxEnum;
 }
 
-static inline bool IsMainTier(ProfileLevelType const& profileLevel)
+static inline bool IsMainTier(ProfileLevelType profileLevel)
 {
   switch(profileLevel.profile.hevc)
   {
@@ -938,12 +938,12 @@ static inline bool IsMainTier(ProfileLevelType const& profileLevel)
   return true;
 }
 
-OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertToOMXHEVCLevel(ProfileLevelType const& profileLevel)
+OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertModuleToOMXHEVCLevel(ProfileLevelType profileLevel)
 {
-  return IsMainTier(profileLevel) ? ConvertToOMXHEVCMainLevel(profileLevel) : ConvertToOMXHEVCHighLevel(profileLevel);
+  return IsMainTier(profileLevel) ? ConvertModuleToOMXHEVCMainLevel(profileLevel) : ConvertModuleToOMXHEVCHighLevel(profileLevel);
 }
 
-BufferModeType ConvertToModuleBufferMode(OMX_ALG_VIDEO_BUFFER_MODE const& mode)
+BufferModeType ConvertOMXToModuleBufferMode(OMX_ALG_VIDEO_BUFFER_MODE mode)
 {
   switch(mode)
   {
@@ -957,7 +957,7 @@ BufferModeType ConvertToModuleBufferMode(OMX_ALG_VIDEO_BUFFER_MODE const& mode)
   return BufferModeType::BUFFER_MODE_MAX_ENUM;
 }
 
-OMX_ALG_VIDEO_BUFFER_MODE ConvertToOMXBufferMode(BufferModeType const& mode)
+OMX_ALG_VIDEO_BUFFER_MODE ConvertModuleToOMXBufferMode(BufferModeType mode)
 {
   switch(mode)
   {
@@ -971,7 +971,7 @@ OMX_ALG_VIDEO_BUFFER_MODE ConvertToOMXBufferMode(BufferModeType const& mode)
   return OMX_ALG_VIDEO_BUFFER_MODE_MAX_ENUM;
 }
 
-QualityType ConvertToModuleQuality(OMX_ALG_ERoiQuality const& quality)
+QualityType ConvertOMXToModuleQuality(OMX_ALG_ERoiQuality quality)
 {
   switch(quality)
   {
@@ -986,7 +986,7 @@ QualityType ConvertToModuleQuality(OMX_ALG_ERoiQuality const& quality)
   return QualityType::REGION_OF_INTEREST_QUALITY_MAX_ENUM;
 }
 
-OMX_U32 ConvertToOMXInterlaceFlag(VideoModeType const& mode)
+OMX_U32 ConvertModuleToOMXInterlaceFlag(VideoModeType mode)
 {
   switch(mode)
   {
@@ -1001,7 +1001,7 @@ OMX_U32 ConvertToOMXInterlaceFlag(VideoModeType const& mode)
   return 0;
 }
 
-VideoModeType ConvertToModuleVideoMode(OMX_U32 flag)
+VideoModeType ConvertOMXToModuleVideoMode(OMX_U32 flag)
 {
   switch(flag)
   {
@@ -1014,5 +1014,37 @@ VideoModeType ConvertToModuleVideoMode(OMX_U32 flag)
 
   assert(0);
   return VideoModeType::VIDEO_MODE_MAX_ENUM;
+}
+
+SequencePictureModeType ConvertOMXToModuleSequencePictureMode(OMX_ALG_SEQUENCE_PICTURE_MODE mode)
+{
+  switch(mode)
+  {
+  case OMX_ALG_SEQUENCE_PICTURE_UNKNOWN: return SequencePictureModeType::SEQUENCE_PICTURE_MODE_UNKNOWN;
+  case OMX_ALG_SEQUENCE_PICTURE_FRAME: return SequencePictureModeType::SEQUENCE_PICTURE_MODE_FRAME;
+  case OMX_ALG_SEQUENCE_PICTURE_FIELD: return SequencePictureModeType::SEQUENCE_PICTURE_MODE_FIELD;
+  case OMX_ALG_SEQUENCE_PICTURE_FRAME_AND_FIELD: return SequencePictureModeType::SEQUENCE_PICTURE_MODE_FRAME_AND_FIELD;
+  case OMX_ALG_SEQUENCE_PICTURE_MAX_ENUM: return SequencePictureModeType::SEQUENCE_PICTURE_MODE_MAX_ENUM;
+  default:
+    return SequencePictureModeType::SEQUENCE_PICTURE_MODE_MAX_ENUM;
+  }
+
+  return SequencePictureModeType::SEQUENCE_PICTURE_MODE_MAX_ENUM;
+}
+
+OMX_ALG_SEQUENCE_PICTURE_MODE ConvertModuleToOMXSequencePictureMode(SequencePictureModeType mode)
+{
+  switch(mode)
+  {
+  case SequencePictureModeType::SEQUENCE_PICTURE_MODE_UNKNOWN: return OMX_ALG_SEQUENCE_PICTURE_UNKNOWN;
+  case SequencePictureModeType::SEQUENCE_PICTURE_MODE_FRAME: return OMX_ALG_SEQUENCE_PICTURE_FRAME;
+  case SequencePictureModeType::SEQUENCE_PICTURE_MODE_FIELD: return OMX_ALG_SEQUENCE_PICTURE_FIELD;
+  case SequencePictureModeType::SEQUENCE_PICTURE_MODE_FRAME_AND_FIELD: return OMX_ALG_SEQUENCE_PICTURE_FRAME_AND_FIELD;
+  case SequencePictureModeType::SEQUENCE_PICTURE_MODE_MAX_ENUM: return OMX_ALG_SEQUENCE_PICTURE_MAX_ENUM;
+  default:
+    return OMX_ALG_SEQUENCE_PICTURE_MAX_ENUM;
+  }
+
+  return OMX_ALG_SEQUENCE_PICTURE_MAX_ENUM;
 }
 
