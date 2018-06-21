@@ -319,7 +319,7 @@ BufferRequirements EncModule::GetBufferRequirements() const
   auto& output = b.output;
   output.min = bufferCounts.output;
   output.min += 1; // for eos
-  output.size = AL_GetMaxNalSize({ chan.uWidth, chan.uHeight }, AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat));
+  output.size = AL_GetMitigatedMaxNalSize({ chan.uWidth, chan.uHeight }, AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat));
   output.bytesAlignment = device->GetAllocationRequirements().output.bytesAlignment;
   output.contiguous = device->GetAllocationRequirements().output.contiguous;
 
