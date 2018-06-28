@@ -60,7 +60,7 @@ void DecMediatypeHEVC::Reset()
   settings.iStackSize = 5;
   settings.uFrameRate = 60000;
   settings.uClkRatio = 1000;
-  settings.uDDRWidth = 32;
+  settings.uDDRWidth = 64;
   settings.eDecUnit = AL_AU_UNIT;
   settings.eDpbMode = AL_DPB_NORMAL;
   settings.eFBStorageMode = AL_FB_RASTER;
