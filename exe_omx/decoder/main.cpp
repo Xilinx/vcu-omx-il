@@ -865,13 +865,13 @@ OMX_ERRORTYPE setWorstCaseParameters(Application& app)
 
   if(settings.codec == HEVC)
   {
-    settings.profile = OMX_VIDEO_HEVCProfileMain10;
-    settings.level = OMX_VIDEO_HEVCMainTierLevel51;
+    settings.profile = static_cast<OMX_VIDEO_HEVCPROFILETYPE>(OMX_ALG_VIDEO_HEVCProfileMain422_10);
+    settings.level = static_cast<OMX_VIDEO_HEVCLEVELTYPE>(OMX_ALG_VIDEO_HEVCHighTierLevel6);
   }
   else
   {
     settings.profile = OMX_VIDEO_AVCProfileHigh422;
-    settings.level = OMX_VIDEO_AVCLevel51;
+    settings.level = static_cast<OMX_VIDEO_AVCLEVELTYPE>(OMX_ALG_VIDEO_AVCLevel60);
   }
 
   settings.framerate = 1 << 16;
