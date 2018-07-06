@@ -332,6 +332,9 @@ static std::map<OMX_INDEXTYPE, const char*> ToStringOMXIndex =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoMaxBitrate), "OMX_ALG_IndexParamVideoMaxBitrate" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoFillerData), "OMX_ALG_IndexParamVideoFillerData" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoBufferMode), "OMX_ALG_IndexParamVideoBufferMode" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInterlaceFormatCurrent), "OMX_ALG_IndexParamVideoInterlaceFormatCurrent" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInterlaceFormatSupported), "OMX_ALG_IndexParamVideoInterlaceFormatSupported" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLongTerm), "OMX_ALG_IndexParamVideoLongTerm" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVendorVideoStartUnused), "OMX_ALG_IndexConfigVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), "OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh" },
