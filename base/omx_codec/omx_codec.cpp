@@ -236,6 +236,7 @@ Codec::Codec(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, uni
   shouldPrealloc = true;
   shouldClearROI = false;
   shouldPushROI = false;
+  isSettingsInit = false;
   version.nVersion = ALLEGRODVT_OMX_VERSION;
   AssociateSpecVersion(spec);
 
@@ -362,6 +363,7 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
     GetPort(param)->enable = false;
     GetPort(param)->isTransientToDisable = true;
     taskCommand = DisablePort;
+    isSettingsInit = false;
     break;
   }
   case OMX_CommandPortEnable:
@@ -384,6 +386,7 @@ void Codec::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
     GetPort(param)->enable = true;
     GetPort(param)->isTransientToEnable = true;
     taskCommand = EnablePort;
+    isSettingsInit = true;
     break;
   }
   case OMX_CommandMarkBuffer:
@@ -653,6 +656,7 @@ OMX_ERRORTYPE Codec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR par
   OMXChecker::CheckNotNull(param);
   OMXChecker::CheckHeaderVersion(GetVersion(param));
   OMXChecker::CheckStateOperation(AL_SetParameter, state);
+  isSettingsInit = false;
   switch(index)
   {
   case OMX_IndexParamStandardComponentRole:
@@ -1175,8 +1179,11 @@ void Codec::TreatSetStateCommand(Task* task)
       if(error)
         throw ToOmxError(error);
 
-      if(shouldPrealloc)
+      if(shouldPrealloc && !isSettingsInit)
+      {
         callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_EventPortSettingsChanged), 1, 0, nullptr);
+	isSettingsInit = true;
+      }
     }
 
     if(isTransitionToPause(state, newState))

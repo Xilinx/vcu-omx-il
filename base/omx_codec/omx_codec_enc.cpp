@@ -1141,6 +1141,8 @@ OMX_ERRORTYPE EncCodec::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR 
 
   Port* port;
 
+  isSettingsInit = false;
+
   if(OMX_U32(index) != OMX_IndexParamStandardComponentRole)
   {
     port = getCurrentPort(param);
