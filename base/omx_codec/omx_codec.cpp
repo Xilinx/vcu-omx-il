@@ -1178,6 +1178,7 @@ void Codec::TreatSetStateCommand(Task* task)
   }
   catch(OMX_ERRORTYPE& e)
   {
+    LOGE("%s", ToStringOMXError.at(e));
 
     if(e == OMX_ErrorInvalidState)
     {
@@ -1188,8 +1189,6 @@ void Codec::TreatSetStateCommand(Task* task)
 
     if(task->opt.get() != nullptr)
 	    e = (OMX_ERRORTYPE)((uintptr_t)task->opt.get());
-
-    LOGE("%s", ToStringOMXError.at(e));
 
     if(callbacks.EventHandler)
       callbacks.EventHandler(component, app, OMX_EventError, e, 0, nullptr);
