@@ -382,6 +382,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_LONG_TERM
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
   OMX_BOOL bEnableLongTerm;
+  OMX_S32 nLongTermFrequency;
 }OMX_ALG_VIDEO_PARAM_LONG_TERM;
 
 /** Extented enumeration of video formats */

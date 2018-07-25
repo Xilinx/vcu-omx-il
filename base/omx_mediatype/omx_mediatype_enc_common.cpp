@@ -73,6 +73,7 @@ Gop CreateGroupOfPictures(AL_TEncSettings settings)
   gop.mode = ConvertSoftToModuleGopControl(gopParam.eMode);
   gop.gdr = ConvertSoftToModuleGdr(gopParam.eGdrMode);
   gop.isLongTermEnabled = gopParam.bEnableLT;
+  gop.ltFrequency = gopParam.uFreqLT;
 
   return gop;
 }
@@ -89,6 +90,7 @@ bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop gop)
   gopParam.eMode = ConvertModuleToSoftGopControl(gop.mode);
   gopParam.eGdrMode = ConvertModuleToSoftGdr(gop.gdr);
   gopParam.bEnableLT = gop.isLongTermEnabled;
+  gopParam.uFreqLT = gop.ltFrequency;
 
   return true;
 }

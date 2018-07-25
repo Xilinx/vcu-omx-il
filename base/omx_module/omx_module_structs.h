@@ -185,6 +185,7 @@ struct Gop
   GopControlType mode;
   GdrType gdr;
   bool isLongTermEnabled;
+  int ltFrequency;
 };
 
 struct QPs

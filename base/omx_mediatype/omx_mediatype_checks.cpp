@@ -56,10 +56,16 @@ bool CheckGroupOfPictures(Gop gop)
   if(gop.length <= gop.b)
     return false;
 
+  if(gop.idrFrequency < 0)
+    return false;
+
   if(gop.mode == GopControlType::GOP_CONTROL_MAX_ENUM)
     return false;
 
   if(gop.gdr == GdrType::GDR_MAX_ENUM)
+    return false;
+
+  if(gop.ltFrequency < 0)
     return false;
 
   return true;

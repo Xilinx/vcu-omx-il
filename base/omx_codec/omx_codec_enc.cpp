@@ -444,6 +444,7 @@ static OMX_ALG_VIDEO_PARAM_LONG_TERM ConstructVideoLongTerm(Port const& port, En
   OMXChecker::SetHeaderVersion(longTerm);
   longTerm.nPortIndex = port.index;
   longTerm.bEnableLongTerm = ConvertModuleToOMXBool(module.GetGop().isLongTermEnabled);
+  longTerm.nLongTermFrequency = module.GetGop().ltFrequency;
   return longTerm;
 }
 
@@ -1108,10 +1109,11 @@ static bool SetVideoModeCurrent(OMX_INTERLACEFORMATTYPE const& interlace, Port c
   return true;
 }
 
-static bool SetLongTerm(OMX_BOOL isLongTermEnabled, EncModule& module)
+static bool SetLongTerm(OMX_BOOL isLongTermEnabled, OMX_S32 ltFrequency, EncModule& module)
 {
   auto moduleGop = module.GetGop();
   moduleGop.isLongTermEnabled = ConvertOMXToModuleBool(isLongTermEnabled);
+  moduleGop.ltFrequency = ltFrequency;
   return module.SetGop(moduleGop);
 }
 
@@ -1119,7 +1121,7 @@ static bool SetVideoLongTerm(OMX_ALG_VIDEO_PARAM_LONG_TERM const& longTerm, Port
 {
   auto rollback = ConstructVideoLongTerm(port, module);
 
-  if(!SetLongTerm(longTerm.bEnableLongTerm, module))
+  if(!SetLongTerm(longTerm.bEnableLongTerm, longTerm.nLongTermFrequency, module))
   {
     SetVideoLongTerm(rollback, port, module);
     return false;
