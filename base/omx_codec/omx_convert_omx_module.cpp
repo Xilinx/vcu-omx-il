@@ -378,7 +378,9 @@ OMX_VIDEO_AVCLOOPFILTERTYPE ConvertModuleToOMXAVCLoopFilter(LoopFilterType loopF
 
 int ConvertOMXToModuleBFrames(OMX_U32 bFrames, OMX_U32 pFrames)
 {
-  return bFrames / (pFrames + 1);
+  if(pFrames == 0)
+    return 0;
+  return (bFrames + pFrames - 1)/pFrames;
 }
 
 int ConvertOMXToModuleGopLength(OMX_U32 bFrames, OMX_U32 pFrames)
@@ -525,14 +527,12 @@ OMX_BOOL ConvertModuleToOMXEntropyCoding(EntropyCodingType mode)
 
 OMX_U32 ConvertModuleToOMXBFrames(Gop gop)
 {
-  assert(gop.b >= 0);
-  return (gop.b * gop.length) / (1 + gop.b);
+  return gop.length - ConvertModuleToOMXPFrames(gop) - 1;
 }
 
 OMX_U32 ConvertModuleToOMXPFrames(Gop gop)
 {
-  assert(gop.b >= 0);
-  return (gop.b - gop.length + 1) / (-gop.b - 1);
+  return (gop.length - 1) / (gop.b + 1);
 }
 
 OMX_U32 ConvertModuleToOMXQpI(QPs qps)
