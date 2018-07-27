@@ -698,11 +698,7 @@ bool EncModule::isEndOfFrame(AL_TBuffer* stream)
 
 void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 {
-  auto isStreamRelease = (stream && source == nullptr);
-  auto isSrcRelease = (stream == nullptr && source);
-
   auto errorCode = AL_Encoder_GetLastError(encoder);
-
   if(errorCode != AL_SUCCESS)
   {
     fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
@@ -711,12 +707,14 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
       callbacks.event(CALLBACK_EVENT_ERROR, (void*)ToModuleError(errorCode));
   }
 
+  auto isSrcRelease = (stream == nullptr && source);
   if(isSrcRelease)
   {
     ReleaseBuf(source, fds.input, true);
     return;
   }
 
+  auto isStreamRelease = (stream && source == nullptr);
   if(isStreamRelease)
   {
     ReleaseBuf(stream, fds.output, false);
