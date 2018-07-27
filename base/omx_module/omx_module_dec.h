@@ -131,7 +131,7 @@ private:
   AL_TIDecChannel* channel;
   AL_HDecoder decoder;
 
-  EOSHandles eosHandles;
+  EOSHandles<AL_TBuffer> eosHandles;
   ErrorType CreateDecoder(bool shouldPrealloc);
   bool DestroyDecoder();
   void ReleaseAllBuffers();

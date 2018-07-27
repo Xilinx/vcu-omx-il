@@ -42,6 +42,7 @@ extern "C"
 #include <lib_common/BufferAPI.h>
 }
 
+template<typename T>
 struct EOSHandles
 {
   EOSHandles() :
@@ -50,7 +51,7 @@ struct EOSHandles
   {
   }
 
-  AL_TBuffer* input;
-  AL_TBuffer* output;
+  T* input;
+  T* output;
 };
 
