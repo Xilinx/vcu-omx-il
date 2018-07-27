@@ -159,7 +159,7 @@ private:
 
   AL_TRoiMngrCtx* roiCtx;
   std::list<AL_TBuffer*> roiBuffers;
-  EOSHandles<AL_TBuffer> eosHandles;
+  EOSHandles<BufferHandleInterface> eosHandles;
 
   bool Use(BufferHandleInterface* handle, uint8_t* buffer, int size);
   void Unuse(BufferHandleInterface* handle);

@@ -254,10 +254,10 @@ ErrorType EncModule::Run(bool)
 void EncModule::FlushEosHandles()
 {
   if(eosHandles.input)
-    ReleaseBuf(eosHandles.input, fds.input, true);
+    callbacks.release(true, eosHandles.input);
 
   if(eosHandles.output)
-    ReleaseBuf(eosHandles.output, fds.output, false);
+    callbacks.release(false, eosHandles.output);
 
   eosHandles.input = nullptr;
   eosHandles.output = nullptr;
@@ -538,6 +538,16 @@ bool EncModule::Empty(BufferHandleInterface* handle)
   if(!encoder)
     return false;
 
+  auto eos = (handle->payload == 0);
+
+  if(eos)
+  {
+    eosHandles.input = handle;
+    return AL_Encoder_Process(encoder, nullptr, nullptr);
+  }
+
+  eosHandles.input = nullptr;
+
   uint8_t* buffer = (uint8_t*)handle->data;
 
   if(fds.input)
@@ -557,16 +567,6 @@ bool EncModule::Empty(BufferHandleInterface* handle)
   }
 
   handles.Add(input, handle);
-
-  auto eos = (handle->payload == 0);
-
-  if(eos)
-  {
-    eosHandles.input = input;
-    return AL_Encoder_Process(encoder, nullptr, nullptr);
-  }
-
-  eosHandles.input = nullptr;
 
   if(shouldBeCopied.Exist(input))
   {
@@ -609,6 +609,12 @@ bool EncModule::Fill(BufferHandleInterface* handle)
   if(!encoder)
     return false;
 
+  if(!eosHandles.output)
+  {
+    eosHandles.output = handle;
+    return true;
+  }
+
   auto buffer = (uint8_t*)handle->data;
 
   if(fds.output)
@@ -628,12 +634,6 @@ bool EncModule::Fill(BufferHandleInterface* handle)
   }
 
   handles.Add(output, handle);
-
-  if(!eosHandles.output)
-  {
-    eosHandles.output = output;
-    return true;
-  }
 
   return AL_Encoder_PutStreamBuffer(encoder, output);
 }
@@ -722,6 +722,19 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
   }
 
   auto isEOS = (stream == nullptr && source == nullptr);
+  if(isEOS)
+  {
+    callbacks.associate(eosHandles.input, eosHandles.output);
+    eosHandles.input->offset = 0;
+    eosHandles.input->payload = 0;
+    callbacks.emptied(eosHandles.input);
+    eosHandles.output->offset = 0;
+    eosHandles.output->payload = 0;
+    callbacks.filled(eosHandles.output, eosHandles.output->offset, eosHandles.output->payload);
+    eosHandles.input = nullptr;
+    eosHandles.output = nullptr;
+    return;
+  }
 
   auto end = [&](AL_TBuffer* source, AL_TBuffer* stream, int size)
              {
@@ -735,12 +748,12 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 
                callbacks.associate(rhandleIn, rhandleOut);
 
-               if(isEndOfFrame(stream) || isEOS)
+               if(isEndOfFrame(stream))
                  handles.Remove(source);
 
                handles.Remove(stream);
 
-               if(isEndOfFrame(stream) || isEOS)
+               if(isEndOfFrame(stream))
                {
                  if(fds.input)
                    UnuseDMA(rhandleIn);
@@ -761,14 +774,6 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
                rhandleOut->payload = size;
                callbacks.filled(rhandleOut, rhandleOut->offset, rhandleOut->payload);
              };
-
-  if(isEOS)
-  {
-    end(eosHandles.input, eosHandles.output, 0);
-    eosHandles.input = nullptr;
-    eosHandles.output = nullptr;
-    return;
-  }
 
   auto size = ReconstructStream(*stream);
 
@@ -1109,6 +1114,9 @@ Flags EncModule::GetFlags(AL_TBuffer* stream)
 Flags EncModule::GetFlags(BufferHandleInterface* handle)
 {
   AL_TBuffer* stream = pool.Get(handle);
+  if(!stream)
+    return Flags{};
+
   assert(stream);
 
   return GetFlags(stream);
