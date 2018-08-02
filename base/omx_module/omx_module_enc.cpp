@@ -1113,7 +1113,11 @@ Flags EncModule::GetFlags(AL_TBuffer* stream)
 
 Flags EncModule::GetFlags(BufferHandleInterface* handle)
 {
-  AL_TBuffer* stream = pool.Get(handle);
+  AL_TBuffer* stream = nullptr;
+
+  if(pool.Exist(handle))
+    stream = pool.Get(handle);
+
   if(!stream)
     return Flags{};
 
