@@ -380,7 +380,7 @@ int ConvertOMXToModuleBFrames(OMX_U32 bFrames, OMX_U32 pFrames)
 {
   if(pFrames == 0)
     return 0;
-  return (bFrames + pFrames - 1)/pFrames;
+  return (bFrames + pFrames)/(pFrames +1);
 }
 
 int ConvertOMXToModuleGopLength(OMX_U32 bFrames, OMX_U32 pFrames)
