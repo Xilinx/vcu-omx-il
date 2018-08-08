@@ -1215,7 +1215,7 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
     return SUCCESS;
   }
 
-  if(index == "DYNAMIC_INDEX_IS_LONG_TERM")
+  if(index == "DYNAMIC_INDEX_USE_LONG_TERM")
   {
     AL_Encoder_NotifyUseLongTerm(encoder);
     return SUCCESS;
