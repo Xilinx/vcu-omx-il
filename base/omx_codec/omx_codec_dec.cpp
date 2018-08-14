@@ -116,10 +116,6 @@ void DecCodec::AssociateCallBack(BufferHandleInterface*, BufferHandleInterface* 
   auto emptyHeader = transmit.front();
   auto fillHeader = (OMX_BUFFERHEADERTYPE*)((OMXBufferHandle*)fill)->header;
   assert(fillHeader);
-
-  assert(!fillHeader->hMarkTargetComponent);
-  assert(!fillHeader->pMarkData);
-  assert(!fillHeader->nTimeStamp);
   fillHeader->hMarkTargetComponent = emptyHeader.hMarkTargetComponent;
   fillHeader->pMarkData = emptyHeader.pMarkData;
   fillHeader->nTimeStamp = emptyHeader.nTimeStamp;
