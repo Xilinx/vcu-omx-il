@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -335,6 +335,7 @@ static std::map<OMX_INDEXTYPE, const char*> ToStringOMXIndex =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInterlaceFormatCurrent), "OMX_ALG_IndexParamVideoInterlaceFormatCurrent" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInterlaceFormatSupported), "OMX_ALG_IndexParamVideoInterlaceFormatSupported" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLongTerm), "OMX_ALG_IndexParamVideoLongTerm" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLookAhead), "OMX_ALG_IndexParamVideoLookAhead" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVendorVideoStartUnused), "OMX_ALG_IndexConfigVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), "OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh" },

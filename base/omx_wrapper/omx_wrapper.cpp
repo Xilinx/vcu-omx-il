@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -35,15 +35,15 @@
 *
 ******************************************************************************/
 
-#include "base/omx_base/omx_base.h"
+#include "base/omx_component/omx_component_interface.h"
 #include "base/omx_checker/omx_checker.h"
 
-static OMXBase* GetThis(OMX_IN OMX_HANDLETYPE hComponent)
+static OMXComponentInterface* GetThis(OMX_IN OMX_HANDLETYPE hComponent)
 {
   if(!hComponent)
     return nullptr;
 
-  return static_cast<OMXBase*>((((OMX_COMPONENTTYPE*)hComponent)->pComponentPrivate));
+  return static_cast<OMXComponentInterface*>((((OMX_COMPONENTTYPE*)hComponent)->pComponentPrivate));
 }
 
 static OMX_ERRORTYPE MySendCommand(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_COMMANDTYPE Cmd, OMX_IN OMX_U32 nParam1, OMX_IN OMX_PTR pCmdData)

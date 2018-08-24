@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -122,6 +122,7 @@ struct Settings
   int framerate;
   EncCodec codec;
   OMX_COLOR_FORMATTYPE format;
+  int lookahead;
 };
 
 struct Application
@@ -152,6 +153,7 @@ static inline void SetDefaultSettings(Settings& settings)
   settings.framerate = 1;
   settings.codec = HEVC;
   settings.format = OMX_COLOR_FormatYUV420SemiPlanar;
+  settings.lookahead = 0;
 }
 
 static inline void SetDefaultApplication(Application& app)
@@ -239,6 +241,18 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
     OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSubframe), &sub);
   }
 
+#if AL_ENABLE_TWOPASS
+
+  if(app.settings.lookahead)
+  {
+    OMX_ALG_VIDEO_PARAM_LOOKAHEAD la;
+    initHeader(la);
+    la.nPortIndex = 1;
+    la.nLookAhead = app.settings.lookahead;
+    OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLookAhead), &la);
+  }
+#endif
+
   OMX_PARAM_PORTDEFINITIONTYPE paramPortForActual;
   initHeader(paramPortForActual);
   paramPortForActual.nPortIndex = 0;
@@ -268,7 +282,7 @@ static void Usage(CommandLineParser& opt, char* ExeName)
 
 static bool fourCCExist(string const& fourcc)
 {
-  return fourcc == "y800" || fourcc == "rxma" || fourcc == "nv12" || fourcc == "rx0a" || fourcc == "nv16" || fourcc == "rx2a";
+  return fourcc == "y800" || fourcc == "xv10" || fourcc == "nv12" || fourcc == "xv15" || fourcc == "nv16" || fourcc == "xv20";
 }
 
 static void parseCommandLine(int argc, char** argv, Application& app)
@@ -284,15 +298,18 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addInt("--height", &settings.height, "Input height ('144')");
   opt.addInt("--framerate", &settings.framerate, "Input fps ('1')");
   opt.addString("--out", &output_file, "Output compressed file name");
-  opt.addString("--fourcc", &fourcc, "Input file fourcc <y800 || rxma || nv12 || rx0a || nv16 || rx2a> '(nv12)'");
+  opt.addString("--fourcc", &fourcc, "Input file fourcc <y800 || xv10 || nv12 || xv15 || nv16 || xv20> ('nv12')");
   opt.addFlag("--hevc", &settings.codec, "", HEVC);
   opt.addFlag("--avc", &settings.codec, "", AVC);
-  opt.addFlag("--hevc_hard", &settings.codec, "Use hard hevc encoder", HEVC_HARD);
-  opt.addFlag("--avc_hard", &settings.codec, "Use hard avc encoder", AVC_HARD);
+  opt.addFlag("--hevc-hard", &settings.codec, "Use hard hevc encoder", HEVC_HARD);
+  opt.addFlag("--avc-hard", &settings.codec, "Use hard avc encoder", AVC_HARD);
   opt.addFlag("--dma-in", &app.input.isDMA, "Use dmabufs on input port");
   opt.addFlag("--dma-out", &app.output.isDMA, "Use dmabufs on output port");
   opt.addInt("--subframe", &user_slice, "<4 || 8 || 16>: activate subframe latency '(0)'");
-  opt.addString("--cmd_file", &cmd_file, "File to precise for dynamic cmd");
+  opt.addString("--cmd-file", &cmd_file, "File to precise for dynamic cmd");
+#if AL_ENABLE_TWOPASS
+  opt.addInt("--lookahead", &settings.lookahead, "<0 || above 2>: activate lookahead mode '(0)'");
+#endif
 
   opt.parse(argc, argv);
 
@@ -312,19 +329,19 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   if(fourcc == "y800")
     settings.format = OMX_COLOR_FormatL8;
 
-  if(fourcc == "rxma")
+  if(fourcc == "xv10")
     settings.format = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitPacked);
 
   if(fourcc == "nv12")
     settings.format = OMX_COLOR_FormatYUV420SemiPlanar;
 
-  if(fourcc == "rx0a")
+  if(fourcc == "xv15")
     settings.format = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked);
 
   if(fourcc == "nv16")
     settings.format = OMX_COLOR_FormatYUV422SemiPlanar;
 
-  if(fourcc == "rx2a")
+  if(fourcc == "xv20")
     settings.format = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked);
 
   if(!(user_slice == 0 || user_slice == 4 || user_slice == 8 || user_slice == 16))
@@ -367,24 +384,25 @@ static void parseCommandLine(int argc, char** argv, Application& app)
 
 static bool readOneYuvFrame(OMX_BUFFERHEADERTYPE* pBufferHdr, Application const& app)
 {
-  auto const width = paramPort.format.video.nFrameWidth;
-  auto const row_size = is10bits(app.settings.format) ? (((width + 2) / 3) * 4) : width;
-  auto const height = paramPort.format.video.nFrameHeight;
-  auto const stride = paramPort.format.video.nStride;
-  auto const sliceHeight = paramPort.format.video.nSliceHeight;
-
-  LOGV("w %d, h %d, stride %d, sliceHeight %d", (int)width, (int)height, (int)stride, (int)sliceHeight);
-
-  static int i;
-  LOGV("Reading input frame %i %ux%u", i, (unsigned int)width, (unsigned int)height);
-  i++;
-
-  auto coef = is422(app.settings.format) ? 1 : 2;
-  auto const size = row_size * (height + height / coef);
-  vector<uint8_t> frame(size);
-
   if(infile.peek() == EOF)
     return false;
+
+  auto width = paramPort.format.video.nFrameWidth;
+  auto height = paramPort.format.video.nFrameHeight;
+
+  static int input_frame_count;
+  LOGV("Reading input frame %i", input_frame_count);
+  auto stride = paramPort.format.video.nStride;
+  auto sliceHeight = paramPort.format.video.nSliceHeight;
+  LOGV("%dx%d, stride %d, sliceHeight %d", (int)width, (int)height, (int)stride, (int)sliceHeight);
+  input_frame_count++;
+
+  auto color = app.settings.format;
+  auto row_size = is10bits(color) ? (((width + 2) / 3) * 4) : width;
+  auto coef = is422(color) ? 1 : 2;
+  auto column_size = is400(color) ? height : height + height / coef;
+  auto size = row_size * column_size;
+  vector<uint8_t> frame(size);
 
   infile.read((char*)frame.data(), frame.size());
 
@@ -395,8 +413,11 @@ static bool readOneYuvFrame(OMX_BUFFERHEADERTYPE* pBufferHdr, Application const&
     memcpy(&dst[h * stride], &frame.data()[h * row_size], row_size);
 
   /* chroma */
-  for(struct { long unsigned int sh; long unsigned int h; } v { sliceHeight, height }; v.sh < sliceHeight + height / coef; v.sh++, v.h++)
-    memcpy(&dst[v.sh * stride], &frame.data()[v.h * row_size], row_size);
+  if(!is400(color))
+  {
+    for(struct { long unsigned int sh; long unsigned int h; } v { sliceHeight, height }; v.sh < sliceHeight + height / coef; v.sh++, v.h++)
+      memcpy(&dst[v.sh * stride], &frame.data()[v.h * row_size], row_size);
+  }
 
   pBufferHdr->nFilledLen = pBufferHdr->nAllocLen;
   assert(pBufferHdr->nFilledLen <= pBufferHdr->nAllocLen);
@@ -550,9 +571,9 @@ static OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR 
 static void useBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Application& app)
 {
   Getters get(&app.hEncoder);
-  auto const size = get.GetBuffersSize(nPortIndex);
-  auto const minBuf = get.GetBuffersCount(nPortIndex);
-  auto const isInput = ((int)nPortIndex == app.input.index);
+  auto size = get.GetBuffersSize(nPortIndex);
+  auto minBuf = get.GetBuffersCount(nPortIndex);
+  auto isInput = ((int)nPortIndex == app.input.index);
 
   for(auto nbBuf = 0; nbBuf < minBuf; nbBuf++)
   {
@@ -590,9 +611,9 @@ static void useBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Application& app)
 static void allocBuffers(OMX_U32 nPortIndex, Application& app)
 {
   Getters get(&app.hEncoder);
-  auto const size = get.GetBuffersSize(nPortIndex);
-  auto const minBuf = get.GetBuffersCount(nPortIndex);
-  auto const isInput = ((int)nPortIndex == app.input.index);
+  auto size = get.GetBuffersSize(nPortIndex);
+  auto minBuf = get.GetBuffersCount(nPortIndex);
+  auto isInput = ((int)nPortIndex == app.input.index);
 
   for(auto nbBuf = 0; nbBuf < minBuf; nbBuf++)
   {
@@ -605,9 +626,9 @@ static void allocBuffers(OMX_U32 nPortIndex, Application& app)
 static void freeUseBuffers(OMX_U32 nPortIndex, Application& app)
 {
   Getters get(&app.hEncoder);
-  auto const minBuf = get.GetBuffersCount(nPortIndex);
+  auto minBuf = get.GetBuffersCount(nPortIndex);
   auto buffers = ((int)nPortIndex == app.input.index) ? app.input.buffers : app.output.buffers;
-  auto const isDMA = ((int)nPortIndex == app.input.index) ? app.input.isDMA : app.output.isDMA;
+  auto isDMA = ((int)nPortIndex == app.input.index) ? app.input.isDMA : app.output.isDMA;
 
   for(auto nbBuf = 0; nbBuf < minBuf; nbBuf++)
   {
@@ -621,7 +642,7 @@ static void freeUseBuffers(OMX_U32 nPortIndex, Application& app)
 static void freeAllocBuffers(OMX_U32 nPortIndex, Application& app)
 {
   Getters get(&app.hEncoder);
-  auto const minBuf = get.GetBuffersCount(nPortIndex);
+  auto minBuf = get.GetBuffersCount(nPortIndex);
   auto buffers = ((int)nPortIndex == app.input.index) ? app.input.buffers : app.output.buffers;
 
   for(auto nbBuf = 0; nbBuf < minBuf; nbBuf++)
@@ -705,7 +726,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   });
 
   OMX_CALL(showComponentVersion(app));
-  auto const ret = setPortParameters(app);
+  auto ret = setPortParameters(app);
 
   if(ret != OMX_ErrorNone)
     return ret;
@@ -728,10 +749,13 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   Getters get(&app.hEncoder);
 
-  if((app.settings.format != OMX_COLOR_FormatYUV420SemiPlanar) &&
+  if((app.settings.format != OMX_COLOR_FormatL8) &&
+     (app.settings.format != OMX_COLOR_FormatYUV420SemiPlanar) &&
      (app.settings.format != OMX_COLOR_FormatYUV422SemiPlanar) &&
-     (app.settings.format != (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked) &&
-     (app.settings.format != (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked))
+     (app.settings.format != static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitPacked)) &&
+     (app.settings.format != static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked)) &&
+     (app.settings.format != static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked))
+     )
   {
     LOGE("Unsupported color format : 0X%.8X", app.settings.format);
     return OMX_ErrorUnsupportedSetting;
@@ -767,6 +791,9 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
     auto buf = app.input.buffers.at(i);
     Read(buf, app);
     OMX_EmptyThisBuffer(app.hEncoder, buf);
+
+    if(app.input.isEOS)
+      break;
   }
 
   lock.lock();

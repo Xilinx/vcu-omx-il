@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+ * Copyright (C) 2018 Allegro DVT2.  All rights reserved.
  * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -40,15 +40,25 @@ extern "C" {
  */
 #include <OMX_Component.h>
 
-/** Enum buffers modes */
+/**
+ * Enumuration of possible buffer mode types
+ */
 typedef enum OMX_ALG_BUFFER_MODE
 {
-  OMX_ALG_BUF_NORMAL = 0x0,
-  OMX_ALG_BUF_DMA = 0x1,
+  OMX_ALG_BUF_NORMAL,
+  OMX_ALG_BUF_DMA,
   OMX_ALG_BUF_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_BUFFER_MODE;
 
-/** Port buffers configuration */
+/**
+ * Port buffer mode parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize      : Size of the structure in bytes
+ *  nVersion   : OMX specification version information
+ *  nPortIndex : Port that this structure applies to
+ *  eMode      : Buffer mode type enum
+ */
 typedef struct OMX_ALG_PORT_PARAM_BUFFER_MODE
 {
   OMX_U32 nSize;
@@ -57,22 +67,35 @@ typedef struct OMX_ALG_PORT_PARAM_BUFFER_MODE
   OMX_ALG_BUFFER_MODE eMode;
 }OMX_ALG_PORT_PARAM_BUFFER_MODE;
 
-/** Component Latency */
+/**
+ * Component reported latency parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize    : Size of the structure in bytes
+ *  nVersion : OMX specification version information
+ *  nLatency : Reported latency in milliseconds
+ */
 typedef struct OMX_ALG_PARAM_REPORTED_LATENCY
 {
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
-  OMX_U32 nLatency; // Computed in milliseconds
+  OMX_U32 nLatency;
 }OMX_ALG_PARAM_REPORTED_LATENCY;
 
-/** Component preallocation */
+/**
+ * Preallocation parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                 : Size of the structure in bytes
+ *  nVersion              : OMX specification version information
+ *  bDisablePreallocation : Indicate if preallocation should be disabled
+ */
 typedef struct OMX_ALG_PARAM_PREALLOCATION
 {
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
   OMX_BOOL bDisablePreallocation;
 }OMX_ALG_PARAM_PREALLOCATION;
-
 
 #ifdef __cplusplus
 }

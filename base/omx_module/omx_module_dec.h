@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -43,6 +43,7 @@
 
 #include <vector>
 #include <queue>
+#include <memory>
 
 #include "base/omx_mediatype/omx_mediatype_dec_interface.h"
 #include "base/omx_utils/threadsafe_map.h"
@@ -54,66 +55,41 @@ extern "C"
 #include <lib_common/StreamBuffer.h>
 }
 
-class DecModule : public ModuleInterface
+struct DecModule : public ModuleInterface
 {
-public:
-  DecModule(std::shared_ptr<DecMediatypeInterface> media, std::unique_ptr<DecDevice>&& device, std::shared_ptr<AL_TAllocator> allocator);
-  ~DecModule();
+  DecModule(std::shared_ptr<DecMediatypeInterface> media, std::shared_ptr<DecDevice> device, std::shared_ptr<AL_TAllocator> allocator);
+  ~DecModule() override;
 
   int GetDisplayPictureType() const; // This can only be called on filled callback !
-  void ResetRequirements();
-  BufferRequirements GetBufferRequirements() const;
+  void ResetRequirements() override;
+  BufferRequirements GetBufferRequirements() const override;
 
-  Resolution GetResolution() const;
-  Clock GetClock() const;
-  Mimes GetMimes() const;
-  Format GetFormat() const;
-  std::vector<Format> GetFormatsSupported() const;
-  ProfileLevelType GetProfileLevel() const;
-  std::vector<ProfileLevelType> GetProfileLevelSupported() const;
-  int GetLatency() const;
-  Gop GetGop() const;
-  FileDescriptors GetFileDescriptors() const;
-  DecodedPictureBufferType GetDecodedPictureBuffer() const;
-  int GetInternalEntropyBuffers() const;
-  bool IsEnableSubframe() const;
+  bool CheckParam() override;
+  bool Create() override;
+  void Destroy() override;
 
-  bool SetResolution(Resolution const& resolution);
-  bool SetClock(Clock const& clock);
-  bool SetFormat(Format const& format);
-  bool SetProfileLevel(ProfileLevelType const& profileLevel);
-  bool SetFileDescriptors(FileDescriptors const& fds);
-  bool SetDecodedPictureBuffer(DecodedPictureBufferType const& decodedPictureBuffer);
-  bool SetInternalEntropyBuffers(int num);
-  bool SetEnableSubframe(bool enableSubframe);
-  bool SetGop(Gop const& gop);
-
-  bool CheckParam();
-  bool Create();
-  void Destroy();
-
-  void Free(void* buffer);
-  void* Allocate(size_t size);
+  void Free(void* buffer) override;
+  void* Allocate(size_t size) override;
 
   void FreeDMA(int fd);
   int AllocateDMA(int size);
 
-  bool SetCallbacks(Callbacks callbacks);
+  bool SetCallbacks(Callbacks callbacks) override;
 
-  bool Empty(BufferHandleInterface* handle);
-  bool Fill(BufferHandleInterface* handle);
+  bool Empty(BufferHandleInterface* handle) override;
+  bool Fill(BufferHandleInterface* handle) override;
 
-  ErrorType Run(bool shouldPrealloc);
-  bool Pause();
-  bool Flush();
-  void Stop();
+  ErrorType Run(bool shouldPrealloc) override;
+  bool Pause() override;
+  bool Flush() override;
+  void Stop() override;
 
-  ErrorType SetDynamic(std::string index, void const* param);
-  ErrorType GetDynamic(std::string index, void* param);
+  ErrorType SetDynamic(std::string index, void const* param) override;
+  ErrorType GetDynamic(std::string index, void* param) override;
 
 private:
   std::shared_ptr<DecMediatypeInterface> const media;
-  std::unique_ptr<DecDevice> device;
+  std::shared_ptr<DecDevice> device;
   std::shared_ptr<AL_TAllocator> allocator;
 
   int currentDisplayPictureType = -1;
@@ -127,11 +103,10 @@ private:
   ThreadSafeMap<void*, AL_HANDLE> allocated;
   ThreadSafeMap<int, AL_HANDLE> allocatedDMA;
 
-  FileDescriptors fds;
   AL_TIDecChannel* channel;
   AL_HDecoder decoder;
 
-  EOSHandles<AL_TBuffer> eosHandles;
+  EOSHandles<AL_TBuffer*> eosHandles;
   ErrorType CreateDecoder(bool shouldPrealloc);
   bool DestroyDecoder();
   void ReleaseAllBuffers();

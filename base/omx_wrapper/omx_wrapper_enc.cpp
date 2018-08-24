@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -36,9 +36,15 @@
 ******************************************************************************/
 
 #include "base/omx_module/omx_module_enc.h"
-#include "base/omx_codec/omx_codec_enc.h"
-#include "base/omx_codec/omx_expertise_enc_hevc.h"
+#include "base/omx_component/omx_component_enc.h"
+#include "base/omx_component/omx_expertise_hevc.h"
 #include "base/omx_mediatype/omx_mediatype_enc_hevc.h"
+
+#if AL_ENABLE_SYNCIP
+#include "base/omx_module/omx_sync_ip.h"
+#else
+#include "base/omx_module/null_sync_ip.h"
+#endif
 
 
 
@@ -55,6 +61,16 @@ extern "C" {
 #include <lib_fpga/DmaAlloc.h>
 }
 
+static SyncIpInterface* createSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator)
+{
+#if AL_ENABLE_SYNCIP
+  return new OMXSyncIp(media, allocator);
+#else
+  (void)media, (void)allocator;
+  return new NullSyncIp();
+#endif
+}
+
 static AL_TAllocator* createDmaAlloc(string deviceName)
 {
   auto alloc = AL_DmaAlloc_Create(deviceName.c_str());
@@ -66,50 +82,52 @@ static AL_TAllocator* createDmaAlloc(string deviceName)
 
 
 
-#include "base/omx_codec/omx_expertise_enc_avc.h"
+#include "base/omx_component/omx_expertise_avc.h"
 #include "base/omx_mediatype/omx_mediatype_enc_avc.h"
 
 
-static EncCodec* GenerateAvcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
+static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
   shared_ptr<EncMediatypeAVC> media(new EncMediatypeAVC());
-  unique_ptr<EncDeviceHardwareMcu> device(new EncDeviceHardwareMcu);
+  shared_ptr<EncDeviceHardwareMcu> device(new EncDeviceHardwareMcu);
   shared_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroIP"), [](AL_TAllocator* allocator) {
     AL_Allocator_Destroy(allocator);
   });
-  unique_ptr<EncModule> module(new EncModule(media, move(device), allocator));
-  unique_ptr<EncExpertiseAVC> expertise(new EncExpertiseAVC());
-  return new EncCodec(hComponent, media, move(module), cComponentName, cRole, move(expertise));
+  unique_ptr<EncModule> module(new EncModule(media, device, allocator));
+  unique_ptr<ExpertiseAVC> expertise(new ExpertiseAVC());
+  shared_ptr<SyncIpInterface> syncIp(createSyncIp(media, allocator));
+  return new EncComponent(hComponent, media, move(module), cComponentName, cRole, move(expertise), syncIp);
 }
 
 
-static EncCodec* GenerateHevcCodecHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
+static EncComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
   shared_ptr<EncMediatypeHEVC> media(new EncMediatypeHEVC());
-  unique_ptr<EncDeviceHardwareMcu> device(new EncDeviceHardwareMcu);
+  shared_ptr<EncDeviceHardwareMcu> device(new EncDeviceHardwareMcu);
   shared_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroIP"), [](AL_TAllocator* allocator) {
     AL_Allocator_Destroy(allocator);
   });
-  unique_ptr<EncModule> module(new EncModule(media, move(device), allocator));
-  unique_ptr<EncExpertiseHEVC> expertise(new EncExpertiseHEVC());
-  return new EncCodec(hComponent, media, move(module), cComponentName, cRole, move(expertise));
+  unique_ptr<EncModule> module(new EncModule(media, device, allocator));
+  unique_ptr<ExpertiseHEVC> expertise(new ExpertiseHEVC());
+  shared_ptr<SyncIpInterface> syncIp(createSyncIp(media, allocator));
+  return new EncComponent(hComponent, media, move(module), cComponentName, cRole, move(expertise), syncIp);
 }
 
 
-static OMX_PTR GenerateDefaultCodec(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_STRING cRole)
+static OMX_PTR GenerateDefaultComponent(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_STRING cRole)
 {
 
   if(!strncmp(cComponentName, "OMX.allegro.h265.hardware.encoder", strlen(cComponentName)))
-    return GenerateHevcCodecHardware(hComponent, cComponentName, cRole);
+    return GenerateHevcComponentHardware(hComponent, cComponentName, cRole);
 
   if(!strncmp(cComponentName, "OMX.allegro.h265.encoder", strlen(cComponentName)))
-    return GenerateHevcCodecHardware(hComponent, cComponentName, cRole);
+    return GenerateHevcComponentHardware(hComponent, cComponentName, cRole);
 
   if(!strncmp(cComponentName, "OMX.allegro.h264.hardware.encoder", strlen(cComponentName)))
-    return GenerateAvcCodecHardware(hComponent, cComponentName, cRole);
+    return GenerateAvcComponentHardware(hComponent, cComponentName, cRole);
 
   if(!strncmp(cComponentName, "OMX.allegro.h264.encoder", strlen(cComponentName)))
-    return GenerateAvcCodecHardware(hComponent, cComponentName, cRole);
+    return GenerateAvcComponentHardware(hComponent, cComponentName, cRole);
   return nullptr;
 }
 
@@ -117,12 +135,12 @@ extern "C"
 {
 OMX_PTR CreateComponentPrivate(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_STRING cRole)
 {
-  return GenerateDefaultCodec(hComponent, cComponentName, cRole);
+  return GenerateDefaultComponent(hComponent, cComponentName, cRole);
 }
 
 void DestroyComponentPrivate(OMX_IN OMX_PTR pComponentPrivate)
 {
-  delete static_cast<EncCodec*>(pComponentPrivate);
+  delete static_cast<EncComponent*>(pComponentPrivate);
 }
 }
 

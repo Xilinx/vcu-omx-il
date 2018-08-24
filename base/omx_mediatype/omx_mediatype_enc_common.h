@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,7 @@
 #pragma once
 
 #include "base/omx_module/omx_module_structs.h"
+#include <vector>
 
 extern "C"
 {
@@ -76,4 +77,15 @@ bool UpdateQuantizationParameter(AL_TEncSettings& settings, QPs qps);
 
 Slices CreateSlicesParameter(AL_TEncSettings settings);
 bool UpdateSlicesParameter(AL_TEncSettings& settings, Slices slices);
+
+Format CreateFormat(AL_TEncSettings settings);
+bool UpdateFormat(AL_TEncSettings& settings, Format format, std::vector<ColorType> colors, std::vector<int> bitdepths, int& stride, Stride strideAlignment);
+
+Resolution CreateResolution(AL_TEncSettings settings, int widthStride, int heightStride);
+bool UpdateResolution(AL_TEncSettings& settings, int& stride, int& sliceHeight, Stride strideAlignment, Resolution resolution);
+
+bool UpdateIsEnabledSubFrame(AL_TEncSettings& settings, bool isEnabledSubFrame);
+
+LookAhead CreateLookAhead(AL_TEncSettings settings);
+bool UpdateLookAhead(AL_TEncSettings& settings, LookAhead la);
 

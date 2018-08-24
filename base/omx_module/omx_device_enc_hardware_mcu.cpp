@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -56,12 +56,19 @@ void EncDeviceHardwareMcu::Deinit(TScheduler* scheduler)
     AL_ISchedulerEnc_Destroy(scheduler);
 }
 
-AllocationRequirements EncDeviceHardwareMcu::GetAllocationRequirements()
+BufferContiguities EncDeviceHardwareMcu::GetBufferContiguities() const
 {
-  AllocationDefinition input = { 32, true };
-  AllocationDefinition output = { 32, true };
-  return {
-           input, output
-  };
+  BufferContiguities bufferContiguities;
+  bufferContiguities.input = true;
+  bufferContiguities.output = true;
+  return bufferContiguities;
+}
+
+BufferBytesAlignments EncDeviceHardwareMcu::GetBufferBytesAlignments() const
+{
+  BufferBytesAlignments bufferBytesAlignments;
+  bufferBytesAlignments.input = 32;
+  bufferBytesAlignments.output = 32;
+  return bufferBytesAlignments;
 }
 

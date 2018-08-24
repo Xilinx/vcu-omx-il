@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Allegro DVT2. All rights reserved.
+ * Copyright (c) 2018 Allegro DVT2. All rights reserved.
  * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining

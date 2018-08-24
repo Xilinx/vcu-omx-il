@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+ * Copyright (C) 2018 Allegro DVT2.  All rights reserved.
  * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -40,7 +40,6 @@ extern "C" {
  * for this header file to compile successfully
  */
 #include <OMX_Video.h>
-#include <OMX_Allegro.h>
 #include <OMX_IVCommonAlg.h>
 
 /** Enum for vendor video codingtype extensions */
@@ -200,7 +199,40 @@ typedef enum OMX_ALG_VIDEO_AVCLEVELTYPE
   OMX_ALG_VIDEO_AVCLevelMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_AVCLEVELTYPE;
 
-/** Group of pictures Control mode */
+/**
+ * Enumeration of possible group of picture (GOP) types
+ */
+typedef enum OMX_ALG_EGopCtrlMode
+{
+  OMX_ALG_GOP_MODE_DEFAULT,
+  OMX_ALG_GOP_MODE_PYRAMIDAL,
+  OMX_ALG_GOP_MODE_ADAPTIVE,
+  OMX_ALG_GOP_MODE_LOW_DELAY_P,
+  OMX_ALG_GOP_MODE_LOW_DELAY_B,
+  OMX_ALG_GOP_MODE_MAX_ENUM = 0x7FFFFFFF,
+}OMX_ALG_EGopCtrlMode;
+
+/**
+ * Enumeration of possible gradual decoder refresh (GDR) types
+ */
+typedef enum OMX_ALG_EGdrMode
+{
+  OMX_ALG_GDR_OFF,
+  OMX_ALG_GDR_VERTICAL,
+  OMX_ALG_GDR_HORIZONTAL,
+  OMX_ALG_GDR_MAX_ENUM = 0x7FFFFFFF,
+}OMX_ALG_EGdrMode;
+
+/**
+ * Group of pictures control parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize           : Size of the structure in bytes
+ *  nVersion        : OMX specification version information
+ *  nPortIndex      : Port that this structure applies to
+ *  eGopControlMode : Group of pictures type enum
+ *  eGdrMode        : Gradual decoder refresh type enum
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_GOP_CONTROL
 {
   OMX_U32 nSize;
@@ -210,7 +242,16 @@ typedef struct OMX_ALG_VIDEO_PARAM_GOP_CONTROL
   OMX_ALG_EGdrMode eGdrMode;
 }OMX_ALG_VIDEO_PARAM_GOP_CONTROL;
 
-/** Slices parameters */
+/**
+ * Slices parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize            : Size of the structure in bytes
+ *  nVersion         : OMX specification version information
+ *  nPortIndex       : Port that this structure applies to
+ *  nSlicesSize      : Size of the slices
+ *  bDependentSlices : Indicate if slices are dependent
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_SLICES
 {
   OMX_U32 nSize;
@@ -221,7 +262,32 @@ typedef struct OMX_ALG_VIDEO_PARAM_SLICES
   OMX_BOOL bDependentSlices;
 }OMX_ALG_VIDEO_PARAM_SLICES;
 
-/** Scene Change resilience parameters */
+/**
+ * LookAhead parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize            		          : Size of the structure in bytes
+ *  nVersion         		          : OMX specification version information
+ *  nPortIndex       		          : Port that this structure applies to
+ *  nLookAhead                    : Indicate the Lookahead size, disabled if 0
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_LOOKAHEAD
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_U32 nLookAhead;
+}OMX_ALG_VIDEO_PARAM_LOOKAHEAD;
+
+/**
+ * Scene change resilience parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize            		          : Size of the structure in bytes
+ *  nVersion         		          : OMX specification version information
+ *  nPortIndex       		          : Port that this structure applies to
+ *  bDisableSceneChangeResilience : Indicate if scene change resilience should be disabled
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_SCENE_CHANGE_RESILIENCE
 {
   OMX_U32 nSize;
@@ -230,7 +296,15 @@ typedef struct OMX_ALG_VIDEO_PARAM_SCENE_CHANGE_RESILIENCE
   OMX_BOOL bDisableSceneChangeResilience;
 }OMX_ALG_VIDEO_PARAM_SCENE_CHANGE_RESILIENCE;
 
-/** Prefetch Buffer parameters */
+/**
+ * Prefetch buffer parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize            		  : Size of the structure in bytes
+ *  nVersion         		  : OMX specification version information
+ *  nPortIndex       		  : Port that this structure applies to
+ *  bEnablePrefetchBuffer : Indicate if prefetch buffer should be enabled
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER
 {
   OMX_U32 nSize;
@@ -239,17 +313,45 @@ typedef struct OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER
   OMX_BOOL bEnablePrefetchBuffer;
 }OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER;
 
-/** CPB parameters */
+/**
+ * Coded picture buffer parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                   : Size of the structure in bytes
+ *  nVersion                : OMX specification version information
+ *  nPortIndex              : Port that this structure applies to
+ *  nCodedPictureBufferSize : Size of the coded picture buffer in milliseconds
+ *  nInitialRemovalDelay    : Time of the initial removal delay in milliseconds
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_CODED_PICTURE_BUFFER
 {
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
-  OMX_U32 nCodedPictureBufferSize; // In milliseconds
-  OMX_U32 nInitialRemovalDelay; // In milliseconds
+  OMX_U32 nCodedPictureBufferSize;
+  OMX_U32 nInitialRemovalDelay;
 }OMX_ALG_VIDEO_PARAM_CODED_PICTURE_BUFFER;
 
-/** QP parameters */
+/**
+ * Enumeration of possible quantization parameter (QP) types
+ */
+typedef enum
+{
+  OMX_ALG_UNIFORM_QP, /*!< default behaviour */
+  OMX_ALG_ROI_QP, /*!< must be set for dynamic roi */
+  OMX_ALG_AUTO_QP, /*!< compute Qp by MB on the fly */
+  OMX_ALG_MAX_ENUM_QP = 0x7FFFFFFF,
+}OMX_ALG_EQpCtrlMode;
+
+/**
+ * Quantization parameter control parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize          : Size of the structure in bytes
+ *  nVersion       : OMX specification version information
+ *  nPortIndex     : Port that this structure applies to
+ *  eQpControlMode : Quantization parameter type enum
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_QUANTIZATION_CONTROL
 {
   OMX_U32 nSize;
@@ -258,6 +360,16 @@ typedef struct OMX_ALG_VIDEO_PARAM_QUANTIZATION_CONTROL
   OMX_ALG_EQpCtrlMode eQpControlMode;
 }OMX_ALG_VIDEO_PARAM_QUANTIZATION_CONTROL;
 
+/**
+ * Quantization extension parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize      : Size of the structure in bytes
+ *  nVersion   : OMX specification version information
+ *  nPortIndex : Port that this structure applies to
+ *  nQpMin     : Quantization parameter minimum value
+ *  nQpMax     : Quantization parameter maximum value
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_QUANTIZATION_EXTENSION
 {
   OMX_U32 nSize;
@@ -267,7 +379,25 @@ typedef struct OMX_ALG_VIDEO_PARAM_QUANTIZATION_EXTENSION
   OMX_S32 nQpMax;
 }OMX_ALG_VIDEO_PARAM_QUANTIZATION_EXTENSION;
 
-/** Scaling List parameters */
+/**
+ *  Enumeration of possible scaling list (SCL) types
+ */
+typedef enum OMX_ALG_EScalingList
+{
+  OMX_ALG_SCL_FLAT,
+  OMX_ALG_SCL_DEFAULT,
+  OMX_ALG_SCL_MAX_ENUM = 0x7FFFFFFF,
+}OMX_ALG_EScalingList;
+
+/**
+ * Scaling list parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize            : Size of the structure in bytes
+ *  nVersion         : OMX specification version information
+ *  nPortIndex       : Port that this structure applies to
+ *  eScalingListMode : Scaling list type enum
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_SCALING_LIST
 {
   OMX_U32 nSize;
@@ -276,7 +406,25 @@ typedef struct OMX_ALG_VIDEO_PARAM_SCALING_LIST
   OMX_ALG_EScalingList eScalingListMode;
 }OMX_ALG_VIDEO_PARAM_SCALING_LIST;
 
-/** DPB parameters */
+/**
+ * Enumeration of possible decoded picture buffer (DPB) types
+ */
+typedef enum OMX_ALG_EDpbMode
+{
+  OMX_ALG_DPB_NORMAL,
+  OMX_ALG_DPB_LOW_REF,
+  OMX_ALG_DPB_MAX_ENUM = 0x7FFFFFFF,
+}OMX_ALG_EDpbMode;
+
+/**
+ * Decoded picture buffer parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                     : Size of the structure in bytes
+ *  nVersion                  : OMX specification version information
+ *  nPortIndex                : Port that this structure applies to
+ *  eDecodedPictureBufferMode : Decoded picture buffer type enum
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_DECODED_PICTURE_BUFFER
 {
   OMX_U32 nSize;
@@ -285,7 +433,15 @@ typedef struct OMX_ALG_VIDEO_PARAM_DECODED_PICTURE_BUFFER
   OMX_ALG_EDpbMode eDecodedPictureBufferMode;
 }OMX_ALG_VIDEO_PARAM_DECODED_PICTURE_BUFFER;
 
-/** ALG Internal Entropy Buffers parameters */
+/**
+ * Internal entropy buffers parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                      : Size of the structure in bytes
+ *  nVersion                   : OMX specification version information
+ *  nPortIndex                 : Port that this structure applies to
+ *  nNumInternalEntropyBuffers : Number of internal entropy buffers
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_INTERNAL_ENTROPY_BUFFERS
 {
   OMX_U32 nSize;
@@ -294,7 +450,15 @@ typedef struct OMX_ALG_VIDEO_PARAM_INTERNAL_ENTROPY_BUFFERS
   OMX_U32 nNumInternalEntropyBuffers;
 }OMX_ALG_VIDEO_PARAM_INTERNAL_ENTROPY_BUFFERS;
 
-/** Enable/Disable Low bandwidth */
+/**
+ * Low bandwidth parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize               : Size of the structure in bytes
+ *  nVersion            : OMX specification version information
+ *  nPortIndex          : Port that this structure applies to
+ *  bEnableLowBandwidth : Indicate if low bandwidth should be enabled
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_LOW_BANDWIDTH
 {
   OMX_U32 nSize;
@@ -303,7 +467,27 @@ typedef struct OMX_ALG_VIDEO_PARAM_LOW_BANDWIDTH
   OMX_BOOL bEnableLowBandwidth;
 }OMX_ALG_VIDEO_PARAM_LOW_BANDWIDTH;
 
-/** Aspect ratio parameters */
+/**
+ * Enumration of possible aspect ratio types
+ */
+typedef enum OMX_ALG_EAspectRatio
+{
+  OMX_ALG_ASPECT_RATIO_AUTO,
+  OMX_ALG_ASPECT_RATIO_4_3,
+  OMX_ALG_ASPECT_RATIO_16_9,
+  OMX_ALG_ASPECT_RATIO_NONE,
+  OMX_ALG_ASPECT_RATIO_MAX_ENUM = 0x7FFFFFFF,
+}OMX_ALG_EAspectRatio;
+
+/**
+ * Aspect ratio parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize        : Size of the structure in bytes
+ *  nVersion     : OMX specification version information
+ *  nPortIndex   : Port that this structure applies to
+ *  eAspectRatio : Aspect ratio type enum
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_ASPECT_RATIO
 {
   OMX_U32 nSize;
@@ -312,7 +496,15 @@ typedef struct OMX_ALG_VIDEO_PARAM_ASPECT_RATIO
   OMX_ALG_EAspectRatio eAspectRatio;
 }OMX_ALG_VIDEO_PARAM_ASPECT_RATIO;
 
-/** Subframe parameters */
+/**
+ * Subframe parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize           : Size of the structure in bytes
+ *  nVersion        : OMX specification version information
+ *  nPortIndex      : Port that this structure applies to
+ *  bEnableSubframe : Indicate if subframe should be enabled
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_SUBFRAME
 {
   OMX_U32 nSize;
@@ -321,8 +513,16 @@ typedef struct OMX_ALG_VIDEO_PARAM_SUBFRAME
   OMX_BOOL bEnableSubframe; /* if enable, data (sent/received) should be slices */
 }OMX_ALG_VIDEO_PARAM_SUBFRAME;
 
-/** Instantaneous decoding refresh (IDR) parameters
+/**
+ * Instantaneous decoding refresh parameters
+ *
  * Beside the first frame, IDRs are the next I-frame >= frames_count % nInstantaneousDecodingRefreshFrequency
+ *
+ * STRUCT MEMBERS:
+ *  nSize                                  : Size of the structure in bytes
+ *  nVersion                               : OMX specification version information
+ *  nPortIndex                             : Port that this structure applies to
+ *  nInstantaneousDecodingRefreshFrequency : Number of frame between 2 IDR
  */
 typedef struct OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH
 {
@@ -332,19 +532,33 @@ typedef struct OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH
   OMX_U32 nInstantaneousDecodingRefreshFrequency;
 }OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH;
 
-/** Max bitrate parameters
- * This parameters is only effective when eControlRate = OMX_Video_ControlRateVariable
+/**
+ * Max bitrate parameters
+ *
+ * This parameters is only effective when eControlRate = OMX_Video_ControlRateVariable or OMX_ALG_Video_ControlRateVariableCapped
+ *
+ * STRUCT MEMBERS:
+ *  nSize       : Size of the structure in bytes
+ *  nVersion    : OMX specification version information
+ *  nPortIndex  : Port that this structure applies to
+ *  nMaxBitrate : Maximum bitrate threshold in kbits per second
  */
 typedef struct OMX_ALG_VIDEO_PARAM_MAX_BITRATE
 {
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
-  OMX_U32 nMaxBitrate; // In kbits per second
+  OMX_U32 nMaxBitrate;
 }OMX_ALG_VIDEO_PARAM_MAX_BITRATE;
 
-/** Filler Data parameters
- * This parameter permit to disable the filler data
+/**
+ * Filler data parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize              : Size of the structure in bytes
+ *  nVersion           : OMX specification version information
+ *  nPortIndex         : Port that this structure applies to
+ *  bDisableFillerData : Indicate if filler data should be disabled
  */
 typedef struct OMX_ALG_VIDEO_PARAM_FILLER_DATA
 {
@@ -362,8 +576,14 @@ typedef enum OMX_ALG_VIDEO_BUFFER_MODE
   OMX_ALG_VIDEO_BUFFER_MODE_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_BUFFER_MODE;
 
-/** Buffer Mode parameters
- * This parameter permit to switch buffer mode
+/**
+ * Buffer mode parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize      : Size of the structure in bytes
+ *  nVersion   : OMX specification version information
+ *  nPortIndex : Port that this structure applies to
+ *  eMode      : Buffer mode type enum
  */
 typedef struct OMX_ALG_VIDEO_PARAM_BUFFER_MODE
 {
@@ -373,8 +593,15 @@ typedef struct OMX_ALG_VIDEO_PARAM_BUFFER_MODE
   OMX_ALG_VIDEO_BUFFER_MODE eMode;
 }OMX_ALG_VIDEO_PARAM_BUFFER_MODE;
 
-/** Long Term parameters
- * This parameter permit to enable/disable long term
+/**
+ * Long term parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize              : Size of the structure in bytes
+ *  nVersion           : OMX specification version information
+ *  nPortIndex         : Port that this structure applies to
+ *  bEnableLongTerm    : Indicate if long term should be enabled
+ *  nLongTermFrequency : Frequency of long term reference picture
  */
 typedef struct OMX_ALG_VIDEO_PARAM_LONG_TERM
 {
@@ -400,10 +627,17 @@ typedef enum OMX_ALG_VIDEO_CONTROLRATETYPE
 {
   OMX_ALG_Video_ControlRateStartUnused = OMX_Video_ControlRateVendorStartUnused,
   OMX_ALG_Video_ControlRateLowLatency,
+  OMX_ALG_Video_ControlRateVariableCapped,
   OMX_ALG_Video_ControlRateMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_CONTROLRATETYPE;
 
-/** Insert
+/**
+ * Structure for dynamically signalling component
+ *
+ * STRUCT MEMBERS:
+ *  nSize            : Size of the structure in bytes
+ *  nVersion         : OMX specification version information
+ *  nPortIndex       : Port that this structure applies to
  */
 typedef struct OMX_ALG_VIDEO_CONFIG_INSERT
 {
@@ -412,6 +646,16 @@ typedef struct OMX_ALG_VIDEO_CONFIG_INSERT
   OMX_U32 nPortIndex;
 } OMX_ALG_VIDEO_CONFIG_INSERT;
 
+/**
+ * Structure for dynamically changing group of picture
+ *
+ * STRUCT MEMBERS:
+ *  nSize            : Size of the structure in bytes
+ *  nVersion         : OMX specification version information
+ *  nPortIndex       : Port that this structure applies to
+ *  nPFrames         : Number of P frames between each I frame
+ *  nBFrames         : Number of B frames between each I frame
+ */
 typedef struct OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES
 {
   OMX_U32 nSize;
@@ -422,7 +666,19 @@ typedef struct OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES
 }OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES;
 
 /**
- * OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST
+ * Enumeration of possible region of interest (ROI) quality types
+ */
+typedef enum
+{
+  OMX_ALG_ROI_QUALITY_HIGH,
+  OMX_ALG_ROI_QUALITY_MEDIUM,
+  OMX_ALG_ROI_QUALITY_LOW,
+  OMX_ALG_ROI_QUALITY_DONT_CARE,
+  OMX_ALG_ROI_QUALITY_MAX_ENUM = 0x7FFFFFFF,
+}OMX_ALG_ERoiQuality;
+
+/**
+ * Structure for dynamically adding a region of interest
  *
  * STRUCT MEMBERS:
  *  nSize      : Size of the structure in bytes
@@ -432,9 +688,8 @@ typedef struct OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES
  *  nTop       : Y Coordinate of the top left corner of the rectangle
  *  nWidth     : Width of the rectangle
  *  nHeight    : Height of the rectangle
- *  eQuality   : Quality of the region of interest
+ *  eQuality   : Quality of the region of interest type enum
  */
-
 typedef struct OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST
 {
   OMX_U32 nSize;
@@ -448,7 +703,7 @@ typedef struct OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST
 }OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST;
 
 /**
- * OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE
+ * Structure for dynamically notifying a scene change
  *
  * STRUCT MEMBERS:
  *  nSize      : Size of the structure in bytes
@@ -456,7 +711,7 @@ typedef struct OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST
  *  nPortIndex : Port that this structure applies to
  *  nLookAhead : Number of frames before a scene change
  */
-typedef struct
+typedef struct OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE
 {
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;

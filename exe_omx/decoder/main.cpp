@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -255,14 +255,18 @@ static void Usage(CommandLineParser& opt, char* ExeName)
 
 bool setChroma(string user_chroma, OMX_COLOR_FORMATTYPE* chroma)
 {
-  if(user_chroma == "NV12")
+  if(user_chroma == "y800")
+    *chroma = OMX_COLOR_FormatL8;
+  else if(user_chroma == "xv10")
+    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitPacked);
+  else if(user_chroma == "nv12")
     *chroma = OMX_COLOR_FormatYUV420SemiPlanar;
-  else if(user_chroma == "NV16")
+  else if(user_chroma == "nv16")
     *chroma = OMX_COLOR_FormatYUV422SemiPlanar;
-  else if(user_chroma == "RX0A")
-    *chroma = (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked;
-  else if(user_chroma == "RX2A")
-    *chroma = (OMX_COLOR_FORMATTYPE)OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
+  else if(user_chroma == "xv15")
+    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked);
+  else if(user_chroma == "xv20")
+    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked);
   else
     return false;
   return true;
@@ -279,11 +283,11 @@ void getExpectedSeparator(stringstream& ss, char expectedSep)
 
 bool setSequence(string user_seq, OMX_ALG_SEQUENCE_PICTURE_MODE* seqpicture)
 {
-  if(user_seq == "UNKWN")
+  if(user_seq == "unkwn")
     *seqpicture = OMX_ALG_SEQUENCE_PICTURE_UNKNOWN;
-  else if(user_seq == "PROGR")
+  else if(user_seq == "progr")
     *seqpicture = OMX_ALG_SEQUENCE_PICTURE_FRAME;
-  else if(user_seq == "INTER")
+  else if(user_seq == "inter")
     *seqpicture = OMX_ALG_SEQUENCE_PICTURE_FIELD;
   else
     return false;
@@ -347,8 +351,8 @@ void parseCommandLine(int argc, char** argv, Application& app)
   opt.addFlag("--help,-help,-h", &help, "Show this help");
   opt.addFlag("--hevc,-hevc", &settings.codecImplem, "load HEVC decoder (default)", HEVC);
   opt.addFlag("--avc,-avc", &settings.codecImplem, "load AVC decoder", AVC);
-  opt.addFlag("--hevc_hard,-hevc_hard", &settings.codecImplem, "Use hard hevc decoder", HEVC_HARD);
-  opt.addFlag("--avc_hard,-hevc_hard", &settings.codecImplem, "Use hard avc decoder", AVC_HARD);
+  opt.addFlag("--hevc-hard,-hevc-hard", &settings.codecImplem, "Use hard hevc decoder", HEVC_HARD);
+  opt.addFlag("--avc-hard,-hevc-hard", &settings.codecImplem, "Use hard avc decoder", AVC_HARD);
   opt.addString("--out,-o", &output_file, "Output compressed file name");
   opt.addOption("--dma-in,-dma-in", [&](string) {
     settings.bDMAIn = true;
@@ -359,7 +363,7 @@ void parseCommandLine(int argc, char** argv, Application& app)
     settings.eDMAOut = OMX_ALG_BUF_DMA;
   }, "use dmabufs for output port");
   string prealloc_args = "";
-  opt.addString("--prealloc-args", &prealloc_args, "Specify the stream dimension: 1920x1080:NV12:omx-profile-value:omx-level-value");
+  opt.addString("--prealloc-args", &prealloc_args, "Specify the stream dimension: 1920x1080:unkwn:nv12:omx-profile-value:omx-level-value");
 
   if(argc < 2)
   {
@@ -687,7 +691,7 @@ OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
 
   if(pBuffer->nFilledLen)
   {
-    auto const data = Buffer_MapData((char*)(pBuffer->pBuffer + pBuffer->nOffset), pBuffer->nAllocLen, app->settings.bDMAOut);
+    auto data = Buffer_MapData((char*)(pBuffer->pBuffer + pBuffer->nOffset), pBuffer->nAllocLen, app->settings.bDMAOut);
 
     if(data)
     {
@@ -696,12 +700,12 @@ OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
       initHeader(param);
       param.nPortIndex = 1;
       OMX_CALL(OMX_GetParameter(app->hDecoder, OMX_IndexParamPortDefinition, &param));
-      auto const videoDef = param.format.video;
-      auto const stride = videoDef.nStride;
-      auto const sliceHeight = videoDef.nSliceHeight;
-      auto const coef = is422(videoDef.eColorFormat) ? 1 : 2;
-      auto const height = videoDef.nFrameHeight;
-      auto const row_size = is10bits(videoDef.eColorFormat) ? (((videoDef.nFrameWidth + 2) / 3) * 4) : videoDef.nFrameWidth;
+      auto videoDef = param.format.video;
+      auto stride = videoDef.nStride;
+      auto sliceHeight = videoDef.nSliceHeight;
+      auto coef = is422(videoDef.eColorFormat) ? 1 : 2;
+      auto height = videoDef.nFrameHeight;
+      auto row_size = is10bits(videoDef.eColorFormat) ? (((videoDef.nFrameWidth + 2) / 3) * 4) : videoDef.nFrameWidth;
 
       /* luma */
       for(auto h = 0; h < (int)height; h++)
@@ -909,7 +913,7 @@ OMX_ERRORTYPE configureComponent(Application& app)
 
   if(app.settings.hasPrealloc)
   {
-    auto const error = setPreallocParameters(app);
+    auto error = setPreallocParameters(app);
 
     if(error != OMX_ErrorNone)
       return error;
@@ -1123,7 +1127,7 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
   });
 
   OMX_CALL(showComponentVersion(app));
-  auto const ret = setPortParameters(app);
+  auto ret = setPortParameters(app);
 
   if(ret != OMX_ErrorNone)
     return ret;

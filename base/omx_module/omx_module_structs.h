@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -39,18 +39,6 @@
 
 #include "omx_module_enums.h"
 #include <string>
-
-struct AllocationDefinition
-{
-  int bytesAlignment;
-  bool contiguous;
-};
-
-struct AllocationRequirements
-{
-  AllocationDefinition input;
-  AllocationDefinition output;
-};
 
 struct BufferHandles
 {
@@ -96,12 +84,18 @@ struct BufferRequirements
   BufferDefinitions output;
 };
 
+struct Stride
+{
+  int widthStride;
+  int heightStride;
+};
+
 struct Resolution
 {
   int width;
   int height;
-  int stride;
-  int sliceHeight;
+
+  Stride stride;
 
   bool operator != (Resolution const& resolution) const
   {
@@ -111,10 +105,10 @@ struct Resolution
     if(resolution.height != height)
       return true;
 
-    if(resolution.stride != stride)
+    if(resolution.stride.widthStride != stride.widthStride)
       return true;
 
-    if(resolution.sliceHeight != sliceHeight)
+    if(resolution.stride.heightStride != stride.heightStride)
       return true;
 
     return false;
@@ -163,12 +157,6 @@ struct Format
 {
   ColorType color;
   int bitdepth;
-};
-
-struct FileDescriptors
-{
-  bool input;
-  bool output;
 };
 
 struct ProfileLevelType
@@ -227,5 +215,10 @@ struct RegionQuality
 {
   Region region;
   QualityType quality;
+};
+
+struct LookAhead
+{
+  int nLookAhead;
 };
 

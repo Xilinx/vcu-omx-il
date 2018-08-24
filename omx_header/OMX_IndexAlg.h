@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+ * Copyright (C) 2018 Allegro DVT2.  All rights reserved.
  * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -41,7 +41,7 @@ extern "C" {
 #include <OMX_Index.h>
 
 // This value already exist in OpenMax IL version 1.2 but the index name is unclear
-#define OMX_ALG_IndexParamVideoInterlaceFormatSupported 0x07000031
+#define OMX_ALG_IndexParamVideoInterlaceFormatSupported 0x07000031 /**< reference: OMX_INTERLACEFORMATTYPE */
 
 /** Vendor standard extension indices.
 
@@ -82,6 +82,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamVideoBufferMode,                  /**< reference: OMX_ALG_VIDEO_PARAM_BUFFER_MODE */
   OMX_ALG_IndexParamVideoInterlaceFormatCurrent,      /**< reference: OMX_INTERLACEFORMATTYPE */
   OMX_ALG_IndexParamVideoLongTerm,                    /**< reference: OMX_ALG_VIDEO_PARAM_LONG_TERM */
+  OMX_ALG_IndexParamVideoLookAhead,                    /**< reference: OMX_ALG_VIDEO_PARAM_LOOKAHEAD */
 
   /* Vendor Video configrations */
   OMX_ALG_IndexConfigVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00380000,

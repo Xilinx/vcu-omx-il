@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -38,13 +38,15 @@
 #include "omx_module_enc.h"
 #include "omx_convert_module_soft_roi.h"
 #include <cassert>
-#include <unistd.h>
 #include <cmath>
+#include <unistd.h> // close fd
+#include <cstring> // memcpy
 
 extern "C"
 {
 #include <lib_common/BufferSrcMeta.h>
 #include <lib_common/BufferStreamMeta.h>
+#include <lib_common/BufferLookAheadMeta.h>
 #include <lib_common/StreamBuffer.h>
 
 #include <lib_common_enc/IpEncFourCC.h>
@@ -54,9 +56,8 @@ extern "C"
 }
 
 #include "base/omx_checker/omx_checker.h"
-#include "base/omx_settings/omx_convert_module_soft_enc.h"
-#include "base/omx_settings/omx_convert_module_soft.h"
-#include "base/omx_settings/omx_settings_structs.h"
+#include "base/omx_mediatype/omx_convert_module_soft_enc.h"
+#include "base/omx_mediatype/omx_convert_module_soft.h"
 #include "base/omx_utils/round.h"
 
 using namespace std;
@@ -86,28 +87,28 @@ static ErrorType ToModuleError(int errorCode)
 
 static bool CheckValidity(AL_TEncSettings const& settings)
 {
-  auto err = AL_Settings_CheckValidity(const_cast<AL_TEncSettings*>(&settings), const_cast<AL_TEncChanParam*>(&settings.tChParam[0]), stderr);
-
-  return err == AL_SUCCESS;
+  auto errCount = AL_Settings_CheckValidity(const_cast<AL_TEncSettings*>(&settings), const_cast<AL_TEncChanParam*>(&settings.tChParam[0]), stderr);
+  return errCount == 0;
 }
 
 static void LookCoherency(AL_TEncSettings& settings)
 {
   auto chan = settings.tChParam[0];
-  auto fourCC = AL_EncGetSrcFourCC({ AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER });
-  assert(AL_GET_BITDEPTH(chan.ePicFormat) == chan.uEncodingBitDepth);
+  auto picFormat = AL_EncGetSrcPicFormat(AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER, false);
+  auto fourCC = AL_EncGetSrcFourCC(picFormat);
+  assert(AL_GET_BITDEPTH(chan.ePicFormat) == chan.uSrcBitDepth);
   AL_Settings_CheckCoherency(&settings, &settings.tChParam[0], fourCC, stdout);
 }
 
-EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, unique_ptr<EncDevice>&& device, shared_ptr<AL_TAllocator> allocator) :
+EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, shared_ptr<EncDevice> device, shared_ptr<AL_TAllocator> allocator) :
   media(media),
-  device(move(device)),
+  device(device),
   allocator(allocator)
 {
   assert(this->media);
   assert(this->device);
   assert(this->allocator);
-  encoder = nullptr;
+  encoders.clear();
   isCreated = false;
   ResetRequirements();
 }
@@ -140,9 +141,32 @@ string ToStringEncodeError(int error)
   return str_error;
 }
 
+void EncModule::InitEncoders(int numPass)
+{
+  encoders.clear();
+
+  for(auto pass = 0; pass < numPass; pass++)
+  {
+    PassEncoder encoderPass;
+    encoderPass.index = pass;
+    encoderPass.streamBuffer = nullptr;
+    encoderPass.lookAheadParams.fifoSize = 0;
+    encoderPass.EOSFinished = new promise<int>();
+
+    if(pass < numPass - 1)
+    {
+      encoderPass.lookAheadParams.callbackParam = { this, pass };
+      encoderPass.streamBuffer = AL_Buffer_Create_And_Allocate(allocator.get(), GetBufferRequirements().output.size, AL_Buffer_Destroy);
+      AL_Buffer_Ref(encoderPass.streamBuffer);
+    }
+
+    encoders.push_back(encoderPass);
+  }
+}
+
 ErrorType EncModule::CreateEncoder()
 {
-  if(encoder)
+  if(encoders.size())
   {
     fprintf(stderr, "Encoder is ALREADY created\n");
     return ERROR_UNDEFINED;
@@ -159,13 +183,44 @@ ErrorType EncModule::CreateEncoder()
 
   auto settings = media->settings;
   scheduler = device->Init(settings, *allocator.get());
-  auto errorCode = AL_Encoder_Create(&encoder, scheduler, allocator.get(), &media->settings, { EncModule::RedirectionEndEncoding, this });
+  auto numPass = 1;
 
-  if(errorCode != AL_SUCCESS)
+#if AL_ENABLE_TWOPASS
+  numPass = AL_TwoPassMngr_HasLookAhead(settings) ? 2 : 1;
+#endif
+
+  InitEncoders(numPass);
+
+  for(auto pass = 0; pass < numPass; pass++)
   {
-    fprintf(stderr, "Failed to create Encoder:\n");
-    fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
-    return ToModuleError(errorCode);
+    auto settingsPass = media->settings;
+    PassEncoder& encoderPass = encoders[pass];
+    AL_CB_EndEncoding callback = { EncModule::RedirectionEndEncoding, this };
+
+#if AL_ENABLE_TWOPASS
+
+    if(pass < numPass - 1 && AL_TwoPassMngr_HasLookAhead(settings))
+    {
+      AL_TwoPassMngr_SetPass1Settings(settingsPass);
+      callback = { EncModule::RedirectionEndEncodingLookAhead, &(encoderPass.lookAheadParams.callbackParam) };
+      encoderPass.lookAheadParams.fifoSize = settings.LookAhead;
+    }
+#endif
+
+    auto errorCode = AL_Encoder_Create(&encoderPass.enc, scheduler, allocator.get(), &settingsPass, callback);
+
+    if(errorCode != AL_SUCCESS)
+    {
+      fprintf(stderr, "Failed to create first pass Encoder:\n");
+      fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
+      return ToModuleError(errorCode);
+    }
+
+    if(pass < numPass - 1 && encoderPass.streamBuffer)
+    {
+      CreateAndAttachStreamMeta(*encoderPass.streamBuffer);
+      AL_Encoder_PutStreamBuffer(encoderPass.enc, encoderPass.streamBuffer);
+    }
   }
 
   eosHandles.output = nullptr;
@@ -176,14 +231,39 @@ ErrorType EncModule::CreateEncoder()
 
 bool EncModule::DestroyEncoder()
 {
-  if(!encoder)
+  if(!encoders.size())
   {
     fprintf(stderr, "Encoder isn't created\n");
     return false;
   }
 
-  AL_Encoder_Destroy(encoder);
-  encoder = NULL;
+  for(uint8_t pass = 0; pass < encoders.size(); pass++)
+  {
+    PassEncoder encoder = encoders[pass];
+
+    AL_Encoder_Destroy(encoder.enc);
+
+    while(!encoder.roiBuffers.empty())
+    {
+      auto roiBuffer = encoder.roiBuffers.front();
+      encoder.roiBuffers.pop_front();
+      AL_Buffer_Unref(roiBuffer);
+    }
+
+    while(!encoder.fifo.empty())
+    {
+      auto src = encoder.fifo.front();
+      encoder.fifo.pop_front();
+      AL_Buffer_Unref(src);
+    }
+
+    if(encoder.streamBuffer)
+      AL_Buffer_Unref(encoder.streamBuffer);
+
+    delete encoder.EOSFinished;
+  }
+
+  encoders.clear();
 
   device->Deinit(scheduler);
   scheduler = nullptr;
@@ -195,13 +275,6 @@ bool EncModule::DestroyEncoder()
   }
   AL_RoiMngr_Destroy(roiCtx);
 
-  while(!roiBuffers.empty())
-  {
-    auto roiBuffer = roiBuffers.front();
-    roiBuffers.pop_front();
-    AL_Buffer_Unref(roiBuffer);
-  }
-
   return true;
 }
 
@@ -211,6 +284,7 @@ bool EncModule::CheckParam()
 
   if(!CheckValidity(settings))
     return false;
+
   LookCoherency(settings);
 
   return true;
@@ -218,7 +292,7 @@ bool EncModule::CheckParam()
 
 bool EncModule::Create()
 {
-  if(encoder)
+  if(encoders.size())
   {
     fprintf(stderr, "Encoder should NOT be created\n");
     return false;
@@ -230,13 +304,13 @@ bool EncModule::Create()
 
 void EncModule::Destroy()
 {
-  assert(!encoder && "Encoder should ALREADY be destroyed");
+  assert(!encoders.size() && "Encoder should ALREADY be destroyed");
   isCreated = false;
 }
 
 ErrorType EncModule::Run(bool)
 {
-  if(encoder)
+  if(encoders.size())
   {
     fprintf(stderr, "You can't call Run twice\n");
     return ERROR_UNDEFINED;
@@ -265,7 +339,7 @@ void EncModule::FlushEosHandles()
 
 bool EncModule::Pause()
 {
-  if(!encoder)
+  if(!encoders.size())
     return false;
 
   auto ret = DestroyEncoder();
@@ -275,7 +349,7 @@ bool EncModule::Pause()
 
 void EncModule::Stop()
 {
-  if(!encoder)
+  if(!encoders.size())
     return;
 
   DestroyEncoder();
@@ -285,7 +359,6 @@ void EncModule::Stop()
 void EncModule::ResetRequirements()
 {
   media->Reset();
-  fds.input = fds.output = false;
 }
 
 static int RawAllocationSize(int stride, int sliceHeight, AL_EChromaMode eChromaMode)
@@ -313,15 +386,15 @@ BufferRequirements EncModule::GetBufferRequirements() const
   auto& input = b.input;
   input.min = bufferCounts.input;
   input.size = RawAllocationSize(media->stride, media->sliceHeight, AL_GET_CHROMA_MODE(chan.ePicFormat));
-  input.bytesAlignment = device->GetAllocationRequirements().input.bytesAlignment;
-  input.contiguous = device->GetAllocationRequirements().input.contiguous;
+  input.bytesAlignment = device->GetBufferBytesAlignments().input;
+  input.contiguous = device->GetBufferContiguities().input;
 
   auto& output = b.output;
   output.min = bufferCounts.output;
   output.min += 1; // for eos
   output.size = AL_GetMitigatedMaxNalSize({ chan.uWidth, chan.uHeight }, AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat));
-  output.bytesAlignment = device->GetAllocationRequirements().output.bytesAlignment;
-  output.contiguous = device->GetAllocationRequirements().output.contiguous;
+  output.bytesAlignment = device->GetBufferBytesAlignments().output;
+  output.contiguous = device->GetBufferContiguities().output;
 
   if(chan.bSubframeLatency)
   {
@@ -330,17 +403,10 @@ BufferRequirements EncModule::GetBufferRequirements() const
     auto& size = output.size;
     size /= slices.num;
     size += 4095 * 2; /* we need space for the headers on each slice */
-    size = (size + 31) & ~31; /* stream size is required to be 32 bits aligned */
+    size = RoundUp(size, 32); /* stream size is required to be 32 bits aligned */
   }
 
   return b;
-}
-
-int EncModule::GetLatency() const
-{
-  int latency;
-  media->Get(SETTINGS_INDEX_LATENCY, &latency);
-  return latency;
 }
 
 static void StubCallbackEvent(CallbackEventType, void*)
@@ -362,7 +428,7 @@ bool EncModule::SetCallbacks(Callbacks callbacks)
 
 bool EncModule::Flush()
 {
-  if(!encoder)
+  if(!encoders.size())
     return false;
 
   Stop();
@@ -508,19 +574,22 @@ void EncModule::UnuseDMA(BufferHandleInterface* handle)
   AL_Buffer_Unref(encoderBuffer);
 }
 
-static AL_TMetaData* CreateSourceMeta(AL_TEncChanParam const& chan, Resolution const& resolution)
+static AL_TMetaData* CreateSourceMeta(shared_ptr<MediatypeInterface> media, Resolution const& resolution)
 {
-  auto fourCC = AL_EncGetSrcFourCC({ AL_GET_CHROMA_MODE(chan.ePicFormat), AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER });
-  auto stride = resolution.stride;
-  auto sliceHeight = resolution.sliceHeight;
+  Format format {};
+  media->Get(SETTINGS_INDEX_FORMAT, &format);
+  auto picFormat = AL_EncGetSrcPicFormat(ConvertModuleToSoftChroma(format.color), static_cast<uint8_t>(format.bitdepth), AL_FB_RASTER, false);
+  auto fourCC = AL_EncGetSrcFourCC(picFormat);
+  auto stride = resolution.stride.widthStride;
+  auto sliceHeight = resolution.stride.heightStride;
   AL_TPitches const pitches = { stride, stride };
   AL_TOffsetYC const offsetYC = { 0, stride * sliceHeight };
-  return (AL_TMetaData*)(AL_SrcMetaData_Create({ chan.uWidth, chan.uHeight }, pitches, offsetYC, fourCC));
+  return (AL_TMetaData*)(AL_SrcMetaData_Create({ resolution.width, resolution.height }, pitches, offsetYC, fourCC));
 }
 
-static bool CreateAndAttachSourceMeta(AL_TBuffer& buf, AL_TEncChanParam const& chan, Resolution const& resolution)
+static bool CreateAndAttachSourceMeta(AL_TBuffer& buf, shared_ptr<MediatypeInterface> media, Resolution const& resolution)
 {
-  auto meta = CreateSourceMeta(chan, resolution);
+  auto meta = CreateSourceMeta(media, resolution);
 
   if(!meta)
     return false;
@@ -533,24 +602,57 @@ static bool CreateAndAttachSourceMeta(AL_TBuffer& buf, AL_TEncChanParam const& c
   return true;
 }
 
+#if AL_ENABLE_TWOPASS
+static bool CreateAndAttachLookAheadMeta(AL_TBuffer& buf)
+{
+  auto meta = (AL_TLookAheadMetaData*)AL_Buffer_GetMetaData(&buf, AL_META_TYPE_LOOKAHEAD);
+
+  if(!meta)
+  {
+    meta = AL_LookAheadMetaData_Create();
+
+    if(!AL_Buffer_AddMetaData(&buf, (AL_TMetaData*)meta))
+    {
+      meta->tMeta.MetaDestroy((AL_TMetaData*)meta);
+      return false;
+    }
+  }
+  AL_LookAheadMetaData_Reset(meta);
+  return true;
+}
+
+#endif
+
 bool EncModule::Empty(BufferHandleInterface* handle)
 {
-  if(!encoder)
+  if(!encoders.size())
     return false;
+
+  PassEncoder& currentEnc = encoders.front();
+  AL_HEncoder encoder = currentEnc.enc;
 
   auto eos = (handle->payload == 0);
 
   if(eos)
   {
     eosHandles.input = handle;
-    return AL_Encoder_Process(encoder, nullptr, nullptr);
+    auto bRet = AL_Encoder_Process(encoder, nullptr, nullptr);
+
+    if(bRet && (int)encoders.size() != 1)
+    {
+      currentEnc.EOSFinished->get_future().wait();
+      EmptyFifo(currentEnc, true);
+    }
+    return bRet;
   }
 
   eosHandles.input = nullptr;
 
   uint8_t* buffer = (uint8_t*)handle->data;
 
-  if(fds.input)
+  BufferHandles bufferHandles = GetBufferHandles();
+
+  if(bufferHandles.input == BufferHandleType::BUFFER_HANDLE_FD)
     UseDMA(handle, static_cast<int>((intptr_t)buffer), handle->payload);
   else
     Use(handle, buffer, handle->payload);
@@ -562,9 +664,16 @@ bool EncModule::Empty(BufferHandleInterface* handle)
 
   if(!AL_Buffer_GetMetaData(input, AL_META_TYPE_SOURCE))
   {
-    if(!CreateAndAttachSourceMeta(*input, media->settings.tChParam[0], GetResolution()))
+    if(!CreateAndAttachSourceMeta(*input, media, GetResolution()))
       return false;
   }
+
+#if AL_ENABLE_TWOPASS
+
+  if(encoders.size() > 1)
+    if(!CreateAndAttachLookAheadMeta(*input))
+      return false;
+#endif
 
   handles.Add(input, handle);
 
@@ -574,22 +683,22 @@ bool EncModule::Empty(BufferHandleInterface* handle)
     memcpy(AL_Buffer_GetData(input), buffer, input->zSize);
   }
 
-  AL_TBuffer* roiBuffer = nullptr;
+  if(currentEnc.roiBuffers.empty())
+    return AL_Encoder_Process(encoder, input, nullptr);
 
-  if(!roiBuffers.empty())
-  {
-    roiBuffer = roiBuffers.front();
-    roiBuffers.pop_front();
-  }
-
+  auto roiBuffer = currentEnc.roiBuffers.front();
+  currentEnc.roiBuffers.pop_front();
   auto success = AL_Encoder_Process(encoder, input, roiBuffer);
 
-  if(roiBuffer)
+  if(currentEnc.index != encoders.back().index)
+    encoders[currentEnc.index + 1].roiBuffers.push_back(roiBuffer);
+  else
     AL_Buffer_Unref(roiBuffer);
+
   return success;
 }
 
-static bool CreateAndAttachStreamMeta(AL_TBuffer& buf)
+bool EncModule::CreateAndAttachStreamMeta(AL_TBuffer& buf)
 {
   auto meta = (AL_TMetaData*)(AL_StreamMetaData_Create(AL_MAX_SECTION));
 
@@ -606,8 +715,10 @@ static bool CreateAndAttachStreamMeta(AL_TBuffer& buf)
 
 bool EncModule::Fill(BufferHandleInterface* handle)
 {
-  if(!encoder)
+  if(!encoders.size())
     return false;
+
+  AL_HEncoder encoder = encoders.back().enc;
 
   if(!eosHandles.output)
   {
@@ -617,7 +728,9 @@ bool EncModule::Fill(BufferHandleInterface* handle)
 
   auto buffer = (uint8_t*)handle->data;
 
-  if(fds.output)
+  BufferHandles bufferHandles = GetBufferHandles();
+
+  if(bufferHandles.output == BufferHandleType::BUFFER_HANDLE_FD)
     UseDMA(handle, static_cast<int>((intptr_t)buffer), handle->size);
   else
     Use(handle, buffer, handle->size);
@@ -698,7 +811,10 @@ bool EncModule::isEndOfFrame(AL_TBuffer* stream)
 
 void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 {
+  AL_HEncoder encoder = encoders.back().enc;
+
   auto errorCode = AL_Encoder_GetLastError(encoder);
+
   if(errorCode != AL_SUCCESS)
   {
     fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
@@ -707,21 +823,26 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
       callbacks.event(CALLBACK_EVENT_ERROR, (void*)ToModuleError(errorCode));
   }
 
+  BufferHandles bufferHandles = GetBufferHandles();
+
   auto isSrcRelease = (stream == nullptr && source);
+
   if(isSrcRelease)
   {
-    ReleaseBuf(source, fds.input, true);
+    ReleaseBuf(source, bufferHandles.input == BufferHandleType::BUFFER_HANDLE_FD, true);
     return;
   }
 
   auto isStreamRelease = (stream && source == nullptr);
+
   if(isStreamRelease)
   {
-    ReleaseBuf(stream, fds.output, false);
+    ReleaseBuf(stream, bufferHandles.output == BufferHandleType::BUFFER_HANDLE_FD, false);
     return;
   }
 
   auto isEOS = (stream == nullptr && source == nullptr);
+
   if(isEOS)
   {
     callbacks.associate(eosHandles.input, eosHandles.output);
@@ -736,45 +857,6 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
     return;
   }
 
-  auto end = [&](AL_TBuffer* source, AL_TBuffer* stream, int size)
-             {
-               assert(source);
-               assert(stream);
-               auto rhandleIn = handles.Get(source);
-               assert(rhandleIn->data);
-
-               auto rhandleOut = handles.Get(stream);
-               assert(rhandleOut->data);
-
-               callbacks.associate(rhandleIn, rhandleOut);
-
-               if(isEndOfFrame(stream))
-                 handles.Remove(source);
-
-               handles.Remove(stream);
-
-               if(isEndOfFrame(stream))
-               {
-                 if(fds.input)
-                   UnuseDMA(rhandleIn);
-                 else
-                   Unuse(rhandleIn);
-
-                 rhandleIn->offset = 0;
-                 rhandleIn->payload = 0;
-                 callbacks.emptied(rhandleIn);
-               }
-
-               if(fds.output)
-                 UnuseDMA(rhandleOut);
-               else
-                 Unuse(rhandleOut);
-
-               rhandleOut->offset = 0;
-               rhandleOut->payload = size;
-               callbacks.filled(rhandleOut, rhandleOut->offset, rhandleOut->payload);
-             };
-
   auto size = ReconstructStream(*stream);
 
   if(shouldBeCopied.Exist(stream))
@@ -782,311 +864,158 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
     auto buffer = shouldBeCopied.Get(stream);
     memcpy(buffer, AL_Buffer_GetData(stream), size);
   }
+  auto rhandleIn = handles.Get(source);
+  assert(rhandleIn->data);
 
-  end(const_cast<AL_TBuffer*>(source), stream, size);
+  auto rhandleOut = handles.Get(stream);
+  assert(rhandleOut->data);
+
+  callbacks.associate(rhandleIn, rhandleOut);
+
+  if(isEndOfFrame(stream))
+    handles.Remove(source);
+
+  handles.Remove(stream);
+
+  if(isEndOfFrame(stream))
+  {
+    if(bufferHandles.input == BufferHandleType::BUFFER_HANDLE_FD)
+      UnuseDMA(rhandleIn);
+    else
+      Unuse(rhandleIn);
+
+    rhandleIn->offset = 0;
+    rhandleIn->payload = 0;
+    callbacks.emptied(rhandleIn);
+  }
+
+  if(bufferHandles.output == BufferHandleType::BUFFER_HANDLE_FD)
+    UnuseDMA(rhandleOut);
+  else
+    Unuse(rhandleOut);
+
+  rhandleOut->offset = 0;
+  rhandleOut->payload = size;
+  callbacks.filled(rhandleOut, rhandleOut->offset, rhandleOut->payload);
+}
+
+void EncModule::EndEncodingLookAhead(AL_TBuffer* stream, AL_TBuffer const* source, int index)
+{
+  assert(index < (int)encoders.size() - 1);
+
+  auto isStreamRelease = (stream && source == nullptr);
+  auto isSrcRelease = (stream == nullptr && source);
+  auto isEOS = (stream == nullptr && source == nullptr);
+
+  PassEncoder& encoder = encoders[index];
+
+  auto errorCode = AL_Encoder_GetLastError(encoder.enc);
+
+  if(errorCode != AL_SUCCESS)
+  {
+    fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
+
+    if((errorCode & AL_ERROR) && (errorCode != AL_ERR_STREAM_OVERFLOW))
+      callbacks.event(CALLBACK_EVENT_ERROR, (void*)ToModuleError(errorCode));
+  }
+
+  BufferHandles bufferHandles = GetBufferHandles();
+
+  if(isSrcRelease)
+  {
+    ReleaseBuf(source, bufferHandles.input == BufferHandleType::BUFFER_HANDLE_FD, true);
+    return;
+  }
+
+  if(isStreamRelease)
+    return;
+
+  if(isEOS || isEndOfFrame(stream))
+  {
+    AddFifo(encoder, (AL_TBuffer*)source);
+
+    if(encoder.streamBuffer)
+      AL_Encoder_PutStreamBuffer(encoder.enc, encoder.streamBuffer);
+
+    return;
+  }
+}
+
+void EncModule::AddFifo(PassEncoder& encoder, AL_TBuffer* src)
+{
+  bool isEOS = (src == nullptr);
+
+  if(!isEOS)
+  {
+    AL_Buffer_Ref(src);
+    encoder.fifo.push_back(src);
+    EmptyFifo(encoder, isEOS);
+  }
+  else
+    encoder.EOSFinished->set_value(0);
+}
+
+void EncModule::EmptyFifo(PassEncoder& encoder, bool isEOS)
+{
+  assert(encoder.index < (int)encoders.size() - 1);
+
+  PassEncoder nextEnc = encoders[encoder.index + 1];
+
+#if AL_ENABLE_TWOPASS
+
+  if(encoder.lookAheadParams.fifoSize >= 10)
+    encoder.ComputeComplexity(isEOS);
+#endif
+
+  if(isEOS && encoder.fifo.size() == 0)
+    AL_Encoder_Process(nextEnc.enc, nullptr, nullptr);
+
+  else if(isEOS || (int)encoder.fifo.size() == encoder.lookAheadParams.fifoSize)
+  {
+    auto src = encoder.fifo.front();
+    encoder.fifo.pop_front();
+
+#if AL_ENABLE_TWOPASS
+    encoder.ProcessLookAheadParams(src);
+#endif
+
+    AL_TBuffer* roiBuffer = nullptr;
+
+    if(!nextEnc.roiBuffers.empty())
+    {
+      roiBuffer = nextEnc.roiBuffers.front();
+      nextEnc.roiBuffers.pop_front();
+    }
+
+    AL_Encoder_Process(nextEnc.enc, src, roiBuffer);
+
+    if(roiBuffer)
+    {
+      if(nextEnc.index != encoders.back().index)
+        encoders[nextEnc.index + 1].roiBuffers.push_back(roiBuffer);
+      else
+        AL_Buffer_Unref(roiBuffer);
+    }
+
+    AL_Buffer_Unref(src);
+
+    if(isEOS)
+      EmptyFifo(encoder, isEOS);
+  }
 }
 
 Resolution EncModule::GetResolution() const
 {
-  auto chan = media->settings.tChParam[0];
   Resolution resolution;
-  resolution.width = chan.uWidth;
-  resolution.height = chan.uHeight;
-  resolution.stride = media->stride;
-  resolution.sliceHeight = media->sliceHeight;
-
+  media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
   return resolution;
 }
 
-Clock EncModule::GetClock() const
+BufferHandles EncModule::GetBufferHandles() const
 {
-  Clock clock;
-  media->Get(SETTINGS_INDEX_CLOCK, &clock);
-  return clock;
-}
-
-Mimes EncModule::GetMimes() const
-{
-  Mimes mimes;
-  media->Get(SETTINGS_INDEX_MIMES, &mimes);
-  return mimes;
-}
-
-Format EncModule::GetFormat() const
-{
-  Format format;
-  auto chan = media->settings.tChParam[0];
-  format.color = ConvertSoftToModuleColor(AL_GET_CHROMA_MODE(chan.ePicFormat));
-  assert(chan.uEncodingBitDepth == AL_GET_BITDEPTH(chan.ePicFormat));
-  format.bitdepth = AL_GET_BITDEPTH(chan.ePicFormat);
-  return format;
-}
-
-Bitrate EncModule::GetBitrate() const
-{
-  Bitrate bitrate;
-  media->Get(SETTINGS_INDEX_BITRATE, &bitrate);
-  return bitrate;
-}
-
-Gop EncModule::GetGop() const
-{
-  Gop gop;
-  media->Get(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop);
-  return gop;
-}
-
-QPs EncModule::GetQPs() const
-{
-  QPs qps;
-  media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &qps);
-  return qps;
-}
-
-ProfileLevelType EncModule::GetProfileLevel() const
-{
-  return media->ProfileLevel();
-}
-
-vector<Format> EncModule::GetFormatsSupported() const
-{
-  vector<Format> formats;
-  media->Get(SETTINGS_INDEX_FORMATS_SUPPORTED, &formats);
-  return formats;
-}
-
-vector<VideoModeType> EncModule::GetVideoModesSupported() const
-{
-  vector<VideoModeType> videoModesSupported;
-  media->Get(SETTINGS_INDEX_VIDEO_MODES_SUPPORTED, &videoModesSupported);
-  return videoModesSupported;
-}
-
-VideoModeType EncModule::GetVideoMode() const
-{
-  VideoModeType videoMode;
-  media->Get(SETTINGS_INDEX_VIDEO_MODE, &videoMode);
-  return videoMode;
-}
-
-bool EncModule::SetVideoMode(VideoModeType const& videoMode)
-{
-  auto ret = media->Set(SETTINGS_INDEX_VIDEO_MODE, &videoMode);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-vector<ProfileLevelType> EncModule::GetProfileLevelSupported() const
-{
-  vector<ProfileLevelType> profileslevels;
-  media->Get(SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED, &profileslevels);
-  return profileslevels;
-}
-
-EntropyCodingType EncModule::GetEntropyCoding() const
-{
-  EntropyCodingType entropyCoding;
-  media->Get(SETTINGS_INDEX_ENTROPY_CODING, &entropyCoding);
-  return entropyCoding;
-}
-
-bool EncModule::IsConstrainedIntraPrediction() const
-{
-  bool isConstrainedIntraPrediction;
-  media->Get(SETTINGS_INDEX_CONSTRAINED_INTRA_PREDICTION, &isConstrainedIntraPrediction);
-  return isConstrainedIntraPrediction;
-}
-
-LoopFilterType EncModule::GetLoopFilter() const
-{
-  LoopFilterType loopFilter;
-  media->Get(SETTINGS_INDEX_LOOP_FILTER, &loopFilter);
-  return loopFilter;
-}
-
-AspectRatioType EncModule::GetAspectRatio() const
-{
-  AspectRatioType aspectRatio;
-  media->Get(SETTINGS_INDEX_ASPECT_RATIO, &aspectRatio);
-  return aspectRatio;
-}
-
-bool EncModule::IsEnableLowBandwidth() const
-{
-  bool isLowBandwidthEnabled;
-  media->Get(SETTINGS_INDEX_LOW_BANDWIDTH, &isLowBandwidthEnabled);
-  return isLowBandwidthEnabled;
-}
-
-bool EncModule::IsEnablePrefetchBuffer() const
-{
-  bool isCacheLevel2Enabled;
-  media->Get(SETTINGS_INDEX_CACHE_LEVEL2, &isCacheLevel2Enabled);
-  return isCacheLevel2Enabled;
-}
-
-ScalingListType EncModule::GetScalingList() const
-{
-  ScalingListType scalingList;
-  media->Get(SETTINGS_INDEX_SCALING_LIST, &scalingList);
-  return scalingList;
-}
-
-bool EncModule::IsEnableFillerData() const
-{
-  bool isFillerDataEnabled;
-  media->Get(SETTINGS_INDEX_FILLER_DATA, &isFillerDataEnabled);
-  return isFillerDataEnabled;
-}
-
-Slices EncModule::GetSlices() const
-{
-  Slices slices;
-  media->Get(SETTINGS_INDEX_SLICE_PARAMETER, &slices);
-  return slices;
-}
-
-bool EncModule::IsEnableSubframe() const
-{
-  auto chan = media->settings.tChParam[0];
-  return chan.bSubframeLatency;
-}
-
-FileDescriptors EncModule::GetFileDescriptors() const
-{
-  return fds;
-}
-
-bool EncModule::SetResolution(Resolution const& resolution)
-{
-  if((resolution.width % 2) != 0)
-    return false;
-
-  if((resolution.height % 2) != 0)
-    return false;
-
-  auto& chan = media->settings.tChParam[0];
-  chan.uWidth = resolution.width;
-  chan.uHeight = resolution.height;
-
-  auto minStride = (int)RoundUp(AL_EncGetMinPitch(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), media->strideAlignment);
-  media->stride = max(minStride, RoundUp(resolution.stride, media->strideAlignment));
-
-  auto minSliceHeight = (int)RoundUp(chan.uHeight, media->sliceHeightAlignment);
-  media->sliceHeight = max(minSliceHeight, RoundUp(resolution.sliceHeight, media->sliceHeightAlignment));
-
-  return true;
-}
-
-bool EncModule::SetClock(Clock const& clock)
-{
-  auto ret = media->Set(SETTINGS_INDEX_CLOCK, &clock);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool EncModule::SetFormat(Format const& format)
-{
-  auto& chan = media->settings.tChParam[0];
-  AL_SET_BITDEPTH(chan.ePicFormat, format.bitdepth);
-  chan.uEncodingBitDepth = format.bitdepth;
-  assert(chan.uEncodingBitDepth == AL_GET_BITDEPTH(chan.ePicFormat));
-  AL_SET_CHROMA_MODE(chan.ePicFormat, ConvertModuleToSoftChroma(format.color));
-
-  auto minStride = RoundUp(AL_EncGetMinPitch(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), media->strideAlignment);
-  media->stride = max(minStride, media->stride);
-
-  return true;
-}
-
-bool EncModule::SetBitrate(Bitrate const& bitrates)
-{
-  auto ret = media->Set(SETTINGS_INDEX_BITRATE, &bitrates);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool EncModule::SetGop(Gop const& gop)
-{
-  auto ret = media->Set(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool EncModule::SetProfileLevel(ProfileLevelType const& profileLevel)
-{
-  return media->SetProfileLevel(profileLevel);
-}
-
-bool EncModule::SetEntropyCoding(EntropyCodingType const& entropyCoding)
-{
-  auto ret = media->Set(SETTINGS_INDEX_ENTROPY_CODING, &entropyCoding);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool EncModule::SetConstrainedIntraPrediction(bool constrainedIntraPrediction)
-{
-  auto ret = media->Set(SETTINGS_INDEX_CONSTRAINED_INTRA_PREDICTION, &constrainedIntraPrediction);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool EncModule::SetLoopFilter(LoopFilterType const& loopFilter)
-{
-  auto ret = media->Set(SETTINGS_INDEX_LOOP_FILTER, &loopFilter);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool EncModule::SetQPs(QPs const& qps)
-{
-  auto ret = media->Set(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &qps);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool EncModule::SetAspectRatio(AspectRatioType const& aspectRatio)
-{
-  auto ret = media->Set(SETTINGS_INDEX_ASPECT_RATIO, &aspectRatio);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool EncModule::SetEnableLowBandwidth(bool enableLowBandwidth)
-{
-  auto ret = media->Set(SETTINGS_INDEX_LOW_BANDWIDTH, &enableLowBandwidth);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool EncModule::SetEnablePrefetchBuffer(bool enablePrefetchBuffer)
-{
-  auto ret = media->Set(SETTINGS_INDEX_CACHE_LEVEL2, &enablePrefetchBuffer);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool EncModule::SetScalingList(ScalingListType const& scalingList)
-{
-  auto ret = media->Set(SETTINGS_INDEX_SCALING_LIST, &scalingList);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool EncModule::SetEnableFillerData(bool enableFillerData)
-{
-  auto ret = media->Set(SETTINGS_INDEX_FILLER_DATA, &enableFillerData);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool EncModule::SetSlices(Slices const& slices)
-{
-  auto ret = media->Set(SETTINGS_INDEX_SLICE_PARAMETER, &slices);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool EncModule::SetEnableSubframe(bool enableSubframe)
-{
-  // TODO Check slices ?
-  auto& chan = media->settings.tChParam[0];
-  chan.bSubframeLatency = enableSubframe;
-  return true;
-}
-
-bool EncModule::SetFileDescriptors(FileDescriptors const& fds)
-{
-  // TODO Check fds ?
-  this->fds = fds;
-  return true;
+  BufferHandles handles;
+  media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &handles);
+  return handles;
 }
 
 Flags EncModule::GetFlags(AL_TBuffer* stream)
@@ -1119,39 +1048,38 @@ Flags EncModule::GetFlags(BufferHandleInterface* handle)
     stream = pool.Get(handle);
 
   if(!stream)
-    return Flags{};
-
-  assert(stream);
+    return Flags {};
 
   return GetFlags(stream);
 }
 
 ErrorType EncModule::SetDynamic(std::string index, void const* param)
 {
-  if(!encoder)
+  if(!encoders.size())
     return ERROR_UNDEFINED;
+
+  AL_HEncoder encoder = encoders.back().enc;
 
   if(index == "DYNAMIC_INDEX_CLOCK")
   {
     auto clock = static_cast<Clock const*>(param);
-
-    if(!SetClock(*clock))
-      assert(0);
-
+    auto ret = media->Set(SETTINGS_INDEX_CLOCK, clock);
+    assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
     AL_Encoder_SetFrameRate(encoder, clock->framerate, clock->clockratio);
     return SUCCESS;
   }
 
   if(index == "DYNAMIC_INDEX_BITRATE")
   {
-    auto bitrate = static_cast<int>((intptr_t)param) * 1000;
-    AL_Encoder_SetBitRate(encoder, bitrate);
-    auto& rateCtrl = media->settings.tChParam[0].tRCParam;
-    rateCtrl.uTargetBitRate = bitrate;
+    auto bitrate = static_cast<int>((intptr_t)param);
+    Bitrate mediaBitrate;
+    media->Get(SETTINGS_INDEX_BITRATE, &mediaBitrate);
+    mediaBitrate.target = bitrate;
 
-    if(ConvertSoftToModuleRateControl(rateCtrl.eRCMode) != RateControlType::RATE_CONTROL_VARIABLE_BITRATE)
-      rateCtrl.uMaxBitRate = rateCtrl.uTargetBitRate;
-
+    if(mediaBitrate.mode != RateControlType::RATE_CONTROL_VARIABLE_BITRATE)
+      mediaBitrate.max = mediaBitrate.target;
+    media->Set(SETTINGS_INDEX_BITRATE, &mediaBitrate);
+    AL_Encoder_SetBitRate(encoder, bitrate * 1000);
     return SUCCESS;
   }
 
@@ -1164,9 +1092,8 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
   if(index == "DYNAMIC_INDEX_GOP")
   {
     auto gop = static_cast<Gop const*>(param);
-
-    if(!SetGop(*gop))
-      assert(0);
+    auto ret = media->Set(SETTINGS_INDEX_GROUP_OF_PICTURES, gop);
+    assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
     AL_Encoder_SetGopNumB(encoder, gop->b);
     AL_Encoder_SetGopLength(encoder, gop->length);
     return SUCCESS;
@@ -1198,7 +1125,7 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
     auto roiBuffer = AL_Buffer_Create_And_Allocate(allocator.get(), size, AL_Buffer_Destroy);
     AL_Buffer_Ref(roiBuffer);
     memcpy(AL_Buffer_GetData(roiBuffer), bufferToEmpty, size);
-    roiBuffers.push_back(roiBuffer);
+    encoders.front().roiBuffers.push_back(roiBuffer);
     return SUCCESS;
   }
 
@@ -1228,24 +1155,21 @@ ErrorType EncModule::GetDynamic(std::string index, void* param)
 {
   if(index == "DYNAMIC_INDEX_CLOCK")
   {
-    auto framerate = static_cast<Clock*>(param);
-    auto f = GetClock();
-    *framerate = f;
+    media->Get(SETTINGS_INDEX_CLOCK, static_cast<Clock*>(param));
     return SUCCESS;
   }
 
   if(index == "DYNAMIC_INDEX_BITRATE")
   {
-    auto bitrate = (int*)param;
-    auto rateCtrl = media->settings.tChParam[0].tRCParam;
-    *bitrate = rateCtrl.uTargetBitRate / 1000;
+    Bitrate mediaBitrate;
+    media->Get(SETTINGS_INDEX_BITRATE, &mediaBitrate);
+    *static_cast<int*>(param) = mediaBitrate.target;
     return SUCCESS;
   }
 
   if(index == "DYNAMIC_INDEX_GOP")
   {
-    auto gop = static_cast<Gop*>(param);
-    *gop = GetGop();
+    media->Get(SETTINGS_INDEX_GROUP_OF_PICTURES, static_cast<Gop*>(param));
     return SUCCESS;
   }
 
@@ -1259,13 +1183,64 @@ ErrorType EncModule::GetDynamic(std::string index, void* param)
 
   if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_SIZE")
   {
-    auto size = (int*)param;
-    auto chan = media->settings.tChParam[0];
-    AL_TDimension tDim = { chan.uWidth, chan.uHeight };
-    *size = AL_GetAllocSizeEP2(tDim, chan.uMaxCuSize);
+    Resolution mediaResolution;
+    media->Get(SETTINGS_INDEX_RESOLUTION, &mediaResolution);
+    AL_TDimension tDim = { mediaResolution.width, mediaResolution.height };
+    *static_cast<int*>(param) = AL_GetAllocSizeEP2(tDim, media->settings.tChParam[0].uMaxCuSize);
     return SUCCESS;
   }
 
   return ERROR_NOT_IMPLEMENTED;
 }
+
+#if AL_ENABLE_TWOPASS
+
+void PassEncoder::ProcessLookAheadParams(AL_TBuffer* src)
+{
+  auto pPictureMetaLA = (AL_TLookAheadMetaData*)AL_Buffer_GetMetaData(src, AL_META_TYPE_LOOKAHEAD);
+  auto fifoSize = (int)fifo.size();
+
+  if(pPictureMetaLA)
+  {
+    if(lookAheadParams.fifoSize >= 10)
+      pPictureMetaLA->iComplexity = lookAheadParams.complexity;
+
+    if(fifoSize >= 1)
+    {
+      pPictureMetaLA->bNextSceneChange = AL_TwoPassMngr_SceneChangeDetected(src, fifo[0]);
+      pPictureMetaLA->iIPRatio = AL_TwoPassMngr_GetIPRatio(src, fifo[0]);
+
+      for(int i = 1; (i < std::min(fifoSize, 3)); i++)
+        pPictureMetaLA->iIPRatio = std::min(pPictureMetaLA->iIPRatio, AL_TwoPassMngr_GetIPRatio(src, fifo[i]));
+    }
+  }
+}
+
+void PassEncoder::ComputeComplexity(bool isEOS)
+{
+  lookAheadParams.complexityCount++;
+  int fifoSize = static_cast<int>(fifo.size());
+
+  if(lookAheadParams.complexityCount >= 5 && (isEOS || fifoSize == lookAheadParams.fifoSize))
+  {
+    lookAheadParams.complexityCount = 0;
+    lookAheadParams.complexity = 1000;
+
+    if(fifoSize >= 5 && AL_Buffer_GetMetaData(fifo.front(), AL_META_TYPE_LOOKAHEAD))
+    {
+      int iComp[2] = { 0, 0 };
+
+      for(int i = 0; i < fifoSize; i++)
+      {
+        auto pPictureMetaLA = (AL_TLookAheadMetaData*)AL_Buffer_GetMetaData(fifo[i], AL_META_TYPE_LOOKAHEAD);
+        iComp[(i < 5) ? 0 : 1] += pPictureMetaLA->iPictureSize;
+      }
+
+      lookAheadParams.complexity = ((1000 * fifoSize / 5) + lookAheadParams.complexityDiff) * iComp[0] / (iComp[0] + iComp[1]);
+      lookAheadParams.complexityDiff += (1000 - lookAheadParams.complexity);
+    }
+  }
+}
+
+#endif
 

@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,7 @@
 
 enum AL_ComponentMethods
 {
-  AL_GetComponentVersion = 100,
+  AL_GetComponentVersion,
   AL_SendCommand,
   AL_GetParameter,
   AL_SetParameter,
@@ -60,7 +60,7 @@ enum AL_ComponentMethods
   AL_SetCallbacks,
   AL_ComponentDeinit,
   AL_UseEGLImage,
-  AL_ComponentRoleEnum
+  AL_ComponentRoleEnum,
 };
 
 /*****************************************************************************/

@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -44,16 +44,16 @@
 struct EncMediatypeAVC : EncMediatypeInterface
 {
   EncMediatypeAVC();
-  ~EncMediatypeAVC();
+  ~EncMediatypeAVC() override;
 
   void Reset() override;
   ErrorSettingsType Get(std::string index, void* settings) const override;
   ErrorSettingsType Set(std::string index, void const* settings) override;
 
-  ProfileLevelType ProfileLevel() const;
-  bool SetProfileLevel(ProfileLevelType profileLevel);
-
 private:
+  Stride strideAlignment;
+  BufferHandles bufferHandles;
+
   std::vector<AVCProfileType> const profiles
   {
     AVCProfileType::AVC_PROFILE_BASELINE,

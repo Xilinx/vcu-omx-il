@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,7 @@
 ******************************************************************************/
 
 #include "omx_mediatype_common.h"
+#include "omx_mediatype_checks.h"
 
 using namespace std;
 
@@ -55,5 +56,14 @@ vector<Format> CreateFormatsSupported(vector<ColorType> colors, vector<int> bitd
   }
 
   return formatsSupported;
+}
+
+bool UpdateBufferHandles(BufferHandles& current, BufferHandles bufferHandles)
+{
+  if(!CheckBufferHandles(bufferHandles))
+    return false;
+
+  current = bufferHandles;
+  return true;
 }
 

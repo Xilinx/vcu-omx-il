@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -39,12 +39,13 @@
 #include "omx_mediatype_enc_common.h"
 #include "omx_mediatype_common.h"
 #include "omx_mediatype_common_avc.h"
-#include "base/omx_settings/omx_convert_module_soft_avc.h"
 #include "base/omx_utils/round.h"
-#include "base/omx_settings/omx_convert_module_soft_enc.h"
-#include "base/omx_settings/omx_convert_module_soft.h"
+#include "omx_convert_module_soft_avc.h"
+#include "omx_convert_module_soft_enc.h"
+#include "omx_convert_module_soft.h"
 #include "omx_mediatype_checks.h"
 #include <cmath>
+#include <cstring> // memset
 
 extern "C"
 {
@@ -55,6 +56,8 @@ using namespace std;
 
 EncMediatypeAVC::EncMediatypeAVC()
 {
+  strideAlignment.widthStride = 32;
+  strideAlignment.heightStride = 8;
   Reset();
 }
 
@@ -62,54 +65,36 @@ EncMediatypeAVC::~EncMediatypeAVC() = default;
 
 void EncMediatypeAVC::Reset()
 {
+  bufferHandles.input = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
+  bufferHandles.output = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
+
+  memset(&settings, 0, sizeof(settings));
   AL_Settings_SetDefaults(&settings);
-  auto& chan = settings.tChParam[0];
-  chan.eProfile = AL_PROFILE_AVC_C_BASELINE;
+  auto& channel = settings.tChParam[0];
+  channel.eProfile = AL_PROFILE_AVC_C_BASELINE;
   AL_Settings_SetDefaultParam(&settings);
-  chan.uLevel = 10;
-  chan.uWidth = 176;
-  chan.uHeight = 144;
-  chan.ePicFormat = AL_420_8BITS;
-  chan.uEncodingBitDepth = 8;
-  chan.eOptions = static_cast<AL_EChEncOption>(chan.eOptions & ~(AL_OPT_LF_X_TILE));
-  auto& rateCtrl = chan.tRCParam;
-  rateCtrl.eRCMode = AL_RC_CBR;
-  rateCtrl.eOptions = AL_RC_OPT_SCN_CHG_RES;
-  rateCtrl.uMaxBitRate = rateCtrl.uTargetBitRate = 64000;
-  rateCtrl.uFrameRate = 15;
-  auto& gopParam = chan.tGopParam;
+  channel.uLevel = 10;
+  channel.uWidth = 176;
+  channel.uHeight = 144;
+  channel.ePicFormat = AL_420_8BITS;
+  channel.uSrcBitDepth = 8;
+  channel.eOptions = static_cast<AL_EChEncOption>(channel.eOptions & ~(AL_OPT_LF_X_TILE));
+  auto& rateControl = channel.tRCParam;
+  rateControl.eRCMode = AL_RC_CBR;
+  rateControl.eOptions = AL_RC_OPT_SCN_CHG_RES;
+  rateControl.uMaxBitRate = rateControl.uTargetBitRate = 64000;
+  rateControl.uFrameRate = 15;
+  auto& gopParam = channel.tGopParam;
   gopParam.bEnableLT = false;
   settings.bEnableFillerData = true;
   settings.bEnableAUD = false;
   settings.iPrefetchLevel2 = 0;
+#if AL_ENABLE_TWOPASS
+  settings.LookAhead = 0;
+#endif
 
-  stride = RoundUp(AL_EncGetMinPitch(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), strideAlignment);
-  sliceHeight = RoundUp(chan.uHeight, sliceHeightAlignment);
-}
-
-ProfileLevelType EncMediatypeAVC::ProfileLevel() const
-{
-  auto chan = settings.tChParam[0];
-  return CreateAVCProfileLevel(chan.eProfile, chan.uLevel);
-}
-
-bool EncMediatypeAVC::SetProfileLevel(ProfileLevelType profileLevel)
-{
-  if(!IsSupported(profileLevel.profile.avc, profiles))
-    return false;
-
-  if(!IsSupported(profileLevel.level, levels))
-    return false;
-
-  auto profile = ConvertModuleToSoftAVCProfile(profileLevel.profile.avc);
-
-  if(profile == AL_PROFILE_AVC)
-    return false;
-
-  auto& chan = settings.tChParam[0];
-  chan.eProfile = profile;
-  chan.uLevel = profileLevel.level;
-  return true;
+  stride = RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride);
+  sliceHeight = RoundUp(channel.uHeight, strideAlignment.heightStride);
 }
 
 static Mimes CreateMimes()
@@ -131,14 +116,14 @@ static Mimes CreateMimes()
 static int CreateLatency(AL_TEncSettings settings)
 {
   auto channel = settings.tChParam[0];
-  auto rateCtrl = channel.tRCParam;
+  auto rateControl = channel.tRCParam;
   auto gopParam = channel.tGopParam;
 
   auto intermediate = 1;
   auto buffer = 1;
   auto buffers = buffer + intermediate + gopParam.uNumB;
 
-  auto realFramerate = (static_cast<double>(rateCtrl.uFrameRate * rateCtrl.uClkRatio) / 1000.0);
+  auto realFramerate = (static_cast<double>(rateControl.uFrameRate * rateControl.uClkRatio) / 1000.0);
   auto timeInMilliseconds = (static_cast<double>(buffers * 1000.0) / realFramerate);
 
   if(channel.bSubframeLatency)
@@ -156,32 +141,10 @@ static bool CreateLowBandwidth(AL_TEncSettings settings)
   return channel.pMeRange[SLICE_P][1] == 8;
 }
 
-static bool UpdateLowBandwidth(AL_TEncSettings& settings, bool isLowBandwidthEnabled)
-{
-  auto& channel = settings.tChParam[0];
-  channel.pMeRange[SLICE_P][1] = isLowBandwidthEnabled ? 8 : 16;
-  return true;
-}
-
 static EntropyCodingType CreateEntropyCoding(AL_TEncSettings settings)
 {
   auto channel = settings.tChParam[0];
   return ConvertSoftToModuleEntropyCoding(channel.eEntropyMode);
-}
-
-static bool CheckEntropyCoding(EntropyCodingType entropyCoding)
-{
-  return entropyCoding != EntropyCodingType::ENTROPY_CODING_MAX_ENUM;
-}
-
-static bool UpdateEntropyCoding(AL_TEncSettings& settings, EntropyCodingType entropyCoding)
-{
-  if(!CheckEntropyCoding(entropyCoding))
-    return false;
-
-  auto& channel = settings.tChParam[0];
-  channel.eEntropyMode = ConvertModuleToSoftEntropyCoding(entropyCoding);
-  return true;
 }
 
 static BufferCounts CreateBufferCounts(AL_TEncSettings settings)
@@ -201,6 +164,13 @@ static BufferCounts CreateBufferCounts(AL_TEncSettings settings)
     auto numSlices = channel.uNumSlices;
     bufferCounts.output *= numSlices;
   }
+
+#if AL_ENABLE_TWOPASS
+
+  if(settings.LookAhead)
+    bufferCounts.input += settings.LookAhead;
+#endif
+
   return bufferCounts;
 }
 
@@ -210,29 +180,10 @@ static LoopFilterType CreateLoopFilter(AL_TEncSettings settings)
   return ConvertSoftToModuleLoopFilter(channel.eOptions);
 }
 
-static bool CheckLoopFilter(LoopFilterType loopFilter)
+static ProfileLevelType CreateProfileLevel(AL_TEncSettings settings)
 {
-  if(loopFilter == LoopFilterType::LOOP_FILTER_MAX_ENUM)
-    return false;
-
-  if(loopFilter == LoopFilterType::LOOP_FILTER_ENABLE_CROSS_TILE)
-    return false;
-
-  if(loopFilter == LoopFilterType::LOOP_FILTER_ENABLE_CROSS_TILE_AND_SLICE)
-    return false;
-
-  return true;
-}
-
-static bool UpdateLoopFilter(AL_TEncSettings& settings, LoopFilterType loopFilter)
-{
-  if(!CheckLoopFilter(loopFilter))
-    return false;
-
-  auto& options = settings.tChParam[0].eOptions;
-  options = static_cast<AL_EChEncOption>(options | ConvertModuleToSoftLoopFilter(loopFilter));
-
-  return true;
+  auto channel = settings.tChParam[0];
+  return CreateAVCProfileLevel(channel.eProfile, channel.uLevel);
 }
 
 MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Get(std::string index, void* settings) const
@@ -249,6 +200,12 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Get(std::string index, vo
   if(index == "SETTINGS_INDEX_CLOCK")
   {
     *(static_cast<Clock*>(settings)) = CreateClock(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_STRIDE_ALIGNMENT")
+  {
+    *(static_cast<Stride*>(settings)) = this->strideAlignment;
     return ERROR_SETTINGS_NONE;
   }
 
@@ -306,6 +263,12 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Get(std::string index, vo
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_BUFFER_HANDLES")
+  {
+    *(static_cast<BufferHandles*>(settings)) = this->bufferHandles;
+    return ERROR_SETTINGS_NONE;
+  }
+
   if(index == "SETTINGS_INDEX_BUFFER_COUNTS")
   {
     *(static_cast<BufferCounts*>(settings)) = CreateBufferCounts(this->settings);
@@ -342,9 +305,21 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Get(std::string index, vo
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_PROFILE_LEVEL")
+  {
+    *(static_cast<ProfileLevelType*>(settings)) = CreateProfileLevel(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
   if(index == "SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED")
   {
     *(static_cast<vector<ProfileLevelType>*>(settings)) = CreateAVCProfileLevelSupported(profiles, levels);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_FORMAT")
+  {
+    *(static_cast<Format*>(settings)) = CreateFormat(this->settings);
     return ERROR_SETTINGS_NONE;
   }
 
@@ -360,7 +335,103 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Get(std::string index, vo
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_SUBFRAME")
+  {
+    *(static_cast<bool*>(settings)) = (this->settings.tChParam[0].bSubframeLatency);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_RESOLUTION")
+  {
+    *(static_cast<Resolution*>(settings)) = CreateResolution(this->settings, stride, sliceHeight);
+    return ERROR_SETTINGS_NONE;
+  }
+
+#if AL_ENABLE_TWOPASS
+
+  if(index == "SETTINGS_INDEX_LOOKAHEAD")
+  {
+    *(static_cast<LookAhead*>(settings)) = CreateLookAhead(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+#endif
+
   return ERROR_SETTINGS_BAD_INDEX;
+}
+
+static bool UpdateLowBandwidth(AL_TEncSettings& settings, bool isLowBandwidthEnabled)
+{
+  auto& channel = settings.tChParam[0];
+  channel.pMeRange[SLICE_P][1] = isLowBandwidthEnabled ? 8 : 16;
+  return true;
+}
+
+static bool CheckEntropyCoding(EntropyCodingType entropyCoding)
+{
+  return entropyCoding != EntropyCodingType::ENTROPY_CODING_MAX_ENUM;
+}
+
+static bool UpdateEntropyCoding(AL_TEncSettings& settings, EntropyCodingType entropyCoding)
+{
+  if(!CheckEntropyCoding(entropyCoding))
+    return false;
+
+  auto& channel = settings.tChParam[0];
+  channel.eEntropyMode = ConvertModuleToSoftEntropyCoding(entropyCoding);
+  return true;
+}
+
+static bool CheckLoopFilter(LoopFilterType loopFilter)
+{
+  if(loopFilter == LoopFilterType::LOOP_FILTER_MAX_ENUM)
+    return false;
+
+  if(loopFilter == LoopFilterType::LOOP_FILTER_ENABLE_CROSS_TILE)
+    return false;
+
+  if(loopFilter == LoopFilterType::LOOP_FILTER_ENABLE_CROSS_TILE_AND_SLICE)
+    return false;
+
+  return true;
+}
+
+static bool UpdateLoopFilter(AL_TEncSettings& settings, LoopFilterType loopFilter)
+{
+  if(!CheckLoopFilter(loopFilter))
+    return false;
+
+  auto& options = settings.tChParam[0].eOptions;
+  options = static_cast<AL_EChEncOption>(options | ConvertModuleToSoftLoopFilter(loopFilter));
+
+  return true;
+}
+
+static bool CheckProfileLevel(ProfileLevelType profilelevel, vector<AVCProfileType> profiles, vector<int> levels)
+{
+  if(!IsSupported(profilelevel.profile.avc, profiles))
+    return false;
+
+  if(!IsSupported(profilelevel.level, levels))
+    return false;
+
+  auto profile = ConvertModuleToSoftAVCProfile(profilelevel.profile.avc);
+
+  if(!AL_IS_AVC(profile))
+    return false;
+
+  return true;
+}
+
+static bool UpdateProfileLevel(AL_TEncSettings& settings, ProfileLevelType profilelevel, vector<AVCProfileType> profiles, vector<int> levels)
+{
+  if(!CheckProfileLevel(profilelevel, profiles, levels))
+    return false;
+
+  auto& channel = settings.tChParam[0];
+  auto profile = ConvertModuleToSoftAVCProfile(profilelevel.profile.avc);
+  channel.eProfile = profile;
+  channel.uLevel = profilelevel.level;
+  return true;
 }
 
 MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, void const* settings)
@@ -486,6 +557,24 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_PROFILE_LEVEL")
+  {
+    auto profilelevel = *(static_cast<ProfileLevelType const*>(settings));
+
+    if(!UpdateProfileLevel(this->settings, profilelevel, profiles, levels))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_FORMAT")
+  {
+    auto format = *(static_cast<Format const*>(settings));
+
+    if(!UpdateFormat(this->settings, format, colors, bitdepths, this->stride, this->strideAlignment))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
   if(index == "SETTINGS_INDEX_SLICE_PARAMETER")
   {
     auto slices = *(static_cast<Slices const*>(settings));
@@ -495,6 +584,46 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
     return ERROR_SETTINGS_NONE;
   }
+
+  if(index == "SETTINGS_INDEX_BUFFER_HANDLES")
+  {
+    auto bufferHandles = *(static_cast<BufferHandles const*>(settings));
+
+    if(!UpdateBufferHandles(this->bufferHandles, bufferHandles))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_SUBFRAME")
+  {
+    auto isEnabledSubFrame = *(static_cast<bool const*>(settings));
+
+    if(!UpdateIsEnabledSubFrame(this->settings, isEnabledSubFrame))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_RESOLUTION")
+  {
+    auto resolution = *(static_cast<Resolution const*>(settings));
+
+    if(!UpdateResolution(this->settings, this->stride, this->sliceHeight, this->strideAlignment, resolution))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+#if AL_ENABLE_TWOPASS
+
+  if(index == "SETTINGS_INDEX_LOOKAHEAD")
+  {
+    auto la = *(static_cast<LookAhead const*>(settings));
+
+    if(!UpdateLookAhead(this->settings, la))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+
+    return ERROR_SETTINGS_NONE;
+  }
+#endif
 
   return ERROR_SETTINGS_BAD_INDEX;
 }

@@ -60,6 +60,12 @@ else
 	CFLAGS+=-DAL_USE_MCU=0
 endif
 
+ENABLE_SYNCIP=0
+
+ifeq ($(ENABLE_SYNCIP),1)
+  CFLAGS+=-DAL_ENABLE_SYNCIP
+endif
+
 ifeq ($(ENABLE_64BIT),0)
   # force 32 bit compilation
   ifneq (,$(findstring x86_64,$(TARGET)))

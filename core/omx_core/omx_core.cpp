@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -49,13 +49,13 @@ using namespace std;
 
 static const omx_comp_type* getComp(char* cComponentName)
 {
-  if(cComponentName)
+  if(!cComponentName)
+    return nullptr;
+
+  for(auto i = 0; i < NB_OF_COMP; i++)
   {
-    for(auto i = 0; i < NB_OF_COMP; i++)
-    {
-      if(!strncmp(cComponentName, AL_COMP_LIST[i].name, strlen(AL_COMP_LIST[i].name)))
-        return &AL_COMP_LIST[i];
-    }
+    if(!strncmp(cComponentName, AL_COMP_LIST[i].name, strlen(AL_COMP_LIST[i].name)))
+      return &AL_COMP_LIST[i];
   }
 
   return nullptr;
@@ -63,37 +63,24 @@ static const omx_comp_type* getComp(char* cComponentName)
 
 OMX_ERRORTYPE OMX_APIENTRY OMX_Init(void)
 {
-  char path[OMX_MAX_STRINGNAME_SIZE] =
-  {
-    0
-  };
+  string path;
 #if __ANDROID_API__
-
-  strncpy(path, "/system/lib/", OMX_MAX_STRINGNAME_SIZE);
+  path = "/system/lib/";
 #else
-  string env = "/usr/lib";
+  string env("/usr/lib");
 
   if(getenv("OMX_ALLEGRO_PATH"))
     env = getenv("OMX_ALLEGRO_PATH");
 
-  strncpy(path, env.c_str(), OMX_MAX_STRINGNAME_SIZE);
-  strncat(path, "/", strlen("/"));
+  path = env + "/";
 #endif /* __ANDROID_API__ */
 
   auto uNumLibraryLoad = 0;
 
   for(unsigned int i = 0; i < NB_OF_COMP; i++)
   {
-    char cCodecName[OMX_MAX_STRINGNAME_SIZE] =
-    {
-      0
-    };
-    strncpy(cCodecName, path, OMX_MAX_STRINGNAME_SIZE);
-    strncat(cCodecName, AL_COMP_LIST[i].pSoLibName, strlen(AL_COMP_LIST[i].pSoLibName));
-    strncat(cCodecName, ".", 1);
-    auto cMajorVersion = to_string(OMX_VERSION_MAJOR);
-    strncat(cCodecName, cMajorVersion.c_str(), cMajorVersion.length());
-    AL_COMP_LIST[i].pLibHandle = dlopen(cCodecName, RTLD_LAZY);
+    string cCodecName = path + AL_COMP_LIST[i].pSoLibName + "." + to_string(OMX_VERSION_MAJOR);
+    AL_COMP_LIST[i].pLibHandle = dlopen(cCodecName.c_str(), RTLD_LAZY);
 
     if(AL_COMP_LIST[i].pLibHandle == NULL)
       cerr << dlerror() << endl;

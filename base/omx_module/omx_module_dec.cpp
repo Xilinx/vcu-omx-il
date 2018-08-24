@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -36,10 +36,10 @@
 ******************************************************************************/
 
 #include "omx_module_dec.h"
-#include <assert.h>
-#include <unistd.h>
-#include <string.h>
 #include <cmath>
+#include <cassert>
+#include <unistd.h> // close fd
+#include <cstring> // memcpy
 #include <iostream>
 
 extern "C"
@@ -49,16 +49,15 @@ extern "C"
 #include <lib_common_dec/IpDecFourCC.h>
 }
 
-#include "base/omx_settings/omx_convert_module_soft.h"
-#include "base/omx_settings/omx_convert_module_soft_dec.h"
-#include "base/omx_settings/omx_settings_structs.h"
+#include "base/omx_mediatype/omx_convert_module_soft.h"
+#include "base/omx_mediatype/omx_convert_module_soft_dec.h"
 #include "base/omx_utils/round.h"
 
 using namespace std;
 
-DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, unique_ptr<DecDevice>&& device, shared_ptr<AL_TAllocator> allocator) :
+DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, shared_ptr<DecDevice> device, shared_ptr<AL_TAllocator> allocator) :
   media(media),
-  device(move(device)),
+  device(device),
   allocator(allocator)
 {
   assert(this->media);
@@ -74,7 +73,6 @@ DecModule::~DecModule() = default;
 void DecModule::ResetRequirements()
 {
   media->Reset();
-  fds.input = fds.output = false;
 }
 
 static int RawAllocationSize(int stride, int sliceHeight, AL_EChromaMode eChromaMode)
@@ -102,178 +100,17 @@ BufferRequirements DecModule::GetBufferRequirements() const
   auto& input = b.input;
   input.min = bufferCounts.input;
   input.size = AL_GetMaxNalSize(streamSettings.tDim, streamSettings.eChroma, streamSettings.iBitDepth);
-  input.bytesAlignment = device->GetAllocationRequirements().input.bytesAlignment;
-  input.contiguous = device->GetAllocationRequirements().input.contiguous;
+  input.bytesAlignment = device->GetBufferBytesAlignments().input;
+  input.contiguous = device->GetBufferContiguities().input;
 
   auto& output = b.output;
   output.min = bufferCounts.output;
   output.min += 1; // for eos
   output.size = RawAllocationSize(media->stride, media->sliceHeight, streamSettings.eChroma);
-  output.bytesAlignment = device->GetAllocationRequirements().output.bytesAlignment;
-  output.contiguous = device->GetAllocationRequirements().output.contiguous;
+  output.bytesAlignment = device->GetBufferBytesAlignments().output;
+  output.contiguous = device->GetBufferContiguities().output;
 
   return b;
-}
-
-Resolution DecModule::GetResolution() const
-{
-  auto streamSettings = media->settings.tStream;
-  Resolution resolution;
-  resolution.width = streamSettings.tDim.iWidth;
-  resolution.height = streamSettings.tDim.iHeight;
-  resolution.stride = media->stride;
-  resolution.sliceHeight = media->sliceHeight;
-
-  return resolution;
-}
-
-Clock DecModule::GetClock() const
-{
-  Clock clock;
-  media->Get(SETTINGS_INDEX_CLOCK, &clock);
-  return clock;
-}
-
-Mimes DecModule::GetMimes() const
-{
-  Mimes mimes;
-  media->Get(SETTINGS_INDEX_MIMES, &mimes);
-  return mimes;
-}
-
-Format DecModule::GetFormat() const
-{
-  Format format;
-  auto streamSettings = media->settings.tStream;
-
-  format.color = ConvertSoftToModuleColor(streamSettings.eChroma);
-  format.bitdepth = streamSettings.iBitDepth;
-
-  return format;
-}
-
-vector<Format> DecModule::GetFormatsSupported() const
-{
-  vector<Format> formats;
-  media->Get(SETTINGS_INDEX_FORMATS_SUPPORTED, &formats);
-  return formats;
-}
-
-ProfileLevelType DecModule::GetProfileLevel() const
-{
-  return media->ProfileLevel();
-}
-
-vector<ProfileLevelType> DecModule::GetProfileLevelSupported() const
-{
-  vector<ProfileLevelType> profileslevels;
-  media->Get(SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED, &profileslevels);
-  return profileslevels;
-}
-
-int DecModule::GetLatency() const
-{
-  int latency;
-  media->Get(SETTINGS_INDEX_LATENCY, &latency);
-  return latency;
-}
-
-FileDescriptors DecModule::GetFileDescriptors() const
-{
-  return fds;
-}
-
-DecodedPictureBufferType DecModule::GetDecodedPictureBuffer() const
-{
-  auto settings = media->settings;
-  return ConvertSoftToModuleDecodedPictureBuffer(settings.eDpbMode);
-}
-
-int DecModule::GetInternalEntropyBuffers() const
-{
-  int stack;
-  media->Get(SETTINGS_INDEX_INTERNAL_ENTROPY_BUFFER, &stack);
-  return stack;
-}
-
-bool DecModule::IsEnableSubframe() const
-{
-  auto settings = media->settings;
-  return DecodeUnitType::DECODE_UNIT_SLICE == ConvertSoftToModuleDecodeUnit(settings.eDecUnit);
-}
-
-bool DecModule::SetResolution(Resolution const& resolution)
-{
-  if((resolution.width % 2) != 0)
-    return false;
-
-  if((resolution.height % 2) != 0)
-    return false;
-
-  auto& streamSettings = media->settings.tStream;
-  streamSettings.tDim = { resolution.width, resolution.height };
-
-  auto minStride = RoundUp(AL_Decoder_GetMinPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
-  media->stride = max(minStride, RoundUp(resolution.stride, media->strideAlignment));
-
-  auto minSliceHeight = RoundUp(AL_Decoder_GetMinStrideHeight(streamSettings.tDim.iHeight), media->sliceHeightAlignment);
-  media->sliceHeight = max(minSliceHeight, RoundUp(resolution.sliceHeight, media->sliceHeightAlignment));
-
-  return true;
-}
-
-bool DecModule::SetClock(Clock const& clock)
-{
-  auto ret = media->Set(SETTINGS_INDEX_CLOCK, &clock);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool DecModule::SetFormat(Format const& format)
-{
-  auto& streamSettings = media->settings.tStream;
-  streamSettings.iBitDepth = format.bitdepth;
-  streamSettings.eChroma = ConvertModuleToSoftChroma(format.color);
-
-  auto minStride = (int)RoundUp(AL_Decoder_GetMinPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
-  media->stride = max(minStride, media->stride);
-
-  return true;
-}
-
-bool DecModule::SetProfileLevel(ProfileLevelType const& profileLevel)
-{
-  return media->SetProfileLevel(profileLevel);
-}
-
-bool DecModule::SetFileDescriptors(FileDescriptors const& fds)
-{
-  // TODO Check fds?
-  this->fds = fds;
-  return true;
-}
-
-bool DecModule::SetDecodedPictureBuffer(DecodedPictureBufferType const& decodedPictureBuffer)
-{
-  if(decodedPictureBuffer == DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM)
-    return false;
-
-  auto& settings = media->settings;
-  settings.bLowLat = decodedPictureBuffer == DecodedPictureBufferType::DECODED_PICTURE_BUFFER_LOW_REFERENCE;
-  settings.eDpbMode = ConvertModuleToSoftDecodedPictureBuffer(decodedPictureBuffer);
-  return true;
-}
-
-bool DecModule::SetInternalEntropyBuffers(int num)
-{
-  auto ret = media->Set(SETTINGS_INDEX_INTERNAL_ENTROPY_BUFFER, &num);
-  return ret == MediatypeInterface::ERROR_SETTINGS_NONE;
-}
-
-bool DecModule::SetEnableSubframe(bool enableSubframe)
-{
-  auto& settings = media->settings;
-  settings.eDecUnit = enableSubframe ? ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_SLICE) : ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_FRAME);
-  return true;
 }
 
 map<int, string> MapToStringDecodeError =
@@ -414,8 +251,11 @@ void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSett
 
   media->settings.tStream = settings;
 
-  media->stride = (int)RoundUp(AL_Decoder_GetMinPitch(settings.tDim.iWidth, settings.iBitDepth, media->settings.eFBStorageMode), media->strideAlignment);
-  media->sliceHeight = (int)RoundUp(AL_Decoder_GetMinStrideHeight(settings.tDim.iHeight), media->sliceHeightAlignment);
+  Stride strideAlignment;
+  media->Get(SETTINGS_INDEX_STRIDE_ALIGNMENT, &strideAlignment);
+
+  media->stride = (int)RoundUp(AL_Decoder_GetMinPitch(settings.tDim.iWidth, settings.iBitDepth, media->settings.eFBStorageMode), strideAlignment.widthStride);
+  media->sliceHeight = (int)RoundUp(AL_Decoder_GetMinStrideHeight(settings.tDim.iHeight), strideAlignment.heightStride);
 
   callbacks.event(CALLBACK_EVENT_RESOLUTION_CHANGE, nullptr);
 }
@@ -599,7 +439,10 @@ AL_TBuffer* DecModule::CreateInputBuffer(char* buffer, int size)
 {
   AL_TBuffer* input = nullptr;
 
-  if(fds.input)
+  BufferHandles bufferHandles {};
+  media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
+
+  if(bufferHandles.input == BufferHandleType::BUFFER_HANDLE_FD)
   {
     auto fd = static_cast<int>((intptr_t)buffer);
 
@@ -661,11 +504,12 @@ bool DecModule::Empty(BufferHandleInterface* handle)
   return pushed;
 }
 
-static AL_TMetaData* CreateSourceMeta(AL_TStreamSettings const& streamSettings, Resolution const& resolution)
+static AL_TMetaData* CreateSourceMeta(AL_TStreamSettings const& streamSettings, Resolution resolution)
 {
-  auto fourCC = AL_GetDecFourCC({ streamSettings.eChroma, static_cast<uint8_t>(streamSettings.iBitDepth), AL_FB_RASTER });
-  auto stride = resolution.stride;
-  auto sliceHeight = resolution.sliceHeight;
+  auto picFormat = AL_GetDecPicFormat(streamSettings.eChroma, static_cast<uint8_t>(streamSettings.iBitDepth), AL_FB_RASTER, false);
+  auto fourCC = AL_GetDecFourCC(picFormat);
+  auto stride = resolution.stride.widthStride;
+  auto sliceHeight = resolution.stride.heightStride;
   AL_TPitches const pitches = { stride, stride };
   AL_TOffsetYC const offsetYC = { 0, stride * sliceHeight };
   return (AL_TMetaData*)(AL_SrcMetaData_Create({ resolution.width, resolution.height }, pitches, offsetYC, fourCC));
@@ -691,14 +535,19 @@ void DecModule::OutputBufferDestroyAndFree(AL_TBuffer* output)
 
 AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
 {
-  auto sourceMeta = CreateSourceMeta(media->settings.tStream, GetResolution());
+  Resolution resolution {};
+  media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
+  auto sourceMeta = CreateSourceMeta(media->settings.tStream, resolution);
 
   if(!sourceMeta)
     return nullptr;
 
   AL_TBuffer* output = nullptr;
 
-  if(fds.output)
+  BufferHandles bufferHandles {};
+  media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
+
+  if(bufferHandles.output == BufferHandleType::BUFFER_HANDLE_FD)
   {
     auto fd = static_cast<int>((intptr_t)buffer);
 
@@ -851,21 +700,6 @@ ErrorType DecModule::GetDynamic(std::string index, void* param)
 {
   (void)index, (void)param;
   return ERROR_NOT_IMPLEMENTED;
-}
-
-Gop DecModule::GetGop() const
-{
-  Gop gop;
-  media->Set(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop);
-  assert(0 && "this should not be called yet");
-  return gop;
-}
-
-bool DecModule::SetGop(Gop const& gop)
-{
-  media->Set(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop);
-  assert(0 && "this should not be called yet");
-  return true;
 }
 
 int DecModule::GetDisplayPictureType() const

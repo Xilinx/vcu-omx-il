@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,6 @@
 #pragma once
 
 #include "omx_mediatype_interface.h"
-#include "base/omx_module/omx_module_enums.h"
 #include "base/omx_module/omx_module_structs.h"
 
 extern "C"
@@ -57,12 +56,7 @@ struct EncMediatypeInterface : public MediatypeInterface
   virtual ErrorSettingsType Get(std::string index, void* settings) const = 0;
   virtual ErrorSettingsType Set(std::string index, void const* settings) = 0;
 
-  virtual ProfileLevelType ProfileLevel() const = 0;
-  virtual bool SetProfileLevel(ProfileLevelType profileLevel) = 0;
-
   AL_TEncSettings settings;
-  int const strideAlignment = 32;
-  int const sliceHeightAlignment = 8;
   int stride;
   int sliceHeight;
 };

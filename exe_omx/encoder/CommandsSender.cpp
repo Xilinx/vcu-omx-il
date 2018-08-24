@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -141,6 +141,10 @@ void CommandsSender::setBitRate(int bitRate)
   bitrate.nEncodeBitrate = bitRate / 1000;
   auto const error = OMX_SetConfig(hEnc, OMX_IndexConfigVideoBitrate, &bitrate);
   assert(error == OMX_ErrorNone);
+}
+
+void CommandsSender::setQP(int)
+{
 }
 
 

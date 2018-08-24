@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -37,8 +37,16 @@
 
 #include "omx_mediatype_enc_common.h"
 #include "omx_mediatype_checks.h"
-#include "base/omx_settings/omx_convert_module_soft.h"
-#include "base/omx_settings/omx_convert_module_soft_enc.h"
+#include "omx_convert_module_soft.h"
+#include "omx_convert_module_soft_enc.h"
+#include "base/omx_utils/round.h"
+
+extern "C"
+{
+#include <lib_common_enc/EncBuffers.h>
+}
+
+using namespace std;
 
 Clock CreateClock(AL_TEncSettings settings)
 {
@@ -266,4 +274,87 @@ bool UpdateSlicesParameter(AL_TEncSettings& settings, Slices slices)
 
   return true;
 }
+
+Format CreateFormat(AL_TEncSettings settings)
+{
+  Format format;
+  auto channel = settings.tChParam[0];
+  format.color = ConvertSoftToModuleColor(AL_GET_CHROMA_MODE(channel.ePicFormat));
+  format.bitdepth = AL_GET_BITDEPTH(channel.ePicFormat);
+  return format;
+}
+
+bool UpdateFormat(AL_TEncSettings& settings, Format format, vector<ColorType> colors, vector<int> bitdepths, int& stride, Stride strideAlignment)
+{
+  if(!CheckFormat(format, colors, bitdepths))
+    return false;
+
+  auto& chan = settings.tChParam[0];
+  AL_SET_CHROMA_MODE(chan.ePicFormat, ConvertModuleToSoftChroma(format.color));
+  AL_SET_BITDEPTH(chan.ePicFormat, format.bitdepth);
+  chan.uSrcBitDepth = AL_GET_BITDEPTH(chan.ePicFormat);
+
+  auto minStride = RoundUp(AL_EncGetMinPitch(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride);
+  stride = max(minStride, stride);
+
+  return true;
+}
+
+Resolution CreateResolution(AL_TEncSettings settings, int widthStride, int heightStride)
+{
+  auto chan = settings.tChParam[0];
+  Resolution resolution;
+  resolution.width = chan.uWidth;
+  resolution.height = chan.uHeight;
+  resolution.stride.widthStride = widthStride;
+  resolution.stride.heightStride = heightStride;
+  return resolution;
+}
+
+bool UpdateIsEnabledSubFrame(AL_TEncSettings& settings, bool isEnabledSubFrame)
+{
+  settings.tChParam[0].bSubframeLatency = isEnabledSubFrame;
+  return true;
+}
+
+bool UpdateResolution(AL_TEncSettings& settings, int& stride, int& sliceHeight, Stride strideAlignment, Resolution resolution)
+{
+  if((resolution.width % 2) != 0)
+    return false;
+
+  if((resolution.height % 2) != 0)
+    return false;
+
+  auto& chan = settings.tChParam[0];
+  chan.uWidth = resolution.width;
+  chan.uHeight = resolution.height;
+
+  auto minStride = (int)RoundUp(AL_EncGetMinPitch(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride);
+  stride = max(minStride, RoundUp(resolution.stride.widthStride, strideAlignment.widthStride));
+
+  auto minSliceHeight = (int)RoundUp(chan.uHeight, strideAlignment.heightStride);
+  sliceHeight = max(minSliceHeight, RoundUp(resolution.stride.heightStride, strideAlignment.heightStride));
+
+  return true;
+}
+
+#if AL_ENABLE_TWOPASS
+LookAhead CreateLookAhead(AL_TEncSettings settings)
+{
+  LookAhead la;
+  la.nLookAhead = settings.LookAhead;
+  return la;
+}
+
+bool UpdateLookAhead(AL_TEncSettings& settings, LookAhead la)
+{
+  if(!CheckLookAhead(la))
+    return false;
+
+  settings.LookAhead = la.nLookAhead;
+
+  return true;
+}
+
+#endif
 

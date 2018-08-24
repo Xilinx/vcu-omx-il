@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -45,13 +45,10 @@ extern "C"
 template<typename T>
 struct EOSHandles
 {
-  EOSHandles() :
-    input(nullptr),
-    output(nullptr)
-  {
-  }
+  EOSHandles() = default;
+  ~EOSHandles() = default;
 
-  T* input;
-  T* output;
+  T input {};
+  T output {};
 };
 

@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -44,15 +44,23 @@
 
 #include "ROIMngr.h"
 
-#include <string.h>
+#include <cstring>
 #include <vector>
+#include <deque>
 #include <list>
+#include <future>
+#include <memory>
 
 #include "base/omx_utils/threadsafe_map.h"
 #include "base/omx_mediatype/omx_mediatype_enc_interface.h"
 
+#if AL_ENABLE_TWOPASS
+#include "TwoPassMngr.h"
+#endif
+
 extern "C"
 {
+#include <lib_common/Allocator.h>
 #include <lib_encode/lib_encoder.h>
 }
 
@@ -66,69 +74,61 @@ struct Flags
   bool isEndOfFrame = false;
 };
 
-class EncModule : public ModuleInterface
+struct LookAheadCallBackParam
 {
-public:
-  EncModule(std::shared_ptr<EncMediatypeInterface> media, std::unique_ptr<EncDevice>&& device, std::shared_ptr<AL_TAllocator> allocator);
-  ~EncModule();
+  void* module;
+  int index;
+};
 
-  void ResetRequirements();
+struct LookAheadParams
+{
+  LookAheadCallBackParam callbackParam;
+  int fifoSize;
+  int complexityCount;
+  int complexity;
+  int complexityDiff;
+};
+
+struct PassEncoder
+{
+  AL_HEncoder enc;
+  int index;
+  std::list<AL_TBuffer*> roiBuffers;
+  AL_TBuffer* streamBuffer;
+  std::deque<AL_TBuffer*> fifo;
+  std::promise<int>* EOSFinished;
+  LookAheadParams lookAheadParams;
+
+#if AL_ENABLE_TWOPASS
+  void ProcessLookAheadParams(AL_TBuffer* src);
+  void ComputeComplexity(bool isEOS);
+#endif
+};
+
+struct EncModule : public ModuleInterface
+{
+  EncModule(std::shared_ptr<EncMediatypeInterface> media, std::shared_ptr<EncDevice> device, std::shared_ptr<AL_TAllocator> allocator);
+  ~EncModule() override;
+
+  void ResetRequirements() override;
   BufferRequirements GetBufferRequirements() const;
-  int GetLatency() const; // In milliseconds
+
+  BufferHandles GetBufferHandles() const;
 
   Resolution GetResolution() const;
-  Clock GetClock() const;
-  Mimes GetMimes() const;
-  Format GetFormat() const;
-  std::vector<Format> GetFormatsSupported() const;
-  std::vector<VideoModeType> GetVideoModesSupported() const;
-  Bitrate GetBitrate() const;
-  Gop GetGop() const;
-  QPs GetQPs() const;
-  ProfileLevelType GetProfileLevel() const;
-  std::vector<ProfileLevelType> GetProfileLevelSupported() const;
-  EntropyCodingType GetEntropyCoding() const;
-  VideoModeType GetVideoMode() const;
 
-  bool IsConstrainedIntraPrediction() const;
-  LoopFilterType GetLoopFilter() const;
-  AspectRatioType GetAspectRatio() const;
-  bool IsEnableLowBandwidth() const;
-  bool IsEnablePrefetchBuffer() const;
-  ScalingListType GetScalingList() const;
-  bool IsEnableFillerData() const;
-  Slices GetSlices() const;
-  bool IsEnableSubframe() const;
-  FileDescriptors GetFileDescriptors() const;
+  bool SetCallbacks(Callbacks callbacks) override;
 
-  bool SetBitrate(Bitrate const& bitrates);
-  bool SetResolution(Resolution const& resolution);
-  bool SetClock(Clock const& clock);
-  bool SetFormat(Format const& format);
-  bool SetGop(Gop const& gop);
-  bool SetProfileLevel(ProfileLevelType const& profileLevel);
-  bool SetEntropyCoding(EntropyCodingType const& entropyCoding);
-  bool SetConstrainedIntraPrediction(bool constrainedIntraPrediction);
-  bool SetLoopFilter(LoopFilterType const& loopFilter);
-  bool SetQPs(QPs const& qps);
-  bool SetAspectRatio(AspectRatioType const& aspectRatio);
-  bool SetEnableLowBandwidth(bool enableLowBandwidth);
-  bool SetEnablePrefetchBuffer(bool enablePrefetchBuffer);
-  bool SetScalingList(ScalingListType const& scalingList);
-  bool SetEnableFillerData(bool enableFillerData);
-  bool SetSlices(Slices const& slices);
-  bool SetEnableSubframe(bool enableSubframe);
-  bool SetFileDescriptors(FileDescriptors const& fds);
-  bool SetVideoMode(VideoModeType const& videoMode);
+  bool CreateAndAttachStreamMeta(AL_TBuffer& buf);
+  void AddFifo(PassEncoder& encoder, AL_TBuffer* src);
+  void EmptyFifo(PassEncoder& encoder, bool isEOS);
 
-  bool SetCallbacks(Callbacks callbacks);
+  bool CheckParam() override;
+  bool Create() override;
+  void Destroy() override;
 
-  bool CheckParam();
-  bool Create();
-  void Destroy();
-
-  void Free(void* buffer);
-  void* Allocate(size_t size);
+  void Free(void* buffer) override;
+  void* Allocate(size_t size) override;
 
   void FreeDMA(int fd);
   int AllocateDMA(int size);
@@ -136,31 +136,30 @@ public:
   bool UseDMA(BufferHandleInterface* handle, int fd, int size);
   void UnuseDMA(BufferHandleInterface* handle);
 
-  bool Empty(BufferHandleInterface* handle);
-  bool Fill(BufferHandleInterface* handle);
+  bool Empty(BufferHandleInterface* handle) override;
+  bool Fill(BufferHandleInterface* handle) override;
   Flags GetFlags(BufferHandleInterface* handle);
 
-  ErrorType Run(bool shouldPrealloc);
-  bool Pause();
-  bool Flush();
-  void Stop();
+  ErrorType Run(bool shouldPrealloc) override;
+  bool Pause() override;
+  bool Flush() override;
+  void Stop() override;
 
-  ErrorType SetDynamic(std::string index, void const* param);
-  ErrorType GetDynamic(std::string index, void* param);
+  ErrorType SetDynamic(std::string index, void const* param) override;
+  ErrorType GetDynamic(std::string index, void* param) override;
 
 private:
   std::shared_ptr<EncMediatypeInterface> const media;
-  std::unique_ptr<EncDevice> const device;
+  std::shared_ptr<EncDevice> const device;
   std::shared_ptr<AL_TAllocator> const allocator;
-  AL_HEncoder encoder;
+  std::vector<PassEncoder> encoders;
   TScheduler* scheduler;
   Callbacks callbacks;
-  FileDescriptors fds;
 
   AL_TRoiMngrCtx* roiCtx;
-  std::list<AL_TBuffer*> roiBuffers;
-  EOSHandles<BufferHandleInterface> eosHandles;
+  EOSHandles<BufferHandleInterface*> eosHandles;
 
+  void InitEncoders(int numPass);
   bool Use(BufferHandleInterface* handle, uint8_t* buffer, int size);
   void Unuse(BufferHandleInterface* handle);
   ErrorType CreateEncoder();
@@ -176,6 +175,13 @@ private:
     pThis->EndEncoding(pStream, pSource);
   };
   void EndEncoding(AL_TBuffer* pStream, AL_TBuffer const* pSource);
+  static void RedirectionEndEncodingLookAhead(void* userParam, AL_TBuffer* pStream, AL_TBuffer const* pSource, int)
+  {
+    auto params = static_cast<LookAheadCallBackParam*>(userParam);
+    auto pThis = static_cast<EncModule*>(params->module);
+    pThis->EndEncodingLookAhead(pStream, pSource, params->index);
+  };
+  void EndEncodingLookAhead(AL_TBuffer* pStream, AL_TBuffer const* pSource, int index);
   void FlushEosHandles();
 
   ThreadSafeMap<AL_TBuffer const*, BufferHandleInterface*> handles;

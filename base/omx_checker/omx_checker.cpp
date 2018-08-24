@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -37,37 +37,37 @@
 
 #include "omx_checker.h"
 
-static inline bool isStateLoaded(OMX_STATETYPE const curState)
+static inline bool isStateLoaded(OMX_STATETYPE curState)
 {
   return curState == OMX_StateLoaded;
 }
 
-static inline bool isStateIdle(OMX_STATETYPE const curState)
+static inline bool isStateIdle(OMX_STATETYPE curState)
 {
   return curState == OMX_StateIdle;
 }
 
-static inline bool isStateExecuting(OMX_STATETYPE const curState)
+static inline bool isStateExecuting(OMX_STATETYPE curState)
 {
   return curState == OMX_StateExecuting;
 }
 
-static inline bool isStatePause(OMX_STATETYPE const curState)
+static inline bool isStatePause(OMX_STATETYPE curState)
 {
   return curState == OMX_StatePause;
 }
 
-static inline bool isStateWaitForResources(OMX_STATETYPE const curState)
+static inline bool isStateWaitForResources(OMX_STATETYPE curState)
 {
   return curState == OMX_StateWaitForResources;
 }
 
-static inline bool isStateInvalid(OMX_STATETYPE const curState)
+static inline bool isStateInvalid(OMX_STATETYPE curState)
 {
   return curState == OMX_StateInvalid;
 }
 
-void OMXChecker::CheckStateOperation(AL_ComponentMethods const methodName, OMX_STATETYPE const curState)
+void OMXChecker::CheckStateOperation(AL_ComponentMethods methodName, OMX_STATETYPE curState)
 {
   switch(methodName)
   {
@@ -305,7 +305,7 @@ void OMXChecker::CheckStateTransition(OMX_STATETYPE curState, OMX_STATETYPE newS
   }
 }
 
-void OMXChecker::CheckStateExistance(const OMX_STATETYPE state)
+void OMXChecker::CheckStateExistance(OMX_STATETYPE state)
 {
   switch(state)
   {

@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -166,6 +166,7 @@ enum class RateControlType
 {
   RATE_CONTROL_CONSTANT_QUANTIZATION,
   RATE_CONTROL_VARIABLE_BITRATE,
+  RATE_CONTROL_VARIABLE_CAPPED_BITRATE,
   RATE_CONTROL_CONSTANT_BITRATE,
   RATE_CONTROL_LOW_LATENCY,
   RATE_CONTROL_MAX_ENUM,

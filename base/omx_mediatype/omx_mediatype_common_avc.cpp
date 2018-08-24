@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@
 ******************************************************************************/
 
 #include "omx_mediatype_common_avc.h"
-#include "base/omx_settings/omx_convert_module_soft_avc.h"
+#include "omx_convert_module_soft_avc.h"
 
 using namespace std;
 

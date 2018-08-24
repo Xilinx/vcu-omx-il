@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +39,8 @@
 
 #include "base/omx_module/omx_module_structs.h"
 
+#include <vector>
+
 extern "C"
 {
 #include <lib_decode/lib_decode.h>
@@ -51,5 +53,17 @@ int CreateInternalEntropyBuffer(AL_TDecSettings settings);
 bool UpdateInternalEntropyBuffer(AL_TDecSettings& settings, int internalEntropyBuffer);
 
 SequencePictureModeType CreateSequenceMode(AL_TDecSettings settings);
-bool UpdateSequenceMode(AL_TDecSettings& settings, SequencePictureModeType videoMode);
+bool UpdateSequenceMode(AL_TDecSettings& settings, SequencePictureModeType sequenceMode, std::vector<SequencePictureModeType> sequenceModes);
+
+Format CreateFormat(AL_TDecSettings settings);
+bool UpdateFormat(AL_TDecSettings& settings, Format format, std::vector<ColorType> colors, std::vector<int> bitdepths, int& stride, Stride strideAlignment);
+
+Resolution CreateResolution(AL_TDecSettings settings, int widthStride, int heightStride);
+bool UpdateResolution(AL_TDecSettings& settings, int& stride, int& sliceHeight, Stride strideAlignment, Resolution resolution);
+
+DecodedPictureBufferType CreateDecodedPictureBuffer(AL_TDecSettings settings);
+
+bool UpdateIsEnabledSubFrame(AL_TDecSettings& settings, bool isEnabledSubFrame);
+
+bool UpdateDecodedPictureBuffer(AL_TDecSettings& settings, DecodedPictureBufferType decodedPictureBuffer);
 

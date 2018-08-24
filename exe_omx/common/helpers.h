@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -52,16 +52,33 @@
     } \
   } while(false)
 
+inline bool is400(OMX_COLOR_FORMATTYPE format)
+{
+  OMX_U32 extendedFormat = format;
+  return extendedFormat == OMX_COLOR_FormatL8 || extendedFormat == OMX_ALG_COLOR_FormatL10bitPacked;
+}
+
+inline bool is420(OMX_COLOR_FORMATTYPE format)
+{
+  OMX_U32 extendedFormat = format;
+  return extendedFormat == OMX_COLOR_FormatYUV420SemiPlanar || extendedFormat == OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked;
+}
+
 inline bool is422(OMX_COLOR_FORMATTYPE format)
 {
   OMX_U32 extendedFormat = format;
   return extendedFormat == OMX_COLOR_FormatYUV422SemiPlanar || extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
 }
 
+inline bool is8bits(OMX_COLOR_FORMATTYPE format)
+{
+  return format == OMX_COLOR_FormatL8 || format == OMX_COLOR_FormatYUV420SemiPlanar || format == OMX_COLOR_FormatYUV422SemiPlanar;
+}
+
 inline bool is10bits(OMX_COLOR_FORMATTYPE format)
 {
   OMX_U32 extendedFormat = format;
-  return extendedFormat == OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked || extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
+  return extendedFormat == OMX_ALG_COLOR_FormatL10bitPacked || extendedFormat == OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked || extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
 }
 
 template<typename T>

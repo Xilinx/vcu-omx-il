@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -42,13 +42,15 @@
 #include "omx_mediatype_checks.h"
 #include "omx_mediatype_common_avc.h"
 #include "omx_mediatype_common.h"
-#include "base/omx_settings/omx_convert_module_soft_avc.h"
+#include "omx_convert_module_soft_avc.h"
 #include "base/omx_utils/round.h"
 
 using namespace std;
 
 DecMediatypeAVC::DecMediatypeAVC()
 {
+  strideAlignment.widthStride = 64;
+  strideAlignment.heightStride = 64;
   Reset();
 }
 
@@ -56,6 +58,9 @@ DecMediatypeAVC::~DecMediatypeAVC() = default;
 
 void DecMediatypeAVC::Reset()
 {
+  bufferHandles.input = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
+  bufferHandles.output = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
+
   memset(&settings, 0, sizeof(settings));
   settings.iStackSize = 5;
   settings.uFrameRate = 60000;
@@ -74,32 +79,8 @@ void DecMediatypeAVC::Reset()
   stream.iProfileIdc = AL_PROFILE_AVC_C_BASELINE;
   stream.eSequenceMode = AL_SM_PROGRESSIVE;
 
-  stride = RoundUp(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode), strideAlignment);
-  sliceHeight = RoundUp(AL_Decoder_GetMinStrideHeight(stream.tDim.iHeight), sliceHeightAlignment);
-}
-
-ProfileLevelType DecMediatypeAVC::ProfileLevel() const
-{
-  auto stream = settings.tStream;
-  return CreateAVCProfileLevel(static_cast<AL_EProfile>(stream.iProfileIdc), stream.iLevel);
-}
-
-bool DecMediatypeAVC::SetProfileLevel(ProfileLevelType profileLevel)
-{
-  if(!IsSupported(profileLevel.profile.avc, profiles))
-    return false;
-
-  if(!IsSupported(profileLevel.level, levels))
-    return false;
-
-  auto profile = ConvertModuleToSoftAVCProfile(profileLevel.profile.avc);
-
-  if(profile == AL_PROFILE_AVC)
-    return false;
-
-  settings.tStream.iProfileIdc = profile;
-  settings.tStream.iLevel = profileLevel.level;
-  return true;
+  stride = RoundUp(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode), strideAlignment.widthStride);
+  sliceHeight = RoundUp(AL_Decoder_GetMinStrideHeight(stream.tDim.iHeight), strideAlignment.heightStride);
 }
 
 static Mimes CreateMimes()
@@ -144,6 +125,12 @@ static BufferCounts CreateBufferCounts(AL_TDecSettings settings)
   return bufferCounts;
 }
 
+static ProfileLevelType CreateProfileLevel(AL_TDecSettings settings)
+{
+  auto stream = settings.tStream;
+  return CreateAVCProfileLevel(static_cast<AL_EProfile>(stream.iProfileIdc), stream.iLevel);
+}
+
 MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Get(std::string index, void* settings) const
 {
   if(!settings)
@@ -158,6 +145,12 @@ MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Get(std::string index, vo
   if(index == "SETTINGS_INDEX_CLOCK")
   {
     *(static_cast<Clock*>(settings)) = CreateClock(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_STRIDE_ALIGNMENT")
+  {
+    *(static_cast<Stride*>(settings)) = this->strideAlignment;
     return ERROR_SETTINGS_NONE;
   }
 
@@ -185,9 +178,21 @@ MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Get(std::string index, vo
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_BUFFER_HANDLES")
+  {
+    *(static_cast<BufferHandles*>(settings)) = this->bufferHandles;
+    return ERROR_SETTINGS_NONE;
+  }
+
   if(index == "SETTINGS_INDEX_BUFFER_COUNTS")
   {
     *(static_cast<BufferCounts*>(settings)) = CreateBufferCounts(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_PROFILE_LEVEL")
+  {
+    *(static_cast<ProfileLevelType*>(settings)) = CreateProfileLevel(this->settings);
     return ERROR_SETTINGS_NONE;
   }
 
@@ -197,13 +202,64 @@ MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Get(std::string index, vo
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_FORMAT")
+  {
+    *(static_cast<Format*>(settings)) = CreateFormat(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
   if(index == "SETTINGS_INDEX_FORMATS_SUPPORTED")
   {
     *(static_cast<vector<Format>*>(settings)) = CreateFormatsSupported(colors, bitdepths);
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_SUBFRAME")
+  {
+    *(static_cast<bool*>(settings)) = (this->settings.eDecUnit == AL_VCL_NAL_UNIT);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_RESOLUTION")
+  {
+    *(static_cast<Resolution*>(settings)) = CreateResolution(this->settings, stride, sliceHeight);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_DECODED_PICTURE_BUFFER")
+  {
+    *(static_cast<DecodedPictureBufferType*>(settings)) = CreateDecodedPictureBuffer(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
   return ERROR_SETTINGS_BAD_INDEX;
+}
+
+static bool CheckProfileLevel(ProfileLevelType profilelevel, vector<AVCProfileType> profiles, vector<int> levels)
+{
+  if(!IsSupported(profilelevel.profile.avc, profiles))
+    return false;
+
+  if(!IsSupported(profilelevel.level, levels))
+    return false;
+
+  auto profile = ConvertModuleToSoftAVCProfile(profilelevel.profile.avc);
+
+  if(!AL_IS_AVC(profile))
+    return false;
+
+  return true;
+}
+
+static bool UpdateProfileLevel(AL_TDecSettings& settings, ProfileLevelType profilelevel, vector<AVCProfileType> profiles, vector<int> levels)
+{
+  if(!CheckProfileLevel(profilelevel, profiles, levels))
+    return false;
+
+  auto profile = ConvertModuleToSoftAVCProfile(profilelevel.profile.avc);
+  settings.tStream.iProfileIdc = profile;
+  settings.tStream.iLevel = profilelevel.level;
+  return true;
 }
 
 MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Set(std::string index, void const* settings)
@@ -233,10 +289,61 @@ MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Set(std::string index, vo
   {
     auto sequenceMode = *(static_cast<SequencePictureModeType const*>(settings));
 
-    if(sequenceMode == SequencePictureModeType::SEQUENCE_PICTURE_MODE_FIELD)
+    if(!UpdateSequenceMode(this->settings, sequenceMode, sequenceModes))
       return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
 
-    if(!UpdateSequenceMode(this->settings, sequenceMode))
+  if(index == "SETTINGS_INDEX_FORMAT")
+  {
+    auto format = *(static_cast<Format const*>(settings));
+
+    if(!UpdateFormat(this->settings, format, colors, bitdepths, this->stride, this->strideAlignment))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_PROFILE_LEVEL")
+  {
+    auto profilelevel = *(static_cast<ProfileLevelType const*>(settings));
+
+    if(!UpdateProfileLevel(this->settings, profilelevel, profiles, levels))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_BUFFER_HANDLES")
+  {
+    auto bufferHandles = *(static_cast<BufferHandles const*>(settings));
+
+    if(!UpdateBufferHandles(this->bufferHandles, bufferHandles))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_SUBFRAME")
+  {
+    auto isEnabledSubFrame = *(static_cast<bool const*>(settings));
+
+    if(!UpdateIsEnabledSubFrame(this->settings, isEnabledSubFrame))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_DECODED_PICTURE_BUFFER")
+  {
+    auto decodedPictureBuffer = *(static_cast<DecodedPictureBufferType const*>(settings));
+
+    if(!UpdateDecodedPictureBuffer(this->settings, decodedPictureBuffer))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_RESOLUTION")
+  {
+    auto resolution = *(static_cast<Resolution const*>(settings));
+
+    if(!UpdateResolution(this->settings, this->stride, this->sliceHeight, this->strideAlignment, resolution))
       return ERROR_SETTINGS_BAD_PARAMETER;
     return ERROR_SETTINGS_NONE;
   }

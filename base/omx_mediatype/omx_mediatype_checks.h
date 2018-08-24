@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -56,10 +56,13 @@ bool CheckClock(Clock clock);
 bool CheckGroupOfPictures(Gop gop);
 bool CheckInternalEntropyBuffer(int internalEntropyBuffer);
 bool CheckVideoMode(VideoModeType videoMode);
-bool CheckSequenceMode(SequencePictureModeType sequenceMode);
+bool CheckSequenceMode(SequencePictureModeType sequenceMode, std::vector<SequencePictureModeType> sequenceModes);
 bool CheckBitrate(Bitrate bitrate, Clock clock);
 bool CheckAspectRatio(AspectRatioType aspectRatio);
 bool CheckScalingList(ScalingListType scalingList);
 bool CheckQuantizationParameter(QPs qps);
 bool CheckSlicesParameter(Slices slices);
+bool CheckFormat(Format format, std::vector<ColorType> colors, std::vector<int> bitdepths);
+bool CheckBufferHandles(BufferHandles bufferHandles);
+bool CheckLookAhead(LookAhead la);
 

@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -38,8 +38,8 @@
 #pragma once
 
 #include <functional>
-#include <memory>
 #include <map>
+#include <string>
 
 #include "omx_module_structs.h"
 #include "omx_buffer_handle_interface.h"
@@ -137,21 +137,10 @@ typedef struct
 
 struct ModuleInterface
 {
-  virtual ~ModuleInterface()
-  {
-  }
+  virtual ~ModuleInterface() = 0;
 
   virtual void ResetRequirements() = 0;
   virtual BufferRequirements GetBufferRequirements() const = 0;
-  virtual Resolution GetResolution() const = 0;
-  virtual Clock GetClock() const = 0;
-  virtual Mimes GetMimes() const = 0;
-  virtual Gop GetGop() const = 0;
-  virtual Format GetFormat() const = 0;
-  virtual bool SetResolution(Resolution const& resolution) = 0;
-  virtual bool SetClock(Clock const& clock) = 0;
-  virtual bool SetFormat(Format const& format) = 0;
-  virtual bool SetGop(Gop const& gop) = 0;
 
   virtual bool CheckParam() = 0;
   virtual bool Create() = 0;

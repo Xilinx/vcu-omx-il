@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,16 @@
 
 #include "omx_mediatype_dec_common.h"
 #include "omx_mediatype_checks.h"
-#include "base/omx_settings/omx_convert_module_soft.h"
+#include "omx_convert_module_soft.h"
+#include "omx_convert_module_soft_dec.h"
+#include "base/omx_utils/round.h"
+
+extern "C"
+{
+#include <lib_common_enc/EncBuffers.h>
+}
+
+using namespace std;
 
 Clock CreateClock(AL_TDecSettings settings)
 {
@@ -82,13 +91,92 @@ SequencePictureModeType CreateSequenceMode(AL_TDecSettings settings)
   return ConvertSoftToModuleSequenceMode(stream.eSequenceMode);
 }
 
-bool UpdateSequenceMode(AL_TDecSettings& settings, SequencePictureModeType sequenceMode)
+bool UpdateSequenceMode(AL_TDecSettings& settings, SequencePictureModeType sequenceMode, vector<SequencePictureModeType> sequenceModes)
 {
-  if(!CheckSequenceMode(sequenceMode))
+  if(!CheckSequenceMode(sequenceMode, sequenceModes))
     return false;
 
   auto& stream = settings.tStream;
   stream.eSequenceMode = ConvertModuleToSoftSequenceMode(sequenceMode);
+  return true;
+}
+
+Format CreateFormat(AL_TDecSettings settings)
+{
+  Format format;
+  auto stream = settings.tStream;
+
+  format.color = ConvertSoftToModuleColor(stream.eChroma);
+  format.bitdepth = stream.iBitDepth;
+
+  return format;
+}
+
+bool UpdateFormat(AL_TDecSettings& settings, Format format, vector<ColorType> colors, vector<int> bitdepths, int& stride, Stride strideAlignment)
+{
+  if(!CheckFormat(format, colors, bitdepths))
+    return false;
+
+  auto& stream = settings.tStream;
+  stream.eChroma = ConvertModuleToSoftChroma(format.color);
+  stream.iBitDepth = format.bitdepth;
+
+  auto minStride = (int)RoundUp(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode), strideAlignment.widthStride);
+  stride = max(minStride, stride);
+
+  return true;
+}
+
+Resolution CreateResolution(AL_TDecSettings settings, int widthStride, int heightStride)
+{
+  auto streamSettings = settings.tStream;
+  Resolution resolution;
+  resolution.width = streamSettings.tDim.iWidth;
+  resolution.height = streamSettings.tDim.iHeight;
+  resolution.stride.widthStride = widthStride;
+  resolution.stride.heightStride = heightStride;
+
+  return resolution;
+}
+
+DecodedPictureBufferType CreateDecodedPictureBuffer(AL_TDecSettings settings)
+{
+  return ConvertSoftToModuleDecodedPictureBuffer(settings.eDpbMode);
+}
+
+bool UpdateIsEnabledSubFrame(AL_TDecSettings& settings, bool isEnabledSubFrame)
+{
+  settings.eDecUnit = isEnabledSubFrame ? ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_SLICE) : ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_FRAME);
+  return true;
+}
+
+bool UpdateDecodedPictureBuffer(AL_TDecSettings& settings, DecodedPictureBufferType decodedPictureBuffer)
+{
+  if(decodedPictureBuffer == DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM)
+    return false;
+
+  settings.bLowLat = decodedPictureBuffer == DecodedPictureBufferType::DECODED_PICTURE_BUFFER_LOW_REFERENCE;
+  settings.eDpbMode = ConvertModuleToSoftDecodedPictureBuffer(decodedPictureBuffer);
+  return true;
+}
+
+bool UpdateResolution(AL_TDecSettings& settings, int& stride, int& sliceHeight, Stride strideAlignment, Resolution resolution)
+{
+  if((resolution.width % 2) != 0)
+    return false;
+
+  if((resolution.height % 2) != 0)
+    return false;
+
+  auto& streamSettings = settings.tStream;
+  streamSettings.tDim = { resolution.width, resolution.height };
+
+  auto minStride = (int)RoundUp(AL_Decoder_GetMinPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, settings.eFBStorageMode), strideAlignment.widthStride);
+  stride = max(minStride, (int)RoundUp(resolution.stride.widthStride, strideAlignment.widthStride));
+
+  auto minSliceHeight = (int)RoundUp(AL_Decoder_GetMinStrideHeight(streamSettings.tDim.iHeight), strideAlignment.heightStride);
+  sliceHeight = max(minSliceHeight, (int)RoundUp(resolution.stride.heightStride, strideAlignment.heightStride));
+
   return true;
 }
 

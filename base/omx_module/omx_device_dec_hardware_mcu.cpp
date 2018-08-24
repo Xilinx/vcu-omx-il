@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -54,12 +54,19 @@ void DecDeviceHardwareMcu::Deinit()
 {
 }
 
-AllocationRequirements DecDeviceHardwareMcu::GetAllocationRequirements()
+BufferContiguities DecDeviceHardwareMcu::GetBufferContiguities() const
 {
-  AllocationDefinition input = { 0, false };
-  AllocationDefinition output = { 32, true };
-  return {
-           input, output
-  };
+  BufferContiguities bufferContiguities;
+  bufferContiguities.input = false;
+  bufferContiguities.output = true;
+  return bufferContiguities;
+}
+
+BufferBytesAlignments DecDeviceHardwareMcu::GetBufferBytesAlignments() const
+{
+  BufferBytesAlignments bufferBytesAlignments;
+  bufferBytesAlignments.input = 0;
+  bufferBytesAlignments.output = 32;
+  return bufferBytesAlignments;
 }
 

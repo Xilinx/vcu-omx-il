@@ -53,6 +53,16 @@ extern "C" {
 #define OMX_ALG_InterlaceAlternateTopFieldFirst         0x00000080
 #define OMX_ALG_InterlaceAlternateBottomFieldFirst      0x00000100
 
+/**
+ * Interlaced format parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize      : Size of the structure in bytes
+ *  nVersion   : OMX specification version information
+ *  nPortIndex : Port that this structure applies to
+ *  nFormat    : Specifies a bitmapped value identifying the interlace formats supported by the component port. This format information identifies the temporal relationship between the two fields
+ *  nTimeStamp : Specifies the temporal timestamp information for the second field. If the temporal timestamp information can not be determined for the second field, the nTimeStamp parameter for OMX_INTERLACEFORMATTYPE structure shall be set the same as the nTimeStamp parameter via the OMX_BUFFERHEADERTYPE structure
+ */
 typedef struct OMX_INTERLACEFORMATTYPE {
     OMX_U32 nSize;
     OMX_VERSIONTYPE nVersion;
@@ -70,16 +80,23 @@ typedef enum OMX_ALG_SEQUENCE_PICTURE_MODE
   OMX_ALG_SEQUENCE_PICTURE_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_SEQUENCE_PICTURE_MODE;
 
+/**
+ * Sequence picture mode parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize      : Size of the structure in bytes
+ *  nVersion   : OMX specification version information
+ *  nPortIndex : Port that this structure applies to
+ *  eMode      : Sequence picture mode type enum
+ *  eModeIndex : Used to query for individual profile support information. This parameter is valid only for OMX_ALG_IndexParamCommonSequencePictureModeQuerySupported index. For all other indices this parameter is to be ignored
+ */
 typedef struct OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE
 {
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
   OMX_ALG_SEQUENCE_PICTURE_MODE eMode;
-  OMX_U32 nModeIndex;  /**< Used to query for individual profile support information,
-                               This parameter is valid only for
-                               OMX_ALG_IndexParamCommonSequencePictureModeQuerySupported index.
-                               For all other indices this parameter is to be ignored. */
+  OMX_U32 nModeIndex;
 } OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE;
 
 /** @} */

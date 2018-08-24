@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -42,4 +42,5 @@
 #include "base/omx_module/omx_module_structs.h"
 
 std::vector<Format> CreateFormatsSupported(std::vector<ColorType> colors, std::vector<int> bitdepths);
+bool UpdateBufferHandles(BufferHandles& current, BufferHandles bufferHandles);
 

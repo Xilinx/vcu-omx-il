@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -40,10 +40,11 @@
 #include "omx_mediatype_common_hevc.h"
 #include "omx_mediatype_common.h"
 #include "omx_mediatype_checks.h"
-#include "base/omx_settings/omx_convert_module_soft_hevc.h"
 #include "base/omx_utils/round.h"
-#include "base/omx_settings/omx_convert_module_soft_enc.h"
+#include "omx_convert_module_soft_hevc.h"
+#include "omx_convert_module_soft_enc.h"
 #include <cmath>
+#include <cstring> // memset
 
 extern "C"
 {
@@ -54,6 +55,8 @@ using namespace std;
 
 EncMediatypeHEVC::EncMediatypeHEVC()
 {
+  strideAlignment.widthStride = 32;
+  strideAlignment.heightStride = 8;
   Reset();
 }
 
@@ -61,59 +64,40 @@ EncMediatypeHEVC::~EncMediatypeHEVC() = default;
 
 void EncMediatypeHEVC::Reset()
 {
+  bufferHandles.input = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
+  bufferHandles.output = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
+
+  memset(&settings, 0, sizeof(settings));
   AL_Settings_SetDefaults(&settings);
-  auto& chan = settings.tChParam[0];
-  chan.eProfile = AL_PROFILE_HEVC_MAIN;
+  auto& channel = settings.tChParam[0];
+  channel.eProfile = AL_PROFILE_HEVC_MAIN;
   AL_Settings_SetDefaultParam(&settings);
-  chan.uLevel = 10;
-  chan.uWidth = 176;
-  chan.uHeight = 144;
-  chan.ePicFormat = AL_420_8BITS;
-  chan.uEncodingBitDepth = 8;
-  auto& rateCtrl = chan.tRCParam;
-  rateCtrl.eRCMode = AL_RC_CBR;
-  rateCtrl.eOptions = AL_RC_OPT_SCN_CHG_RES;
-  rateCtrl.uMaxBitRate = rateCtrl.uTargetBitRate = 64000;
-  rateCtrl.uFrameRate = 15;
-  auto& gopParam = chan.tGopParam;
+  channel.uLevel = 10;
+  channel.uWidth = 176;
+  channel.uHeight = 144;
+  channel.ePicFormat = AL_420_8BITS;
+  channel.uSrcBitDepth = 8;
+  auto& rateControl = channel.tRCParam;
+  rateControl.eRCMode = AL_RC_CBR;
+  rateControl.eOptions = AL_RC_OPT_SCN_CHG_RES;
+  rateControl.uMaxBitRate = rateControl.uTargetBitRate = 64000;
+  rateControl.uFrameRate = 15;
+  auto& gopParam = channel.tGopParam;
   gopParam.bEnableLT = false;
   settings.bEnableFillerData = true;
   settings.bEnableAUD = false;
   settings.iPrefetchLevel2 = 0;
+#if AL_ENABLE_TWOPASS
+  settings.LookAhead = 0;
+#endif
 
-  stride = RoundUp(AL_EncGetMinPitch(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), strideAlignment);
-  sliceHeight = RoundUp(chan.uHeight, sliceHeightAlignment);
+  stride = RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride);
+  sliceHeight = RoundUp(channel.uHeight, strideAlignment.heightStride);
 }
 
 static bool IsHighTier(uint8_t tier)
 {
   return tier != 0;
-}
-
-ProfileLevelType EncMediatypeHEVC::ProfileLevel() const
-{
-  auto chan = settings.tChParam[0];
-  return IsHighTier(chan.uTier) ? CreateHEVCHighTierProfileLevel(chan.eProfile, chan.uLevel) : CreateHEVCMainTierProfileLevel(chan.eProfile, chan.uLevel);
-}
-
-bool EncMediatypeHEVC::SetProfileLevel(ProfileLevelType profileLevel)
-{
-  if(!IsSupported(profileLevel.profile.hevc, profiles))
-    return false;
-
-  if(!IsSupported(profileLevel.level, levels))
-    return false;
-
-  auto profile = ConvertModuleToSoftHEVCProfile(profileLevel.profile.hevc);
-
-  if(profile == AL_PROFILE_HEVC)
-    return false;
-
-  auto& chan = settings.tChParam[0];
-  chan.eProfile = profile;
-  chan.uLevel = profileLevel.level;
-  chan.uTier = IsHighTierProfile(profileLevel.profile.hevc) ? 1 : 0;
-  return true;
 }
 
 static Mimes CreateMimes()
@@ -135,14 +119,14 @@ static Mimes CreateMimes()
 static int CreateLatency(AL_TEncSettings settings)
 {
   auto channel = settings.tChParam[0];
-  auto rateCtrl = channel.tRCParam;
+  auto rateControl = channel.tRCParam;
   auto gopParam = channel.tGopParam;
 
   auto intermediate = 0;
   auto buffer = 1;
   auto buffers = buffer + intermediate + gopParam.uNumB;
 
-  auto realFramerate = (static_cast<double>(rateCtrl.uFrameRate * rateCtrl.uClkRatio) / 1000.0);
+  auto realFramerate = (static_cast<double>(rateControl.uFrameRate * rateControl.uClkRatio) / 1000.0);
   auto timeInMilliseconds = (static_cast<double>(buffers * 1000.0) / realFramerate);
 
   if(channel.bSubframeLatency)
@@ -158,13 +142,6 @@ static bool CreateLowBandwidth(AL_TEncSettings settings)
 {
   auto channel = settings.tChParam[0];
   return channel.pMeRange[SLICE_P][1] == 16;
-}
-
-static bool UpdateLowBandwidth(AL_TEncSettings& settings, bool isLowBandwidthEnabled)
-{
-  auto& channel = settings.tChParam[0];
-  channel.pMeRange[SLICE_P][1] = isLowBandwidthEnabled ? 16 : 32;
-  return true;
 }
 
 static BufferCounts CreateBufferCounts(AL_TEncSettings settings)
@@ -184,6 +161,13 @@ static BufferCounts CreateBufferCounts(AL_TEncSettings settings)
     auto numSlices = channel.uNumSlices;
     bufferCounts.output *= numSlices;
   }
+
+#if AL_ENABLE_TWOPASS
+
+  if(settings.LookAhead)
+    bufferCounts.input += settings.LookAhead;
+#endif
+
   return bufferCounts;
 }
 
@@ -193,23 +177,10 @@ static LoopFilterType CreateLoopFilter(AL_TEncSettings settings)
   return ConvertSoftToModuleLoopFilter(channel.eOptions);
 }
 
-static bool CheckLoopFilter(LoopFilterType loopFilter)
+static ProfileLevelType CreateProfileLevel(AL_TEncSettings settings)
 {
-  if(loopFilter == LoopFilterType::LOOP_FILTER_MAX_ENUM)
-    return false;
-
-  return true;
-}
-
-static bool UpdateLoopFilter(AL_TEncSettings& settings, LoopFilterType loopFilter)
-{
-  if(!CheckLoopFilter(loopFilter))
-    return false;
-
-  auto& options = settings.tChParam[0].eOptions;
-  options = static_cast<AL_EChEncOption>(options | ConvertModuleToSoftLoopFilter(loopFilter));
-
-  return true;
+  auto channel = settings.tChParam[0];
+  return IsHighTier(channel.uTier) ? CreateHEVCHighTierProfileLevel(channel.eProfile, channel.uLevel) : CreateHEVCMainTierProfileLevel(channel.eProfile, channel.uLevel);
 }
 
 MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Get(std::string index, void* settings) const
@@ -226,6 +197,12 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Get(std::string index, v
   if(index == "SETTINGS_INDEX_CLOCK")
   {
     *(static_cast<Clock*>(settings)) = CreateClock(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_STRIDE_ALIGNMENT")
+  {
+    *(static_cast<Stride*>(settings)) = this->strideAlignment;
     return ERROR_SETTINGS_NONE;
   }
 
@@ -277,6 +254,12 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Get(std::string index, v
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_BUFFER_HANDLES")
+  {
+    *(static_cast<BufferHandles*>(settings)) = this->bufferHandles;
+    return ERROR_SETTINGS_NONE;
+  }
+
   if(index == "SETTINGS_INDEX_BUFFER_COUNTS")
   {
     *(static_cast<BufferCounts*>(settings)) = CreateBufferCounts(this->settings);
@@ -313,9 +296,21 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Get(std::string index, v
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_PROFILE_LEVEL")
+  {
+    *(static_cast<ProfileLevelType*>(settings)) = CreateProfileLevel(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
   if(index == "SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED")
   {
     *(static_cast<vector<ProfileLevelType>*>(settings)) = CreateHEVCProfileLevelSupported(profiles, levels);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_FORMAT")
+  {
+    *(static_cast<Format*>(settings)) = CreateFormat(this->settings);
     return ERROR_SETTINGS_NONE;
   }
 
@@ -331,7 +326,83 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Get(std::string index, v
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_SUBFRAME")
+  {
+    *(static_cast<bool*>(settings)) = (this->settings.tChParam[0].bSubframeLatency);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_RESOLUTION")
+  {
+    *(static_cast<Resolution*>(settings)) = CreateResolution(this->settings, stride, sliceHeight);
+    return ERROR_SETTINGS_NONE;
+  }
+
+#if AL_ENABLE_TWOPASS
+
+  if(index == "SETTINGS_INDEX_LOOKAHEAD")
+  {
+    *(static_cast<LookAhead*>(settings)) = CreateLookAhead(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+#endif
+
   return ERROR_SETTINGS_BAD_INDEX;
+}
+
+static bool UpdateLowBandwidth(AL_TEncSettings& settings, bool isLowBandwidthEnabled)
+{
+  auto& channel = settings.tChParam[0];
+  channel.pMeRange[SLICE_P][1] = isLowBandwidthEnabled ? 16 : 32;
+  return true;
+}
+
+static bool CheckLoopFilter(LoopFilterType loopFilter)
+{
+  if(loopFilter == LoopFilterType::LOOP_FILTER_MAX_ENUM)
+    return false;
+
+  return true;
+}
+
+static bool UpdateLoopFilter(AL_TEncSettings& settings, LoopFilterType loopFilter)
+{
+  if(!CheckLoopFilter(loopFilter))
+    return false;
+
+  auto& options = settings.tChParam[0].eOptions;
+  options = static_cast<AL_EChEncOption>(options | ConvertModuleToSoftLoopFilter(loopFilter));
+
+  return true;
+}
+
+static bool CheckProfileLevel(ProfileLevelType profilelevel, vector<HEVCProfileType> profiles, vector<int> levels)
+{
+  if(!IsSupported(profilelevel.profile.hevc, profiles))
+    return false;
+
+  if(!IsSupported(profilelevel.level, levels))
+    return false;
+
+  auto profile = ConvertModuleToSoftHEVCProfile(profilelevel.profile.hevc);
+
+  if(!AL_IS_HEVC(profile))
+    return false;
+
+  return true;
+}
+
+static bool UpdateProfileLevel(AL_TEncSettings& settings, ProfileLevelType profilelevel, vector<HEVCProfileType> profiles, vector<int> levels)
+{
+  if(!CheckProfileLevel(profilelevel, profiles, levels))
+    return false;
+
+  auto& channel = settings.tChParam[0];
+  auto profile = ConvertModuleToSoftHEVCProfile(profilelevel.profile.hevc);
+  channel.eProfile = profile;
+  channel.uLevel = profilelevel.level;
+  channel.uTier = IsHighTierProfile(profilelevel.profile.hevc) ? 1 : 0;
+  return true;
 }
 
 MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, void const* settings)
@@ -448,6 +519,24 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_PROFILE_LEVEL")
+  {
+    auto profilelevel = *(static_cast<ProfileLevelType const*>(settings));
+
+    if(!UpdateProfileLevel(this->settings, profilelevel, profiles, levels))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_FORMAT")
+  {
+    auto format = *(static_cast<Format const*>(settings));
+
+    if(!UpdateFormat(this->settings, format, colors, bitdepths, this->stride, this->strideAlignment))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
   if(index == "SETTINGS_INDEX_SLICE_PARAMETER")
   {
     auto slices = *(static_cast<Slices const*>(settings));
@@ -458,6 +547,45 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_BUFFER_HANDLES")
+  {
+    auto bufferHandles = *(static_cast<BufferHandles const*>(settings));
+
+    if(!UpdateBufferHandles(this->bufferHandles, bufferHandles))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_SUBFRAME")
+  {
+    auto isEnabledSubFrame = *(static_cast<bool const*>(settings));
+
+    if(!UpdateIsEnabledSubFrame(this->settings, isEnabledSubFrame))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_RESOLUTION")
+  {
+    auto resolution = *(static_cast<Resolution const*>(settings));
+
+    if(!UpdateResolution(this->settings, this->stride, this->sliceHeight, this->strideAlignment, resolution))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+#if AL_ENABLE_TWOPASS
+
+  if(index == "SETTINGS_INDEX_LOOKAHEAD")
+  {
+    auto la = *(static_cast<LookAhead const*>(settings));
+
+    if(!UpdateLookAhead(this->settings, la))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+
+    return ERROR_SETTINGS_NONE;
+  }
+#endif
   return ERROR_SETTINGS_BAD_INDEX;
 }
 

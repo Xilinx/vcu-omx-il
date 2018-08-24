@@ -15,9 +15,6 @@ $ make CROSS_COMPILE=aarch64-linux-gnu-
 *Compile in static*
 $ make STATIC=1
 
-*Compile modules*
-$ make -f makefile.module
-
 *Compile against lib_encode / lib_decode you built*
 
 $ ctrlsw_root=/your_path/ctrlsw-src

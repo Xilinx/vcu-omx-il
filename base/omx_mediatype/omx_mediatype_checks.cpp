@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,8 @@
 ******************************************************************************/
 
 #include "omx_mediatype_checks.h"
+
+using namespace std;
 
 bool CheckClock(Clock clock)
 {
@@ -87,9 +89,11 @@ bool CheckVideoMode(VideoModeType videoMode)
   return videoMode != VideoModeType::VIDEO_MODE_MAX_ENUM;
 }
 
-bool CheckSequenceMode(SequencePictureModeType sequenceMode)
+bool CheckSequenceMode(SequencePictureModeType sequenceMode, vector<SequencePictureModeType> sequenceModes)
 {
-  return sequenceMode != SequencePictureModeType::SEQUENCE_PICTURE_MODE_MAX_ENUM;
+  if(!IsSupported(sequenceMode, sequenceModes))
+    return false;
+  return true;
 }
 
 bool CheckBitrate(Bitrate bitrate, Clock clock)
@@ -154,6 +158,36 @@ bool CheckQuantizationParameter(QPs qps)
 bool CheckSlicesParameter(Slices slices)
 {
   if(slices.num <= 0)
+    return false;
+
+  return true;
+}
+
+bool CheckFormat(Format format, vector<ColorType> colors, vector<int> bitdepths)
+{
+  if(!IsSupported(format.color, colors))
+    return false;
+
+  if(!IsSupported(format.bitdepth, bitdepths))
+    return false;
+
+  return true;
+}
+
+bool CheckBufferHandles(BufferHandles bufferHandles)
+{
+  if(bufferHandles.input == BufferHandleType::BUFFER_HANDLE_MAX_ENUM)
+    return false;
+
+  if(bufferHandles.output == BufferHandleType::BUFFER_HANDLE_MAX_ENUM)
+    return false;
+
+  return true;
+}
+
+bool CheckLookAhead(LookAhead la)
+{
+  if(la.nLookAhead != 0 && la.nLookAhead < 2)
     return false;
 
   return true;
