@@ -41,7 +41,6 @@
 #include "base/omx_utils/omx_log.h"
 #include <cassert>
 #include <cstring>
-#include <future>
 
 #include <OMX_VideoExt.h>
 
@@ -214,6 +213,7 @@ Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> me
   auto p2 = bind(&Component::_ProcessFillBuffer, this, placeholders::_1);
   processor.reset(new ProcessorFifo(p, d));
   processorFill.reset(new ProcessorFifo(p2, d));
+  pauseFill = nullptr;
 
   transientState = TransientMax;
   state = OMX_StateLoaded;
@@ -264,6 +264,8 @@ static TransientState GetTransientState(OMX_STATETYPE const& curState, OMX_STATE
 
 void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
 {
+  bool bShouldPauseFill = false;
+  bool bShouldPauseFillEnd = false;
   Command taskCommand;
   switch(command)
   {
@@ -276,11 +278,17 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
 
     TransientState NewtransientState = GetTransientState(state, nextState);
 
+    if(nextState == OMX_StatePause && (state == OMX_StateIdle || state == OMX_StateExecuting))
+      bShouldPauseFill = true;
+
+    if(state == OMX_StatePause && (nextState == OMX_StateIdle || nextState == OMX_StateExecuting || nextState == OMX_StateInvalid))
+      bShouldPauseFillEnd = true;
+
     if(NewtransientState == TransientLoadedToIdle)
       if(!module->CheckParam())
         throw OMX_ErrorUndefined;
 
-    if(NewtransientState == TransientExecutingToPause || NewtransientState == TransientExecutingToIdle)
+    if(state != OMX_StatePause && (NewtransientState == TransientExecutingToPause || NewtransientState == TransientExecutingToIdle))
     {
       auto p = make_shared<promise<int>>();
       processor->queue(CreateTask(Fence, param, p));
@@ -296,9 +304,13 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
     OMXChecker::CheckNull(data);
 
     auto p = make_shared<promise<int>>();
-    processor->queue(CreateTask(Fence, param, p));
-    processorFill->queue(CreateTask(RemoveFence, param, p));
 
+    if(state != OMX_StatePause)
+    {
+      auto p = make_shared<promise<int>>();
+      processor->queue(CreateTask(Fence, param, p));
+      processorFill->queue(CreateTask(RemoveFence, param, p));
+    }
     if(param == OMX_ALL)
     {
       for(auto i = ports.nStartPortNumber; i < ports.nPorts; i++)
@@ -371,6 +383,23 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
   }
 
   processor->queue(CreateTask(taskCommand, param, shared_ptr<void>(data, nullDeleter)));
+
+  // processorFill waits  while in state OMX_StatePause
+
+  if(command == OMX_CommandStateSet)
+  {
+    if(bShouldPauseFillEnd)
+    {
+      processor->queue(CreateTask(RemoveFence, param, pauseFill));
+      pauseFill = nullptr;
+    }
+
+    if(bShouldPauseFill)
+    {
+      pauseFill = make_shared<promise<int>>();
+      processorFill->queue(CreateTask(Fence, param, pauseFill));
+    }
+  }
 }
 
 OMX_ERRORTYPE Component::SendCommand(OMX_IN OMX_COMMANDTYPE cmd, OMX_IN OMX_U32 param, OMX_IN OMX_PTR data)

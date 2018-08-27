@@ -51,6 +51,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <memory>
+#include <future>
 
 #define ALLEGRODVT_OMX_VERSION 3
 
@@ -147,6 +148,7 @@ protected:
 
   std::unique_ptr<ProcessorFifo> processor;
   std::unique_ptr<ProcessorFifo> processorFill;
+  std::shared_ptr<std::promise<int>> pauseFill;
   void _Process(void* data);
   void _ProcessFillBuffer(void* data);
   void _Delete(void* data);
