@@ -211,7 +211,7 @@ ErrorType EncModule::CreateEncoder()
 
     if(errorCode != AL_SUCCESS)
     {
-      fprintf(stderr, "Failed to create first pass Encoder:\n");
+      fprintf(stderr, "Failed to create Encoder:\n");
       fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
       return ToModuleError(errorCode);
     }
