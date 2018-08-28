@@ -303,14 +303,13 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
   {
     OMXChecker::CheckNull(data);
 
-    auto p = make_shared<promise<int>>();
-
     if(state != OMX_StatePause)
     {
       auto p = make_shared<promise<int>>();
       processor->queue(CreateTask(Fence, param, p));
       processorFill->queue(CreateTask(RemoveFence, param, p));
     }
+
     if(param == OMX_ALL)
     {
       for(auto i = ports.nStartPortNumber; i < ports.nPorts; i++)
@@ -318,6 +317,7 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
 
       return;
     }
+
     CheckPortIndex(param);
     taskCommand = Flush;
     break;
