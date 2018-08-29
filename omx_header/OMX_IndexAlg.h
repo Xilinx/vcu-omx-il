@@ -105,6 +105,6 @@ typedef enum OMX_ALG_INDEXTYPE
 }
 #endif /* __cplusplus */
 
-#endif /* OMX_IndexExt_h */
+#endif /* OMX_IndexAlg_h */
 /* File EOF */
 
