@@ -108,7 +108,7 @@ static Mimes CreateMimes()
 static int CreateLatency(AL_TDecSettings settings)
 {
   auto stream = settings.tStream;
-  auto buffers = AL_HEVC_GetMinOutputBuffersNeeded(stream, settings.iStackSize, settings.eDpbMode);
+  auto buffers = AL_HEVC_GetMinOutputBuffersNeeded(stream, settings.iStackSize);
 
   if(settings.eDpbMode == AL_DPB_LOW_REF)
     buffers -= settings.iStackSize;
@@ -127,7 +127,7 @@ static BufferCounts CreateBufferCounts(AL_TDecSettings settings)
   BufferCounts bufferCounts;
   bufferCounts.input = 2;
   auto stream = settings.tStream;
-  bufferCounts.output = AL_HEVC_GetMinOutputBuffersNeeded(stream, settings.iStackSize, settings.eDpbMode);
+  bufferCounts.output = AL_HEVC_GetMinOutputBuffersNeeded(stream, settings.iStackSize);
   return bufferCounts;
 }
 
