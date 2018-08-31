@@ -146,12 +146,15 @@ protected:
   std::queue<OMX_MARKTYPE*> marks;
   std::mutex moduleMutex {};
 
-  std::unique_ptr<ProcessorFifo> processor;
+  std::unique_ptr<ProcessorFifo> processorMain;
+  std::unique_ptr<ProcessorFifo> processorEmpty;
   std::unique_ptr<ProcessorFifo> processorFill;
-  std::shared_ptr<std::promise<int>> pauseFill;
-  void _Process(void* data);
+  std::shared_ptr<std::promise<void>> pausePromise;
+  void _ProcessMain(void* data);
   void _ProcessFillBuffer(void* data);
+  void _ProcessEmptyBuffer(void* data);
   void _Delete(void* data);
+  void _DeleteFillEmpty(void* data);
 
   void CreateName(OMX_STRING name);
   void CreateRole(OMX_STRING role);
@@ -160,6 +163,9 @@ protected:
   Port* GetPort(int index);
   void PopulatingPorts();
   void UnpopulatingPorts();
+  void FlushFillEmptyBuffers();
+  void BlockFillEmptyBuffers();
+  void UnblockFillEmptyBuffers();
 
   void CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data);
   void TreatSetStateCommand(Task* task);

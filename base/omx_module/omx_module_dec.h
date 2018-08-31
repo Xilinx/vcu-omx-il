@@ -80,7 +80,6 @@ struct DecModule : public ModuleInterface
   bool Fill(BufferHandleInterface* handle) override;
 
   ErrorType Run(bool shouldPrealloc) override;
-  bool Pause() override;
   bool Flush() override;
   void Stop() override;
 

@@ -141,7 +141,6 @@ struct EncModule : public ModuleInterface
   Flags GetFlags(BufferHandleInterface* handle);
 
   ErrorType Run(bool shouldPrealloc) override;
-  bool Pause() override;
   bool Flush() override;
   void Stop() override;
 

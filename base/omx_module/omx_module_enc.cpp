@@ -337,16 +337,6 @@ void EncModule::FlushEosHandles()
   eosHandles.output = nullptr;
 }
 
-bool EncModule::Pause()
-{
-  if(!encoders.size())
-    return false;
-
-  auto ret = DestroyEncoder();
-  FlushEosHandles();
-  return ret;
-}
-
 void EncModule::Stop()
 {
   if(!encoders.size())

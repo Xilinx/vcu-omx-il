@@ -150,11 +150,8 @@ void Component::EventCallBack(CallbackEventType type, void* data)
   {
   case CALLBACK_EVENT_ERROR:
   {
-    auto promise = std::make_shared<std::promise<int>>();
-    processorFill->queue(CreateTask(Fence, OMX_StateInvalid, promise));
     ErrorType errorCode = (ErrorType)(uintptr_t)data;
-    processor->queue(CreateTask(SetState, OMX_StateInvalid, shared_ptr<void>((uintptr_t*)ToOmxError(errorCode), nullDeleter)));
-    processor->queue(CreateTask(RemoveFence, OMX_StateInvalid, promise));
+    processorMain->queue(CreateTask(SetState, OMX_StateInvalid, shared_ptr<void>((uintptr_t*)ToOmxError(errorCode), nullDeleter)));
     break;
   }
   default:
@@ -208,12 +205,15 @@ Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> me
 
   OMXChecker::SetHeaderVersion(ports);
   SetPortsParam(ports);
-  auto p = bind(&Component::_Process, this, placeholders::_1);
   auto d = bind(&Component::_Delete, this, placeholders::_1);
+  auto d2 = bind(&Component::_DeleteFillEmpty, this, placeholders::_1);
+  auto p = bind(&Component::_ProcessMain, this, placeholders::_1);
   auto p2 = bind(&Component::_ProcessFillBuffer, this, placeholders::_1);
-  processor.reset(new ProcessorFifo(p, d));
-  processorFill.reset(new ProcessorFifo(p2, d));
-  pauseFill = nullptr;
+  auto p3 = bind(&Component::_ProcessEmptyBuffer, this, placeholders::_1);
+  processorMain.reset(new ProcessorFifo(p, d));
+  processorFill.reset(new ProcessorFifo(p2, d2));
+  processorEmpty.reset(new ProcessorFifo(p3, d2));
+  pausePromise = nullptr;
 
   transientState = TransientMax;
   state = OMX_StateLoaded;
@@ -264,8 +264,6 @@ static TransientState GetTransientState(OMX_STATETYPE const& curState, OMX_STATE
 
 void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data)
 {
-  bool bShouldPauseFill = false;
-  bool bShouldPauseFillEnd = false;
   Command taskCommand;
   switch(command)
   {
@@ -278,22 +276,9 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
 
     TransientState NewtransientState = GetTransientState(state, nextState);
 
-    if(nextState == OMX_StatePause && (state == OMX_StateIdle || state == OMX_StateExecuting))
-      bShouldPauseFill = true;
-
-    if(state == OMX_StatePause && (nextState == OMX_StateIdle || nextState == OMX_StateExecuting || nextState == OMX_StateInvalid))
-      bShouldPauseFillEnd = true;
-
     if(NewtransientState == TransientLoadedToIdle)
       if(!module->CheckParam())
         throw OMX_ErrorUndefined;
-
-    if(state != OMX_StatePause && (NewtransientState == TransientExecutingToPause || NewtransientState == TransientExecutingToIdle))
-    {
-      auto p = make_shared<promise<int>>();
-      processor->queue(CreateTask(Fence, param, p));
-      processorFill->queue(CreateTask(RemoveFence, param, p));
-    }
 
     transientState = NewtransientState;
     taskCommand = SetState;
@@ -303,21 +288,13 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
   {
     OMXChecker::CheckNull(data);
 
-    if(state != OMX_StatePause)
-    {
-      auto p = make_shared<promise<int>>();
-      processor->queue(CreateTask(Fence, param, p));
-      processorFill->queue(CreateTask(RemoveFence, param, p));
-    }
-
     if(param == OMX_ALL)
     {
       for(auto i = ports.nStartPortNumber; i < ports.nPorts; i++)
-        processor->queue(CreateTask(Flush, i, shared_ptr<void>(data, nullDeleter)));
+        processorMain->queue(CreateTask(Flush, i, shared_ptr<void>(data, nullDeleter)));
 
       return;
     }
-
     CheckPortIndex(param);
     taskCommand = Flush;
     break;
@@ -332,7 +309,8 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
       {
         GetPort(i)->enable = false;
         GetPort(i)->isTransientToDisable = true;
-        processor->queue(CreateTask(DisablePort, i, shared_ptr<void>(data, nullDeleter)));
+        isSettingsInit = false;
+        processorMain->queue(CreateTask(DisablePort, i, shared_ptr<void>(data, nullDeleter)));
       }
 
       return;
@@ -355,7 +333,8 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
       {
         GetPort(i)->enable = true;
         GetPort(i)->isTransientToEnable = true;
-        processor->queue(CreateTask(EnablePort, i, shared_ptr<void>(data, nullDeleter)));
+        isSettingsInit = true;
+        processorMain->queue(CreateTask(EnablePort, i, shared_ptr<void>(data, nullDeleter)));
       }
 
       return;
@@ -382,24 +361,7 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
     throw OMX_ErrorBadParameter;
   }
 
-  processor->queue(CreateTask(taskCommand, param, shared_ptr<void>(data, nullDeleter)));
-
-  // processorFill waits  while in state OMX_StatePause
-
-  if(command == OMX_CommandStateSet)
-  {
-    if(bShouldPauseFillEnd)
-    {
-      processor->queue(CreateTask(RemoveFence, param, pauseFill));
-      pauseFill = nullptr;
-    }
-
-    if(bShouldPauseFill)
-    {
-      pauseFill = make_shared<promise<int>>();
-      processorFill->queue(CreateTask(Fence, param, pauseFill));
-    }
-  }
+  processorMain->queue(CreateTask(taskCommand, param, shared_ptr<void>(data, nullDeleter)));
 }
 
 OMX_ERRORTYPE Component::SendCommand(OMX_IN OMX_COMMANDTYPE cmd, OMX_IN OMX_U32 param, OMX_IN OMX_PTR data)
@@ -1024,7 +986,7 @@ OMX_ERRORTYPE Component::EmptyThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
   OMXChecker::CheckStateOperation(AL_EmptyThisBuffer, state);
   CheckPortIndex(header->nInputPortIndex);
 
-  processor->queue(CreateTask(EmptyBuffer, static_cast<OMX_U32>(input.index), shared_ptr<void>(header, nullDeleter)));
+  processorMain->queue(CreateTask(EmptyBuffer, static_cast<OMX_U32>(input.index), shared_ptr<void>(header, nullDeleter)));
 
   return OMX_ErrorNone;
   OMX_CATCH();
@@ -1042,7 +1004,7 @@ OMX_ERRORTYPE Component::FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
   header->pMarkData = NULL;
   header->nFlags = 0;
 
-  processorFill->queue(CreateTask(FillBuffer, static_cast<OMX_U32>(output.index), shared_ptr<void>(header, nullDeleter)));
+  processorMain->queue(CreateTask(FillBuffer, static_cast<OMX_U32>(output.index), shared_ptr<void>(header, nullDeleter)));
 
   return OMX_ErrorNone;
   OMX_CATCH();
@@ -1128,7 +1090,7 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
     if(bitrate->nEncodeBitrate == 0)
       throw OMX_ErrorBadParameter;
 
-    processor->queue(CreateTask(SetDynamic, OMX_IndexConfigVideoBitrate, shared_ptr<void>(bitrate)));
+    processorMain->queue(CreateTask(SetDynamic, OMX_IndexConfigVideoBitrate, shared_ptr<void>(bitrate)));
 
     return OMX_ErrorNone;
   }
@@ -1137,7 +1099,7 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
     OMX_CONFIG_FRAMERATETYPE* framerate = new OMX_CONFIG_FRAMERATETYPE;
     memcpy(framerate, static_cast<OMX_CONFIG_FRAMERATETYPE*>(config), sizeof(OMX_CONFIG_FRAMERATETYPE));
 
-    processor->queue(CreateTask(SetDynamic, OMX_IndexConfigVideoFramerate, shared_ptr<void>(framerate)));
+    processorMain->queue(CreateTask(SetDynamic, OMX_IndexConfigVideoFramerate, shared_ptr<void>(framerate)));
 
     return OMX_ErrorNone;
   }
@@ -1145,42 +1107,42 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
   {
     OMX_ALG_VIDEO_CONFIG_INSERT* idr = new OMX_ALG_VIDEO_CONFIG_INSERT;
     memcpy(idr, static_cast<OMX_ALG_VIDEO_CONFIG_INSERT*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_INSERT));
-    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh, shared_ptr<void>(idr)));
+    processorMain->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh, shared_ptr<void>(idr)));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexConfigVideoGroupOfPictures:
   {
     OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES* gop = new OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES;
     memcpy(gop, static_cast<OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES));
-    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoGroupOfPictures, shared_ptr<void>(gop)));
+    processorMain->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoGroupOfPictures, shared_ptr<void>(gop)));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexConfigVideoRegionOfInterest:
   {
     OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST* roi = new OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST;
     memcpy(roi, static_cast<OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST));
-    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoRegionOfInterest, shared_ptr<void>(roi)));
+    processorMain->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoRegionOfInterest, shared_ptr<void>(roi)));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexConfigVideoNotifySceneChange:
   {
     OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE* notifySceneChange = new OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE;
     memcpy(notifySceneChange, static_cast<OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE));
-    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoNotifySceneChange, shared_ptr<void>(notifySceneChange)));
+    processorMain->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoNotifySceneChange, shared_ptr<void>(notifySceneChange)));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexConfigVideoInsertLongTerm:
   {
     OMX_ALG_VIDEO_CONFIG_INSERT* lt = new OMX_ALG_VIDEO_CONFIG_INSERT;
     memcpy(lt, static_cast<OMX_ALG_VIDEO_CONFIG_INSERT*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_INSERT));
-    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoInsertLongTerm, shared_ptr<void>(lt)));
+    processorMain->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoInsertLongTerm, shared_ptr<void>(lt)));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexConfigVideoUseLongTerm:
   {
     OMX_ALG_VIDEO_CONFIG_INSERT* lt = new OMX_ALG_VIDEO_CONFIG_INSERT;
     memcpy(lt, static_cast<OMX_ALG_VIDEO_CONFIG_INSERT*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_INSERT));
-    processor->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoUseLongTerm, shared_ptr<void>(lt)));
+    processorMain->queue(CreateTask(SetDynamic, OMX_ALG_IndexConfigVideoUseLongTerm, shared_ptr<void>(lt)));
     return OMX_ErrorNone;
   }
 
@@ -1253,10 +1215,10 @@ static inline bool isTransitionToLoaded(OMX_STATETYPE previousState, OMX_STATETY
 
 static inline bool isTransitionToRun(OMX_STATETYPE previousState, OMX_STATETYPE state)
 {
-  if(state != OMX_StateExecuting)
+  if(state != OMX_StateExecuting && state != OMX_StatePause)
     return false;
 
-  if((previousState != OMX_StateIdle) && (previousState != OMX_StatePause))
+  if(previousState != OMX_StateIdle)
     return false;
   return true;
 }
@@ -1266,7 +1228,7 @@ static inline bool isTransitionToStop(OMX_STATETYPE previousState, OMX_STATETYPE
   if(state != OMX_StateIdle)
     return false;
 
-  if((previousState != OMX_StateExecuting))
+  if((previousState != OMX_StateExecuting) && (previousState != OMX_StatePause))
     return false;
   return true;
 }
@@ -1313,13 +1275,56 @@ void Component::UnpopulatingPorts()
   }
 }
 
+void Component::FlushFillEmptyBuffers()
+{
+  auto d = bind(&Component::_DeleteFillEmpty, this, placeholders::_1);
+  auto p = bind(&Component::_ProcessFillBuffer, this, placeholders::_1);
+  auto p2 = bind(&Component::_ProcessEmptyBuffer, this, placeholders::_1);
+  processorFill.reset(new ProcessorFifo(p, d));
+  processorEmpty.reset(new ProcessorFifo(p2, d));
+}
+
+void Component::BlockFillEmptyBuffers()
+{
+  assert(!pausePromise);
+  pausePromise.reset(new promise<void> );
+  auto pauseFuture = make_shared<shared_future<void>>(pausePromise->get_future());
+  processorFill->queue(CreateTask(SharedFence, state, pauseFuture));
+  processorEmpty->queue(CreateTask(SharedFence, state, pauseFuture));
+}
+
+void Component::UnblockFillEmptyBuffers()
+{
+  assert(pausePromise);
+  pausePromise->set_value();
+  pausePromise = nullptr;
+}
+
+static bool isFlushingRequired(OMX_STATETYPE prevState, OMX_STATETYPE newState)
+{
+  try
+  {
+    OMXChecker::CheckStateExistance(prevState);
+    OMXChecker::CheckStateExistance(newState);
+    OMXChecker::CheckStateTransition(prevState, newState);
+    auto transientState = GetTransientState(prevState, newState);
+
+    if(transientState == TransientExecutingToPause || transientState == TransientExecutingToIdle || newState == OMX_StateInvalid)
+      return true;
+    return false;
+  }
+  catch(OMX_ERRORTYPE& e)
+  {
+    return false;
+  }
+}
+
 void Component::TreatSetStateCommand(Task* task)
 {
   try
   {
     assert(task);
     assert(task->cmd == SetState);
-
     auto newState = (OMX_STATETYPE)((uintptr_t)task->data);
     LOGI("Set State : %s", ToStringOMXState.at(newState));
     OMXChecker::CheckStateTransition(state, newState);
@@ -1353,11 +1358,14 @@ void Component::TreatSetStateCommand(Task* task)
       }
     }
 
-    if(isTransitionToPause(state, newState))
-      module->Pause();
-
     if(isTransitionToStop(state, newState))
       module->Stop();
+
+    if(newState == OMX_StatePause)
+      BlockFillEmptyBuffers();
+
+    if(state == OMX_StatePause)
+      UnblockFillEmptyBuffers();
 
     state = newState;
 
@@ -1569,39 +1577,40 @@ void Component::TreatDynamicCommand(Task* task)
   }
 }
 
-static void TreatRemoveFenceCommand(Task* task)
+static void TreatSharedFenceCommand(Task* task)
 {
-  auto p = (promise<int>*)task->opt.get();
-  p->set_value(0);
+  auto p = (shared_future<void>*)task->opt.get();
+  p->wait();
 }
 
-static void TreatFenceCommand(Task* task)
-{
-  auto p = (promise<int>*)task->opt.get();
-  p->get_future().wait();
-}
-
-void Component::_Delete(void* data)
-{
-  auto task = static_cast<Task*>(data);
-  delete task;
-}
-
-void Component::_Process(void* data)
+void Component::_ProcessMain(void* data)
 {
   auto task = static_cast<Task*>(data);
   switch(task->cmd)
   {
   case SetState:
   {
+    auto newState = (OMX_STATETYPE)((uintptr_t)task->data);
+
+    if(isFlushingRequired(state, newState))
+      FlushFillEmptyBuffers();
+
     lock_guard<mutex> lock(moduleMutex);
     TreatSetStateCommand(task);
     break;
   }
   case Flush:
   {
+    if(state == OMX_StatePause)
+      UnblockFillEmptyBuffers();
+
+    FlushFillEmptyBuffers();
+
     lock_guard<mutex> lock(moduleMutex);
     TreatFlushCommand(task);
+
+    if(state == OMX_StatePause)
+      BlockFillEmptyBuffers();
     break;
   }
   case DisablePort:
@@ -1621,7 +1630,14 @@ void Component::_Process(void* data)
   }
   case EmptyBuffer:
   {
-    TreatEmptyBufferCommand(task);
+    processorEmpty->queue(task);
+    task = nullptr;
+    break;
+  }
+  case FillBuffer:
+  {
+    processorFill->queue(task);
+    task = nullptr;
     break;
   }
   case SetDynamic:
@@ -1629,20 +1645,38 @@ void Component::_Process(void* data)
     TreatDynamicCommand(task);
     break;
   }
-  case Fence:
-  {
-    TreatFenceCommand(task);
-    break;
-  }
-  case RemoveFence:
-  {
-    TreatRemoveFenceCommand(task);
-    break;
-  }
   default:
     assert(0 == "bad command");
   }
 
+  delete task;
+}
+
+void Component::_Delete(void* data)
+{
+  auto task = static_cast<Task*>(data);
+  delete task;
+}
+
+void Component::_DeleteFillEmpty(void* data)
+{
+  auto task = static_cast<Task*>(data);
+  assert(task);
+
+  if(task->cmd == FillBuffer)
+  {
+    assert(static_cast<int>((uintptr_t)task->data) == output.index);
+    auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
+    assert(header);
+    callbacks.FillBufferDone(component, app, header);
+  }
+  else if(task->cmd == EmptyBuffer)
+  {
+    assert(static_cast<int>((uintptr_t)task->data) == input.index);
+    auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
+    assert(header);
+    callbacks.EmptyBufferDone(component, app, header);
+  }
   delete task;
 }
 
@@ -1655,10 +1689,24 @@ void Component::_ProcessFillBuffer(void* data)
     lock_guard<mutex> lock(moduleMutex);
     TreatFillBufferCommand(task);
   }
-  else if(task->cmd == RemoveFence)
-    TreatRemoveFenceCommand(task);
-  else if(task->cmd == Fence)
-    TreatFenceCommand(task);
+  else if(task->cmd == SharedFence)
+    TreatSharedFenceCommand(task);
+  else
+    assert(0 == "bad command");
+  delete task;
+}
+
+void Component::_ProcessEmptyBuffer(void* data)
+{
+  auto task = static_cast<Task*>(data);
+
+  if(task->cmd == EmptyBuffer)
+  {
+    lock_guard<mutex> lock(moduleMutex);
+    TreatEmptyBufferCommand(task);
+  }
+  else if(task->cmd == SharedFence)
+    TreatSharedFenceCommand(task);
   else
     assert(0 == "bad command");
   delete task;

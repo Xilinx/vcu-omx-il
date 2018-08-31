@@ -638,16 +638,6 @@ ErrorType DecModule::Run(bool shouldPrealloc)
   return CreateDecoder(shouldPrealloc);
 }
 
-bool DecModule::Pause()
-{
-  if(!decoder)
-    return false;
-
-  ReleaseAllBuffers();
-
-  return false;
-}
-
 bool DecModule::Flush()
 {
   if(!decoder)

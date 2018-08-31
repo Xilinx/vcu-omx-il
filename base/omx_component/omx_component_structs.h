@@ -54,8 +54,7 @@ enum Command
   EmptyBuffer,
   FillBuffer,
   SetDynamic,
-  Fence,
-  RemoveFence,
+  SharedFence,
   Max,
 };
 

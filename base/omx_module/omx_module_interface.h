@@ -155,7 +155,6 @@ struct ModuleInterface
   virtual bool Fill(BufferHandleInterface* handle) = 0;
 
   virtual ErrorType Run(bool shouldPrealloc) = 0;
-  virtual bool Pause() = 0;
   virtual bool Flush() = 0;
   virtual void Stop() = 0;
 
