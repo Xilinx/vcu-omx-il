@@ -36,7 +36,7 @@
 ******************************************************************************/
 
 #include "omx_convert_module_soft_dec.h"
-#include <assert.h>
+#include <cassert>
 
 AL_EDpbMode ConvertModuleToSoftDecodedPictureBuffer(DecodedPictureBufferType mode)
 {

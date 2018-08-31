@@ -40,7 +40,7 @@
 #include "processor_interface.h"
 #include "locked_queue.h"
 #include <thread>
-#include <assert.h>
+#include <cassert>
 #include <functional>
 
 class ProcessorFifo : ProcessorInterface

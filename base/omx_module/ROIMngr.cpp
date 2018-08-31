@@ -35,14 +35,13 @@
 *
 ******************************************************************************/
 
-#include <assert.h>
+#include "ROIMngr.h"
+#include <cassert>
 
 extern "C"
 {
 #include "lib_rtos/lib_rtos.h"
 }
-
-#include "ROIMngr.h"
 
 /****************************************************************************/
 static AL_INLINE int RoundUp(int iVal, int iRnd)
