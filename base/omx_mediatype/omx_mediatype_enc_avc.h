@@ -109,5 +109,7 @@ private:
   {
     VideoModeType::VIDEO_MODE_PROGRESSIVE,
   };
+
+  std::map<Format, std::vector<Format>> supportedFormatsMap;
 };
 

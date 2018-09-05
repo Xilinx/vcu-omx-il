@@ -57,6 +57,7 @@ EncMediatypeHEVC::EncMediatypeHEVC()
 {
   strideAlignment.widthStride = 32;
   strideAlignment.heightStride = 8;
+  CreateFormatsSupportedMap(colors, bitdepths, supportedFormatsMap);
   Reset();
 }
 
@@ -316,7 +317,10 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Get(std::string index, v
 
   if(index == "SETTINGS_INDEX_FORMATS_SUPPORTED")
   {
-    *(static_cast<vector<Format>*>(settings)) = CreateFormatsSupported(colors, bitdepths);
+    SupportedFormats supported;
+    supported.input = CreateFormatsSupported(colors, bitdepths);
+    supported.output = CreateFormatsSupportedByCurrent(CreateFormat(this->settings), supportedFormatsMap);
+    *(static_cast<SupportedFormats*>(settings)) = supported;
     return ERROR_SETTINGS_NONE;
   }
 

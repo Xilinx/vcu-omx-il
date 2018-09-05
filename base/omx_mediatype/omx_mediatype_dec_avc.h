@@ -110,5 +110,7 @@ private:
     SequencePictureModeType::SEQUENCE_PICTURE_MODE_UNKNOWN,
     SequencePictureModeType::SEQUENCE_PICTURE_MODE_FRAME,
   };
+
+  std::map<Format, std::vector<Format>> supportedFormatsMap;
 };
 

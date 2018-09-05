@@ -170,9 +170,10 @@ OMX_ERRORTYPE SetPortBufferMode(OMX_ALG_PORT_PARAM_BUFFER_MODE const& portBuffer
 
 OMX_ERRORTYPE GetVideoPortFormatSupported(OMX_VIDEO_PARAM_PORTFORMATTYPE& format, shared_ptr<MediatypeInterface> media)
 {
-  vector<Format> supported;
-  auto ret = media->Get(SETTINGS_INDEX_FORMATS_SUPPORTED, &supported);
+  SupportedFormats supportedFormats;
+  auto ret = media->Get(SETTINGS_INDEX_FORMATS_SUPPORTED, &supportedFormats);
   OMX_CHECK_MEDIA_GET(ret);
+  vector<Format> supported = IsInputPort(format.nPortIndex) ? supportedFormats.input : supportedFormats.output;
 
   if(format.nIndex >= supported.size())
     return OMX_ErrorNoMore;

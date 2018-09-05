@@ -39,6 +39,7 @@
 
 #include "omx_module_enums.h"
 #include <string>
+#include <vector>
 
 struct BufferHandles
 {
@@ -157,6 +158,22 @@ struct Format
 {
   ColorType color;
   int bitdepth;
+
+  bool operator == (const Format& o) const
+  {
+    return color == o.color && bitdepth == o.bitdepth;
+  }
+
+  bool operator < (const Format& o) const
+  {
+    return color < o.color || (color == o.color && bitdepth < o.bitdepth);
+  }
+};
+
+struct SupportedFormats
+{
+  std::vector<Format> input;
+  std::vector<Format> output;
 };
 
 struct ProfileLevelType

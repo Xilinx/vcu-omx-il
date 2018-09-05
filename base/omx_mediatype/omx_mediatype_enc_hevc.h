@@ -116,5 +116,7 @@ private:
     VideoModeType::VIDEO_MODE_ALTERNATE_TOP_BOTTOM_FIELD,
     VideoModeType::VIDEO_MODE_ALTERNATE_BOTTOM_TOP_FIELD,
   };
+
+  std::map<Format, std::vector<Format>> supportedFormatsMap;
 };
 
