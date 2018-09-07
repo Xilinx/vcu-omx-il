@@ -86,6 +86,11 @@ Gop CreateGroupOfPictures(AL_TEncSettings settings)
   return gop;
 }
 
+static bool isGDREnabled(Gop gop)
+{
+  return gop.gdr == GdrType::GDR_VERTICAL || gop.gdr == GdrType::GDR_HORTIZONTAL;
+}
+
 bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop gop)
 {
   if(!CheckGroupOfPictures(gop))
@@ -97,6 +102,10 @@ bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop gop)
   gopParam.uFreqIDR = gop.idrFrequency;
   gopParam.eMode = ConvertModuleToSoftGopControl(gop.mode);
   gopParam.eGdrMode = ConvertModuleToSoftGdr(gop.gdr);
+  if(isGDREnabled(gop))
+    settings.uEnableSEI |= SEI_RP;
+  else
+    settings.uEnableSEI &= ~SEI_RP;
   gopParam.bEnableLT = gop.isLongTermEnabled;
   gopParam.uFreqLT = gop.ltFrequency;
 
