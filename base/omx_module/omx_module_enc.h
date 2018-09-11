@@ -94,7 +94,7 @@ struct PassEncoder
   AL_HEncoder enc;
   int index;
   std::list<AL_TBuffer*> roiBuffers;
-  AL_TBuffer* streamBuffer;
+  std::vector<AL_TBuffer*> streamBuffers;
   std::deque<AL_TBuffer*> fifo;
   std::promise<int>* EOSFinished;
   LookAheadParams lookAheadParams;

@@ -149,15 +149,21 @@ void EncModule::InitEncoders(int numPass)
   {
     PassEncoder encoderPass;
     encoderPass.index = pass;
-    encoderPass.streamBuffer = nullptr;
+    encoderPass.streamBuffers.clear();
     encoderPass.lookAheadParams.fifoSize = 0;
     encoderPass.EOSFinished = new promise<int>();
 
     if(pass < numPass - 1)
     {
       encoderPass.lookAheadParams.callbackParam = { this, pass };
-      encoderPass.streamBuffer = AL_Buffer_Create_And_Allocate(allocator.get(), GetBufferRequirements().output.size, AL_Buffer_Destroy);
-      AL_Buffer_Ref(encoderPass.streamBuffer);
+
+      auto requiredBuffers = AL_IS_AVC(media->settings.tChParam[0].eProfile) ? 2 : 1;
+
+      for(int i = 0; i < requiredBuffers; i++)
+      {
+        encoderPass.streamBuffers.push_back(AL_Buffer_Create_And_Allocate(allocator.get(), GetBufferRequirements().output.size, AL_Buffer_Destroy));
+        AL_Buffer_Ref(encoderPass.streamBuffers.back());
+      }
     }
 
     encoders.push_back(encoderPass);
@@ -216,10 +222,13 @@ ErrorType EncModule::CreateEncoder()
       return ToModuleError(errorCode);
     }
 
-    if(pass < numPass - 1 && encoderPass.streamBuffer)
+    for(int i = 0; i < (int)encoderPass.streamBuffers.size(); i++)
     {
-      CreateAndAttachStreamMeta(*encoderPass.streamBuffer);
-      AL_Encoder_PutStreamBuffer(encoderPass.enc, encoderPass.streamBuffer);
+      if(pass < numPass - 1 && encoderPass.streamBuffers[i])
+      {
+        CreateAndAttachStreamMeta(*encoderPass.streamBuffers[i]);
+        AL_Encoder_PutStreamBuffer(encoderPass.enc, encoderPass.streamBuffers[i]);
+      }
     }
   }
 
@@ -237,7 +246,7 @@ bool EncModule::DestroyEncoder()
     return false;
   }
 
-  for(uint8_t pass = 0; pass < encoders.size(); pass++)
+  for(auto pass = 0; pass < (int)encoders.size(); pass++)
   {
     PassEncoder encoder = encoders[pass];
 
@@ -257,8 +266,11 @@ bool EncModule::DestroyEncoder()
       AL_Buffer_Unref(src);
     }
 
-    if(encoder.streamBuffer)
-      AL_Buffer_Unref(encoder.streamBuffer);
+    for(int i = 0; i < (int)encoder.streamBuffers.size(); i++)
+    {
+      if(encoder.streamBuffers[i])
+        AL_Buffer_Unref(encoder.streamBuffers[i]);
+    }
 
     delete encoder.EOSFinished;
   }
@@ -775,7 +787,7 @@ static int ReconstructStream(AL_TBuffer& stream)
   auto meta = (AL_TStreamMetaData*)(AL_Buffer_GetMetaData(&stream, AL_META_TYPE_STREAM));
   assert(meta);
 
-  for(auto i = 0; i < meta->uNumSection; i++)
+  for(int i = 0; i < meta->uNumSection; i++)
     size += WriteOneSection(origin, stream, i);
 
   return size;
@@ -909,6 +921,12 @@ void EncModule::EndEncodingLookAhead(AL_TBuffer* stream, AL_TBuffer const* sourc
       callbacks.event(CALLBACK_EVENT_ERROR, (void*)ToModuleError(errorCode));
   }
 
+  if(isEOS)
+  {
+    AddFifo(encoder, (AL_TBuffer*)source);
+    return;
+  }
+
   BufferHandles bufferHandles = GetBufferHandles();
 
   if(isSrcRelease)
@@ -920,14 +938,10 @@ void EncModule::EndEncodingLookAhead(AL_TBuffer* stream, AL_TBuffer const* sourc
   if(isStreamRelease)
     return;
 
-  if(isEOS || isEndOfFrame(stream))
+  if(isEndOfFrame(stream))
   {
     AddFifo(encoder, (AL_TBuffer*)source);
-
-    if(encoder.streamBuffer)
-      AL_Encoder_PutStreamBuffer(encoder.enc, encoder.streamBuffer);
-
-    return;
+    AL_Encoder_PutStreamBuffer(encoder.enc, stream);
   }
 }
 
@@ -1015,7 +1029,7 @@ Flags EncModule::GetFlags(AL_TBuffer* stream)
 
   Flags flags {};
 
-  for(auto i = 0; i < meta->uNumSection; i++)
+  for(int i = 0; i < meta->uNumSection; i++)
   {
     if(meta->pSections[i].uFlags & SECTION_SYNC_FLAG)
       flags.isSync = true;
