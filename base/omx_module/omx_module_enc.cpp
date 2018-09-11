@@ -40,7 +40,7 @@
 #include <cassert>
 #include <cmath>
 #include <unistd.h> // close fd
-#include <cstring> // memcpy
+#include <algorithm>
 
 extern "C"
 {
@@ -682,7 +682,7 @@ bool EncModule::Empty(BufferHandleInterface* handle)
   if(shouldBeCopied.Exist(input))
   {
     auto buffer = shouldBeCopied.Get(input);
-    memcpy(AL_Buffer_GetData(input), buffer, input->zSize);
+    copy(buffer, buffer + input->zSize, AL_Buffer_GetData(input));
   }
 
   if(currentEnc.roiBuffers.empty())
@@ -755,7 +755,7 @@ bool EncModule::Fill(BufferHandleInterface* handle)
 
 static void AppendBuffer(uint8_t*& dst, uint8_t const* src, size_t len)
 {
-  memmove(dst, src, len);
+  move(src, src + len, dst);
   dst += len;
 }
 
@@ -889,7 +889,7 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
   if(shouldBeCopied.Exist(stream))
   {
     auto buffer = shouldBeCopied.Get(stream);
-    memcpy(buffer, AL_Buffer_GetData(stream), size);
+    copy(AL_Buffer_GetData(stream), AL_Buffer_GetData(stream) + size, buffer);
   }
 
   if(bufferHandles.output == BufferHandleType::BUFFER_HANDLE_FD)
@@ -1129,7 +1129,7 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
     auto size = AL_GetAllocSizeEP2(tDim, chan.uMaxCuSize);
     auto roiBuffer = AL_Buffer_Create_And_Allocate(allocator.get(), size, AL_Buffer_Destroy);
     AL_Buffer_Ref(roiBuffer);
-    memcpy(AL_Buffer_GetData(roiBuffer), bufferToEmpty, size);
+    copy(bufferToEmpty, bufferToEmpty + size, AL_Buffer_GetData(roiBuffer));
     encoders.front().roiBuffers.push_back(roiBuffer);
     return SUCCESS;
   }
