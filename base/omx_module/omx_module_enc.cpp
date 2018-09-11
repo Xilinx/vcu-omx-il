@@ -859,13 +859,6 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
     return;
   }
 
-  auto size = ReconstructStream(*stream);
-
-  if(shouldBeCopied.Exist(stream))
-  {
-    auto buffer = shouldBeCopied.Get(stream);
-    memcpy(buffer, AL_Buffer_GetData(stream), size);
-  }
   auto rhandleIn = handles.Get(source);
   assert(rhandleIn->data);
 
@@ -889,6 +882,14 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
     rhandleIn->offset = 0;
     rhandleIn->payload = 0;
     callbacks.emptied(rhandleIn);
+  }
+
+  auto size = ReconstructStream(*stream);
+
+  if(shouldBeCopied.Exist(stream))
+  {
+    auto buffer = shouldBeCopied.Get(stream);
+    memcpy(buffer, AL_Buffer_GetData(stream), size);
   }
 
   if(bufferHandles.output == BufferHandleType::BUFFER_HANDLE_FD)
