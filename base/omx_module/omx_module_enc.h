@@ -52,6 +52,7 @@
 #include <memory>
 
 #include "base/omx_utils/threadsafe_map.h"
+#include "base/omx_utils/processor_fifo.h"
 #include "base/omx_mediatype/omx_mediatype_enc_interface.h"
 
 #if AL_ENABLE_TWOPASS
@@ -89,15 +90,18 @@ struct LookAheadParams
   int complexityDiff;
 };
 
-struct PassEncoder
+struct GenericEncoder
 {
-  AL_HEncoder enc;
-  int index;
-  std::list<AL_TBuffer*> roiBuffers;
-  std::vector<AL_TBuffer*> streamBuffers;
-  std::deque<AL_TBuffer*> fifo;
-  std::promise<int>* EOSFinished;
-  LookAheadParams lookAheadParams;
+  GenericEncoder(int pass) : index{pass} {}
+
+  ~GenericEncoder() = default;
+  AL_HEncoder enc {};
+  int index {};
+  std::list<AL_TBuffer*> roiBuffers {};
+  std::vector<AL_TBuffer*> streamBuffers {};
+  std::deque<AL_TBuffer*> fifo {};
+  std::shared_ptr<ProcessorFifo> threadFifo {};
+  LookAheadParams lookAheadParams {};
 
 #if AL_ENABLE_TWOPASS
   void ProcessLookAheadParams(AL_TBuffer* src);
@@ -120,8 +124,8 @@ struct EncModule : public ModuleInterface
   bool SetCallbacks(Callbacks callbacks) override;
 
   bool CreateAndAttachStreamMeta(AL_TBuffer& buf);
-  void AddFifo(PassEncoder& encoder, AL_TBuffer* src);
-  void EmptyFifo(PassEncoder& encoder, bool isEOS);
+  void AddFifo(GenericEncoder& encoder, AL_TBuffer* src);
+  void EmptyFifo(GenericEncoder& encoder, bool isEOS);
 
   bool CheckParam() override;
   bool Create() override;
@@ -151,7 +155,7 @@ private:
   std::shared_ptr<EncMediatypeInterface> const media;
   std::shared_ptr<EncDevice> const device;
   std::shared_ptr<AL_TAllocator> const allocator;
-  std::vector<PassEncoder> encoders;
+  std::vector<GenericEncoder> encoders;
   TScheduler* scheduler;
   Callbacks callbacks;
 
@@ -181,6 +185,8 @@ private:
     pThis->EndEncodingLookAhead(pStream, pSource, params->index);
   };
   void EndEncodingLookAhead(AL_TBuffer* pStream, AL_TBuffer const* pSource, int index);
+  void _ProcessEmptyFifo(void* data);
+  void _DeleteEmptyFifo(void* data);
   void FlushEosHandles();
 
   ThreadSafeMap<AL_TBuffer const*, BufferHandleInterface*> handles;
@@ -188,5 +194,14 @@ private:
   ThreadSafeMap<int, AL_HANDLE> allocatedDMA;
   ThreadSafeMap<AL_TBuffer*, AL_VADDR> shouldBeCopied;
   ThreadSafeMap<BufferHandleInterface*, AL_TBuffer*> pool;
+};
+
+struct EmptyFifoParam
+{
+  EmptyFifoParam(GenericEncoder* encoder, bool isEOS) :
+    encoder{encoder}, isEOS{isEOS} {};
+
+  GenericEncoder* encoder;
+  bool isEOS;
 };
 

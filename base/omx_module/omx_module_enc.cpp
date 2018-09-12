@@ -129,7 +129,7 @@ map<AL_ERR, string> MapToStringEncodeError =
 
 string ToStringEncodeError(int error)
 {
-  string str_error = "";
+  string str_error {};
   try
   {
     str_error = MapToStringEncodeError.at(error);
@@ -147,11 +147,9 @@ void EncModule::InitEncoders(int numPass)
 
   for(auto pass = 0; pass < numPass; pass++)
   {
-    PassEncoder encoderPass;
-    encoderPass.index = pass;
-    encoderPass.streamBuffers.clear();
-    encoderPass.lookAheadParams.fifoSize = 0;
-    encoderPass.EOSFinished = new promise<int>();
+    GenericEncoder encoderPass {
+      pass
+    };
 
     if(pass < numPass - 1)
     {
@@ -164,6 +162,10 @@ void EncModule::InitEncoders(int numPass)
         encoderPass.streamBuffers.push_back(AL_Buffer_Create_And_Allocate(allocator.get(), GetBufferRequirements().output.size, AL_Buffer_Destroy));
         AL_Buffer_Ref(encoderPass.streamBuffers.back());
       }
+
+      auto p = bind(&EncModule::_ProcessEmptyFifo, this, placeholders::_1);
+      auto d = bind(&EncModule::_DeleteEmptyFifo, this, placeholders::_1);
+      encoderPass.threadFifo.reset(new ProcessorFifo(p, d));
     }
 
     encoders.push_back(encoderPass);
@@ -200,7 +202,7 @@ ErrorType EncModule::CreateEncoder()
   for(auto pass = 0; pass < numPass; pass++)
   {
     auto settingsPass = media->settings;
-    PassEncoder& encoderPass = encoders[pass];
+    GenericEncoder& encoderPass = encoders[pass];
     AL_CB_EndEncoding callback = { EncModule::RedirectionEndEncoding, this };
 
 #if AL_ENABLE_TWOPASS
@@ -248,7 +250,7 @@ bool EncModule::DestroyEncoder()
 
   for(auto pass = 0; pass < (int)encoders.size(); pass++)
   {
-    PassEncoder encoder = encoders[pass];
+    GenericEncoder encoder = encoders[pass];
 
     AL_Encoder_Destroy(encoder.enc);
 
@@ -271,8 +273,6 @@ bool EncModule::DestroyEncoder()
       if(encoder.streamBuffers[i])
         AL_Buffer_Unref(encoder.streamBuffers[i]);
     }
-
-    delete encoder.EOSFinished;
   }
 
   encoders.clear();
@@ -630,7 +630,7 @@ bool EncModule::Empty(BufferHandleInterface* handle)
   if(!encoders.size())
     return false;
 
-  PassEncoder& currentEnc = encoders.front();
+  GenericEncoder& currentEnc = encoders.front();
   AL_HEncoder encoder = currentEnc.enc;
 
   auto eos = (handle->payload == 0);
@@ -639,12 +639,6 @@ bool EncModule::Empty(BufferHandleInterface* handle)
   {
     eosHandles.input = handle;
     auto bRet = AL_Encoder_Process(encoder, nullptr, nullptr);
-
-    if(bRet && (int)encoders.size() != 1)
-    {
-      currentEnc.EOSFinished->get_future().wait();
-      EmptyFifo(currentEnc, true);
-    }
     return bRet;
   }
 
@@ -910,7 +904,7 @@ void EncModule::EndEncodingLookAhead(AL_TBuffer* stream, AL_TBuffer const* sourc
   auto isSrcRelease = (stream == nullptr && source);
   auto isEOS = (stream == nullptr && source == nullptr);
 
-  PassEncoder& encoder = encoders[index];
+  GenericEncoder& encoder = encoders[index];
 
   auto errorCode = AL_Encoder_GetLastError(encoder.enc);
 
@@ -946,7 +940,7 @@ void EncModule::EndEncodingLookAhead(AL_TBuffer* stream, AL_TBuffer const* sourc
   }
 }
 
-void EncModule::AddFifo(PassEncoder& encoder, AL_TBuffer* src)
+void EncModule::AddFifo(GenericEncoder& encoder, AL_TBuffer* src)
 {
   bool isEOS = (src == nullptr);
 
@@ -954,17 +948,15 @@ void EncModule::AddFifo(PassEncoder& encoder, AL_TBuffer* src)
   {
     AL_Buffer_Ref(src);
     encoder.fifo.push_back(src);
-    EmptyFifo(encoder, isEOS);
   }
-  else
-    encoder.EOSFinished->set_value(0);
+  encoder.threadFifo->queue(new EmptyFifoParam(&encoder, isEOS));
 }
 
-void EncModule::EmptyFifo(PassEncoder& encoder, bool isEOS)
+void EncModule::EmptyFifo(GenericEncoder& encoder, bool isEOS)
 {
   assert(encoder.index < (int)encoders.size() - 1);
 
-  PassEncoder nextEnc = encoders[encoder.index + 1];
+  GenericEncoder nextEnc = encoders[encoder.index + 1];
 
 #if AL_ENABLE_TWOPASS
 
@@ -1200,7 +1192,7 @@ ErrorType EncModule::GetDynamic(std::string index, void* param)
 
 #if AL_ENABLE_TWOPASS
 
-void PassEncoder::ProcessLookAheadParams(AL_TBuffer* src)
+void GenericEncoder::ProcessLookAheadParams(AL_TBuffer* src)
 {
   auto pPictureMetaLA = (AL_TLookAheadMetaData*)AL_Buffer_GetMetaData(src, AL_META_TYPE_LOOKAHEAD);
   auto fifoSize = (int)fifo.size();
@@ -1221,7 +1213,7 @@ void PassEncoder::ProcessLookAheadParams(AL_TBuffer* src)
   }
 }
 
-void PassEncoder::ComputeComplexity(bool isEOS)
+void GenericEncoder::ComputeComplexity(bool isEOS)
 {
   lookAheadParams.complexityCount++;
   int fifoSize = static_cast<int>(fifo.size());
@@ -1248,4 +1240,20 @@ void PassEncoder::ComputeComplexity(bool isEOS)
 }
 
 #endif
+
+void EncModule::_ProcessEmptyFifo(void* data)
+{
+  auto param = static_cast<EmptyFifoParam*>(data);
+  assert(param);
+  assert(param->encoder);
+  GenericEncoder& encoder = *(param->encoder);
+  EmptyFifo(encoder, param->isEOS);
+  delete param;
+}
+
+void EncModule::_DeleteEmptyFifo(void* data)
+{
+  auto param = static_cast<EmptyFifoParam*>(data);
+  delete param;
+}
 
