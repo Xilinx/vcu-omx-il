@@ -131,10 +131,10 @@ static int CreateLatency(AL_TEncSettings settings)
   auto timeInMilliseconds = (static_cast<double>(buffers * 1000.0) / realFramerate);
 
   if(channel.bSubframeLatency)
-  {
     timeInMilliseconds /= channel.uNumSlices;
-    timeInMilliseconds += 1.0; // overhead
-  }
+
+  auto overhead = 1.0;
+  timeInMilliseconds += overhead;
 
   return ceil(timeInMilliseconds);
 }
