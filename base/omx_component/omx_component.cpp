@@ -1685,10 +1685,7 @@ void Component::_ProcessFillBuffer(void* data)
   auto task = static_cast<Task*>(data);
 
   if(task->cmd == FillBuffer)
-  {
-    lock_guard<mutex> lock(moduleMutex);
     TreatFillBufferCommand(task);
-  }
   else if(task->cmd == SharedFence)
     TreatSharedFenceCommand(task);
   else
