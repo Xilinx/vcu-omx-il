@@ -131,10 +131,11 @@ private:
   };
   void Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info);
 
-  static void RedirectionResolutionFound(int buffersNumber, int bufferSize, AL_TStreamSettings const* settings, AL_TCropInfo const* crop, void* userParam)
+  static AL_ERR RedirectionResolutionFound(int buffersNumber, int bufferSize, AL_TStreamSettings const* settings, AL_TCropInfo const* crop, void* userParam)
   {
     auto pThis = static_cast<DecModule*>(userParam);
     pThis->ResolutionFound(buffersNumber, bufferSize, *settings, *crop);
+    return AL_SUCCESS;
   };
   void ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSettings const& settings, AL_TCropInfo const& crop);
 
