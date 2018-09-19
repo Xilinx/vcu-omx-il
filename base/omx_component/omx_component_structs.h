@@ -55,6 +55,7 @@ enum Command
   FillBuffer,
   SetDynamic,
   SharedFence,
+  Signal,
   Max,
 };
 

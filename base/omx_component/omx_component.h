@@ -142,9 +142,8 @@ protected:
   OMX_PTR app;
   OMX_VERSIONTYPE version;
   OMX_VERSIONTYPE spec;
-  OMX_PORT_PARAM_TYPE ports;
+  OMX_PORT_PARAM_TYPE videoPortParams;
   std::queue<OMX_MARKTYPE*> marks;
-  std::mutex moduleMutex {};
 
   std::unique_ptr<ProcessorFifo> processorMain;
   std::unique_ptr<ProcessorFifo> processorEmpty;
@@ -164,6 +163,7 @@ protected:
   void PopulatingPorts();
   void UnpopulatingPorts();
   void FlushFillEmptyBuffers();
+  void CleanFlushFillEmptyBuffers();
   void BlockFillEmptyBuffers();
   void UnblockFillEmptyBuffers();
 
@@ -220,18 +220,18 @@ inline void PropagateHeaderData(OMX_BUFFERHEADERTYPE const* src, OMX_BUFFERHEADE
   dst->nFlags = src->nFlags;
 }
 
-#define START_PORT 0
-#define PORTS_COUNT 2
+#define VIDEO_START_PORT 0
+#define VIDEO_PORTS_COUNT 2
 
-inline void SetPortsParam(OMX_PORT_PARAM_TYPE& port)
+inline void SetPortsParam(OMX_PORT_PARAM_TYPE& portParams)
 {
-  port.nPorts = PORTS_COUNT;
-  port.nStartPortNumber = START_PORT;
+  portParams.nPorts = VIDEO_PORTS_COUNT;
+  portParams.nStartPortNumber = VIDEO_START_PORT;
 }
 
 inline bool IsInputPort(int index)
 {
-  return index == START_PORT;
+  return index == VIDEO_START_PORT;
 }
 
 static inline void CheckVersionExistance(OMX_PTR ptr)

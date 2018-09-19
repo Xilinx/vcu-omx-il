@@ -161,10 +161,10 @@ void Component::EventCallBack(CallbackEventType type, void* data)
 
 void Component::CheckPortIndex(int index)
 {
-  if(index < static_cast<int>(ports.nStartPortNumber))
+  if(index < static_cast<int>(videoPortParams.nStartPortNumber))
     throw OMX_ErrorBadPortIndex;
 
-  auto maxIndex = static_cast<int>(ports.nStartPortNumber + ports.nPorts - 1);
+  auto maxIndex = static_cast<int>(videoPortParams.nStartPortNumber + videoPortParams.nPorts - 1);
 
   if(index > maxIndex)
     throw OMX_ErrorBadPortIndex;
@@ -203,8 +203,8 @@ Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> me
   version.nVersion = ALLEGRODVT_OMX_VERSION;
   AssociateSpecVersion(spec);
 
-  OMXChecker::SetHeaderVersion(ports);
-  SetPortsParam(ports);
+  OMXChecker::SetHeaderVersion(videoPortParams);
+  SetPortsParam(videoPortParams);
   auto d = bind(&Component::_Delete, this, placeholders::_1);
   auto d2 = bind(&Component::_DeleteFillEmpty, this, placeholders::_1);
   auto p = bind(&Component::_ProcessMain, this, placeholders::_1);
@@ -290,7 +290,7 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
 
     if(param == OMX_ALL)
     {
-      for(auto i = ports.nStartPortNumber; i < ports.nPorts; i++)
+      for(auto i = videoPortParams.nStartPortNumber; i < videoPortParams.nPorts; i++)
         processorMain->queue(CreateTask(Flush, i, shared_ptr<void>(data, nullDeleter)));
 
       return;
@@ -305,7 +305,7 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
 
     if(param == OMX_ALL)
     {
-      for(auto i = ports.nStartPortNumber; i < ports.nPorts; i++)
+      for(auto i = videoPortParams.nStartPortNumber; i < videoPortParams.nPorts; i++)
       {
         GetPort(i)->enable = false;
         GetPort(i)->isTransientToDisable = true;
@@ -329,7 +329,7 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
 
     if(param == OMX_ALL)
     {
-      for(auto i = ports.nStartPortNumber; i < ports.nPorts; i++)
+      for(auto i = videoPortParams.nStartPortNumber; i < videoPortParams.nPorts; i++)
       {
         GetPort(i)->enable = true;
         GetPort(i)->isTransientToEnable = true;
@@ -440,7 +440,7 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
   {
   case OMX_IndexParamVideoInit:
   {
-    *(OMX_PORT_PARAM_TYPE*)param = ports;
+    *(OMX_PORT_PARAM_TYPE*)param = videoPortParams;
     return OMX_ErrorNone;
   }
   case OMX_IndexParamStandardComponentRole:
@@ -1245,7 +1245,7 @@ static inline bool isTransitionToPause(OMX_STATETYPE previousState, OMX_STATETYP
 
 void Component::PopulatingPorts()
 {
-  for(auto i = ports.nStartPortNumber; i < ports.nPorts; i++)
+  for(auto i = videoPortParams.nStartPortNumber; i < videoPortParams.nPorts; i++)
   {
     auto port = GetPort(i);
 
@@ -1262,7 +1262,7 @@ void Component::PopulatingPorts()
 
 void Component::UnpopulatingPorts()
 {
-  for(auto i = ports.nStartPortNumber; i < ports.nPorts; i++)
+  for(auto i = videoPortParams.nStartPortNumber; i < videoPortParams.nPorts; i++)
   {
     auto port = GetPort(i);
     port->WaitEmpty();
@@ -1282,6 +1282,17 @@ void Component::FlushFillEmptyBuffers()
   auto p2 = bind(&Component::_ProcessEmptyBuffer, this, placeholders::_1);
   processorFill.reset(new ProcessorFifo(p, d));
   processorEmpty.reset(new ProcessorFifo(p2, d));
+}
+
+void Component::CleanFlushFillEmptyBuffers()
+{
+  shared_ptr<promise<void>> signalPromise;
+  signalPromise.reset(new promise<void> );
+  processorFill->queue(CreateTask(Signal, state, signalPromise));
+  signalPromise->get_future().wait();
+  signalPromise.reset(new promise<void> );
+  processorEmpty->queue(CreateTask(Signal, state, signalPromise));
+  signalPromise->get_future().wait();
 }
 
 void Component::BlockFillEmptyBuffers()
@@ -1583,9 +1594,16 @@ static void TreatSharedFenceCommand(Task* task)
   p->wait();
 }
 
+static void TreatSignalCommand(Task* task)
+{
+  auto p = (promise<void>*)task->opt.get();
+  p->set_value();
+}
+
 void Component::_ProcessMain(void* data)
 {
   auto task = static_cast<Task*>(data);
+  assert(task);
   switch(task->cmd)
   {
   case SetState:
@@ -1595,7 +1613,6 @@ void Component::_ProcessMain(void* data)
     if(isFlushingRequired(state, newState))
       FlushFillEmptyBuffers();
 
-    lock_guard<mutex> lock(moduleMutex);
     TreatSetStateCommand(task);
     break;
   }
@@ -1606,7 +1623,6 @@ void Component::_ProcessMain(void* data)
 
     FlushFillEmptyBuffers();
 
-    lock_guard<mutex> lock(moduleMutex);
     TreatFlushCommand(task);
 
     if(state == OMX_StatePause)
@@ -1630,12 +1646,16 @@ void Component::_ProcessMain(void* data)
   }
   case EmptyBuffer:
   {
+    auto index = static_cast<int>((uintptr_t)task->data);
+    assert(IsInputPort(index));
     processorEmpty->queue(task);
     task = nullptr;
     break;
   }
   case FillBuffer:
   {
+    auto index = static_cast<int>((uintptr_t)task->data);
+    assert(!IsInputPort(index));
     processorFill->queue(task);
     task = nullptr;
     break;
@@ -1688,6 +1708,8 @@ void Component::_ProcessFillBuffer(void* data)
     TreatFillBufferCommand(task);
   else if(task->cmd == SharedFence)
     TreatSharedFenceCommand(task);
+  else if(task->cmd == Signal)
+    TreatSignalCommand(task);
   else
     assert(0 == "bad command");
   delete task;
@@ -1698,12 +1720,11 @@ void Component::_ProcessEmptyBuffer(void* data)
   auto task = static_cast<Task*>(data);
 
   if(task->cmd == EmptyBuffer)
-  {
-    lock_guard<mutex> lock(moduleMutex);
     TreatEmptyBufferCommand(task);
-  }
   else if(task->cmd == SharedFence)
     TreatSharedFenceCommand(task);
+  else if(task->cmd == Signal)
+    TreatSignalCommand(task);
   else
     assert(0 == "bad command");
   delete task;
