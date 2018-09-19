@@ -38,7 +38,7 @@
 #include "setters.h"
 #include "helpers.h"
 
-#include <assert.h>
+#include <cassert>
 #include <OMX_Component.h>
 #include <OMX_IndexExt.h>
 

@@ -37,7 +37,7 @@
 
 #pragma once
 
-#include <string.h>
+#include <cstring>
 #include <OMX_IVCommon.h>
 #include <OMX_VideoExt.h>
 
