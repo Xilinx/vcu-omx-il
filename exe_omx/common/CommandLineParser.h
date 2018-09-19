@@ -71,7 +71,7 @@ struct CommandLineParser
         auto i_func = options.find(word);
 
         if(i_func == options.end())
-          throw runtime_error("Unknown option: '" + word + "', use -h to get help");
+          throw runtime_error("Unknown option: '" + word + "', use --help to get help");
 
         i_func->second.parser(word);
       }
