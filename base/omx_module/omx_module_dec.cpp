@@ -39,8 +39,7 @@
 #include <cmath>
 #include <cassert>
 #include <unistd.h> // close fd
-#include <cstring> // memcpy
-#include <iostream>
+#include <algorithm>
 
 extern "C"
 {
@@ -195,7 +194,7 @@ void DecModule::CopyIfRequired(AL_TBuffer* frameToDisplay, int size)
   if(shouldBeCopied.Exist(frameToDisplay))
   {
     auto buffer = shouldBeCopied.Get(frameToDisplay);
-    memcpy(buffer, AL_Buffer_GetData(frameToDisplay), size);
+    copy(AL_Buffer_GetData(frameToDisplay), AL_Buffer_GetData(frameToDisplay) + size, buffer);
   }
 }
 
