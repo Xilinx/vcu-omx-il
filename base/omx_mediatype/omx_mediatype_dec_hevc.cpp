@@ -71,6 +71,7 @@ void DecMediatypeHEVC::Reset()
   settings.eDpbMode = AL_DPB_NORMAL;
   settings.eFBStorageMode = AL_FB_RASTER;
   settings.eCodec = AL_CODEC_HEVC;
+  settings.bUseIFramesAsSyncPoint = true;
 
   auto& stream = settings.tStream;
   stream.tDim = { 176, 144 };
