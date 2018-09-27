@@ -1,6 +1,6 @@
 THIS.exe_omx_enc:=$(call get-my-dir)
 
-EXE_NAME_ENC:=omx_encoder.exe
+EXE_NAME_ENC:=omx_encoder
 
 include $(THIS.exe_omx_enc)/encoder/project_enc.mk
 

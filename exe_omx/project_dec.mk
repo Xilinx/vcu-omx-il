@@ -1,6 +1,6 @@
 THIS.exe_omx_dec:=$(call get-my-dir)
 
-EXE_NAME_DEC:=omx_decoder.exe
+EXE_NAME_DEC:=omx_decoder
 
 include $(THIS.exe_omx_dec)/decoder/project_dec.mk
 
