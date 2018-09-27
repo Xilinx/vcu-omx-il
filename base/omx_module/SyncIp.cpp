@@ -282,11 +282,11 @@ static struct xvsfsync_chan_config setFrameBufferConfig(int channelId, AL_TBuffe
    *          |
    *          |
    *          v         x last pixel of the image
-   * end = (height - 1) * stride + width
+   * end = (height - 1) * stride + width - 1 (to get the last pixel of the image)
    * total_size = height * stride
-   * end = total_size - stride + width
+   * end = total_size - stride + width - 1
    */
-  config.luma_end_address = config.luma_start_address + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPitches.iLuma + srcMeta->tDim.iWidth;
+  config.luma_end_address = config.luma_start_address + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPitches.iLuma + srcMeta->tDim.iWidth - 1;
 
   /* chroma is the same, but the width depends on the format of the yuv
    * here we make the assumption that the fourcc is semi planar */
@@ -294,7 +294,7 @@ static struct xvsfsync_chan_config setFrameBufferConfig(int channelId, AL_TBuffe
   {
     assert(AL_IsSemiPlanar(srcMeta->tFourCC));
     config.chroma_start_address = physical + AL_SrcMetaData_GetOffsetC(srcMeta);
-    config.chroma_end_address = config.chroma_start_address + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPitches.iChroma + srcMeta->tDim.iWidth;
+    config.chroma_end_address = config.chroma_start_address + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPitches.iChroma + srcMeta->tDim.iWidth - 1;
   }
   else
   {
