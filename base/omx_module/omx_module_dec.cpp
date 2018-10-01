@@ -98,7 +98,7 @@ BufferRequirements DecModule::GetBufferRequirements() const
   media->Get(SETTINGS_INDEX_BUFFER_COUNTS, &bufferCounts);
   auto& input = b.input;
   input.min = bufferCounts.input;
-  input.size = AL_GetMaxNalSize(streamSettings.tDim, streamSettings.eChroma, streamSettings.iBitDepth);
+  input.size = AL_GetMaxNalSize(media->settings.eCodec, streamSettings.tDim, streamSettings.eChroma, streamSettings.iBitDepth, streamSettings.iLevel, streamSettings.iProfileIdc);
   input.bytesAlignment = device->GetBufferBytesAlignments().input;
   input.contiguous = device->GetBufferContiguities().input;
 
