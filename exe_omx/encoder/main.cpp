@@ -476,6 +476,13 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
     LOGE("Comp %p : %s (%s)\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXError.at(cmd));
     exit(1);
   }
+  /* this event will be fired by the component but we have nothing special to do with them */
+  case OMX_EventBufferFlag: // fallthrough
+  case OMX_EventPortSettingsChanged:
+  {
+    LOGI("Comp %p : Got %s\n", hComponent, ToStringOMXEvent.at(eEvent));
+    break;
+  }
   default:
   {
     LOGE("Comp %p : Unsupported %s\n", hComponent, ToStringOMXEvent.at(eEvent));
