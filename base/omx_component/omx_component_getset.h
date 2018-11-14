@@ -49,7 +49,7 @@ OMX_ERRORTYPE ConstructPortSupplier(OMX_PARAM_BUFFERSUPPLIERTYPE& s, Port const&
 
 OMX_ERRORTYPE ConstructReportedLatency(OMX_ALG_PARAM_REPORTED_LATENCY& lat, std::shared_ptr<MediatypeInterface> media);
 
-OMX_ERRORTYPE SetPortExpectedBuffer(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port& port, ModuleInterface const& module);
+OMX_ERRORTYPE SetPortExpectedBuffer(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port& port, std::shared_ptr<MediatypeInterface> media);
 
 OMX_ERRORTYPE ConstructVideoSubframe(OMX_ALG_VIDEO_PARAM_SUBFRAME& subframe, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetSubframe(OMX_BOOL enableSubframe, std::shared_ptr<MediatypeInterface> media);
@@ -69,7 +69,7 @@ OMX_ERRORTYPE SetResolution(OMX_VIDEO_PORTDEFINITIONTYPE const& definition, std:
 
 OMX_ERRORTYPE SetClock(OMX_U32 framerateInQ16, std::shared_ptr<MediatypeInterface> media);
 
-OMX_ERRORTYPE ConstructPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE& def, Port& port, ModuleInterface const& module, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE ConstructPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE& def, Port& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port& port, ModuleInterface& module, std::shared_ptr<MediatypeInterface> media);
 
 // Encoder
@@ -149,6 +149,10 @@ OMX_ERRORTYPE SetTargetBitrate(OMX_U32 bitrate, std::shared_ptr<MediatypeInterfa
 OMX_ERRORTYPE ConstructVideoLookAhead(OMX_ALG_VIDEO_PARAM_LOOKAHEAD& la, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetLookAhead(OMX_U32 nLookAhead, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoLookAhead(OMX_ALG_VIDEO_PARAM_LOOKAHEAD const& la, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
+OMX_ERRORTYPE ConstructVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS& tp, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetTwoPass(OMX_U32 nPass, OMX_STRING sLogFile, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS const& tp, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
 // Decoder
 

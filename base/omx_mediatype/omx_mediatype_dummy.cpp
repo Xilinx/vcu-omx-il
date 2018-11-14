@@ -35,31 +35,29 @@
 *
 ******************************************************************************/
 
-#pragma once
+#include "omx_mediatype_dummy.h"
 
-#include "omx_sync_ip_interface.h"
-#include "SyncIp.h"
-#include "base/omx_mediatype/omx_mediatype_interface.h"
-#include <memory>
+using namespace std;
 
-extern "C"
+DummyMediatype::DummyMediatype() = default;
+DummyMediatype::~DummyMediatype() = default;
+
+void DummyMediatype::Reset()
 {
-#include <lib_common/IDriver.h>
-#include <lib_common/Allocator.h>
 }
 
-struct OMXSyncIp : SyncIpInterface
+MediatypeInterface::ErrorSettingsType DummyMediatype::Get(string, void*) const
 {
-  OMXSyncIp(std::shared_ptr<MediatypeInterface> media, std::shared_ptr<AL_TAllocator> allocator);
-  ~OMXSyncIp() override;
+  return ErrorSettingsType::ERROR_SETTINGS_NONE;
+}
 
-  void addBuffer(BufferHandleInterface*) override;
-  void enable() override;
+MediatypeInterface::ErrorSettingsType DummyMediatype::Set(string, void const*)
+{
+  return ErrorSettingsType::ERROR_SETTINGS_NONE;
+}
 
-private:
-  std::shared_ptr<MediatypeInterface> media;
-  std::shared_ptr<AL_TAllocator> allocator;
-  SyncIp syncIp;
-  SyncChannel sync;
-};
+bool DummyMediatype::Check()
+{
+  return true;
+}
 

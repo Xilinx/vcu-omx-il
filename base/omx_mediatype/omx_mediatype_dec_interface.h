@@ -47,9 +47,7 @@ extern "C"
 
 struct DecMediatypeInterface : public MediatypeInterface
 {
-  virtual ~DecMediatypeInterface()
-  {
-  }
+  virtual ~DecMediatypeInterface() override = default;
 
   virtual void Reset() = 0;
   virtual ErrorSettingsType Get(std::string index, void* settings) const = 0;

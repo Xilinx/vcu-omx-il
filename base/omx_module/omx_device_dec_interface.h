@@ -42,13 +42,13 @@
 extern "C"
 {
 #include <lib_decode/lib_decode.h>
-#include <lib_fpga/DmaAlloc.h>
 }
 
 struct DecDevice
 {
   virtual ~DecDevice() = 0;
-  virtual AL_TIDecChannel* Init(AL_TAllocator const& allocator) = 0;
+
+  virtual AL_TIDecChannel* Init() = 0;
   virtual void Deinit() = 0;
   virtual BufferContiguities GetBufferContiguities() const = 0;
   virtual BufferBytesAlignments GetBufferBytesAlignments() const = 0;

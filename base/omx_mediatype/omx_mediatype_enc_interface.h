@@ -48,9 +48,7 @@ extern "C"
 
 struct EncMediatypeInterface : public MediatypeInterface
 {
-  virtual ~EncMediatypeInterface()
-  {
-  }
+  virtual ~EncMediatypeInterface() override = default;
 
   virtual void Reset() = 0;
   virtual ErrorSettingsType Get(std::string index, void* settings) const = 0;

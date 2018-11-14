@@ -39,12 +39,23 @@
 
 #include "omx_device_enc_interface.h"
 
-struct EncDeviceHardwareMcu : public EncDevice
+extern "C"
 {
+#include <lib_fpga/DmaAlloc.h>
+}
+
+struct EncDeviceHardwareMcu final : public EncDevice
+{
+  EncDeviceHardwareMcu(AL_TAllocator const& allocator);
   ~EncDeviceHardwareMcu() override;
-  TScheduler* Init(AL_TEncSettings settings, AL_TAllocator const& allocator) override;
-  void Deinit(TScheduler* scheduler) override;
+
+  TScheduler* Init() override;
+  void Deinit() override;
   BufferContiguities GetBufferContiguities() const override;
   BufferBytesAlignments GetBufferBytesAlignments() const override;
+
+private:
+  AL_TAllocator const& allocator {};
+  TScheduler* scheduler {};
 };
 

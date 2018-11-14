@@ -336,6 +336,7 @@ static std::map<OMX_INDEXTYPE, const char*> ToStringOMXIndex =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInterlaceFormatSupported), "OMX_ALG_IndexParamVideoInterlaceFormatSupported" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLongTerm), "OMX_ALG_IndexParamVideoLongTerm" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLookAhead), "OMX_ALG_IndexParamVideoLookAhead" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoTwoPass), "OMX_ALG_IndexParamVideoTwoPass" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVendorVideoStartUnused), "OMX_ALG_IndexConfigVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), "OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh" },

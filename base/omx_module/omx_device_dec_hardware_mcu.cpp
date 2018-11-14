@@ -45,7 +45,7 @@ AL_TIDecChannel* AL_DecChannelMcu_Create(AL_TDriver* driver);
 
 DecDeviceHardwareMcu::~DecDeviceHardwareMcu() = default;
 
-AL_TIDecChannel* DecDeviceHardwareMcu::Init(AL_TAllocator const &)
+AL_TIDecChannel* DecDeviceHardwareMcu::Init()
 {
   return AL_DecChannelMcu_Create(AL_GetHardwareDriver());
 }

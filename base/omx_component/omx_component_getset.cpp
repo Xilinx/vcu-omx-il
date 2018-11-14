@@ -36,7 +36,6 @@
 ******************************************************************************/
 
 #include "omx_component_getset.h"
-
 #include "base/omx_checker/omx_checker.h"
 
 using namespace std;
@@ -71,15 +70,17 @@ OMX_ERRORTYPE ConstructReportedLatency(OMX_ALG_PARAM_REPORTED_LATENCY& lat, shar
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetPortExpectedBuffer(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port& port, ModuleInterface const& module)
+OMX_ERRORTYPE SetPortExpectedBuffer(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port& port, shared_ptr<MediatypeInterface> media)
 {
-  auto min = IsInputPort(settings.nPortIndex) ? module.GetBufferRequirements().input.min : module.GetBufferRequirements().output.min;
+  BufferCounts bufferCounts {};
+  media->Get(SETTINGS_INDEX_BUFFER_COUNTS, &bufferCounts);
+  auto min = IsInputPort(settings.nPortIndex) ? bufferCounts.input : bufferCounts.output + 1; // +1 for eos
   auto actual = static_cast<int>(settings.nBufferCountActual);
 
   if(actual < min)
     throw OMX_ErrorBadParameter;
 
-  port.expected = actual;
+  port.setExpected(actual);
 
   return OMX_ErrorNone;
 }
@@ -88,10 +89,10 @@ OMX_ERRORTYPE ConstructVideoSubframe(OMX_ALG_VIDEO_PARAM_SUBFRAME& subframe, Por
 {
   OMXChecker::SetHeaderVersion(subframe);
   subframe.nPortIndex = port.index;
-  bool isEnabledSubFrame;
-  auto ret = media->Get(SETTINGS_INDEX_SUBFRAME, &isEnabledSubFrame);
+  bool isEnabledSubframe;
+  auto ret = media->Get(SETTINGS_INDEX_SUBFRAME, &isEnabledSubframe);
   OMX_CHECK_MEDIA_GET(ret);
-  subframe.bEnableSubframe = ConvertMediaToOMXBool(isEnabledSubFrame);
+  subframe.bEnableSubframe = ConvertMediaToOMXBool(isEnabledSubframe);
   return OMX_ErrorNone;
 }
 
@@ -275,30 +276,40 @@ OMX_ERRORTYPE SetClock(OMX_U32 framerateInQ16, shared_ptr<MediatypeInterface> me
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE ConstructPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE& def, Port& port, ModuleInterface const& module, shared_ptr<MediatypeInterface> media)
+OMX_ERRORTYPE ConstructPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE& def, Port& port, shared_ptr<MediatypeInterface> media)
 {
   OMXChecker::SetHeaderVersion(def);
   def.nPortIndex = port.index;
   def.eDir = IsInputPort(def.nPortIndex) ? OMX_DirInput : OMX_DirOutput;
-  auto requirements = IsInputPort(def.nPortIndex) ? module.GetBufferRequirements().input : module.GetBufferRequirements().output;
 
-  if(port.expected < (size_t)requirements.min)
-    port.expected = requirements.min;
-  def.nBufferCountActual = port.expected;
+  BufferCounts bufferCounts {};
+  media->Get(SETTINGS_INDEX_BUFFER_COUNTS, &bufferCounts);
+  int min = IsInputPort(def.nPortIndex) ? bufferCounts.input : bufferCounts.output + 1; // +1 for eos
+
+  if(port.getExpected() < min)
+    port.setExpected(min);
+
+  def.nBufferCountActual = port.getExpected();
   def.bEnabled = ConvertMediaToOMXBool(port.enable);
   def.bPopulated = ConvertMediaToOMXBool(port.playable);
-  def.nBufferCountMin = requirements.min;
-  def.nBufferSize = requirements.size;
-  def.bBuffersContiguous = ConvertMediaToOMXBool(requirements.contiguous);
-  def.nBufferAlignment = requirements.bytesAlignment;
+  def.nBufferCountMin = min;
+  BufferSizes bufferSizes {};
+  media->Get(SETTINGS_INDEX_BUFFER_SIZES, &bufferSizes);
+  def.nBufferSize = IsInputPort(def.nPortIndex) ? bufferSizes.input : bufferSizes.output;
+  BufferContiguities bufferContiguities {};
+  media->Get(SETTINGS_INDEX_BUFFER_CONTIGUITIES, &bufferContiguities);
+  def.bBuffersContiguous = ConvertMediaToOMXBool(IsInputPort(def.nPortIndex) ? bufferContiguities.input : bufferContiguities.output);
+  BufferBytesAlignments bufferBytesAlignments {};
+  media->Get(SETTINGS_INDEX_BUFFER_BYTES_ALIGNMENTS, &bufferBytesAlignments);
+  def.nBufferAlignment = IsInputPort(def.nPortIndex) ? bufferBytesAlignments.input : bufferBytesAlignments.output;
   def.eDomain = OMX_PortDomainVideo;
 
   auto& v = def.format.video;
-  Resolution resolution;
-  Format format;
-  Clock clock;
-  Mimes mimes;
-  Bitrate bitrate;
+  Format format {};
+  Clock clock {};
+  Mimes mimes {};
+  Bitrate bitrate {};
+  Resolution resolution {};
   auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
   OMX_CHECK_MEDIA_GET(ret);
   ret = media->Get(SETTINGS_INDEX_FORMAT, &format);
@@ -312,7 +323,7 @@ OMX_ERRORTYPE ConstructPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE& def, Port& p
   // Get Bitrate is encoder only
   if(ret == MediatypeInterface::ERROR_SETTINGS_BAD_INDEX)
     bitrate.target = 0; // 0 by default for Decoder
-  Mime mime = IsInputPort(def.nPortIndex) ? mimes.input : mimes.output;
+  auto mime = IsInputPort(def.nPortIndex) ? mimes.input : mimes.output;
   v.pNativeRender = 0; // XXX
   v.nFrameWidth = resolution.width;
   v.nFrameHeight = resolution.height;
@@ -331,7 +342,7 @@ OMX_ERRORTYPE ConstructPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE& def, Port& p
 OMX_ERRORTYPE SetPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port& port, ModuleInterface& module, shared_ptr<MediatypeInterface> media)
 {
   OMX_PARAM_PORTDEFINITIONTYPE rollback;
-  ConstructPortDefinition(rollback, port, module, media);
+  ConstructPortDefinition(rollback, port, media);
   auto video = settings.format.video;
 
   auto ret = SetFormat(video.eColorFormat, media);
@@ -402,6 +413,45 @@ OMX_ERRORTYPE SetVideoLookAhead(OMX_ALG_VIDEO_PARAM_LOOKAHEAD const& la, Port co
   if(ret != OMX_ErrorNone)
   {
     SetVideoLookAhead(rollback, port, media);
+    throw ret;
+  }
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS& tp, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(tp);
+  tp.nPortIndex = port.index;
+  TwoPass twopass;
+  auto ret = media->Get(SETTINGS_INDEX_TWOPASS, &twopass);
+  OMX_CHECK_MEDIA_GET(ret);
+  tp.nPass = twopass.nPass;
+  tp.sLogFile = const_cast<char*>(twopass.sLogFile.c_str());
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetTwoPass(OMX_U32 nPass, OMX_STRING sLogFile, std::shared_ptr<MediatypeInterface> media)
+{
+  TwoPass twopass;
+  auto ret = media->Get(SETTINGS_INDEX_TWOPASS, &twopass);
+  OMX_CHECK_MEDIA_GET(ret);
+  twopass.nPass = nPass;
+  twopass.sLogFile = sLogFile;
+  ret = media->Set(SETTINGS_INDEX_TWOPASS, &twopass);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS const& tp, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_TWOPASS rollback;
+  ConstructVideoTwoPass(rollback, port, media);
+
+  auto ret = SetTwoPass(tp.nPass, tp.sLogFile, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoTwoPass(rollback, port, media);
     throw ret;
   }
   return OMX_ErrorNone;

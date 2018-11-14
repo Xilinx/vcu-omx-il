@@ -48,6 +48,7 @@ extern "C"
 #include <mutex>
 #include <thread>
 #include <functional>
+#include <stdexcept>
 
 static int constexpr MAX_FB_NUMBER = 3;
 struct ChannelStatus
@@ -56,6 +57,20 @@ struct ChannelStatus
   bool enable;
   bool syncError;
   bool watchdogError;
+};
+
+struct sync_error : public std::runtime_error
+{
+  explicit sync_error(const char* msg) : std::runtime_error(msg)
+  {
+  }
+};
+
+struct sync_no_buf_slot_available : public sync_error
+{
+  explicit sync_no_buf_slot_available() : sync_error("Couldn't add buffer to the sync ip channel")
+  {
+  }
 };
 
 struct SyncIp
@@ -92,20 +107,38 @@ private:
 struct SyncChannel
 {
   SyncChannel(SyncIp* sync, int id);
-  ~SyncChannel();
-  void addBuffer(AL_TBuffer* buf);
-  void enable();
+  virtual ~SyncChannel();
+  virtual void addBuffer(AL_TBuffer* buf) = 0;
+  virtual void enable() = 0;
   void disable();
 
   int id;
 
-private:
+protected:
   bool enabled = false;
+  SyncIp* sync;
+};
+
+struct EncSyncChannel : SyncChannel
+{
+  EncSyncChannel(SyncIp* sync, int id);
+  ~EncSyncChannel();
+  void addBuffer(AL_TBuffer* buf) override;
+  void enable() override;
+
+private:
   std::queue<AL_TBuffer*> buffers {};
   std::mutex mutex {};
-  SyncIp* sync;
   bool isRunning = false;
 
   void addBuffer_(AL_TBuffer* buf, int numFbToEnable);
+};
+
+struct DecSyncChannel : SyncChannel
+{
+  DecSyncChannel(SyncIp* sync, int id);
+  ~DecSyncChannel();
+  void addBuffer(AL_TBuffer* buf) override;
+  void enable() override;
 };
 

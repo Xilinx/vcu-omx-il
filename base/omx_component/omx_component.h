@@ -132,7 +132,7 @@ protected:
   bool shouldPrealloc;
   bool shouldClearROI;
   bool shouldPushROI;
-  bool isSettingsInit;
+  bool shouldFireEventPortSettingsChanges;
 
   OMX_STRING name;
   OMX_STRING role;
@@ -144,11 +144,13 @@ protected:
   OMX_VERSIONTYPE spec;
   OMX_PORT_PARAM_TYPE videoPortParams;
   std::queue<OMX_MARKTYPE*> marks;
+  EOSHandles<BufferHandleInterface*> eosHandles;
 
   std::unique_ptr<ProcessorFifo> processorMain;
   std::unique_ptr<ProcessorFifo> processorEmpty;
   std::unique_ptr<ProcessorFifo> processorFill;
-  std::shared_ptr<std::promise<void>> pausePromise;
+  std::shared_ptr<std::promise<void>> pauseFillPromise;
+  std::shared_ptr<std::promise<void>> pauseEmptyPromise;
   void _ProcessMain(void* data);
   void _ProcessFillBuffer(void* data);
   void _ProcessEmptyBuffer(void* data);
@@ -162,10 +164,12 @@ protected:
   Port* GetPort(int index);
   void PopulatingPorts();
   void UnpopulatingPorts();
-  void FlushFillEmptyBuffers();
+  void FlushFillEmptyBuffers(bool fill, bool empty);
   void CleanFlushFillEmptyBuffers();
-  void BlockFillEmptyBuffers();
+  void BlockFillEmptyBuffers(bool fill, bool empty);
   void UnblockFillEmptyBuffers();
+  void FlushEosHandles();
+  virtual void FlushComponent();
 
   void CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data);
   void TreatSetStateCommand(Task* task);
@@ -180,11 +184,10 @@ protected:
 
   virtual void EmptyThisBufferCallBack(BufferHandleInterface* emptied);
   virtual void AssociateCallBack(BufferHandleInterface* empty, BufferHandleInterface* fill);
-  virtual void FillThisBufferCallBack(BufferHandleInterface* filled, int offset, int size);
+  virtual void FillThisBufferCallBack(BufferHandleInterface* filled);
   virtual void ReleaseCallBack(bool isInput, BufferHandleInterface* buf);
-  virtual void EventCallBack(CallbackEventType type, void* data);
+  virtual void EventCallBack(Callbacks::CallbackEventType type, void* data);
 
-private:
   void ReturnFilledBuffer(OMX_BUFFERHEADERTYPE* filled, int offset, int size);
   void ReturnEmptiedBuffer(OMX_BUFFERHEADERTYPE* emptied);
 };

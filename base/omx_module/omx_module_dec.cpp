@@ -63,56 +63,12 @@ DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, shared_ptr<DecDevi
   assert(this->device);
   assert(this->allocator);
   decoder = nullptr;
-  isCreated = false;
-  ResetRequirements();
+  media->Reset();
 }
 
 DecModule::~DecModule() = default;
 
-void DecModule::ResetRequirements()
-{
-  media->Reset();
-}
-
-static int RawAllocationSize(int stride, int sliceHeight, AL_EChromaMode eChromaMode)
-{
-  auto IP_WIDTH_ALIGNMENT = 64;
-  auto IP_HEIGHT_ALIGNMENT = 64;
-  assert(stride % IP_WIDTH_ALIGNMENT == 0); // IP requirements
-  assert(sliceHeight % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
-  auto size = stride * sliceHeight;
-  switch(eChromaMode)
-  {
-  case CHROMA_MONO: return size;
-  case CHROMA_4_2_0: return (3 * size) / 2;
-  case CHROMA_4_2_2: return 2 * size;
-  default: return -1;
-  }
-}
-
-BufferRequirements DecModule::GetBufferRequirements() const
-{
-  auto streamSettings = media->settings.tStream;
-  BufferRequirements b;
-  BufferCounts bufferCounts;
-  media->Get(SETTINGS_INDEX_BUFFER_COUNTS, &bufferCounts);
-  auto& input = b.input;
-  input.min = bufferCounts.input;
-  input.size = AL_GetMaxNalSize(media->settings.eCodec, streamSettings.tDim, streamSettings.eChroma, streamSettings.iBitDepth, streamSettings.iLevel, streamSettings.iProfileIdc);
-  input.bytesAlignment = device->GetBufferBytesAlignments().input;
-  input.contiguous = device->GetBufferContiguities().input;
-
-  auto& output = b.output;
-  output.min = bufferCounts.output;
-  output.min += 1; // for eos
-  output.size = RawAllocationSize(media->stride, media->sliceHeight, streamSettings.eChroma);
-  output.bytesAlignment = device->GetBufferBytesAlignments().output;
-  output.contiguous = device->GetBufferContiguities().output;
-
-  return b;
-}
-
-map<int, string> MapToStringDecodeError =
+static map<int, string> MapToStringDecodeError =
 {
   { AL_ERR_RESOLUTION_CHANGE, "decoder: doesn't support resolution change" },
   { AL_ERR_NO_MEMORY, "decoder: memory allocation failure (firmware or ctrlsw)" },
@@ -123,7 +79,7 @@ map<int, string> MapToStringDecodeError =
   { AL_WARN_CONCEAL_DETECT, "decoder, concealment" },
 };
 
-string ToStringDecodeError(int error)
+static string ToStringDecodeError(int error)
 {
   string str_error = "";
   try
@@ -169,12 +125,12 @@ void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
     fprintf(stderr, "/!\\ %s (%d)\n", ToStringDecodeError(error).c_str(), error);
 
     if(error & AL_ERROR)
-      callbacks.event(CALLBACK_EVENT_ERROR, (void*)ToModuleError(error));
+      callbacks.event(Callbacks::CALLBACK_EVENT_ERROR, (void*)ToModuleError(error));
 
     return;
   }
 
-  auto rhandleOut = handlesOut.Get(decodedFrame);
+  auto rhandleOut = handles.Get(decodedFrame);
   assert(rhandleOut);
 
   callbacks.associate(nullptr, rhandleOut);
@@ -182,7 +138,7 @@ void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
 
 void DecModule::ReleaseBufs(AL_TBuffer* frame)
 {
-  auto rhandleOut = handlesOut.Pop(frame);
+  auto rhandleOut = handles.Pop(frame);
   dpb.Remove(rhandleOut->data);
   callbacks.release(false, rhandleOut);
   AL_Buffer_Unref(frame);
@@ -191,11 +147,10 @@ void DecModule::ReleaseBufs(AL_TBuffer* frame)
 
 void DecModule::CopyIfRequired(AL_TBuffer* frameToDisplay, int size)
 {
-  if(shouldBeCopied.Exist(frameToDisplay))
-  {
-    auto buffer = shouldBeCopied.Get(frameToDisplay);
-    copy(AL_Buffer_GetData(frameToDisplay), AL_Buffer_GetData(frameToDisplay) + size, buffer);
-  }
+  if(!shouldBeCopied.Exist(frameToDisplay))
+    return;
+  auto buffer = shouldBeCopied.Get(frameToDisplay);
+  copy(AL_Buffer_GetData(frameToDisplay), AL_Buffer_GetData(frameToDisplay) + size, buffer);
 }
 
 void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
@@ -209,38 +164,19 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
 
   if(isEOS)
   {
-    auto rhandleOut = handlesOut.Pop(eosHandles.output);
-    dpb.Remove(rhandleOut->data);
-
-    auto rhandleIn = handlesIn.Get(eosHandles.input);
-    auto eosIsSent = rhandleIn != nullptr;
-
-    if(eosIsSent)
-    {
-      callbacks.associate(rhandleIn, rhandleOut);
-      AL_Buffer_Unref(eosHandles.input);
-      eosHandles.input = nullptr;
-    }
-
-    currentDisplayPictureType = -1;
-
-    rhandleOut->offset = 0;
-    rhandleOut->payload = 0;
-    callbacks.filled(rhandleOut, rhandleOut->offset, rhandleOut->payload);
-
-    AL_Buffer_Unref(eosHandles.output);
-    eosHandles.output = nullptr;
-
+    callbacks.filled(nullptr);
     return;
   }
 
-  auto size = GetBufferRequirements().output.size;
+  BufferSizes bufferSizes {};
+  media->Get(SETTINGS_INDEX_BUFFER_SIZES, &bufferSizes);
+  auto size = bufferSizes.output;
   CopyIfRequired(frameToDisplay, size);
   currentDisplayPictureType = info->ePicStruct;
-  auto rhandleOut = handlesOut.Pop(frameToDisplay);
+  auto rhandleOut = handles.Pop(frameToDisplay);
   rhandleOut->offset = 0;
   rhandleOut->payload = size;
-  callbacks.filled(rhandleOut, rhandleOut->offset, rhandleOut->payload);
+  callbacks.filled(rhandleOut);
   currentDisplayPictureType = -1;
 }
 
@@ -256,7 +192,7 @@ void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSett
   media->stride = (int)RoundUp(AL_Decoder_GetMinPitch(settings.tDim.iWidth, settings.iBitDepth, media->settings.eFBStorageMode), strideAlignment.widthStride);
   media->sliceHeight = (int)RoundUp(AL_Decoder_GetMinStrideHeight(settings.tDim.iHeight), strideAlignment.heightStride);
 
-  callbacks.event(CALLBACK_EVENT_RESOLUTION_CHANGE, nullptr);
+  callbacks.event(Callbacks::CALLBACK_EVENT_RESOLUTION_CHANGE, nullptr);
 }
 
 ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
@@ -267,7 +203,7 @@ ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
     return ERROR_UNDEFINED;
   }
 
-  channel = device->Init(*allocator.get());
+  auto channel = device->Init();
   AL_TDecCallBacks decCallbacks {};
   decCallbacks.endDecodingCB = { RedirectionEndDecoding, this };
   decCallbacks.displayCB = { RedirectionDisplay, this };
@@ -305,33 +241,8 @@ bool DecModule::DestroyDecoder()
   AL_Decoder_Destroy(decoder);
   device->Deinit();
   decoder = nullptr;
-  channel = nullptr;
 
   return true;
-}
-
-bool DecModule::CheckParam()
-{
-  // TODO check some settings ?
-  return true;
-}
-
-bool DecModule::Create()
-{
-  if(decoder)
-  {
-    fprintf(stderr, "Decoder should NOT be created\n");
-    return false;
-  }
-  isCreated = true;
-
-  return true;
-}
-
-void DecModule::Destroy()
-{
-  assert(!decoder && "Decoder should ALREADY be destroyed");
-  isCreated = false;
 }
 
 void DecModule::Free(void* buffer)
@@ -342,7 +253,7 @@ void DecModule::Free(void* buffer)
   if(dpb.Exist((char*)buffer))
   {
     auto handle = dpb.Pop((char*)buffer);
-    assert(!handlesOut.Exist(handle));
+    assert(!handles.Exist(handle));
     AL_Buffer_Unref(handle);
   }
 
@@ -363,7 +274,7 @@ void DecModule::FreeDMA(int fd)
   if(dpb.Exist(buffer))
   {
     auto handle = dpb.Pop(buffer);
-    assert(!handlesOut.Exist(handle));
+    assert(!handles.Exist(handle));
     AL_Buffer_Unref(handle);
   }
 
@@ -406,7 +317,7 @@ int DecModule::AllocateDMA(int size)
   return fd;
 }
 
-static void StubCallbackEvent(CallbackEventType, void*)
+static void StubCallbackEvent(Callbacks::CallbackEventType, void*)
 {
 }
 
@@ -425,7 +336,7 @@ bool DecModule::SetCallbacks(Callbacks callbacks)
 
 void DecModule::InputBufferDestroy(AL_TBuffer* input)
 {
-  auto rhandleIn = handlesIn.Pop(input);
+  auto rhandleIn = handles.Pop(input);
 
   AL_Buffer_Destroy(input);
 
@@ -434,14 +345,23 @@ void DecModule::InputBufferDestroy(AL_TBuffer* input)
   callbacks.emptied(rhandleIn);
 }
 
+static bool isFd(BufferHandleType type)
+{
+  return type == BufferHandleType::BUFFER_HANDLE_FD;
+}
+
+static bool isCharPtr(BufferHandleType type)
+{
+  return type == BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
+}
+
 AL_TBuffer* DecModule::CreateInputBuffer(char* buffer, int size)
 {
-  AL_TBuffer* input = nullptr;
-
+  AL_TBuffer* input {};
   BufferHandles bufferHandles {};
   media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
 
-  if(bufferHandles.input == BufferHandleType::BUFFER_HANDLE_FD)
+  if(isFd(bufferHandles.input))
   {
     auto fd = static_cast<int>((intptr_t)buffer);
 
@@ -458,7 +378,8 @@ AL_TBuffer* DecModule::CreateInputBuffer(char* buffer, int size)
 
     input = AL_Buffer_Create(allocator.get(), dmaHandle, size, RedirectionInputBufferDestroy);
   }
-  else
+
+  if(isCharPtr(bufferHandles.input))
   {
     if(allocated.Exist(buffer))
       input = AL_Buffer_Create(allocator.get(), allocated.Get(buffer), size, RedirectionInputBufferDestroy);
@@ -480,22 +401,21 @@ bool DecModule::Empty(BufferHandleInterface* handle)
   if(!decoder)
     return false;
 
+  auto eos = (!handle || handle->payload == 0);
+
+  if(eos)
+  {
+    AL_Decoder_Flush(decoder);
+    return true;
+  }
+
   auto buffer = handle->data;
   AL_TBuffer* input = CreateInputBuffer(buffer, handle->payload);
 
   if(!input)
     return false;
 
-  handlesIn.Add(input, handle);
-
-  auto eos = (handle->payload == 0);
-
-  if(eos)
-  {
-    eosHandles.input = input;
-    AL_Decoder_Flush(decoder);
-    return true;
-  }
+  handles.Add(input, handle);
 
   auto pushed = AL_Decoder_PushBuffer(decoder, input, handle->payload);
   AL_Buffer_Unref(input);
@@ -509,9 +429,9 @@ static AL_TMetaData* CreateSourceMeta(AL_TStreamSettings const& streamSettings, 
   auto fourCC = AL_GetDecFourCC(picFormat);
   auto stride = resolution.stride.widthStride;
   auto sliceHeight = resolution.stride.heightStride;
-  AL_TPitches const pitches = { stride, stride };
-  AL_TOffsetYC const offsetYC = { 0, stride * sliceHeight };
-  return (AL_TMetaData*)(AL_SrcMetaData_Create({ resolution.width, resolution.height }, pitches, offsetYC, fourCC));
+  AL_TPlane planeY = { 0, stride };
+  AL_TPlane planeUV = { stride* sliceHeight, stride };
+  return (AL_TMetaData*)(AL_SrcMetaData_Create({ resolution.width, resolution.height }, planeY, planeUV, fourCC));
 }
 
 void DecModule::OutputBufferDestroy(AL_TBuffer* output)
@@ -528,7 +448,6 @@ void DecModule::OutputDmaBufferDestroy(AL_TBuffer* output)
 void DecModule::OutputBufferDestroyAndFree(AL_TBuffer* output)
 {
   shouldBeCopied.Pop(output);
-
   AL_Buffer_Destroy(output);
 }
 
@@ -541,12 +460,11 @@ AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
   if(!sourceMeta)
     return nullptr;
 
-  AL_TBuffer* output = nullptr;
-
+  AL_TBuffer* output {};
   BufferHandles bufferHandles {};
   media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
 
-  if(bufferHandles.output == BufferHandleType::BUFFER_HANDLE_FD)
+  if(isFd(bufferHandles.output))
   {
     auto fd = static_cast<int>((intptr_t)buffer);
 
@@ -564,7 +482,8 @@ AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
 
     output = AL_Buffer_Create(allocator.get(), dmaHandle, size, RedirectionOutputDmaBufferDestroy);
   }
-  else
+
+  if(isCharPtr(bufferHandles.output))
   {
     if(allocated.Exist(buffer))
       output = AL_Buffer_Create(allocator.get(), allocated.Get(buffer), size, RedirectionOutputBufferDestroy);
@@ -595,7 +514,7 @@ AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
 
 bool DecModule::Fill(BufferHandleInterface* handle)
 {
-  if(!decoder)
+  if(!decoder || !handle)
     return false;
 
   auto buffer = handle->data;
@@ -605,13 +524,7 @@ bool DecModule::Fill(BufferHandleInterface* handle)
   if(!output)
     return false;
 
-  handlesOut.Add(output, handle);
-
-  if(!eosHandles.output)
-  {
-    eosHandles.output = output;
-    return true;
-  }
+  handles.Add(output, handle);
 
   AL_Decoder_PutDisplayPicture(decoder, output);
   return true;
@@ -625,50 +538,16 @@ ErrorType DecModule::Run(bool shouldPrealloc)
     return ERROR_UNDEFINED;
   }
 
-  if(!isCreated)
-  {
-    fprintf(stderr, "You should call Create before Run\n");
-    return ERROR_UNDEFINED;
-  }
-
-  eosHandles.input = nullptr;
-  eosHandles.output = nullptr;
-
   return CreateDecoder(shouldPrealloc);
 }
 
 bool DecModule::Flush()
 {
   if(!decoder)
-  {
-    FlushEosHandles();
     return false;
-  }
 
   Stop();
   return Run(true) == SUCCESS;
-}
-
-void DecModule::FlushEosHandles()
-{
-  auto rhandleOut = handlesOut.Get(eosHandles.output);
-
-  if(rhandleOut)
-  {
-    dpb.Remove(rhandleOut->data);
-    handlesOut.Remove(eosHandles.output);
-
-    callbacks.release(false, rhandleOut);
-
-    AL_Buffer_Unref(eosHandles.output);
-    eosHandles.output = nullptr;
-  }
-}
-
-void DecModule::ReleaseAllBuffers()
-{
-  DestroyDecoder();
-  FlushEosHandles();
 }
 
 void DecModule::Stop()
@@ -676,7 +555,7 @@ void DecModule::Stop()
   if(!decoder)
     return;
 
-  ReleaseAllBuffers();
+  DestroyDecoder();
 }
 
 ErrorType DecModule::SetDynamic(std::string index, void const* param)

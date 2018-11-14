@@ -46,7 +46,6 @@
 
 #include <cstring>
 #include <vector>
-#include <deque>
 #include <list>
 #include <future>
 #include <memory>
@@ -55,9 +54,7 @@
 #include "base/omx_utils/processor_fifo.h"
 #include "base/omx_mediatype/omx_mediatype_enc_interface.h"
 
-#if AL_ENABLE_TWOPASS
 #include "TwoPassMngr.h"
-#endif
 
 extern "C"
 {
@@ -81,15 +78,6 @@ struct LookAheadCallBackParam
   int index;
 };
 
-struct LookAheadParams
-{
-  LookAheadCallBackParam callbackParam;
-  int fifoSize;
-  int complexityCount;
-  int complexity;
-  int complexityDiff;
-};
-
 struct GenericEncoder
 {
   GenericEncoder(int pass) : index{pass} {}
@@ -99,46 +87,23 @@ struct GenericEncoder
   int index {};
   std::list<AL_TBuffer*> roiBuffers {};
   std::vector<AL_TBuffer*> streamBuffers {};
-  std::deque<AL_TBuffer*> fifo {};
   std::shared_ptr<ProcessorFifo> threadFifo {};
-  LookAheadParams lookAheadParams {};
-
-#if AL_ENABLE_TWOPASS
-  void ProcessLookAheadParams(AL_TBuffer* src);
-  void ComputeComplexity(bool isEOS);
-#endif
+  std::shared_ptr<LookAheadMngr> lookAheadMngr {};
+  LookAheadCallBackParam callbackParam;
 };
 
-struct EncModule : public ModuleInterface
+struct EncModule final : public ModuleInterface
 {
   EncModule(std::shared_ptr<EncMediatypeInterface> media, std::shared_ptr<EncDevice> device, std::shared_ptr<AL_TAllocator> allocator);
   ~EncModule() override;
 
-  void ResetRequirements() override;
-  BufferRequirements GetBufferRequirements() const;
-
-  BufferHandles GetBufferHandles() const;
-
-  Resolution GetResolution() const;
-
   bool SetCallbacks(Callbacks callbacks) override;
-
-  bool CreateAndAttachStreamMeta(AL_TBuffer& buf);
-  void AddFifo(GenericEncoder& encoder, AL_TBuffer* src);
-  void EmptyFifo(GenericEncoder& encoder, bool isEOS);
-
-  bool CheckParam() override;
-  bool Create() override;
-  void Destroy() override;
 
   void Free(void* buffer) override;
   void* Allocate(size_t size) override;
 
   void FreeDMA(int fd);
   int AllocateDMA(int size);
-
-  bool UseDMA(BufferHandleInterface* handle, int fd, int size);
-  void UnuseDMA(BufferHandleInterface* handle);
 
   bool Empty(BufferHandleInterface* handle) override;
   bool Fill(BufferHandleInterface* handle) override;
@@ -156,21 +121,25 @@ private:
   std::shared_ptr<EncDevice> const device;
   std::shared_ptr<AL_TAllocator> const allocator;
   std::vector<GenericEncoder> encoders;
-  TScheduler* scheduler;
   Callbacks callbacks;
 
   AL_TRoiMngrCtx* roiCtx;
-  EOSHandles<BufferHandleInterface*> eosHandles;
+  std::shared_ptr<TwoPassMngr> twoPassMngr;
 
+  bool CreateAndAttachStreamMeta(AL_TBuffer& buf);
   void InitEncoders(int numPass);
   bool Use(BufferHandleInterface* handle, uint8_t* buffer, int size);
   void Unuse(BufferHandleInterface* handle);
+  bool UseDMA(BufferHandleInterface* handle, int fd, int size);
+  void UnuseDMA(BufferHandleInterface* handle);
   ErrorType CreateEncoder();
   bool DestroyEncoder();
-  bool isCreated;
   void ReleaseBuf(AL_TBuffer const* buf, bool isDma, bool isSrc);
   bool isEndOfFrame(AL_TBuffer* stream);
   Flags GetFlags(AL_TBuffer* handle);
+
+  void AddFifo(GenericEncoder& encoder, AL_TBuffer* src);
+  void EmptyFifo(GenericEncoder& encoder, bool isEOS);
 
   static void RedirectionEndEncoding(void* userParam, AL_TBuffer* pStream, AL_TBuffer const* pSource, int)
   {
@@ -187,7 +156,6 @@ private:
   void EndEncodingLookAhead(AL_TBuffer* pStream, AL_TBuffer const* pSource, int index);
   void _ProcessEmptyFifo(void* data);
   void _DeleteEmptyFifo(void* data);
-  void FlushEosHandles();
 
   ThreadSafeMap<AL_TBuffer const*, BufferHandleInterface*> handles;
   ThreadSafeMap<void*, AL_HANDLE> allocated;

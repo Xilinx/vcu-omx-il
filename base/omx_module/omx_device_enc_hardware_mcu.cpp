@@ -43,14 +43,19 @@ extern "C"
 #include <lib_common/HardwareDriver.h>
 }
 
-EncDeviceHardwareMcu::~EncDeviceHardwareMcu() = default;
-
-TScheduler* EncDeviceHardwareMcu::Init(AL_TEncSettings, AL_TAllocator const& allocator)
+EncDeviceHardwareMcu::EncDeviceHardwareMcu(AL_TAllocator const& allocator) : allocator{allocator}
 {
-  return AL_SchedulerMcu_Create(AL_GetHardwareDriver(), &const_cast<AL_TAllocator &>(allocator));
 }
 
-void EncDeviceHardwareMcu::Deinit(TScheduler* scheduler)
+EncDeviceHardwareMcu::~EncDeviceHardwareMcu() = default;
+
+TScheduler* EncDeviceHardwareMcu::Init()
+{
+  scheduler = AL_SchedulerMcu_Create(AL_GetHardwareDriver(), &const_cast<AL_TAllocator &>(allocator));
+  return scheduler;
+}
+
+void EncDeviceHardwareMcu::Deinit()
 {
   if(scheduler)
     AL_ISchedulerEnc_Destroy(scheduler);

@@ -207,7 +207,7 @@ DecodedPictureBufferType ConvertOMXToMediaDecodedPictureBuffer(OMX_ALG_EDpbMode 
   switch(mode)
   {
   case OMX_ALG_DPB_NORMAL: return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NORMAL;
-  case OMX_ALG_DPB_LOW_REF: return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_LOW_REFERENCE;
+  case OMX_ALG_DPB_NO_REORDERING: return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NO_REORDERING;
   case OMX_ALG_DPB_MAX_ENUM: return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM;
   default: return DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM;
   }
@@ -220,7 +220,7 @@ OMX_ALG_EDpbMode ConvertMediaToOMXDecodedPictureBuffer(DecodedPictureBufferType 
   switch(mode)
   {
   case DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NORMAL: return OMX_ALG_DPB_NORMAL;
-  case DecodedPictureBufferType::DECODED_PICTURE_BUFFER_LOW_REFERENCE: return OMX_ALG_DPB_LOW_REF;
+  case DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NO_REORDERING: return OMX_ALG_DPB_NO_REORDERING;
   case DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM: return OMX_ALG_DPB_MAX_ENUM;
   default: return OMX_ALG_DPB_MAX_ENUM;
   }

@@ -41,11 +41,12 @@
 
 #include "omx_component.h"
 #include "base/omx_module/omx_module_dec.h"
+#include "base/omx_module/omx_sync_ip_interface.h"
 #include <list>
 
-struct DecComponent : public Component
+struct DecComponent final : public Component
 {
-  DecComponent(OMX_HANDLETYPE component, std::shared_ptr<MediatypeInterface>, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<Expertise>&& expertise);
+  DecComponent(OMX_HANDLETYPE component, std::shared_ptr<MediatypeInterface>, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<Expertise>&& expertise, std::shared_ptr<SyncIpInterface> syncIp);
   ~DecComponent() override;
   OMX_ERRORTYPE GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_INDEXTYPE* index) override;
   OMX_ERRORTYPE AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size) override;
@@ -65,11 +66,13 @@ private:
   };
   void EmptyThisBufferCallBack(BufferHandleInterface* handle) override;
   void AssociateCallBack(BufferHandleInterface* empty, BufferHandleInterface* fill) override;
-  void FillThisBufferCallBack(BufferHandleInterface* filled, int offset, int size) override;
-  void EventCallBack(CallbackEventType type, void* data) override;
+  void FillThisBufferCallBack(BufferHandleInterface* filled) override;
+  void EventCallBack(Callbacks::CallbackEventType type, void* data) override;
+  void FlushComponent() override;
 
   void TreatEmptyBufferCommand(Task* task) override;
   std::list<PropagatedData> transmit;
   std::mutex mutex;
+  std::shared_ptr<SyncIpInterface> syncIp;
 };
 

@@ -56,8 +56,8 @@ static DecModule& ToDecModule(ModuleInterface& module)
   return dynamic_cast<DecModule &>(module);
 }
 
-DecComponent::DecComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<Expertise>&& expertise) :
-  Component(component, media, std::move(module), std::move(expertise), name, role)
+DecComponent::DecComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<Expertise>&& expertise, shared_ptr<SyncIpInterface> syncIp) :
+  Component(component, media, std::move(module), std::move(expertise), name, role), syncIp(syncIp)
 {
 }
 
@@ -65,12 +65,16 @@ DecComponent::~DecComponent() = default;
 
 void DecComponent::EmptyThisBufferCallBack(BufferHandleInterface* handle)
 {
+  assert(handle);
   auto header = (OMX_BUFFERHEADERTYPE*)((OMXBufferHandle*)handle)->header;
+  ReturnEmptiedBuffer(header);
   delete handle;
-  ClearPropagatedData(header);
+}
 
-  if(callbacks.EmptyBufferDone)
-    callbacks.EmptyBufferDone(component, app, header);
+void DecComponent::FlushComponent()
+{
+  FlushFillEmptyBuffers(true, true);
+  transmit.clear();
 }
 
 void DecComponent::AssociateCallBack(BufferHandleInterface*, BufferHandleInterface* fill)
@@ -98,14 +102,27 @@ void DecComponent::AssociateCallBack(BufferHandleInterface*, BufferHandleInterfa
     callbacks.EventHandler(component, app, OMX_EventMark, 0, 0, emptyHeader.pMarkData);
 }
 
-void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled, int offset, int size)
+void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
 {
+  if(!filled)
+  {
+    if(eosHandles.input && eosHandles.output)
+      AssociateCallBack(eosHandles.input, eosHandles.output);
+
+    if(eosHandles.input)
+      EmptyThisBufferCallBack(eosHandles.input);
+
+    if(eosHandles.output)
+      FillThisBufferCallBack(eosHandles.output);
+    eosHandles.input = nullptr;
+    eosHandles.output = nullptr;
+    return;
+  }
+
   assert(filled);
   auto header = (OMX_BUFFERHEADERTYPE*)((OMXBufferHandle*)filled)->header;
-  delete filled;
-
-  header->nOffset = offset;
-  header->nFilledLen = size;
+  auto offset = ((OMXBufferHandle*)filled)->offset;
+  auto payload = ((OMXBufferHandle*)filled)->payload;
   switch(ToDecModule(*module).GetDisplayPictureType())
   {
   case 0:
@@ -126,19 +143,30 @@ void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled, int off
   default: break;
   }
 
-  if(offset == 0 && size == 0)
+  if(offset == 0 && payload == 0)
     header->nFlags = OMX_BUFFERFLAG_EOS;
 
-  if(callbacks.FillBufferDone)
-    callbacks.FillBufferDone(component, app, header);
+  /* We add the buffer to the sync ip. (might be racy if we can finish before
+   * we get the early callback, but then what's the point of the sync ip)
+   *
+   * We enable once the first frame is sent.
+   * As we are starting to decode a new frame, we should be able to add the buffer
+   * to the sync ip without a problem (the slot should be there)
+   */
+  syncIp->addBuffer((OMXBufferHandle*)filled);
+  syncIp->enable();
+
+  delete filled;
+
+  ReturnFilledBuffer(header, offset, payload);
 }
 
-void DecComponent::EventCallBack(CallbackEventType type, void* data)
+void DecComponent::EventCallBack(Callbacks::CallbackEventType type, void* data)
 {
-  assert(type <= CALLBACK_EVENT_MAX);
+  assert(type <= Callbacks::CALLBACK_EVENT_MAX);
   switch(type)
   {
-  case CALLBACK_EVENT_RESOLUTION_CHANGE:
+  case Callbacks::CALLBACK_EVENT_RESOLUTION_CHANGE:
   {
     LOGI("%s", ToStringCallbackEvent.at(type));
 
@@ -179,17 +207,6 @@ static OMX_BUFFERHEADERTYPE* AllocateHeader(OMX_PTR app, int size, OMX_U8* buffe
   return header;
 }
 
-static inline bool isBufferAllocatedByModule(OMX_BUFFERHEADERTYPE const* header)
-{
-  if(!header->pInputPortPrivate || !header->pOutputPortPrivate)
-    return false;
-
-  auto isInputAllocated = *(static_cast<bool*>(header->pInputPortPrivate));
-  auto isOutputAllocated = *(static_cast<bool*>(header->pOutputPortPrivate));
-
-  return isInputAllocated || isOutputAllocated;
-}
-
 static void DeleteHeader(OMX_BUFFERHEADERTYPE* header)
 {
   delete static_cast<bool*>(header->pInputPortPrivate);
@@ -206,7 +223,7 @@ OMX_ERRORTYPE DecComponent::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** head
 
   auto port = GetPort(index);
 
-  if(transientState != TransientLoadedToIdle && !(port->isTransientToEnable))
+  if(transientState != TransientState::LoadedToIdle && !(port->isTransientToEnable))
     throw OMX_ErrorIncorrectStateOperation;
 
   BufferHandles handles;
@@ -238,7 +255,7 @@ OMX_ERRORTYPE DecComponent::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHE
   CheckPortIndex(index);
   auto port = GetPort(index);
 
-  if((transientState != TransientIdleToLoaded) && (!port->isTransientToDisable))
+  if((transientState != TransientState::IdleToLoaded) && (!port->isTransientToDisable))
     callbacks.EventHandler(component, app, OMX_EventError, OMX_ErrorPortUnpopulated, 0, nullptr);
 
   BufferHandles handles;
@@ -262,7 +279,7 @@ void DecComponent::TreatEmptyBufferCommand(Task* task)
 {
   std::lock_guard<std::mutex> lock(mutex);
   assert(task);
-  assert(task->cmd == EmptyBuffer);
+  assert(task->cmd == Command::EmptyBuffer);
   assert(static_cast<int>((intptr_t)task->data) == input.index);
   auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
   assert(header);
@@ -275,11 +292,33 @@ void DecComponent::TreatEmptyBufferCommand(Task* task)
 
   AttachMark(header);
 
+  if(header->nFilledLen == 0)
+  {
+    if(header->nFlags & OMX_BUFFERFLAG_EOS)
+    {
+      auto handle = new OMXBufferHandle(header);
+      eosHandles.input = handle;
+      auto success = module->Empty(handle);
+      assert(success);
+      return;
+    }
+    callbacks.EmptyBufferDone(component, app, header);
+    return;
+  }
+
   if(header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME)
     transmit.push_back(PropagatedData(header->hMarkTargetComponent, header->pMarkData, header->nTimeStamp, header->nFlags));
 
   auto handle = new OMXBufferHandle(header);
+
   auto success = module->Empty(handle);
   assert(success);
+
+  if(header->nFlags & OMX_BUFFERFLAG_EOS)
+  {
+    success = module->Empty(nullptr);
+    assert(success);
+    return;
+  }
 }
 

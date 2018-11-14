@@ -37,12 +37,9 @@
 
 #pragma once
 
-class ProcessorInterface
+struct ProcessorInterface
 {
-public:
-  virtual ~ProcessorInterface()
-  {
-  }
+  virtual ~ProcessorInterface() = default;
 
   virtual void queue(void* process) = 0;
 };

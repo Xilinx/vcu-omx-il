@@ -41,18 +41,23 @@
 
 #include <vector>
 
-struct EncMediatypeAVC : EncMediatypeInterface
+struct EncMediatypeAVC final : public EncMediatypeInterface
 {
-  EncMediatypeAVC();
+  EncMediatypeAVC(BufferContiguities bufferContiguities, BufferBytesAlignments bufferBytesAlignments);
   ~EncMediatypeAVC() override;
 
-  void Reset() override;
   ErrorSettingsType Get(std::string index, void* settings) const override;
   ErrorSettingsType Set(std::string index, void const* settings) override;
+  void Reset() override;
+
+  bool Check() override;
 
 private:
+  BufferContiguities bufferContiguities {};
+  BufferBytesAlignments bufferBytesAlignments {};
   Stride strideAlignment;
   BufferHandles bufferHandles;
+  std::string sTwoPassLogFile;
 
   std::vector<AVCProfileType> const profiles
   {

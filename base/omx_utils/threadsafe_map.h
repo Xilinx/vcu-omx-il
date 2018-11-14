@@ -40,9 +40,8 @@
 #include <mutex>
 
 template<class K, class V>
-class ThreadSafeMap
+struct ThreadSafeMap
 {
-public:
   void Add(K const& key, V value)
   {
     std::lock_guard<std::mutex> lock(mutex);

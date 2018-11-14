@@ -42,15 +42,14 @@
 extern "C"
 {
 #include <lib_encode/lib_encoder.h>
-#include <lib_common_enc/Settings.h>
-#include <lib_fpga/DmaAlloc.h>
 }
 
 struct EncDevice
 {
   virtual ~EncDevice() = 0;
-  virtual TScheduler* Init(AL_TEncSettings settings, AL_TAllocator const& allocator) = 0;
-  virtual void Deinit(TScheduler* scheduler) = 0;
+
+  virtual TScheduler* Init() = 0;
+  virtual void Deinit() = 0;
   virtual BufferContiguities GetBufferContiguities() const = 0;
   virtual BufferBytesAlignments GetBufferBytesAlignments() const = 0;
 };

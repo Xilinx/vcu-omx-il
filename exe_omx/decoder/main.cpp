@@ -217,6 +217,7 @@ struct Settings
   OMX_U32 framerate = 1 << 16;
   OMX_ALG_SEQUENCE_PICTURE_MODE sequencePicture = OMX_ALG_SEQUENCE_PICTURE_FRAME;
   bool hasPrealloc = false;
+  bool enableSubframe = false;
 };
 
 struct Application
@@ -348,7 +349,7 @@ void parseCommandLine(int argc, char** argv, Application& app)
   auto opt = CommandLineParser();
   bool help = false;
   opt.addString("input_file", &input_file, "Input file");
-  opt.addFlag("--help,-help,-h", &help, "Show this help");
+  opt.addFlag("--help", &help, "Show this help");
   opt.addFlag("--hevc,-hevc", &settings.codecImplem, "load HEVC decoder (default)", HEVC);
   opt.addFlag("--avc,-avc", &settings.codecImplem, "load AVC decoder", AVC);
   opt.addFlag("--hevc-hard,-hevc-hard", &settings.codecImplem, "Use hard hevc decoder", HEVC_HARD);
@@ -364,6 +365,7 @@ void parseCommandLine(int argc, char** argv, Application& app)
   }, "use dmabufs for output port");
   string prealloc_args = "";
   opt.addString("--prealloc-args", &prealloc_args, "Specify the stream dimension: 1920x1080:unkwn:nv12:omx-profile-value:omx-level-value");
+  opt.addFlag("--subframe", &settings.enableSubframe, "Use the subframe latency mode");
 
   if(argc < 2)
   {
@@ -788,11 +790,6 @@ OMX_ERRORTYPE setProfileAndLevel(Application& app)
   return OMX_ErrorNone;
 }
 
-static AL_INLINE int RoundUp(int iVal, int iRnd)
-{
-  return (iVal + iRnd - 1) & (~(iRnd - 1));
-}
-
 OMX_ERRORTYPE setDimensions(Application& app)
 {
   OMX_PARAM_PORTDEFINITIONTYPE param;
@@ -910,6 +907,15 @@ static OMX_ERRORTYPE disablePrealloc(Application& app)
 OMX_ERRORTYPE configureComponent(Application& app)
 {
   auto outputPortDisabled = false;
+
+  if(app.settings.enableSubframe)
+  {
+    OMX_ALG_VIDEO_PARAM_SUBFRAME param;
+    initHeader(param);
+    param.nPortIndex = 1;
+    param.bEnableSubframe = OMX_TRUE;
+    OMX_SetParameter(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSubframe), &param);
+  }
 
   if(app.settings.hasPrealloc)
   {

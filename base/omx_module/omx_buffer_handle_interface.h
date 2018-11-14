@@ -41,14 +41,14 @@ struct BufferHandleInterface
 {
   virtual ~BufferHandleInterface() = 0;
 
-  char* const data;
-  int const size;
+  char* const data {};
+  int const size {};
 
-  int offset = 0;
-  int payload = 0;
+  int offset {};
+  int payload {};
 
 protected:
   BufferHandleInterface(char* data, int size) : data(data), size(size) {}
-  BufferHandleInterface() : data(nullptr), size(0) {}
+  BufferHandleInterface() = default;
 };
 

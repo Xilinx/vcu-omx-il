@@ -40,25 +40,20 @@
 #include "processor_interface.h"
 #include "locked_queue.h"
 #include <thread>
-#include <cassert>
 #include <functional>
 
-class ProcessorFifo : ProcessorInterface
+struct ProcessorFifo final : public ProcessorInterface
 {
-public:
-  ProcessorFifo(std::function<void(void*)> _process, std::function<void(void*)> _delete) :
-    _process(_process), _delete(_delete)
+  ProcessorFifo(std::function<void(void*)> process_, std::function<void(void*)> delete_) :
+    process_{process_}, delete_{delete_}, thread{&ProcessorFifo::Worker, this}
   {
-    assert(_process);
-    assert(_delete);
-    thread = std::thread(&ProcessorFifo::Worker, this);
   }
 
   ~ProcessorFifo()
   {
     {
       std::unique_lock<std::mutex> sync(mutex);
-      _process = _delete;
+      process_ = delete_;
     }
     tasks.push(Task { true, nullptr });
     thread.join();
@@ -70,17 +65,16 @@ public:
   }
 
 private:
+  std::mutex mutex;
   struct Task
   {
     bool quit;
     void* data;
   };
-
-  std::thread thread;
   locked_queue<Task> tasks;
-  std::mutex mutex;
-  std::function<void(void*)> _process;
-  std::function<void(void*)> _delete;
+
+  std::function<void(void*)> process_;
+  std::function<void(void*)> delete_;
 
   void Worker(void)
   {
@@ -91,13 +85,17 @@ private:
       if(task.quit)
         break;
 
-      std::function<void(void*)> p;
+      std::function<void(void*)> p {};
       {
         std::unique_lock<std::mutex> sync(mutex);
-        p = _process;
+        p = process_;
       }
-      p(task.data);
+
+      if(p)
+        p(task.data);
     }
   }
+
+  std::thread thread;
 };
 

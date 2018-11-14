@@ -266,10 +266,10 @@ typedef struct OMX_ALG_VIDEO_PARAM_SLICES
  * LookAhead parameters
  *
  * STRUCT MEMBERS:
- *  nSize            		          : Size of the structure in bytes
- *  nVersion         		          : OMX specification version information
- *  nPortIndex       		          : Port that this structure applies to
- *  nLookAhead                    : Indicate the Lookahead size, disabled if 0
+ *  nSize      : Size of the structure in bytes
+ *  nVersion   : OMX specification version information
+ *  nPortIndex : Port that this structure applies to
+ *  nLookAhead : Indicate the Lookahead size, disabled if 0
  */
 typedef struct OMX_ALG_VIDEO_PARAM_LOOKAHEAD
 {
@@ -280,12 +280,31 @@ typedef struct OMX_ALG_VIDEO_PARAM_LOOKAHEAD
 }OMX_ALG_VIDEO_PARAM_LOOKAHEAD;
 
 /**
+ * TwoPass parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize      : Size of the structure in bytes
+ *  nVersion   : OMX specification version information
+ *  nPortIndex : Port that this structure applies to
+ *  nPass      : Indicate which pass we encode (1 or 2), disabled if 0
+ *  sLogFile   : Path of the pass 1 statistics logfile
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_TWOPASS
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_U32 nPass;
+  OMX_STRING sLogFile;
+}OMX_ALG_VIDEO_PARAM_TWOPASS;
+
+/**
  * Scene change resilience parameters
  *
  * STRUCT MEMBERS:
- *  nSize            		          : Size of the structure in bytes
- *  nVersion         		          : OMX specification version information
- *  nPortIndex       		          : Port that this structure applies to
+ *  nSize                         : Size of the structure in bytes
+ *  nVersion                      : OMX specification version information
+ *  nPortIndex                    : Port that this structure applies to
  *  bDisableSceneChangeResilience : Indicate if scene change resilience should be disabled
  */
 typedef struct OMX_ALG_VIDEO_PARAM_SCENE_CHANGE_RESILIENCE
@@ -300,9 +319,9 @@ typedef struct OMX_ALG_VIDEO_PARAM_SCENE_CHANGE_RESILIENCE
  * Prefetch buffer parameters
  *
  * STRUCT MEMBERS:
- *  nSize            		  : Size of the structure in bytes
- *  nVersion         		  : OMX specification version information
- *  nPortIndex       		  : Port that this structure applies to
+ *  nSize                 : Size of the structure in bytes
+ *  nVersion              : OMX specification version information
+ *  nPortIndex            : Port that this structure applies to
  *  bEnablePrefetchBuffer : Indicate if prefetch buffer should be enabled
  */
 typedef struct OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER
@@ -412,9 +431,17 @@ typedef struct OMX_ALG_VIDEO_PARAM_SCALING_LIST
 typedef enum OMX_ALG_EDpbMode
 {
   OMX_ALG_DPB_NORMAL,
-  OMX_ALG_DPB_LOW_REF,
+  OMX_ALG_DPB_NO_REORDERING,
   OMX_ALG_DPB_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_EDpbMode;
+
+#ifdef __GNUC__
+#define OMX_DEPRECATED(msg) __attribute__((deprecated(msg)))
+#else
+#define OMX_DEPRECATED(msg) __declspec(deprecated(msg))
+#endif
+
+OMX_ALG_EDpbMode const OMX_ALG_DPB_LOW_REF OMX_DEPRECATED("Use OMX_ALG_DPB_NO_REORDERING instead") = OMX_ALG_DPB_NO_REORDERING;
 
 /**
  * Decoded picture buffer parameters

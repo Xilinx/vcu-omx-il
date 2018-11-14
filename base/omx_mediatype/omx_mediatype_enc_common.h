@@ -63,6 +63,8 @@ bool UpdateBitrate(AL_TEncSettings& settings, Bitrate bitrate);
 bool CreateCacheLevel2(AL_TEncSettings settings);
 bool UpdateCacheLevel2(AL_TEncSettings& settings, bool isCacheLevel2Enabled);
 
+BufferSizes CreateBufferSizes(AL_TEncSettings settings, int stride, int sliceHeight);
+
 bool CreateFillerData(AL_TEncSettings settings);
 bool UpdateFillerData(AL_TEncSettings& settings, bool isFillerDataEnabled);
 
@@ -84,8 +86,11 @@ bool UpdateFormat(AL_TEncSettings& settings, Format format, std::vector<ColorTyp
 Resolution CreateResolution(AL_TEncSettings settings, int widthStride, int heightStride);
 bool UpdateResolution(AL_TEncSettings& settings, int& stride, int& sliceHeight, Stride strideAlignment, Resolution resolution);
 
-bool UpdateIsEnabledSubFrame(AL_TEncSettings& settings, bool isEnabledSubFrame);
+bool UpdateIsEnabledSubframe(AL_TEncSettings& settings, bool isEnabledSubframe);
 
 LookAhead CreateLookAhead(AL_TEncSettings settings);
 bool UpdateLookAhead(AL_TEncSettings& settings, LookAhead la);
+
+TwoPass CreateTwoPass(AL_TEncSettings settings, std::string sTwoPassLogFile);
+bool UpdateTwoPass(AL_TEncSettings& settings, std::string& sTwoPassLogFile, TwoPass tp);
 

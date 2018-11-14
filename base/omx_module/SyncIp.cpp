@@ -42,7 +42,6 @@
 #include "SyncIp.h"
 #include <cassert>
 #include <iostream>
-#include <stdexcept>
 #include <map>
 #include <algorithm>
 
@@ -63,20 +62,6 @@ typedef uint64_t u64;
 #include "SyncLog.h"
 
 using namespace std;
-
-struct sync_error : public std::runtime_error
-{
-  explicit sync_error(const char* msg) : std::runtime_error(msg)
-  {
-  }
-};
-
-struct sync_no_buf_slot_available : public sync_error
-{
-  explicit sync_no_buf_slot_available() : sync_error("Couldn't add buffer to the sync ip channel")
-  {
-  }
-};
 
 template<typename L>
 std::unique_lock<L> Lock(L& lockMe)
@@ -274,7 +259,7 @@ static struct xvsfsync_chan_config setFrameBufferConfig(int channelId, AL_TBuffe
 
   struct xvsfsync_chan_config config {};
 
-  config.luma_start_address = physical + srcMeta->tOffsetYC.iLuma;
+  config.luma_start_address = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
 
   /*           <------------> stride
    *           <--------> width
@@ -286,15 +271,15 @@ static struct xvsfsync_chan_config setFrameBufferConfig(int channelId, AL_TBuffe
    * total_size = height * stride
    * end = total_size - stride + width - 1
    */
-  config.luma_end_address = config.luma_start_address + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPitches.iLuma + srcMeta->tDim.iWidth - 1;
+  config.luma_end_address = config.luma_start_address + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcMeta->tDim.iWidth - 1;
 
   /* chroma is the same, but the width depends on the format of the yuv
    * here we make the assumption that the fourcc is semi planar */
   if(!AL_IsMonochrome(srcMeta->tFourCC))
   {
     assert(AL_IsSemiPlanar(srcMeta->tFourCC));
-    config.chroma_start_address = physical + AL_SrcMetaData_GetOffsetC(srcMeta);
-    config.chroma_end_address = config.chroma_start_address + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPitches.iChroma + srcMeta->tDim.iWidth - 1;
+    config.chroma_start_address = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
+    config.chroma_end_address = config.chroma_start_address + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
   }
   else
   {
@@ -326,17 +311,39 @@ SyncChannel::~SyncChannel()
   if(enabled)
     disable();
 
+  sync->removeListener(id);
+}
+
+EncSyncChannel::EncSyncChannel(SyncIp* sync, int id) :  SyncChannel{sync, id}
+{
+}
+
+EncSyncChannel::~EncSyncChannel()
+{
+  if(enabled)
+    disable();
+
+  enabled = false;
+
   while(!buffers.empty())
   {
     auto& buf = buffers.front();
     buffers.pop();
     AL_Buffer_Unref(buf);
   }
-
-  sync->removeListener(id);
 }
 
-void SyncChannel::addBuffer_(AL_TBuffer* buf, int numFbToEnable)
+void SyncChannel::disable()
+{
+  if(!enabled)
+    assert(0 == "Tried to disable a channel twice");
+
+  sync->disableChannel(id);
+  enabled = false;
+  Log("channel", "Disable channel %d\n", id);
+}
+
+void EncSyncChannel::addBuffer_(AL_TBuffer* buf, int numFbToEnable)
 {
   if(buf)
   {
@@ -363,31 +370,23 @@ void SyncChannel::addBuffer_(AL_TBuffer* buf, int numFbToEnable)
     auto config = setFrameBufferConfig(id, buf);
     printFrameBufferConfig(config);
 
-    try
-    {
-      sync->addBuffer(&config);
-      Log("framebuffer", "Pushed buffer in sync ip\n");
-      printChannelStatus(sync->getStatus(id));
-      buffers.pop();
-    }
-    catch(sync_no_buf_slot_available const& error)
-    {
-      /* Will try again later */
-      break;
-    }
+    sync->addBuffer(&config);
+    Log("framebuffer", "Pushed buffer in sync ip\n");
+    printChannelStatus(sync->getStatus(id));
+    buffers.pop();
 
     buffers.push(buf);
     --numFbToEnable;
   }
 }
 
-void SyncChannel::addBuffer(AL_TBuffer* buf)
+void EncSyncChannel::addBuffer(AL_TBuffer* buf)
 {
   auto lock = Lock(mutex);
   addBuffer_(buf, 1);
 }
 
-void SyncChannel::enable()
+void EncSyncChannel::enable()
 {
   auto lock = Lock(mutex);
   isRunning = true;
@@ -398,13 +397,27 @@ void SyncChannel::enable()
   Log("channel", "Enable channel %d\n", id);
 }
 
-void SyncChannel::disable()
+void DecSyncChannel::addBuffer(AL_TBuffer* buf)
 {
-  if(!enabled)
-    assert(0 == "Tried to disable a channel twice");
+  auto config = setFrameBufferConfig(id, buf);
+  printFrameBufferConfig(config);
 
-  sync->disableChannel(id);
-  enabled = false;
-  Log("channel", "Disable channel %d\n", id);
+  sync->addBuffer(&config);
+  Log("framebuffer", "Pushed buffer in sync ip\n");
+  printChannelStatus(sync->getStatus(id));
+}
+
+void DecSyncChannel::enable()
+{
+  sync->enableChannel(id);
+  enabled = true;
+}
+
+DecSyncChannel::DecSyncChannel(SyncIp* sync, int id) :  SyncChannel{sync, id}
+{
+}
+
+DecSyncChannel::~DecSyncChannel()
+{
 }
 

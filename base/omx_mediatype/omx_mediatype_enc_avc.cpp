@@ -50,12 +50,17 @@
 extern "C"
 {
 #include <lib_common_enc/EncBuffers.h>
+#include <lib_common_enc/IpEncFourCC.h>
 }
 
 using namespace std;
 
-EncMediatypeAVC::EncMediatypeAVC()
+EncMediatypeAVC::EncMediatypeAVC(BufferContiguities bufferContiguities, BufferBytesAlignments bufferBytesAlignments)
 {
+  this->bufferContiguities.input = bufferContiguities.input;
+  this->bufferContiguities.output = bufferContiguities.output;
+  this->bufferBytesAlignments.input = bufferBytesAlignments.input;
+  this->bufferBytesAlignments.output = bufferBytesAlignments.output;
   strideAlignment.widthStride = 32;
   strideAlignment.heightStride = 8;
   CreateFormatsSupportedMap(colors, bitdepths, supportedFormatsMap);
@@ -90,9 +95,8 @@ void EncMediatypeAVC::Reset()
   settings.bEnableFillerData = true;
   settings.bEnableAUD = false;
   settings.iPrefetchLevel2 = 0;
-#if AL_ENABLE_TWOPASS
   settings.LookAhead = 0;
-#endif
+  settings.TwoPass = 0;
 
   stride = RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride);
   sliceHeight = RoundUp(channel.uHeight, strideAlignment.heightStride);
@@ -169,11 +173,9 @@ static BufferCounts CreateBufferCounts(AL_TEncSettings settings)
     bufferCounts.output *= numSlices;
   }
 
-#if AL_ENABLE_TWOPASS
 
   if(settings.LookAhead)
     bufferCounts.input += settings.LookAhead;
-#endif
 
   return bufferCounts;
 }
@@ -279,6 +281,24 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Get(std::string index, vo
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_BUFFER_SIZES")
+  {
+    *(static_cast<BufferSizes*>(settings)) = CreateBufferSizes(this->settings, this->stride, this->sliceHeight);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_BUFFER_CONTIGUITIES")
+  {
+    *(static_cast<BufferContiguities*>(settings)) = this->bufferContiguities;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_BUFFER_BYTES_ALIGNMENTS")
+  {
+    *(static_cast<BufferBytesAlignments*>(settings)) = this->bufferBytesAlignments;
+    return ERROR_SETTINGS_NONE;
+  }
+
   if(index == "SETTINGS_INDEX_FILLER_DATA")
   {
     *(static_cast<bool*>(settings)) = CreateFillerData(this->settings);
@@ -329,7 +349,7 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Get(std::string index, vo
 
   if(index == "SETTINGS_INDEX_FORMATS_SUPPORTED")
   {
-    SupportedFormats supported;
+    SupportedFormats supported {};
     supported.input = CreateFormatsSupported(colors, bitdepths);
     supported.output = CreateFormatsSupportedByCurrent(CreateFormat(this->settings), supportedFormatsMap);
     *(static_cast<SupportedFormats*>(settings)) = supported;
@@ -354,14 +374,18 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Get(std::string index, vo
     return ERROR_SETTINGS_NONE;
   }
 
-#if AL_ENABLE_TWOPASS
 
   if(index == "SETTINGS_INDEX_LOOKAHEAD")
   {
     *(static_cast<LookAhead*>(settings)) = CreateLookAhead(this->settings);
     return ERROR_SETTINGS_NONE;
   }
-#endif
+
+  if(index == "SETTINGS_INDEX_TWOPASS")
+  {
+    *(static_cast<TwoPass*>(settings)) = CreateTwoPass(this->settings, this->sTwoPassLogFile);
+    return ERROR_SETTINGS_NONE;
+  }
 
   return ERROR_SETTINGS_BAD_INDEX;
 }
@@ -603,9 +627,9 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_SUBFRAME")
   {
-    auto isEnabledSubFrame = *(static_cast<bool const*>(settings));
+    auto isEnabledSubframe = *(static_cast<bool const*>(settings));
 
-    if(!UpdateIsEnabledSubFrame(this->settings, isEnabledSubFrame))
+    if(!UpdateIsEnabledSubframe(this->settings, isEnabledSubframe))
       return ERROR_SETTINGS_BAD_PARAMETER;
     return ERROR_SETTINGS_NONE;
   }
@@ -619,7 +643,6 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
     return ERROR_SETTINGS_NONE;
   }
 
-#if AL_ENABLE_TWOPASS
 
   if(index == "SETTINGS_INDEX_LOOKAHEAD")
   {
@@ -630,8 +653,31 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
 
     return ERROR_SETTINGS_NONE;
   }
-#endif
+
+  if(index == "SETTINGS_INDEX_TWOPASS")
+  {
+    auto tp = *(static_cast<TwoPass const*>(settings));
+
+    if(!UpdateTwoPass(this->settings, this->sTwoPassLogFile, tp))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+
+    return ERROR_SETTINGS_NONE;
+  }
 
   return ERROR_SETTINGS_BAD_INDEX;
+}
+
+bool EncMediatypeAVC::Check()
+{
+  if(AL_Settings_CheckValidity(&settings, &settings.tChParam[0], stderr) != 0)
+    return false;
+
+  auto channel = settings.tChParam[0];
+  auto picFormat = AL_EncGetSrcPicFormat(AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER, false);
+  auto fourCC = AL_EncGetSrcFourCC(picFormat);
+  assert(AL_GET_BITDEPTH(channel.ePicFormat) == channel.uSrcBitDepth);
+  AL_Settings_CheckCoherency(&settings, &settings.tChParam[0], fourCC, stdout);
+
+  return true;
 }
 

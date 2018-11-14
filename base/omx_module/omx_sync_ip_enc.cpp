@@ -35,7 +35,7 @@
 *
 ******************************************************************************/
 
-#include "omx_sync_ip.h"
+#include "omx_sync_ip_enc.h"
 #include <cassert>
 #include "DummySyncDriver.h"
 
@@ -58,12 +58,15 @@ extern "C"
 #include "base/omx_utils/round.h"
 #include "base/omx_module/omx_module_structs.h"
 
+#include <chrono>
+#include <thread>
+
 using namespace std;
 
-static char const* syncDevice = "/dev/xvsfsync0";
+static char const* syncDeviceEnc = "/dev/xvsfsync0";
 static constexpr bool usingDummy = false;
 
-AL_TDriver* getDriver()
+static AL_TDriver* getDriver()
 {
   if(usingDummy)
     return AL_InitDummyDriver(true, 4);
@@ -71,15 +74,13 @@ AL_TDriver* getDriver()
   return AL_GetHardwareDriver();
 }
 
-OMXSyncIp::OMXSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator) : media(media), allocator(allocator), syncIp(getDriver(), syncDevice), sync{&syncIp, syncIp.getFreeChannel()}
+OMXEncSyncIp::OMXEncSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator) : media(media), allocator(allocator), syncIp(getDriver(), syncDeviceEnc), sync{&syncIp, syncIp.getFreeChannel()}
 {
   assert(media);
   assert(allocator);
 }
 
-OMXSyncIp::~OMXSyncIp() = default;
-
-static AL_TMetaData* CreateSourceMeta(shared_ptr<MediatypeInterface> media)
+static AL_TMetaData* CreateEncSourceMeta(MediatypeInterface* media)
 {
   Format format {};
   Resolution resolution {};
@@ -89,14 +90,15 @@ static AL_TMetaData* CreateSourceMeta(shared_ptr<MediatypeInterface> media)
   auto fourCC = AL_EncGetSrcFourCC(picFormat);
   auto stride = resolution.stride.widthStride;
   auto sliceHeight = resolution.stride.heightStride;
-  AL_TPitches const pitches = { stride, stride };
-  AL_TOffsetYC const offsetYC = { 0, stride * sliceHeight };
-  return (AL_TMetaData*)(AL_SrcMetaData_Create({ resolution.width, resolution.height }, pitches, offsetYC, fourCC));
+  AL_TPlane planeY = { 0, stride };
+  AL_TPlane planeUV = { stride* sliceHeight, stride };
+  return (AL_TMetaData*)(AL_SrcMetaData_Create({ resolution.width, resolution.height }, planeY, planeUV, fourCC));
 }
 
-static bool CreateAndAttachSourceMeta(AL_TBuffer* buf, shared_ptr<MediatypeInterface> media)
+template<typename Func>
+static bool CreateAndAttachSourceMeta(AL_TBuffer* buf, shared_ptr<MediatypeInterface> media, Func CreateSourceMeta)
 {
-  auto meta = CreateSourceMeta(media);
+  auto meta = CreateSourceMeta(media.get());
 
   if(!meta)
     return false;
@@ -109,7 +111,7 @@ static bool CreateAndAttachSourceMeta(AL_TBuffer* buf, shared_ptr<MediatypeInter
   return true;
 }
 
-AL_TBuffer* CreateBuffer(AL_TLinuxDmaAllocator* allocator, int fd, int size)
+static AL_TBuffer* CreateBuffer(AL_TLinuxDmaAllocator* allocator, int fd, int size)
 {
   if(fd < 0)
     throw invalid_argument("fd");
@@ -125,13 +127,27 @@ AL_TBuffer* CreateBuffer(AL_TLinuxDmaAllocator* allocator, int fd, int size)
   return AL_Buffer_Create((AL_TAllocator*)allocator, dmaHandle, size, AL_Buffer_Destroy);
 }
 
-void OMXSyncIp::addBuffer(BufferHandleInterface* handle)
+void OMXEncSyncIp::addBuffer(BufferHandleInterface* handle)
 {
   if(!handle)
   {
-    sync.addBuffer(nullptr);
+    try
+    {
+      sync.addBuffer(nullptr);
+    }
+    catch(sync_no_buf_slot_available& e)
+    {
+      fprintf(stderr, "Error while using the sync ip (Continuing): %s\n", e.what());
+    }
+
     return;
   }
+
+  BufferHandles bufferHandles {};
+  media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
+
+  if(bufferHandles.input != BufferHandleType::BUFFER_HANDLE_FD)
+    throw runtime_error("We only support dmabuf when the sync ip is activated");
 
   int fd = static_cast<int>((intptr_t)handle->data);
   AL_TBuffer* buf = CreateBuffer((AL_TLinuxDmaAllocator*)allocator.get(), fd, handle->payload);
@@ -140,13 +156,13 @@ void OMXSyncIp::addBuffer(BufferHandleInterface* handle)
     throw runtime_error("SyncIp: Couldn't get the buffer");
 
   AL_Buffer_Ref(buf);
-  bool attached = CreateAndAttachSourceMeta(buf, media);
+  bool attached = CreateAndAttachSourceMeta(buf, media, CreateEncSourceMeta);
   assert(attached);
   sync.addBuffer(buf);
   AL_Buffer_Unref(buf);
 }
 
-void OMXSyncIp::enable()
+void OMXEncSyncIp::enable()
 {
   sync.enable();
 }

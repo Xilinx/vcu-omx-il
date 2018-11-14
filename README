@@ -12,10 +12,6 @@ $ make CROSS_COMPILE=arm-linux-gnueabihf-
 * Linux other platforms (i.e. arm 64 bits) user*
 $ make CROSS_COMPILE=aarch64-linux-gnu-
 
-*Compile in static*
-$ make STATIC=1
-
 *Compile against lib_encode / lib_decode you built*
-
 $ ctrlsw_root=/your_path/ctrlsw-src
 $ EXTERNAL_INCLUDE=$ctrlsw_root/include EXTERNAL_LIB=$ctrlsw_root/bin make -j8

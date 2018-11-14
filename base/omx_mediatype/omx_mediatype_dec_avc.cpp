@@ -47,8 +47,12 @@
 
 using namespace std;
 
-DecMediatypeAVC::DecMediatypeAVC()
+DecMediatypeAVC::DecMediatypeAVC(BufferContiguities bufferContiguities, BufferBytesAlignments bufferBytesAlignments)
 {
+  this->bufferContiguities.input = bufferContiguities.input;
+  this->bufferContiguities.output = bufferContiguities.output;
+  this->bufferBytesAlignments.input = bufferBytesAlignments.input;
+  this->bufferBytesAlignments.output = bufferBytesAlignments.output;
   strideAlignment.widthStride = 64;
   strideAlignment.heightStride = 64;
   CreateFormatsSupportedMap(colors, bitdepths, supportedFormatsMap);
@@ -106,7 +110,7 @@ static int CreateLatency(AL_TDecSettings settings)
   auto stream = settings.tStream;
   auto buffers = AL_AVC_GetMinOutputBuffersNeeded(stream, settings.iStackSize);
 
-  if(settings.eDpbMode == AL_DPB_LOW_REF)
+  if(settings.eDpbMode == AL_DPB_NO_REORDERING)
     buffers -= settings.iStackSize;
 
   if(settings.eDecUnit == AL_VCL_NAL_UNIT)
@@ -192,6 +196,24 @@ MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Get(std::string index, vo
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_BUFFER_SIZES")
+  {
+    *(static_cast<BufferSizes*>(settings)) = CreateBufferSizes(this->settings, this->stride, this->sliceHeight);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_BUFFER_CONTIGUITIES")
+  {
+    *(static_cast<BufferContiguities*>(settings)) = this->bufferContiguities;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_BUFFER_BYTES_ALIGNMENTS")
+  {
+    *(static_cast<BufferBytesAlignments*>(settings)) = this->bufferBytesAlignments;
+    return ERROR_SETTINGS_NONE;
+  }
+
   if(index == "SETTINGS_INDEX_PROFILE_LEVEL")
   {
     *(static_cast<ProfileLevelType*>(settings)) = CreateProfileLevel(this->settings);
@@ -212,7 +234,7 @@ MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Get(std::string index, vo
 
   if(index == "SETTINGS_INDEX_FORMATS_SUPPORTED")
   {
-    SupportedFormats supported;
+    SupportedFormats supported {};
     supported.input = CreateFormatsSupported(colors, bitdepths);
     supported.output = CreateFormatsSupportedByCurrent(CreateFormat(this->settings), supportedFormatsMap);
     *(static_cast<SupportedFormats*>(settings)) = supported;
@@ -234,6 +256,12 @@ MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Get(std::string index, vo
   if(index == "SETTINGS_INDEX_DECODED_PICTURE_BUFFER")
   {
     *(static_cast<DecodedPictureBufferType*>(settings)) = CreateDecodedPictureBuffer(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == SETTINGS_INDEX_LLP2_EARLY_CB)
+  {
+    *(static_cast<bool*>(settings)) = this->settings.bUseEarlyCallback;
     return ERROR_SETTINGS_NONE;
   }
 
@@ -328,9 +356,9 @@ MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Set(std::string index, vo
 
   if(index == "SETTINGS_INDEX_SUBFRAME")
   {
-    auto isEnabledSubFrame = *(static_cast<bool const*>(settings));
+    auto isEnabledSubframe = *(static_cast<bool const*>(settings));
 
-    if(!UpdateIsEnabledSubFrame(this->settings, isEnabledSubFrame))
+    if(!UpdateIsEnabledSubframe(this->settings, isEnabledSubframe))
       return ERROR_SETTINGS_BAD_PARAMETER;
     return ERROR_SETTINGS_NONE;
   }
@@ -353,6 +381,17 @@ MediatypeInterface::ErrorSettingsType DecMediatypeAVC::Set(std::string index, vo
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == SETTINGS_INDEX_LLP2_EARLY_CB)
+  {
+    this->settings.bUseEarlyCallback = *(static_cast<bool const*>(settings));
+    return ERROR_SETTINGS_NONE;
+  }
+
   return ERROR_SETTINGS_BAD_INDEX;
+}
+
+bool DecMediatypeAVC::Check()
+{
+  return true;
 }
 

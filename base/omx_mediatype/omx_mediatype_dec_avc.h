@@ -41,16 +41,20 @@
 
 #include <vector>
 
-struct DecMediatypeAVC : DecMediatypeInterface
+struct DecMediatypeAVC final : public DecMediatypeInterface
 {
-  DecMediatypeAVC();
+  DecMediatypeAVC(BufferContiguities bufferContiguities, BufferBytesAlignments bufferBytesAlignments);
   ~DecMediatypeAVC() override;
 
-  void Reset() override;
   ErrorSettingsType Get(std::string index, void* settings) const override;
   ErrorSettingsType Set(std::string index, void const* settings) override;
+  void Reset() override;
+
+  bool Check() override;
 
 private:
+  BufferContiguities bufferContiguities {};
+  BufferBytesAlignments bufferBytesAlignments {};
   Stride strideAlignment;
   BufferHandles bufferHandles;
 

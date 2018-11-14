@@ -73,16 +73,8 @@ struct BufferContiguities
 
 struct BufferDefinitions
 {
-  int min;
-  int size;
   int bytesAlignment;
   bool contiguous;
-};
-
-struct BufferRequirements
-{
-  BufferDefinitions input;
-  BufferDefinitions output;
 };
 
 struct Stride
@@ -237,5 +229,11 @@ struct RegionQuality
 struct LookAhead
 {
   int nLookAhead;
+};
+
+struct TwoPass
+{
+  int nPass;
+  std::string sLogFile;
 };
 

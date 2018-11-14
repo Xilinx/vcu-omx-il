@@ -193,3 +193,11 @@ bool CheckLookAhead(LookAhead la)
   return true;
 }
 
+bool CheckTwoPass(TwoPass tp)
+{
+  if(tp.nPass < 0 || tp.nPass > 2)
+    return false;
+
+  return true;
+}
+

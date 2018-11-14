@@ -29,9 +29,6 @@ CFLAGS+=-Wall -Wextra
 ENABLE_VCU?=1
 ENABLE_MCU?=1
 ENABLE_64BIT?=1
-# Makes the assumption that the external ctrlsw is installed on the machine
-# disable this if you want compilation to work with a non installed ctrlsw
-LINK_SHARED_CTRLSW?=1
 
 CROSS_COMPILE?=
 
@@ -49,21 +46,11 @@ SIZE:=$(CROSS_COMPILE)size
 
 -include compiler.mk
 
-ifeq ($(ENABLE_VCU), 1)
-	CFLAGS+=-DAL_USE_VCU
-else
-	CFLAGS+=-DAL_USE_VCU=0
-endif
-ifeq ($(ENABLE_MCU), 1)
-	CFLAGS+=-DAL_USE_MCU
-else
-	CFLAGS+=-DAL_USE_MCU=0
-endif
-
-ENABLE_SYNCIP=0
+ENABLE_SYNCIP?=0
 
 ifeq ($(ENABLE_SYNCIP),1)
   CFLAGS+=-DAL_ENABLE_SYNCIP
+  LDFLAGS+=-lrt
 endif
 
 ifeq ($(ENABLE_64BIT),0)
@@ -107,5 +94,6 @@ distclean: clean
 	@echo "CLEAN $(EXTERNAL_LIB)"
 	$(Q)rm -rf $(EXTERNAL_LIB)
 
+TARGETS: $(externals)
 true_all: $(TARGETS)
 

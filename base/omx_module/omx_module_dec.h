@@ -55,18 +55,12 @@ extern "C"
 #include <lib_common/StreamBuffer.h>
 }
 
-struct DecModule : public ModuleInterface
+struct DecModule final : public ModuleInterface
 {
   DecModule(std::shared_ptr<DecMediatypeInterface> media, std::shared_ptr<DecDevice> device, std::shared_ptr<AL_TAllocator> allocator);
   ~DecModule() override;
 
   int GetDisplayPictureType() const; // This can only be called on filled callback !
-  void ResetRequirements() override;
-  BufferRequirements GetBufferRequirements() const override;
-
-  bool CheckParam() override;
-  bool Create() override;
-  void Destroy() override;
 
   void Free(void* buffer) override;
   void* Allocate(size_t size) override;
@@ -94,23 +88,17 @@ private:
   int currentDisplayPictureType = -1;
 
   Callbacks callbacks;
-  ThreadSafeMap<AL_TBuffer*, BufferHandleInterface*> handlesIn;
-  ThreadSafeMap<AL_TBuffer*, BufferHandleInterface*> handlesOut;
+  ThreadSafeMap<AL_TBuffer*, BufferHandleInterface*> handles;
   ThreadSafeMap<char*, AL_TBuffer*> dpb;
   ThreadSafeMap<AL_TBuffer*, char*> shouldBeCopied;
 
   ThreadSafeMap<void*, AL_HANDLE> allocated;
   ThreadSafeMap<int, AL_HANDLE> allocatedDMA;
 
-  AL_TIDecChannel* channel;
   AL_HDecoder decoder;
 
-  EOSHandles<AL_TBuffer*> eosHandles;
   ErrorType CreateDecoder(bool shouldPrealloc);
   bool DestroyDecoder();
-  void ReleaseAllBuffers();
-  void FlushEosHandles();
-  bool isCreated;
   void CopyIfRequired(AL_TBuffer* frameToDisplay, int size);
 
   AL_TBuffer* CreateInputBuffer(char* buffer, int size);

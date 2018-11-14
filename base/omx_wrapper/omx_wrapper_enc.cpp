@@ -41,7 +41,7 @@
 #include "base/omx_mediatype/omx_mediatype_enc_hevc.h"
 
 #if AL_ENABLE_SYNCIP
-#include "base/omx_module/omx_sync_ip.h"
+#include "base/omx_module/omx_sync_ip_enc.h"
 #else
 #include "base/omx_module/null_sync_ip.h"
 #endif
@@ -64,10 +64,12 @@ extern "C" {
 static SyncIpInterface* createSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator)
 {
 #if AL_ENABLE_SYNCIP
-  return new OMXSyncIp(media, allocator);
+  return new OMXEncSyncIp {
+           media, allocator
+  };
 #else
   (void)media, (void)allocator;
-  return new NullSyncIp();
+  return new NullSyncIp {};
 #endif
 }
 
@@ -76,9 +78,22 @@ static AL_TAllocator* createDmaAlloc(string deviceName)
   auto alloc = AL_DmaAlloc_Create(deviceName.c_str());
 
   if(alloc == nullptr)
-    throw runtime_error(string("Couldnt allocate dma allocator (tried using ") + deviceName + string(")"));
+    throw runtime_error {
+            string {
+              "Couldnt allocate dma allocator (tried using "
+            } +deviceName + string {
+              ")"
+            }
+    };
   return alloc;
 }
+
+static BufferContiguities const bufferContiguitiesHardware {
+  true, true
+};
+static BufferBytesAlignments const bufferBytesAlignmentsHardware {
+  32, 32
+};
 
 
 
@@ -88,29 +103,69 @@ static AL_TAllocator* createDmaAlloc(string deviceName)
 
 static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
-  shared_ptr<EncMediatypeAVC> media(new EncMediatypeAVC());
-  shared_ptr<EncDeviceHardwareMcu> device(new EncDeviceHardwareMcu);
-  shared_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroIP"), [](AL_TAllocator* allocator) {
-    AL_Allocator_Destroy(allocator);
-  });
-  unique_ptr<EncModule> module(new EncModule(media, device, allocator));
-  unique_ptr<ExpertiseAVC> expertise(new ExpertiseAVC());
-  shared_ptr<SyncIpInterface> syncIp(createSyncIp(media, allocator));
-  return new EncComponent(hComponent, media, move(module), cComponentName, cRole, move(expertise), syncIp);
+  shared_ptr<EncMediatypeAVC> media {
+    new EncMediatypeAVC {
+      bufferContiguitiesHardware, bufferBytesAlignmentsHardware
+    }
+  };
+  shared_ptr<AL_TAllocator> allocator {
+    createDmaAlloc("/dev/allegroIP"), [](AL_TAllocator* allocator) {
+      AL_Allocator_Destroy(allocator);
+    }
+  };
+  shared_ptr<EncDeviceHardwareMcu> device {
+    new EncDeviceHardwareMcu {
+      *allocator.get()
+    }
+  };
+  unique_ptr<EncModule> module {
+    new EncModule {
+      media, device, allocator
+    }
+  };
+  unique_ptr<ExpertiseAVC> expertise {
+    new ExpertiseAVC {}
+  };
+  shared_ptr<SyncIpInterface> syncIp {
+    createSyncIp(media, allocator)
+  };
+  return new EncComponent {
+           hComponent, media, move(module), cComponentName, cRole, move(expertise), syncIp
+  };
 }
 
 
 static EncComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
-  shared_ptr<EncMediatypeHEVC> media(new EncMediatypeHEVC());
-  shared_ptr<EncDeviceHardwareMcu> device(new EncDeviceHardwareMcu);
-  shared_ptr<AL_TAllocator> allocator(createDmaAlloc("/dev/allegroIP"), [](AL_TAllocator* allocator) {
-    AL_Allocator_Destroy(allocator);
-  });
-  unique_ptr<EncModule> module(new EncModule(media, device, allocator));
-  unique_ptr<ExpertiseHEVC> expertise(new ExpertiseHEVC());
-  shared_ptr<SyncIpInterface> syncIp(createSyncIp(media, allocator));
-  return new EncComponent(hComponent, media, move(module), cComponentName, cRole, move(expertise), syncIp);
+  shared_ptr<EncMediatypeHEVC> media {
+    new EncMediatypeHEVC {
+      bufferContiguitiesHardware, bufferBytesAlignmentsHardware
+    }
+  };
+  shared_ptr<AL_TAllocator> allocator {
+    createDmaAlloc("/dev/allegroIP"), [](AL_TAllocator* allocator) {
+      AL_Allocator_Destroy(allocator);
+    }
+  };
+  shared_ptr<EncDeviceHardwareMcu> device {
+    new EncDeviceHardwareMcu {
+      *allocator.get()
+    }
+  };
+  unique_ptr<EncModule> module {
+    new EncModule {
+      media, device, allocator
+    }
+  };
+  unique_ptr<ExpertiseHEVC> expertise {
+    new ExpertiseHEVC {}
+  };
+  shared_ptr<SyncIpInterface> syncIp {
+    createSyncIp(media, allocator)
+  };
+  return new EncComponent {
+           hComponent, media, move(module), cComponentName, cRole, move(expertise), syncIp
+  };
 }
 
 
@@ -131,16 +186,13 @@ static OMX_PTR GenerateDefaultComponent(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN
   return nullptr;
 }
 
-extern "C"
-{
-OMX_PTR CreateComponentPrivate(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_STRING cRole)
+OMX_PTR CreateEncComponentPrivate(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_STRING cRole)
 {
   return GenerateDefaultComponent(hComponent, cComponentName, cRole);
 }
 
-void DestroyComponentPrivate(OMX_IN OMX_PTR pComponentPrivate)
+void DestroyEncComponentPrivate(OMX_IN OMX_PTR pComponentPrivate)
 {
   delete static_cast<EncComponent*>(pComponentPrivate);
-}
 }
 

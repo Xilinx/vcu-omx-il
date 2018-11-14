@@ -44,7 +44,7 @@
 #include <mutex>
 #include <memory>
 
-enum Command
+enum class Command
 {
   SetState,
   Flush,
@@ -59,18 +59,18 @@ enum Command
   Max,
 };
 
-enum TransientState
+enum class TransientState
 {
-  TransientInvalid,
-  TransientLoadedToIdle,
-  TransientIdleToPause,
-  TransientIdleToLoaded,
-  TransientIdleToExecuting,
-  TransientPauseToExecuting,
-  TransientPauseToIdle,
-  TransientExecutingToIdle,
-  TransientExecutingToPause,
-  TransientMax,
+  Invalid,
+  LoadedToIdle,
+  IdleToPause,
+  IdleToLoaded,
+  IdleToExecuting,
+  PauseToExecuting,
+  PauseToIdle,
+  ExecutingToIdle,
+  ExecutingToPause,
+  Max,
 };
 
 struct Task
@@ -88,9 +88,12 @@ struct Task
 struct Port
 {
   Port(int index, int expected) :
-    index(index), expected(expected)
+    index{index}
   {
+    setExpected(expected);
   };
+
+  ~Port() = default;
 
   int const index;
   bool enable = true;
@@ -98,7 +101,6 @@ struct Port
   bool error = false;
   bool isTransientToEnable = false;
   bool isTransientToDisable = false;
-  size_t expected;
 
   void ResetError()
   {
@@ -114,12 +116,23 @@ struct Port
     cv_empty.notify_one();
   }
 
+  int getExpected()
+  {
+    return expected;
+  }
+
+  void setExpected(int iExpected)
+  {
+    expected = iExpected;
+    playable = ((int)buffers.size() >= expected);
+  }
+
   void Add(OMX_BUFFERHEADERTYPE* header)
   {
     std::lock_guard<std::mutex> lock(mutex);
     buffers.push_back(header);
 
-    if(buffers.size() < expected)
+    if((int)buffers.size() < expected)
       return;
 
     playable = true;
@@ -131,7 +144,7 @@ struct Port
     std::lock_guard<std::mutex> lock(mutex);
     buffers.erase(std::remove(buffers.begin(), buffers.end(), header), buffers.end());
 
-    if((buffers.size() > 0))
+    if((buffers.size() > 0 || expected == 0))
       return;
 
     playable = false;
@@ -142,7 +155,7 @@ struct Port
   {
     std::unique_lock<std::mutex> lck(mutex);
     cv_empty.wait(lck, [&] {
-      return !playable || error;
+      return !playable || (playable && expected == 0) || error;
     });
   }
 
@@ -155,6 +168,8 @@ struct Port
   }
 
 private:
+  int expected;
+
   std::mutex mutex;
   std::vector<OMX_BUFFERHEADERTYPE*> buffers;
   std::condition_variable cv_full;

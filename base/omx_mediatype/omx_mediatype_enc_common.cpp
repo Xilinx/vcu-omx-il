@@ -44,6 +44,7 @@
 extern "C"
 {
 #include <lib_common_enc/EncBuffers.h>
+#include <lib_common/StreamBuffer.h>
 }
 
 using namespace std;
@@ -102,10 +103,12 @@ bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop gop)
   gopParam.uFreqIDR = gop.idrFrequency;
   gopParam.eMode = ConvertModuleToSoftGopControl(gop.mode);
   gopParam.eGdrMode = ConvertModuleToSoftGdr(gop.gdr);
+
   if(isGDREnabled(gop))
     settings.uEnableSEI |= SEI_RP;
   else
     settings.uEnableSEI &= ~SEI_RP;
+
   gopParam.bEnableLT = gop.isLongTermEnabled;
   gopParam.uFreqLT = gop.ltFrequency;
 
@@ -185,6 +188,39 @@ bool UpdateCacheLevel2(AL_TEncSettings& settings, bool isCacheLevel2Enabled)
 {
   settings.iPrefetchLevel2 = isCacheLevel2Enabled ? !0 : 0;
   return true;
+}
+
+static int RawAllocationSize(int stride, int sliceHeight, AL_EChromaMode eChromaMode)
+{
+  auto IP_WIDTH_ALIGNMENT = 32;
+  auto IP_HEIGHT_ALIGNMENT = 8;
+  assert(stride % IP_WIDTH_ALIGNMENT == 0); // IP requirements
+  assert(sliceHeight % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
+  auto size = stride * sliceHeight;
+  switch(eChromaMode)
+  {
+  case CHROMA_MONO: return size;
+  case CHROMA_4_2_0: return (3 * size) / 2;
+  case CHROMA_4_2_2: return 2 * size;
+  default: return -1;
+  }
+}
+
+BufferSizes CreateBufferSizes(AL_TEncSettings settings, int stride, int sliceHeight)
+{
+  BufferSizes bufferSizes {};
+  auto channel = settings.tChParam[0];
+  bufferSizes.input = RawAllocationSize(stride, sliceHeight, AL_GET_CHROMA_MODE(channel.ePicFormat));
+  bufferSizes.output = AL_GetMitigatedMaxNalSize({ channel.uWidth, channel.uHeight }, AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat));
+
+  if(channel.bSubframeLatency)
+  {
+    bufferSizes.output /= channel.uNumSlices;
+    ;
+    bufferSizes.output += 4095 * 2; /* we need space for the headers on each slice */
+    bufferSizes.output = RoundUp(bufferSizes.output, 32); /* stream size is required to be 32 bits aligned */
+  }
+  return bufferSizes;
 }
 
 bool CreateFillerData(AL_TEncSettings settings)
@@ -320,9 +356,9 @@ Resolution CreateResolution(AL_TEncSettings settings, int widthStride, int heigh
   return resolution;
 }
 
-bool UpdateIsEnabledSubFrame(AL_TEncSettings& settings, bool isEnabledSubFrame)
+bool UpdateIsEnabledSubframe(AL_TEncSettings& settings, bool isEnabledSubframe)
 {
-  settings.tChParam[0].bSubframeLatency = isEnabledSubFrame;
+  settings.tChParam[0].bSubframeLatency = isEnabledSubframe;
   return true;
 }
 
@@ -347,7 +383,6 @@ bool UpdateResolution(AL_TEncSettings& settings, int& stride, int& sliceHeight, 
   return true;
 }
 
-#if AL_ENABLE_TWOPASS
 LookAhead CreateLookAhead(AL_TEncSettings settings)
 {
   LookAhead la;
@@ -365,5 +400,23 @@ bool UpdateLookAhead(AL_TEncSettings& settings, LookAhead la)
   return true;
 }
 
-#endif
+TwoPass CreateTwoPass(AL_TEncSettings settings, string sTwoPassLogFile)
+{
+  TwoPass tp;
+  tp.nPass = settings.TwoPass;
+  tp.sLogFile = sTwoPassLogFile;
+  return tp;
+}
+
+bool UpdateTwoPass(AL_TEncSettings& settings, string& sTwoPassLogFile, TwoPass tp)
+{
+  if(!CheckTwoPass(tp))
+    return false;
+
+  settings.TwoPass = tp.nPass;
+  sTwoPassLogFile = tp.sLogFile;
+
+  return true;
+}
+
 

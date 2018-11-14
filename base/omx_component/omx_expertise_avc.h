@@ -39,7 +39,7 @@
 
 #include "omx_expertise.h"
 
-struct ExpertiseAVC : public Expertise
+struct ExpertiseAVC final : public Expertise
 {
   ~ExpertiseAVC()
   {

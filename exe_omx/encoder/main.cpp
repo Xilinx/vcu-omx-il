@@ -67,6 +67,7 @@ extern "C"
 #include <OMX_Component.h>
 #include <OMX_Types.h>
 #include <OMX_Video.h>
+#include <OMX_VideoAlg.h>
 #include <OMX_VideoExt.h>
 #include <OMX_ComponentExt.h>
 #include <OMX_IndexExt.h>
@@ -123,6 +124,8 @@ struct Settings
   EncCodec codec;
   OMX_COLOR_FORMATTYPE format;
   int lookahead;
+  int pass;
+  string twoPassLogFile;
 };
 
 struct Application
@@ -154,6 +157,8 @@ static inline void SetDefaultSettings(Settings& settings)
   settings.codec = HEVC;
   settings.format = OMX_COLOR_FormatYUV420SemiPlanar;
   settings.lookahead = 0;
+  settings.pass = 0;
+  settings.twoPassLogFile = "";
 }
 
 static inline void SetDefaultApplication(Application& app)
@@ -241,7 +246,6 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
     OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSubframe), &sub);
   }
 
-#if AL_ENABLE_TWOPASS
 
   if(app.settings.lookahead)
   {
@@ -251,7 +255,16 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
     la.nLookAhead = app.settings.lookahead;
     OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLookAhead), &la);
   }
-#endif
+
+  if(app.settings.pass)
+  {
+    OMX_ALG_VIDEO_PARAM_TWOPASS tp;
+    initHeader(tp);
+    tp.nPortIndex = 1;
+    tp.nPass = app.settings.pass;
+    tp.sLogFile = const_cast<char*>(app.settings.twoPassLogFile.c_str());
+    OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoTwoPass), &tp);
+  }
 
   OMX_PARAM_PORTDEFINITIONTYPE paramPortForActual;
   initHeader(paramPortForActual);
@@ -307,9 +320,9 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addFlag("--dma-out", &app.output.isDMA, "Use dmabufs on output port");
   opt.addInt("--subframe", &user_slice, "<4 || 8 || 16>: activate subframe latency '(0)'");
   opt.addString("--cmd-file", &cmd_file, "File to precise for dynamic cmd");
-#if AL_ENABLE_TWOPASS
   opt.addInt("--lookahead", &settings.lookahead, "<0 || above 2>: activate lookahead mode '(0)'");
-#endif
+  opt.addInt("--pass", &settings.pass, "<0 || 1 || 2>: specify which pass we encode'(0)'");
+  opt.addString("--pass-logfile", &settings.twoPassLogFile, "LogFile to transmit dualpass statistics");
 
   opt.parse(argc, argv);
 

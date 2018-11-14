@@ -43,7 +43,7 @@
 #include "base/omx_module/omx_module_enc.h"
 #include "base/omx_module/omx_sync_ip_interface.h"
 
-struct EncComponent : public Component
+struct EncComponent final : public Component
 {
   EncComponent(OMX_HANDLETYPE component, std::shared_ptr<MediatypeInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<Expertise>&& expertise, std::shared_ptr<SyncIpInterface> syncIp);
   ~EncComponent() override;
@@ -57,7 +57,7 @@ private:
   void DestroyROIBuffer(uint8_t* roiBuffer);
   void EmptyThisBufferCallBack(BufferHandleInterface* handle) override;
   void AssociateCallBack(BufferHandleInterface* empty, BufferHandleInterface* fill) override;
-  void FillThisBufferCallBack(BufferHandleInterface* filled, int offset, int size) override;
+  void FillThisBufferCallBack(BufferHandleInterface* filled) override;
   void TreatEmptyBufferCommand(Task* task) override;
   std::shared_ptr<SyncIpInterface> syncIp;
   locked_queue<uint8_t*> roiFreeBuffers;

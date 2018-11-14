@@ -105,6 +105,6 @@ typedef struct OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE
 }
 #endif /* __cplusplus */
 
-#endif /* OMX_IVCommonAlg_h */
+#endif /* OMX_IVCommonAlg.h */
 /* File EOF */
 

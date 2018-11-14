@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2017 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -34,4 +34,32 @@
 * this Software without prior written authorization from Allegro DVT2.
 *
 ******************************************************************************/
+
+#pragma once
+
+#include "omx_sync_ip_interface.h"
+#include "SyncIp.h"
+#include "base/omx_mediatype/omx_mediatype_interface.h"
+#include <memory>
+
+extern "C"
+{
+#include <lib_common/IDriver.h>
+#include <lib_common/Allocator.h>
+}
+
+struct OMXEncSyncIp : SyncIpInterface
+{
+  OMXEncSyncIp(std::shared_ptr<MediatypeInterface> media, std::shared_ptr<AL_TAllocator> allocator);
+  ~OMXEncSyncIp() = default;
+
+  void addBuffer(BufferHandleInterface*) override;
+  void enable() override;
+
+private:
+  std::shared_ptr<MediatypeInterface> media;
+  std::shared_ptr<AL_TAllocator> allocator;
+  SyncIp syncIp;
+  EncSyncChannel sync;
+};
 

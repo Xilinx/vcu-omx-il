@@ -106,45 +106,38 @@ static std::map<ErrorType, const char*> ToStringError
 #define DYNAMIC_INDEX_IS_LONG_TERM "DYNAMIC_INDEX_IS_LONG_TERM"
 #define DYNAMIC_INDEX_USE_LONG_TERM "DYNAMIC_INDEX_USE_LONG_TERM"
 
-enum CallbackEventType
+struct Callbacks
 {
-  CALLBACK_EVENT_ERROR,
-  CALLBACK_EVENT_RESOLUTION_CHANGE,
-  CALLBACK_EVENT_MAX,
+  enum CallbackEventType
+  {
+    CALLBACK_EVENT_ERROR,
+    CALLBACK_EVENT_RESOLUTION_CHANGE,
+    CALLBACK_EVENT_MAX,
+  };
+
+  std::function<void(BufferHandleInterface* buffer)> emptied;
+  std::function<void(BufferHandleInterface* input, BufferHandleInterface* output)> associate;
+  std::function<void(BufferHandleInterface* buffer)> filled;
+  std::function<void(bool isInput, BufferHandleInterface* buffer)> release;
+  std::function<void(CallbackEventType event, void* data)> event;
 };
 
-static std::map<CallbackEventType, const char*> ToStringCallbackEvent
+static std::map<Callbacks::CallbackEventType, const char*> ToStringCallbackEvent
 {
   {
-    CALLBACK_EVENT_ERROR, "CALLBACK_EVENT_ERROR"
+    Callbacks::CALLBACK_EVENT_ERROR, "CALLBACK_EVENT_ERROR"
   },
   {
-    CALLBACK_EVENT_RESOLUTION_CHANGE, "CALLBACK_EVENT_RESOLUTION_CHANGE"
+    Callbacks::CALLBACK_EVENT_RESOLUTION_CHANGE, "CALLBACK_EVENT_RESOLUTION_CHANGE"
   },
   {
-    CALLBACK_EVENT_MAX, "CALLBACK_EVENT_MAX"
+    Callbacks::CALLBACK_EVENT_MAX, "CALLBACK_EVENT_MAX"
   },
 };
-
-typedef struct
-{
-  std::function<void (BufferHandleInterface* buffer)> emptied;
-  std::function<void (BufferHandleInterface* input, BufferHandleInterface* output)> associate;
-  std::function<void (BufferHandleInterface* buffer, int offset, int size)> filled;
-  std::function<void (bool isInput, BufferHandleInterface* buffer)> release;
-  std::function<void (CallbackEventType event, void* data)> event;
-}Callbacks;
 
 struct ModuleInterface
 {
   virtual ~ModuleInterface() = 0;
-
-  virtual void ResetRequirements() = 0;
-  virtual BufferRequirements GetBufferRequirements() const = 0;
-
-  virtual bool CheckParam() = 0;
-  virtual bool Create() = 0;
-  virtual void Destroy() = 0;
 
   virtual void Free(void* buffer) = 0;
   virtual void* Allocate(size_t size) = 0;

@@ -61,9 +61,11 @@ bool UpdateFormat(AL_TDecSettings& settings, Format format, std::vector<ColorTyp
 Resolution CreateResolution(AL_TDecSettings settings, int widthStride, int heightStride);
 bool UpdateResolution(AL_TDecSettings& settings, int& stride, int& sliceHeight, Stride strideAlignment, Resolution resolution);
 
+BufferSizes CreateBufferSizes(AL_TDecSettings settings, int stride, int sliceHeight);
+
 DecodedPictureBufferType CreateDecodedPictureBuffer(AL_TDecSettings settings);
 
-bool UpdateIsEnabledSubFrame(AL_TDecSettings& settings, bool isEnabledSubFrame);
+bool UpdateIsEnabledSubframe(AL_TDecSettings& settings, bool isEnabledSubframe);
 
 bool UpdateDecodedPictureBuffer(AL_TDecSettings& settings, DecodedPictureBufferType decodedPictureBuffer);
 

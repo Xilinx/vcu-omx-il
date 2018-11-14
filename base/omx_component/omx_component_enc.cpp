@@ -56,6 +56,14 @@ static EncModule& ToEncModule(ModuleInterface& module)
   return dynamic_cast<EncModule &>(module);
 }
 
+static BufferHandleType GetBufferHandlePort(shared_ptr<MediatypeInterface> media, OMX_IN OMX_U32 index)
+{
+  BufferHandles handles;
+  media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &handles);
+  auto bufferHandlePort = IsInputPort(index) ? handles.input : handles.output;
+  return bufferHandlePort;
+}
+
 EncComponent::EncComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<Expertise>&& expertise, std::shared_ptr<SyncIpInterface> syncIp) :
   Component(component, media, std::move(module), std::move(expertise), name, role), syncIp(syncIp)
 {
@@ -65,10 +73,9 @@ EncComponent::~EncComponent() = default;
 
 void EncComponent::EmptyThisBufferCallBack(BufferHandleInterface* handle)
 {
+  assert(handle);
   auto header = ((OMXBufferHandle*)(handle))->header;
   delete handle;
-
-  ClearPropagatedData(header);
 
   if(roiMap.Exist(header))
   {
@@ -76,8 +83,7 @@ void EncComponent::EmptyThisBufferCallBack(BufferHandleInterface* handle)
     roiFreeBuffers.push(roiBuffer);
   }
 
-  if(callbacks.EmptyBufferDone)
-    callbacks.EmptyBufferDone(component, app, header);
+  ReturnEmptiedBuffer(header);
 }
 
 static void AddEncoderFlags(OMXBufferHandle* handle, EncModule& module)
@@ -111,20 +117,33 @@ void EncComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandle
     callbacks.EventHandler(component, app, OMX_EventMark, 0, 0, emptyHeader->pMarkData);
 }
 
-void EncComponent::FillThisBufferCallBack(BufferHandleInterface* filled, int offset, int size)
+void EncComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
 {
+  if(!filled)
+  {
+    if(eosHandles.input && eosHandles.output)
+      AssociateCallBack(eosHandles.input, eosHandles.output);
+
+    if(eosHandles.input)
+      EmptyThisBufferCallBack(eosHandles.input);
+
+    if(eosHandles.output)
+      FillThisBufferCallBack(eosHandles.output);
+    eosHandles.input = nullptr;
+    eosHandles.output = nullptr;
+    return;
+  }
+
   assert(filled);
   auto header = (OMX_BUFFERHEADERTYPE*)(((OMXBufferHandle*)(filled))->header);
+  auto offset = ((OMXBufferHandle*)filled)->offset;
+  auto payload = ((OMXBufferHandle*)filled)->payload;
   delete filled;
-
-  header->nOffset = offset;
-  header->nFilledLen = size;
 
   if(header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME)
     syncIp->addBuffer(nullptr);
 
-  if(callbacks.FillBufferDone)
-    callbacks.FillBufferDone(component, app, header);
+  ReturnFilledBuffer(header, offset, payload);
 }
 
 OMX_ERRORTYPE EncComponent::GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_INDEXTYPE* index)
@@ -186,7 +205,7 @@ OMX_ERRORTYPE EncComponent::UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX
   CheckPortIndex(index);
   auto port = GetPort(index);
 
-  if(transientState != TransientLoadedToIdle && !(port->isTransientToEnable))
+  if(transientState != TransientState::LoadedToIdle && !(port->isTransientToEnable))
     throw OMX_ErrorIncorrectStateOperation;
 
   *header = AllocateHeader(app, size, buffer, false, index);
@@ -199,7 +218,7 @@ OMX_ERRORTYPE EncComponent::UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX
     roiFreeBuffers.push(roiBuffer);
     roiDestroyMap.Add(*header, roiBuffer);
 
-    auto bufferHandlePort = IsInputPort(index) ? ToEncModule(*module).GetBufferHandles().input : ToEncModule(*module).GetBufferHandles().output;
+    auto bufferHandlePort = GetBufferHandlePort(media, index);
     bool dmaOnPort = (bufferHandlePort == BufferHandleType::BUFFER_HANDLE_FD);
 
     if(dmaOnPort)
@@ -229,10 +248,10 @@ OMX_ERRORTYPE EncComponent::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** head
 
   auto port = GetPort(index);
 
-  if(transientState != TransientLoadedToIdle && !(port->isTransientToEnable))
+  if(transientState != TransientState::LoadedToIdle && !(port->isTransientToEnable))
     throw OMX_ErrorIncorrectStateOperation;
 
-  auto bufferHandlePort = IsInputPort(index) ? ToEncModule(*module).GetBufferHandles().input : ToEncModule(*module).GetBufferHandles().output;
+  auto bufferHandlePort = GetBufferHandlePort(media, index);
   bool dmaOnPort = (bufferHandlePort == BufferHandleType::BUFFER_HANDLE_FD);
   auto buffer = dmaOnPort ? reinterpret_cast<OMX_U8*>(ToEncModule(*module).AllocateDMA(size * sizeof(OMX_U8))) : static_cast<OMX_U8*>(module->Allocate(size * sizeof(OMX_U8)));
 
@@ -280,12 +299,12 @@ OMX_ERRORTYPE EncComponent::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHE
   CheckPortIndex(index);
   auto port = GetPort(index);
 
-  if((transientState != TransientIdleToLoaded) && (!port->isTransientToDisable))
+  if((transientState != TransientState::IdleToLoaded) && (!port->isTransientToDisable))
     callbacks.EventHandler(component, app, OMX_EventError, OMX_ErrorPortUnpopulated, 0, nullptr);
 
   if(isBufferAllocatedByModule(header))
   {
-    auto bufferHandlePort = IsInputPort(index) ? ToEncModule(*module).GetBufferHandles().input : ToEncModule(*module).GetBufferHandles().output;
+    auto bufferHandlePort = GetBufferHandlePort(media, index);
     bool dmaOnPort = (bufferHandlePort == BufferHandleType::BUFFER_HANDLE_FD);
     dmaOnPort ? ToEncModule(*module).FreeDMA(static_cast<int>((intptr_t)header->pBuffer)) : module->Free(header->pBuffer);
   }
@@ -309,11 +328,32 @@ OMX_ERRORTYPE EncComponent::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHE
 void EncComponent::TreatEmptyBufferCommand(Task* task)
 {
   assert(task);
-  assert(task->cmd == EmptyBuffer);
+  assert(task->cmd == Command::EmptyBuffer);
   assert(static_cast<int>((intptr_t)task->data) == input.index);
   auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
   assert(header);
+
+  if(state == OMX_StateInvalid)
+  {
+    callbacks.EmptyBufferDone(component, app, header);
+    return;
+  }
+
   AttachMark(header);
+
+  if(header->nFilledLen == 0)
+  {
+    if(header->nFlags & OMX_BUFFERFLAG_EOS)
+    {
+      auto handle = new OMXBufferHandle(header);
+      eosHandles.input = handle;
+      auto success = module->Empty(handle);
+      assert(success);
+      return;
+    }
+    callbacks.EmptyBufferDone(component, app, header);
+    return;
+  }
 
   if(shouldPushROI && header->nFilledLen)
   {
@@ -324,9 +364,17 @@ void EncComponent::TreatEmptyBufferCommand(Task* task)
   }
 
   auto handle = new OMXBufferHandle(header);
+
   auto success = module->Empty(handle);
+  assert(success);
+
+  if(header->nFlags & OMX_BUFFERFLAG_EOS)
+  {
+    success = module->Empty(nullptr);
+    assert(success);
+    return;
+  }
 
   shouldClearROI = true;
-  assert(success);
 }
 

@@ -35,6 +35,7 @@
 *
 ******************************************************************************/
 
+#include <cassert>
 #include "omx_mediatype_dec_common.h"
 #include "omx_mediatype_checks.h"
 #include "omx_convert_module_soft.h"
@@ -43,7 +44,7 @@
 
 extern "C"
 {
-#include <lib_common_enc/EncBuffers.h>
+#include <lib_common/StreamBuffer.h>
 }
 
 using namespace std;
@@ -139,14 +140,41 @@ Resolution CreateResolution(AL_TDecSettings settings, int widthStride, int heigh
   return resolution;
 }
 
+static int RawAllocationSize(int stride, int sliceHeight, AL_EChromaMode eChromaMode)
+{
+  auto IP_WIDTH_ALIGNMENT = 64;
+  auto IP_HEIGHT_ALIGNMENT = 64;
+  assert(stride % IP_WIDTH_ALIGNMENT == 0); // IP requirements
+  assert(sliceHeight % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
+  auto size = stride * sliceHeight;
+  switch(eChromaMode)
+  {
+  case CHROMA_MONO: return size;
+  case CHROMA_4_2_0: return (3 * size) / 2;
+  case CHROMA_4_2_2: return 2 * size;
+  default: return -1;
+  }
+}
+
+BufferSizes CreateBufferSizes(AL_TDecSettings settings, int stride, int sliceHeight)
+{
+  BufferSizes bufferSizes {};
+  auto streamSettings = settings.tStream;
+  bufferSizes.input = AL_GetMaxNalSize(settings.eCodec, streamSettings.tDim, streamSettings.eChroma, streamSettings.iBitDepth, streamSettings.iLevel, streamSettings.iProfileIdc);
+  bufferSizes.output = RawAllocationSize(stride, sliceHeight, streamSettings.eChroma);
+  return bufferSizes;
+}
+
 DecodedPictureBufferType CreateDecodedPictureBuffer(AL_TDecSettings settings)
 {
   return ConvertSoftToModuleDecodedPictureBuffer(settings.eDpbMode);
 }
 
-bool UpdateIsEnabledSubFrame(AL_TDecSettings& settings, bool isEnabledSubFrame)
+bool UpdateIsEnabledSubframe(AL_TDecSettings& settings, bool isEnabledSubframe)
 {
-  settings.eDecUnit = isEnabledSubFrame ? ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_SLICE) : ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_FRAME);
+  settings.bLowLat = isEnabledSubframe;
+  settings.eDecUnit = isEnabledSubframe ? ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_SLICE) : ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_FRAME);
+  settings.eDpbMode = isEnabledSubframe ? ConvertModuleToSoftDecodedPictureBuffer(DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NO_REORDERING) : ConvertModuleToSoftDecodedPictureBuffer(DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NORMAL);
   return true;
 }
 
@@ -155,7 +183,7 @@ bool UpdateDecodedPictureBuffer(AL_TDecSettings& settings, DecodedPictureBufferT
   if(decodedPictureBuffer == DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM)
     return false;
 
-  settings.bLowLat = decodedPictureBuffer == DecodedPictureBufferType::DECODED_PICTURE_BUFFER_LOW_REFERENCE;
+  settings.bLowLat = decodedPictureBuffer == DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NO_REORDERING;
   settings.eDpbMode = ConvertModuleToSoftDecodedPictureBuffer(decodedPictureBuffer);
   return true;
 }

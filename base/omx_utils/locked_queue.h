@@ -48,9 +48,8 @@
  * as the call would have returned.
  */
 template<typename T>
-class locked_queue
+struct locked_queue
 {
-public:
   /**
    * @brief Adds a new element at the end of the queue
    *

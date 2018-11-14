@@ -39,10 +39,11 @@
 
 #include "omx_device_dec_interface.h"
 
-struct DecDeviceHardwareMcu : public DecDevice
+struct DecDeviceHardwareMcu final : public DecDevice
 {
   ~DecDeviceHardwareMcu() override;
-  AL_TIDecChannel* Init(AL_TAllocator const& allocator) override;
+
+  AL_TIDecChannel* Init() override;
   void Deinit() override;
   BufferContiguities GetBufferContiguities() const override;
   BufferBytesAlignments GetBufferBytesAlignments() const override;
