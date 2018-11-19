@@ -7,28 +7,50 @@ THIS:=$(call get-my-dir)
 all: true_all
 
 PWD:=$(shell pwd)
+
 BIN?=$(PWD)/bin
 OMX_HEADERS?=$(PWD)/omx_header
+EXTERNAL_INCLUDE?=
+EXTERNAL_CONFIG?=
 
-EXTERNAL_CTRLSW?=$(PWD)/../allegro-vcu-ctrl-sw
-EXTERNAL_TESTS=$(PWD)/unittests
+ifndef BIN
+$(error BIN mist be set)
+endif
 
-EXTERNAL_INCLUDE?=$(EXTERNAL_CTRLSW)/include
-EXTERNAL_LIB?=$(EXTERNAL_CTRLSW)/bin
-EXTERNAL_CONFIG?=$(EXTERNAL_INCLUDE)/config.h
+ifndef OMX_HEADERS
+$(error OMX_HEADERS must be set)
+endif
 
-TARGET?=$(shell $(CC) -dumpmachine)
+ifndef EXTERNAL_INCLUDE
+$(error EXTERNAL_INCLUDE must be set)
+endif
 
-CFLAGS+=-O3
-CFLAGS+=-g3
-LDFLAGS+=-g3
+ifndef EXTERNAL_CONFIG
+$(error EXTERNAL_CONFIG must be set)
+endif
 
-CFLAGS+=-Wall -Wextra
-#CFLAGS+=-Werror
+EXTERNAL_SRC?=
+EXTERNAL_LIB?=
+
+
 
 ENABLE_VCU?=1
 ENABLE_MCU?=1
 ENABLE_64BIT?=1
+ENABLE_SYNCIP?=0
+
+TARGET?=$(shell $(CC) -dumpmachine)
+
+DEFAULT_CFLAGS:=$(CFLAGS)
+DEFAULT_CFLAGS+=-O3
+DEFAULT_CFLAGS+=-g3
+DEFAULT_CFLAGS+=-Wall
+DEFAULT_CFLAGS+=-Wextra
+
+DEFAULT_CFLAGS+=-Wno-missing-field-initializers
+
+DEFAULT_LDFLAGS:=$(LDFLAGS)
+DEFAULT_LDFLAGS+=-g3
 
 CROSS_COMPILE?=
 
@@ -44,9 +66,7 @@ RANLIB:=$(CROSS_COMPILE)ranlib
 STRIP:=$(CROSS_COMPILE)strip
 SIZE:=$(CROSS_COMPILE)size
 
--include compiler.mk
-
-ENABLE_SYNCIP?=0
+-include quirks.mk
 
 ifeq ($(ENABLE_SYNCIP),1)
   CFLAGS+=-DAL_ENABLE_SYNCIP

@@ -8,12 +8,25 @@ include $(THIS.exe_omx_enc)/encoder/project_enc.mk
 EXE_OMX_ENCODER_OBJ:=$(EXE_OMX_COMMON_OBJ)
 EXE_OMX_ENCODER_OBJ+=$(EXE_OMX_ENCODER_SRCS:%=$(BIN)/%.o)
 
-$(BIN)/$(EXE_NAME_ENC): $(EXE_OMX_ENCODER_OBJ) $(LIB_OMX_ENC) $(LIB_OMX_CORE)
-$(BIN)/$(EXE_NAME_ENC): CFLAGS+=-fPIC
-$(BIN)/$(EXE_NAME_ENC): CFLAGS+=-pthread
-$(BIN)/$(EXE_NAME_ENC): LDFLAGS+=-L$(EXTERNAL_LIB)
-$(BIN)/$(EXE_NAME_ENC): LDFLAGS+=-l$(EXTERNAL_ENCODE_LIB_NAME:lib%=%)
-$(BIN)/$(EXE_NAME_ENC): LDFLAGS+=-lpthread
+EXE_ENC_CFLAGS:=$(DEFAULT_CFLAGS)
+EXE_ENC_CFLAGS+=-fPIC
+
+EXE_ENC_LDFLAGS:=$(DEFAULT_LDFLAGS)
+EXE_ENC_LDFLAGS+=-L$(BIN)
+EXE_ENC_LDFLAGS+=-l$(LIB_OMX_CORE_NAME:lib%.so=%)
+EXE_ENC_LDFLAGS+=-l$(LIB_OMX_ENC_NAME:lib%.so=%)
+ifdef EXTERNAL_LIB
+EXE_ENC_LDFLAGS+=-L$(EXTERNAL_LIB)
+endif
+EXE_ENC_LDFLAGS+=-l$(EXTERNAL_ENCODE_LIB_NAME:lib%.so=%)
+
+-include $(THIS.exe_omx_enc)/ref_enc.mk
+
+$(BIN)/$(EXE_NAME_ENC): $(LIB_OMX_CORE)
+$(BIN)/$(EXE_NAME_ENC): $(LIB_OMX_ENC)
+$(BIN)/$(EXE_NAME_ENC): $(EXE_OMX_ENCODER_OBJ)
+$(BIN)/$(EXE_NAME_ENC): CFLAGS:=$(EXE_ENC_CFLAGS)
+$(BIN)/$(EXE_NAME_ENC): LDFLAGS:=$(EXE_ENC_LDFLAGS)
 
 $(BIN)/$(SH_NAME_ENC): $(BIN)/$(EXE_NAME_ENC)
 	@echo "Generate script to launch $^"
@@ -24,7 +37,7 @@ $(BIN)/$(SH_NAME_ENC): $(BIN)/$(EXE_NAME_ENC)
 	$(shell echo '"$$BIN_PATH/$(EXE_NAME_ENC)" "$$@"' >> $@)
 	$(shell chmod a+x $@)
 
-omx_encoder: $(BIN)/$(EXE_NAME_ENC) $(BIN)/$(SH_NAME_ENC)
+omx_encoder:  $(BIN)/$(EXE_NAME_ENC) $(BIN)/$(SH_NAME_ENC)
 
 .PHONY: omx_encoder
 TARGETS+=omx_encoder

@@ -50,9 +50,9 @@ struct EncMediatypeInterface : public MediatypeInterface
 {
   virtual ~EncMediatypeInterface() override = default;
 
-  virtual void Reset() = 0;
-  virtual ErrorSettingsType Get(std::string index, void* settings) const = 0;
-  virtual ErrorSettingsType Set(std::string index, void const* settings) = 0;
+  virtual void Reset() override = 0;
+  virtual ErrorSettingsType Get(std::string index, void* settings) const override = 0;
+  virtual ErrorSettingsType Set(std::string index, void const* settings) override = 0;
 
   AL_TEncSettings settings;
   int stride;

@@ -55,7 +55,7 @@ struct EncDeviceHardwareMcu final : public EncDevice
   BufferBytesAlignments GetBufferBytesAlignments() const override;
 
 private:
-  AL_TAllocator const& allocator {};
+  AL_TAllocator const& allocator;
   TScheduler* scheduler {};
 };
 
