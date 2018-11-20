@@ -33,25 +33,12 @@ EXTERNAL_SRC?=
 EXTERNAL_LIB?=
 
 
-
 ENABLE_VCU?=1
 ENABLE_MCU?=1
 ENABLE_64BIT?=1
 ENABLE_SYNCIP?=0
 
-TARGET?=$(shell $(CC) -dumpmachine)
-
-DEFAULT_CFLAGS:=$(CFLAGS)
-DEFAULT_CFLAGS+=-O3
-DEFAULT_CFLAGS+=-g3
-DEFAULT_CFLAGS+=-Wall
-DEFAULT_CFLAGS+=-Wextra
-
-DEFAULT_CFLAGS+=-Wno-missing-field-initializers
-
-DEFAULT_LDFLAGS:=$(LDFLAGS)
-DEFAULT_LDFLAGS+=-g3
-
+-include quirks.mk
 CROSS_COMPILE?=
 
 CXX:=$(CROSS_COMPILE)g++
@@ -66,12 +53,12 @@ RANLIB:=$(CROSS_COMPILE)ranlib
 STRIP:=$(CROSS_COMPILE)strip
 SIZE:=$(CROSS_COMPILE)size
 
--include quirks.mk
-
 ifeq ($(ENABLE_SYNCIP),1)
   CFLAGS+=-DAL_ENABLE_SYNCIP
   LDFLAGS+=-lrt
 endif
+
+TARGET?=$(shell $(CC) -dumpmachine)
 
 ifeq ($(ENABLE_64BIT),0)
   # force 32 bit compilation
@@ -83,6 +70,17 @@ ifeq ($(ENABLE_64BIT),0)
 endif
 
 include $(THIS)/builder.mk
+
+DEFAULT_CFLAGS:=$(CFLAGS)
+DEFAULT_CFLAGS+=-O3
+DEFAULT_CFLAGS+=-g3
+DEFAULT_CFLAGS+=-Wall
+DEFAULT_CFLAGS+=-Wextra
+
+DEFAULT_CFLAGS+=-Wno-missing-field-initializers
+
+DEFAULT_LDFLAGS:=$(LDFLAGS)
+DEFAULT_LDFLAGS+=-g3
 
 INCLUDES+=-I.
 INCLUDES+=-I$(OMX_HEADERS)
