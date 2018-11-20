@@ -43,7 +43,7 @@ extern "C"
 #include <lib_common/HardwareDriver.h>
 }
 
-EncDeviceHardwareMcu::EncDeviceHardwareMcu(AL_TAllocator const& allocator) : allocator{allocator}
+EncDeviceHardwareMcu::EncDeviceHardwareMcu(AL_TAllocator const& allocator) : allocator(allocator)
 {
 }
 
