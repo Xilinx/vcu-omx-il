@@ -41,7 +41,7 @@ using namespace std;
 
 bool CheckClock(Clock clock)
 {
-  if(clock.framerate <= 0)
+  if(clock.framerate < 0)
     return false;
 
   if(clock.clockratio <= 0)

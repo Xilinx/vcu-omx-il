@@ -63,6 +63,9 @@ bool UpdateClock(AL_TEncSettings& settings, Clock clock)
   if(!CheckClock(clock))
     return false;
 
+  if(clock.framerate == 0)
+    return false;
+
   auto& rateCtrl = settings.tChParam[0].tRCParam;
 
   rateCtrl.uFrameRate = clock.framerate;
