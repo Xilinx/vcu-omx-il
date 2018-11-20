@@ -104,6 +104,7 @@ OMX_VIDEO_CODINGTYPE ConvertMediaToOMXCompression(CompressionType compression)
 
 OMX_U32 ConvertMediaToOMXFramerate(Clock clock)
 {
+  assert(clock.clockratio);
   auto f = ((clock.framerate * 1000.0) / clock.clockratio) * 65536.0;
   return ceil(f);
 }
@@ -185,6 +186,8 @@ Clock ConvertOMXToMediaClock(OMX_U32 framerateInQ16)
   Clock clock;
   clock.framerate = ceil(framerateInQ16 / 65536.0);
   clock.clockratio = rint((clock.framerate * 1000.0 * 65536.0) / framerateInQ16);
+  if(clock.framerate == 0)
+    clock.clockratio = 1000;
   return clock;
 }
 
