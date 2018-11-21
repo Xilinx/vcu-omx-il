@@ -11,10 +11,10 @@ PWD:=$(shell pwd)
 BIN?=$(PWD)/bin
 OMX_HEADERS?=$(PWD)/omx_header
 EXTERNAL_INCLUDE?=
-EXTERNAL_CONFIG?=
+EXTERNAL_CONFIG?=$(EXTERNAL_INCLUDE)/config.h
 
 ifndef BIN
-$(error BIN mist be set)
+$(error BIN must be set)
 endif
 
 ifndef OMX_HEADERS
@@ -82,7 +82,7 @@ DEFAULT_CFLAGS+=-Wno-missing-field-initializers
 DEFAULT_LDFLAGS:=$(LDFLAGS)
 DEFAULT_LDFLAGS+=-g3
 
-INCLUDES+=-I.
+INCLUDES+=-I$(THIS)
 INCLUDES+=-I$(OMX_HEADERS)
 INCLUDES+=-I$(EXTERNAL_INCLUDE)
 INCLUDES+=-include $(EXTERNAL_CONFIG)
