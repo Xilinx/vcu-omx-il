@@ -7,21 +7,19 @@ This repository contains the AllegroDVT2 OpenMax Integration Layer (OMXIL) imple
 $ ctrlsw_include=/your_path_to_ctrlsw_include
 $ make EXTERNAL_INCLUDE=$ctrlsw_include
 
-* Linux other platforms (i.e. arm 32 bits) user*
+*Linux other platforms (i.e. arm 32 bits) user*
 $ bin=/bin_path
 $ ctrlsw_include=/your_path_to_ctrlsw_include
 $ make EXTERNAL_INCLUDE=$ctrlsw_include BIN=$bin CROSS_COMPILE=arm-linux-gnueabihf-
 
-* Linux other platforms (i.e. arm 64 bits) user*
+*Linux other platforms (i.e. arm 64 bits) user*
 $ bin=/bin_path
 $ ctrlsw_include=/your_path_to_ctrlsw_include
 $ make EXTERNAL_INCLUDE=$ctrlsw_include BIN=$bin CROSS_COMPILE=aarch64-linux-gnu-
 
-* Compile against lib_encode / lib_decode you built*
+*Compile against lib_encode / lib_decode you built*
 $ ctrlsw_src=/your_path_to_ctrlsw_src
 $ ctrlsw_lib=/your_path_to_ctrlsw_lib
 $ ctrlsw_include=/your_path_to_ctrlsw_include
 $ bin=/bin_path
 $ make EXTERNAL_SRC=$ctrlsw_src EXTERNAL_LIB=$ctrlsw_lib EXTERNAL_INCLUDE=$ctrlsw_include BIN=$bin
-
-

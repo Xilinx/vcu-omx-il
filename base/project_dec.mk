@@ -29,6 +29,9 @@ LIBS_DECODE+=$(LIB_DECODE)
 -include $(THIS.base_dec)/ref_dec.mk
 
 $(LIB_DECODE):
+ifndef EXTERNAL_SRC
+	$(error EXTERNAL_SRC must be set to build $(EXTERNAL_DECODE_LIB_NAME))
+endif
 	ENABLE_64BIT=$(ENABLE_64BIT) \
 	CROSS_COMPILE=$(CROSS_COMPILE) \
 	CONFIG=$(EXTERNAL_CONFIG) \

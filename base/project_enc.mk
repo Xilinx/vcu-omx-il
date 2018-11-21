@@ -29,6 +29,9 @@ LIBS_ENCODE+=$(LIB_ENCODE)
 -include $(THIS.base_enc)/ref_enc.mk
 
 $(LIB_ENCODE):
+ifndef EXTERNAL_SRC
+	$(error EXTERNAL_SRC must be set to build $(EXTERNAL_ENCODE_LIB_NAME))
+endif
 	ENABLE_64BIT=$(ENABLE_64BIT) \
 	CROSS_COMPILE=$(CROSS_COMPILE) \
 	CONFIG=$(EXTERNAL_CONFIG) \
