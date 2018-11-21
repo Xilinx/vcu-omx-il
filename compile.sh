@@ -1,5 +1,3 @@
-#!/bin/bash
-
 readonly bin="$(pwd)/bin"
 readonly omx_headers="$(pwd)/omx_header"
 readonly external_srcs="$(pwd)/../allegro-vcu-ctrl-sw"

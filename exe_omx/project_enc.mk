@@ -30,7 +30,6 @@ $(BIN)/$(EXE_NAME_ENC): LDFLAGS:=$(EXE_ENC_LDFLAGS)
 
 $(BIN)/$(SH_NAME_ENC): $(BIN)/$(EXE_NAME_ENC)
 	@echo "Generate script to launch $^"
-	$(shell echo '#!/bin/bash' > $@)
 	$(shell echo 'BIN_PATH=$$(dirname $$(realpath "$$0"))' >> $@)
 	$(shell echo 'export OMX_ALLEGRO_PATH="$$BIN_PATH"' >> $@)
 	$(shell echo 'export LD_LIBRARY_PATH="$$BIN_PATH:$(EXTERNAL_LIB)"' >> $@)
