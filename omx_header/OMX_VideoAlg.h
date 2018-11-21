@@ -435,14 +435,6 @@ typedef enum OMX_ALG_EDpbMode
   OMX_ALG_DPB_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_EDpbMode;
 
-#ifdef __GNUC__
-#define OMX_DEPRECATED(msg) __attribute__((deprecated(msg)))
-#else
-#define OMX_DEPRECATED(msg) __declspec(deprecated(msg))
-#endif
-
-OMX_ALG_EDpbMode const OMX_ALG_DPB_LOW_REF OMX_DEPRECATED("Use OMX_ALG_DPB_NO_REORDERING instead") = OMX_ALG_DPB_NO_REORDERING;
-
 /**
  * Decoded picture buffer parameters
  *
