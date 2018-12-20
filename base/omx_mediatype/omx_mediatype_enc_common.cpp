@@ -367,12 +367,6 @@ bool UpdateIsEnabledSubframe(AL_TEncSettings& settings, bool isEnabledSubframe)
 
 bool UpdateResolution(AL_TEncSettings& settings, int& stride, int& sliceHeight, Stride strideAlignment, Resolution resolution)
 {
-  if((resolution.width % 2) != 0)
-    return false;
-
-  if((resolution.height % 2) != 0)
-    return false;
-
   auto& chan = settings.tChParam[0];
   chan.uWidth = resolution.width;
   chan.uHeight = resolution.height;
