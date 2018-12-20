@@ -190,12 +190,6 @@ bool UpdateDecodedPictureBuffer(AL_TDecSettings& settings, DecodedPictureBufferT
 
 bool UpdateResolution(AL_TDecSettings& settings, int& stride, int& sliceHeight, Stride strideAlignment, Resolution resolution)
 {
-  if((resolution.width % 2) != 0)
-    return false;
-
-  if((resolution.height % 2) != 0)
-    return false;
-
   auto& streamSettings = settings.tStream;
   streamSettings.tDim = { resolution.width, resolution.height };
 
