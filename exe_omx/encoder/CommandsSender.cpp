@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -51,6 +51,12 @@ extern "C"
 #include <OMX_IndexAlg.h>
 }
 
+CommandsSender::CommandsSender(OMX_HANDLETYPE hEnc) :
+  hEnc(hEnc)
+{
+}
+
+CommandsSender::~CommandsSender() = default;
 void CommandsSender::notifySceneChange(int lookAhead)
 {
   OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE notifySceneChange;
@@ -143,8 +149,14 @@ void CommandsSender::setBitRate(int bitRate)
   assert(error == OMX_ErrorNone);
 }
 
-void CommandsSender::setQP(int)
+void CommandsSender::setQP(int qp)
 {
+  (void)qp;
+}
+
+void CommandsSender::setDynamicInput(int iInputIdx)
+{
+  (void)iInputIdx;
 }
 
 

@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -60,6 +60,11 @@ typedef uint64_t u64;
 }
 
 #include "SyncLog.h"
+
+static int RoundUp(int iVal, int iRnd)
+{
+  return (iVal + iRnd - 1) / iRnd * iRnd;
+}
 
 using namespace std;
 
@@ -240,16 +245,20 @@ void printFrameBufferConfig(struct xvsfsync_chan_config const& config)
 {
   Log("framebuffer", "********************************\n");
   Log("framebuffer", "fb_id: %d, channel_id: %d\n", config.fb_id, config.channel_id);
-  Log("framebuffer", "luma_start_address: %" PRIx64 "\n", config.luma_start_address);
-  Log("framebuffer", "luma_end_address: %" PRIx64 "\n", config.luma_end_address);
+  Log("framebuffer", "prod_luma_start_address: %" PRIx64 "\n", config.prod_luma_start_address);
+  Log("framebuffer", "prod_luma_end_address: %" PRIx64 "\n", config.prod_luma_end_address);
+  Log("framebuffer", "cons_luma_start_address: %" PRIx64 "\n", config.cons_luma_start_address);
+  Log("framebuffer", "cons_luma_end_address: %" PRIx64 "\n", config.cons_luma_end_address);
   Log("framebuffer", "luma_margin %d\n", config.luma_margin);
-  Log("framebuffer", "chroma_start_address: %" PRIx64 "\n", config.chroma_start_address);
-  Log("framebuffer", "chroma_end_address: %" PRIx64 "\n", config.chroma_end_address);
+  Log("framebuffer", "prod_chroma_start_address: %" PRIx64 "\n", config.prod_chroma_start_address);
+  Log("framebuffer", "prod_chroma_end_address: %" PRIx64 "\n", config.prod_chroma_end_address);
+  Log("framebuffer", "cons_chroma_start_address: %" PRIx64 "\n", config.cons_chroma_start_address);
+  Log("framebuffer", "cons_chroma_end_address: %" PRIx64 "\n", config.cons_chroma_end_address);
   Log("framebuffer", "chroma_margin %d\n", config.chroma_margin);
   Log("framebuffer", "********************************\n");
 }
 
-static struct xvsfsync_chan_config setFrameBufferConfig(int channelId, AL_TBuffer* buf)
+static struct xvsfsync_chan_config setEncFrameBufferConfig(int channelId, AL_TBuffer* buf, int hardwareHorizontalStrideAlignment, int hardwareVerticalStrideAlignment)
 {
   AL_TSrcMetaData* srcMeta = (AL_TSrcMetaData*)AL_Buffer_GetMetaData(buf, AL_META_TYPE_SOURCE);
   AL_PADDR physical = AL_Allocator_GetPhysicalAddr(buf->pAllocator, buf->hBuf);
@@ -259,7 +268,67 @@ static struct xvsfsync_chan_config setFrameBufferConfig(int channelId, AL_TBuffe
 
   struct xvsfsync_chan_config config {};
 
-  config.luma_start_address = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
+  config.prod_luma_start_address = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
+  config.prod_luma_end_address = config.prod_luma_start_address + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcMeta->tDim.iWidth - 1;
+
+  config.cons_luma_start_address = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
+  /*           <------------> stride
+   *           <--------> width
+   * height   ^
+   *          |
+   *          |
+   *          v         x last pixel of the image
+   * end = (height - 1) * stride + width - 1 (to get the last pixel of the image)
+   * total_size = height * stride
+   * end = total_size - stride + width - 1
+   */
+  int iHardwarePitch = RoundUp(srcMeta->tPlanes[AL_PLANE_Y].iPitch, hardwareHorizontalStrideAlignment);
+  int iHardwareLumaVertivalPitch = RoundUp(srcMeta->tDim.iHeight, hardwareVerticalStrideAlignment);
+  config.cons_luma_end_address = config.cons_luma_start_address + (iHardwarePitch * (iHardwareLumaVertivalPitch - 1)) + RoundUp(srcMeta->tDim.iWidth, hardwareHorizontalStrideAlignment) - 1;
+
+  /* chroma is the same, but the width depends on the format of the yuv
+   * here we make the assumption that the fourcc is semi planar */
+  if(!AL_IsMonochrome(srcMeta->tFourCC))
+  {
+    assert(AL_IsSemiPlanar(srcMeta->tFourCC));
+    config.prod_chroma_start_address = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
+    config.prod_chroma_end_address = config.prod_chroma_start_address + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
+
+    config.cons_chroma_start_address = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
+    int iVerticalFactor = (AL_GetChromaMode(srcMeta->tFourCC) == CHROMA_4_2_0) ? 2 : 1;
+    int iHardwareChromaVertivalPitch = RoundUp((srcMeta->tDim.iHeight / iVerticalFactor), hardwareVerticalStrideAlignment / iVerticalFactor);
+    config.cons_chroma_end_address = config.cons_chroma_start_address + (iHardwarePitch * (iHardwareChromaVertivalPitch - 1)) + RoundUp(srcMeta->tDim.iWidth, hardwareHorizontalStrideAlignment) - 1;
+  }
+  else
+  {
+    config.prod_chroma_start_address = 0;
+    config.prod_chroma_end_address = 0;
+    config.cons_chroma_start_address = 0;
+    config.cons_chroma_end_address = 0;
+    config.ismono = 1;
+  }
+
+  /* no margin for now (only needed for the decoder) */
+  config.luma_margin = 0;
+  config.chroma_margin = 0;
+
+  config.fb_id = XVSFSYNC_AUTO_SEARCH;
+  config.channel_id = channelId;
+
+  return config;
+}
+
+static struct xvsfsync_chan_config setDecFrameBufferConfig(int channelId, AL_TBuffer* buf)
+{
+  AL_TSrcMetaData* srcMeta = (AL_TSrcMetaData*)AL_Buffer_GetMetaData(buf, AL_META_TYPE_SOURCE);
+  AL_PADDR physical = AL_Allocator_GetPhysicalAddr(buf->pAllocator, buf->hBuf);
+
+  if(!srcMeta)
+    throw runtime_error("source buffer requires an AL_META_TYPE_SOURCE metadata");
+
+  struct xvsfsync_chan_config config {};
+
+  config.prod_luma_start_address = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
 
   /*           <------------> stride
    *           <--------> width
@@ -271,20 +340,31 @@ static struct xvsfsync_chan_config setFrameBufferConfig(int channelId, AL_TBuffe
    * total_size = height * stride
    * end = total_size - stride + width - 1
    */
-  config.luma_end_address = config.luma_start_address + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcMeta->tDim.iWidth - 1;
+  // TODO : This should be LCU and 64 aligned
+  config.prod_luma_end_address = config.prod_luma_start_address + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcMeta->tDim.iWidth - 1;
+
+  config.cons_luma_start_address = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
+  config.cons_luma_end_address = config.cons_luma_start_address + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcMeta->tDim.iWidth - 1;
 
   /* chroma is the same, but the width depends on the format of the yuv
    * here we make the assumption that the fourcc is semi planar */
   if(!AL_IsMonochrome(srcMeta->tFourCC))
   {
     assert(AL_IsSemiPlanar(srcMeta->tFourCC));
-    config.chroma_start_address = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
-    config.chroma_end_address = config.chroma_start_address + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
+
+    config.prod_chroma_start_address = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
+    // TODO : This should be LCU and 64 aligned
+    config.prod_chroma_end_address = config.prod_chroma_start_address + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
+
+    config.cons_chroma_start_address = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
+    config.cons_chroma_end_address = config.cons_chroma_start_address + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
   }
   else
   {
-    config.chroma_start_address = 0;
-    config.chroma_end_address = 0;
+    config.prod_chroma_start_address = 0;
+    config.prod_chroma_end_address = 0;
+    config.cons_chroma_start_address = 0;
+    config.cons_chroma_end_address = 0;
     config.ismono = 1;
   }
 
@@ -314,7 +394,7 @@ SyncChannel::~SyncChannel()
   sync->removeListener(id);
 }
 
-EncSyncChannel::EncSyncChannel(SyncIp* sync, int id) :  SyncChannel{sync, id}
+EncSyncChannel::EncSyncChannel(SyncIp* sync, int id, int hardwareHorizontalStrideAlignment, int hardwareVerticalStrideAlignment) :  SyncChannel{sync, id}, hardwareHorizontalStrideAlignment{hardwareHorizontalStrideAlignment}, hardwareVerticalStrideAlignment{hardwareVerticalStrideAlignment}
 {
 }
 
@@ -367,7 +447,7 @@ void EncSyncChannel::addBuffer_(AL_TBuffer* buf, int numFbToEnable)
   {
     buf = buffers.front();
 
-    auto config = setFrameBufferConfig(id, buf);
+    auto config = setEncFrameBufferConfig(id, buf, hardwareHorizontalStrideAlignment, hardwareVerticalStrideAlignment);
     printFrameBufferConfig(config);
 
     sync->addBuffer(&config);
@@ -399,7 +479,7 @@ void EncSyncChannel::enable()
 
 void DecSyncChannel::addBuffer(AL_TBuffer* buf)
 {
-  auto config = setFrameBufferConfig(id, buf);
+  auto config = setDecFrameBufferConfig(id, buf);
   printFrameBufferConfig(config);
 
   sync->addBuffer(&config);

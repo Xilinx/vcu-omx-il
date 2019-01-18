@@ -37,13 +37,11 @@
 
 #pragma once
 
-#include "base/omx_module/omx_module_structs.h"
-extern "C"
+enum class Codec
 {
-#include <lib_common/SliceConsts.h>
-}
-
-HEVCProfileType ConvertSoftToModuleHEVCMainTierProfile(AL_EProfile const& profile);
-HEVCProfileType ConvertSoftToModuleHEVCHighTierProfile(AL_EProfile const& profile);
-AL_EProfile ConvertModuleToSoftHEVCProfile(HEVCProfileType const& profile);
+  HEVC,
+  HEVC_HARD,
+  AVC,
+  AVC_HARD,
+};
 

@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -145,19 +145,19 @@ static OMX_ERRORTYPE ToOmxError(ErrorType error)
   }
 }
 
-void Component::EventCallBack(Callbacks::CallbackEventType type, void* data)
+void Component::EventCallBack(Callbacks::Event type, void* data)
 {
-  assert(type <= Callbacks::CALLBACK_EVENT_MAX);
+  assert(type <= Callbacks::Event::MAX);
   switch(type)
   {
-  case Callbacks::CALLBACK_EVENT_ERROR:
+  case Callbacks::Event::ERROR:
   {
     ErrorType errorCode = (ErrorType)(uintptr_t)data;
     processorMain->queue(CreateTask(Command::SetState, OMX_StateInvalid, shared_ptr<void>((uintptr_t*)ToOmxError(errorCode), nullDeleter)));
     break;
   }
   default:
-    LOGE("%s is unsupported", ToStringCallbackEvent.at(type));
+    LOGE("%s is unsupported\n", ToStringCallbackEvent.at(type));
   }
 }
 
@@ -666,11 +666,11 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     return ConstructCommonSequencePictureMode(*mode, *port, media);
   }
   default:
-    LOGE("%s is unsupported", ToStringOMXIndex.at(index));
+    LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
     return OMX_ErrorUnsupportedIndex;
   }
 
-  LOGE("%s is unsupported", ToStringOMXIndex.at(index));
+  LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
   return OMX_ErrorUnsupportedIndex;
   OMX_CATCH_PARAMETER();
 }
@@ -871,11 +871,11 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     return SetCommonSequencePictureMode(*spm, *port, media);
   }
   default:
-    LOGE("%s is unsupported", ToStringOMXIndex.at(index));
+    LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
     return OMX_ErrorUnsupportedIndex;
   }
 
-  LOGE("%s is unsupported", ToStringOMXIndex.at(index));
+  LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
   return OMX_ErrorUnsupportedIndex;
   OMX_CATCH_PARAMETER();
 }
@@ -1043,6 +1043,17 @@ OMX_ERRORTYPE Component::FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
 
 void Component::ComponentDeInit()
 {
+  if(eosHandles.input)
+  {
+    delete eosHandles.input;
+    eosHandles.input = nullptr;
+  }
+
+  if(eosHandles.output)
+  {
+    delete eosHandles.output;
+    eosHandles.output = nullptr;
+  }
   free(role);
   free(name);
 }
@@ -1095,11 +1106,11 @@ OMX_ERRORTYPE Component::GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR
     return OMX_ErrorNone;
   }
   default:
-    LOGE("%s is unsupported", ToStringOMXIndex.at(index));
+    LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
     return OMX_ErrorUnsupportedIndex;
   }
 
-  LOGE("%s is unsupported", ToStringOMXIndex.at(index));
+  LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
 
   return OMX_ErrorUnsupportedIndex;
   OMX_CATCH_CONFIG();
@@ -1176,13 +1187,27 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
     processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoUseLongTerm, shared_ptr<void>(lt)));
     return OMX_ErrorNone;
   }
+  case OMX_ALG_IndexConfigVideoInsertPrefixSEI:
+  {
+    OMX_ALG_VIDEO_CONFIG_SEI* seiPrefix = new OMX_ALG_VIDEO_CONFIG_SEI;
+    memcpy(seiPrefix, static_cast<OMX_ALG_VIDEO_CONFIG_SEI*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_SEI));
+    processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoInsertPrefixSEI, shared_ptr<void>(seiPrefix)));
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexConfigVideoInsertSuffixSEI:
+  {
+    OMX_ALG_VIDEO_CONFIG_SEI* seiSuffix = new OMX_ALG_VIDEO_CONFIG_SEI;
+    memcpy(seiSuffix, static_cast<OMX_ALG_VIDEO_CONFIG_SEI*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_SEI));
+    processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoInsertSuffixSEI, shared_ptr<void>(seiSuffix)));
+    return OMX_ErrorNone;
+  }
 
   default:
-    LOGE("%s is unsupported", ToStringOMXIndex.at(index));
+    LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
     return OMX_ErrorUnsupportedIndex;
   }
 
-  LOGE("%s is unsupported", ToStringOMXIndex.at(index));
+  LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
   return OMX_ErrorUnsupportedIndex;
   OMX_CATCH_CONFIG();
 }
@@ -1419,7 +1444,7 @@ void Component::TreatSetStateCommand(Task* task)
     assert(task);
     assert(task->cmd == Command::SetState);
     auto newState = (OMX_STATETYPE)((uintptr_t)task->data);
-    LOGI("Set State : %s", ToStringOMXState.at(newState));
+    LOGI("Set State: %s\n", ToStringOMXState.at(newState));
     OMXChecker::CheckStateTransition(state, newState);
 
     if(isTransitionToIdleFromLoadedOrWaitRessource(state, newState))
@@ -1469,7 +1494,7 @@ void Component::TreatSetStateCommand(Task* task)
     if(task->opt.get() != nullptr)
       e = (OMX_ERRORTYPE)((uintptr_t)task->opt.get());
 
-    LOGE("%s", ToStringOMXError.at(e));
+    LOGE("%s\n", ToStringOMXError.at(e));
     callbacks.EventHandler(component, app, OMX_EventError, e, 0, nullptr);
   }
 }
@@ -1481,7 +1506,7 @@ void Component::TreatFlushCommand(Task* task)
   assert(task->opt.get() == nullptr);
   auto index = static_cast<OMX_U32>((uintptr_t)task->data);
 
-  LOGI("Flush port : %i", index);
+  LOGI("Flush port: %i\n", index);
   module->Flush();
 
   callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandFlush, index, nullptr);
@@ -1712,6 +1737,22 @@ void Component::TreatDynamicCommand(Task* task)
     module->SetDynamic(DYNAMIC_INDEX_USE_LONG_TERM, nullptr);
     return;
   }
+  case OMX_ALG_IndexConfigVideoInsertPrefixSEI:
+  {
+    OMXSei prefix {
+      *static_cast<OMX_ALG_VIDEO_CONFIG_SEI*>(opt), true
+    };
+    tmpSeis.push_back(prefix);
+    return;
+  }
+  case OMX_ALG_IndexConfigVideoInsertSuffixSEI:
+  {
+    OMXSei suffix {
+      *static_cast<OMX_ALG_VIDEO_CONFIG_SEI*>(opt), false
+    };
+    tmpSeis.push_back(suffix);
+    return;
+  }
 
   default:
     return;
@@ -1786,7 +1827,8 @@ void Component::_ProcessMain(void* data)
   }
   case Command::SetDynamic:
   {
-    TreatDynamicCommand(task);
+    processorEmpty->queue(task);
+    task = nullptr;
     break;
   }
   default:
@@ -1849,6 +1891,8 @@ void Component::_ProcessEmptyBuffer(void* data)
     TreatSharedFenceCommand(task);
   else if(task->cmd == Command::Signal)
     TreatSignalCommand(task);
+  else if(task->cmd == Command::SetDynamic)
+    TreatDynamicCommand(task);
   else
     assert(0 == "bad command");
   delete task;

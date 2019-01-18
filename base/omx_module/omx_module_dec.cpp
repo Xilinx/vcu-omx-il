@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -63,14 +63,16 @@ DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, shared_ptr<DecDevi
   assert(this->device);
   assert(this->allocator);
   decoder = nullptr;
+  resolutionFoundAsBeenCalled = false;
   media->Reset();
+  currentDisplayPictureInfo.type = -1;
+  currentDisplayPictureInfo.concealed = false;
 }
 
 DecModule::~DecModule() = default;
 
 static map<int, string> MapToStringDecodeError =
 {
-  { AL_ERR_RESOLUTION_CHANGE, "decoder: doesn't support resolution change" },
   { AL_ERR_NO_MEMORY, "decoder: memory allocation failure (firmware or ctrlsw)" },
   { AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE, "decoder: no channel available on the hardware" },
   { AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE, "decoder: hardware doesn't have enough resources" },
@@ -125,7 +127,7 @@ void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
     fprintf(stderr, "/!\\ %s (%d)\n", ToStringDecodeError(error).c_str(), error);
 
     if(error & AL_ERROR)
-      callbacks.event(Callbacks::CALLBACK_EVENT_ERROR, (void*)ToModuleError(error));
+      callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(error));
 
     return;
   }
@@ -172,18 +174,26 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
   media->Get(SETTINGS_INDEX_BUFFER_SIZES, &bufferSizes);
   auto size = bufferSizes.output;
   CopyIfRequired(frameToDisplay, size);
-  currentDisplayPictureType = info->ePicStruct;
+  currentDisplayPictureInfo.type = info->ePicStruct;
+  currentDisplayPictureInfo.concealed = AL_Decoder_GetFrameError(decoder, frameToDisplay) == AL_WARN_CONCEAL_DETECT;
   auto rhandleOut = handles.Pop(frameToDisplay);
   rhandleOut->offset = 0;
   rhandleOut->payload = size;
   callbacks.filled(rhandleOut);
-  currentDisplayPictureType = -1;
+  currentDisplayPictureInfo.type = -1;
+  currentDisplayPictureInfo.concealed = false;
 }
 
 void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSettings const& settings, AL_TCropInfo const& crop)
 {
   (void)bufferNumber, (void)bufferSize, (void)crop;
 
+  if(resolutionFoundAsBeenCalled)
+  {
+    /* TODO: implement dynamic resolution changes*/
+    return;
+  }
+  resolutionFoundAsBeenCalled = true;
   media->settings.tStream = settings;
 
   Stride strideAlignment;
@@ -192,7 +202,15 @@ void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSett
   media->stride = (int)RoundUp(AL_Decoder_GetMinPitch(settings.tDim.iWidth, settings.iBitDepth, media->settings.eFBStorageMode), strideAlignment.widthStride);
   media->sliceHeight = (int)RoundUp(AL_Decoder_GetMinStrideHeight(settings.tDim.iHeight), strideAlignment.heightStride);
 
-  callbacks.event(Callbacks::CALLBACK_EVENT_RESOLUTION_CHANGE, nullptr);
+  callbacks.event(Callbacks::Event::RESOLUTION_CHANGE, nullptr);
+}
+
+void DecModule::ParsedSei(int type, uint8_t* payload, int size)
+{
+  Sei sei {
+    type, payload, size
+  };
+  callbacks.event(Callbacks::Event::SEI_PARSED, &sei);
 }
 
 ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
@@ -208,6 +226,7 @@ ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
   decCallbacks.endDecodingCB = { RedirectionEndDecoding, this };
   decCallbacks.displayCB = { RedirectionDisplay, this };
   decCallbacks.resolutionFoundCB = { RedirectionResolutionFound, this };
+  decCallbacks.parsedSeiCB = { RedirectionParsedSei, this };
 
   auto errorCode = AL_Decoder_Create(&decoder, channel, allocator.get(), &media->settings, &decCallbacks);
 
@@ -241,6 +260,7 @@ bool DecModule::DestroyDecoder()
   AL_Decoder_Destroy(decoder);
   device->Deinit();
   decoder = nullptr;
+  resolutionFoundAsBeenCalled = false;
 
   return true;
 }
@@ -317,7 +337,7 @@ int DecModule::AllocateDMA(int size)
   return fd;
 }
 
-static void StubCallbackEvent(Callbacks::CallbackEventType, void*)
+static void StubCallbackEvent(Callbacks::Event, void*)
 {
 }
 
@@ -566,12 +586,12 @@ ErrorType DecModule::SetDynamic(std::string index, void const* param)
 
 ErrorType DecModule::GetDynamic(std::string index, void* param)
 {
-  (void)index, (void)param;
+  if(index == "DYNAMIC_INDEX_CURRENT_DISPLAY_PICTURE_INFO")
+  {
+    auto displayPictureInfo = static_cast<DisplayPictureInfo*>(param);
+    displayPictureInfo->type = currentDisplayPictureInfo.type;
+    return SUCCESS;
+  }
   return ERROR_NOT_IMPLEMENTED;
-}
-
-int DecModule::GetDisplayPictureType() const
-{
-  return currentDisplayPictureType;
 }
 

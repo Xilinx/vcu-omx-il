@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -342,7 +342,7 @@ bool UpdateFormat(AL_TEncSettings& settings, Format format, vector<ColorType> co
   AL_SET_BITDEPTH(chan.ePicFormat, format.bitdepth);
   chan.uSrcBitDepth = AL_GET_BITDEPTH(chan.ePicFormat);
 
-  auto minStride = RoundUp(AL_EncGetMinPitch(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride);
+  int minStride = static_cast<int>(RoundUp(AL_EncGetMinPitch(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride));
   stride = max(minStride, stride);
 
   return true;
@@ -371,19 +371,20 @@ bool UpdateResolution(AL_TEncSettings& settings, int& stride, int& sliceHeight, 
   chan.uWidth = resolution.width;
   chan.uHeight = resolution.height;
 
-  auto minStride = (int)RoundUp(AL_EncGetMinPitch(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride);
-  stride = max(minStride, RoundUp(resolution.stride.widthStride, strideAlignment.widthStride));
+  int minStride = static_cast<int>(RoundUp(AL_EncGetMinPitch(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride));
+  stride = max(minStride, static_cast<int>(RoundUp(resolution.stride.widthStride, strideAlignment.widthStride)));
 
-  auto minSliceHeight = (int)RoundUp(chan.uHeight, strideAlignment.heightStride);
-  sliceHeight = max(minSliceHeight, RoundUp(resolution.stride.heightStride, strideAlignment.heightStride));
+  int minSliceHeight = static_cast<int>(RoundUp(chan.uHeight, strideAlignment.heightStride));
+  sliceHeight = max(minSliceHeight, static_cast<int>(RoundUp(resolution.stride.heightStride, strideAlignment.heightStride)));
 
   return true;
 }
 
 LookAhead CreateLookAhead(AL_TEncSettings settings)
 {
-  LookAhead la;
+  LookAhead la {};
   la.nLookAhead = settings.LookAhead;
+  la.bEnableFirstPassCrop = settings.bEnableFirstPassCrop;
   return la;
 }
 
@@ -393,6 +394,7 @@ bool UpdateLookAhead(AL_TEncSettings& settings, LookAhead la)
     return false;
 
   settings.LookAhead = la.nLookAhead;
+  settings.bEnableFirstPassCrop = la.bEnableFirstPassCrop;
 
   return true;
 }

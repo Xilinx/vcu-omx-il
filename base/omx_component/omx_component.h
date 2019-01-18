@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -64,7 +64,7 @@
   } \
   catch(OMX_ERRORTYPE& e) \
   { \
-    LOGE("%s", ToStringOMXError.at(e)); \
+    LOGE("%s\n", ToStringOMXError.at(e)); \
     f(e); \
     return e; \
   } \
@@ -74,7 +74,7 @@
   } \
   catch(OMX_ERRORTYPE& e) \
   { \
-    LOGE("%s", ToStringOMXError.at(e)); \
+    LOGE("%s\n", ToStringOMXError.at(e)); \
     return e; \
   } \
   void FORCE_SEMICOLON()
@@ -83,7 +83,7 @@
   } \
   catch(OMX_ERRORTYPE& e) \
   { \
-    LOGE("%s : %s", ToStringOMXIndex.at(index), ToStringOMXError.at(e)); \
+    LOGE("%s: %s\n", ToStringOMXIndex.at(index), ToStringOMXError.at(e)); \
     return e; \
   } \
   void FORCE_SEMICOLON()
@@ -92,10 +92,16 @@
   } \
   catch(OMX_ERRORTYPE& e) \
   { \
-    LOGE("%s : %s", ToStringOMXIndex.at(index), ToStringOMXError.at(e)); \
+    LOGE("%s: %s\n", ToStringOMXIndex.at(index), ToStringOMXError.at(e)); \
     return e; \
   } \
   void FORCE_SEMICOLON()
+
+struct OMXSei
+{
+  OMX_ALG_VIDEO_CONFIG_SEI configSei;
+  bool isPrefix;
+};
 
 struct Component : public OMXComponentInterface
 {
@@ -133,6 +139,7 @@ protected:
   bool shouldClearROI;
   bool shouldPushROI;
   bool shouldFireEventPortSettingsChanges;
+  std::vector<OMXSei> tmpSeis;
 
   OMX_STRING name;
   OMX_STRING role;
@@ -186,7 +193,7 @@ protected:
   virtual void AssociateCallBack(BufferHandleInterface* empty, BufferHandleInterface* fill);
   virtual void FillThisBufferCallBack(BufferHandleInterface* filled);
   virtual void ReleaseCallBack(bool isInput, BufferHandleInterface* buf);
-  virtual void EventCallBack(Callbacks::CallbackEventType type, void* data);
+  virtual void EventCallBack(Callbacks::Event type, void* data);
 
   void ReturnFilledBuffer(OMX_BUFFERHEADERTYPE* filled, int offset, int size);
   void ReturnEmptiedBuffer(OMX_BUFFERHEADERTYPE* emptied);

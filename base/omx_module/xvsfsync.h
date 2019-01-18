@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -54,6 +54,10 @@
  */
 #define XVSFSYNC_AUTO_SEARCH 0xFF
 
+#define XVSFSYNC_MAX_ENC_CHANNEL 4
+#define XVSFSYNC_MAX_DEC_CHANNEL 2
+#define XVSFSYNC_BUF_PER_CHANNEL 3
+
 /**
  * struct xvsfsync_chan_config - Synchronizer channel configuration struct
  * @luma_start_address: Start address of Luma buffer
@@ -72,10 +76,14 @@
  */
 struct xvsfsync_chan_config
 {
-  u64 luma_start_address;
-  u64 chroma_start_address;
-  u64 luma_end_address;
-  u64 chroma_end_address;
+  u64 prod_luma_start_address;
+  u64 prod_chroma_start_address;
+  u64 cons_luma_start_address;
+  u64 cons_chroma_start_address;
+  u64 prod_luma_end_address;
+  u64 prod_chroma_end_address;
+  u64 cons_luma_end_address;
+  u64 cons_chroma_end_address;
   u32 luma_margin;
   u32 chroma_margin;
   u8 fb_id;
@@ -94,6 +102,14 @@ struct xvsfsync_clr_err
   u8 channel_id;
   u8 sync_err;
   u8 wdg_err;
+};
+
+/** struct xvsfsync_fbdone - Framebuffer Done
+ * @fbdone: Framebuffer Done status
+ */
+struct xvsfsync_fbdone
+{
+  u8 status[XVSFSYNC_MAX_ENC_CHANNEL][XVSFSYNC_BUF_PER_CHANNEL];
 };
 
 /**
@@ -127,5 +143,12 @@ struct xvsfsync_config
 /* This is used to clear the Sync and Watchdog errors  for a channel */
 #define XVSFSYNC_CLR_CHAN_ERR _IOW(XVSFSYNC_MAGIC, 6, \
                                    struct xvsfsync_clr_err*)
+/* This is used to get the framebuffer done status for a channel */
+#define XVSFSYNC_GET_CHAN_FBDONE_STAT _IOR(XVSFSYNC_MAGIC, 7, \
+                                           struct xvsfsync_fbdone*)
+/* This is used to clear the framebuffer done status for a channel */
+#define XVSFSYNC_CLR_CHAN_FBDONE_STAT _IOW(XVSFSYNC_MAGIC, 8, \
+                                           struct xvsfsync_fbdone*)
+
 #endif
 

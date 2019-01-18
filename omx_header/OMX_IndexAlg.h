@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+ * Copyright (C) 2019 Allegro DVT2.  All rights reserved.
  * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -43,9 +43,9 @@ extern "C" {
 // This value already exist in OpenMax IL version 1.2 but the index name is unclear
 #define OMX_ALG_IndexParamVideoInterlaceFormatSupported 0x07000031 /**< reference: OMX_INTERLACEFORMATTYPE */
 
-/** Vendor standard extension indices.
-
-   This enum lists the current AllegroDVT2 extension indices to OpenMAX IL.
+/**
+ * Vendor standard extension indices.
+ * This enum lists the current AllegroDVT2 extension indices to OpenMAX IL.
  */
 
 typedef enum OMX_ALG_INDEXTYPE
@@ -84,6 +84,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamVideoLongTerm,                    /**< reference: OMX_ALG_VIDEO_PARAM_LONG_TERM */
   OMX_ALG_IndexParamVideoLookAhead,                   /**< reference: OMX_ALG_VIDEO_PARAM_LOOKAHEAD */
   OMX_ALG_IndexParamVideoTwoPass,                     /**< reference: OMX_ALG_VIDEO_PARAM_TWOPASS */
+  OMX_ALG_IndexParamVideoSkipFrame,                   /**< reference: OMX_ALG_VIDEO_PARAM_SKIP_FRAME */
 
   /* Vendor Video configrations */
   OMX_ALG_IndexConfigVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00380000,
@@ -93,6 +94,9 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexConfigVideoNotifySceneChange,                  /**< reference: OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE */
   OMX_ALG_IndexConfigVideoInsertLongTerm,                     /**< reference: OMX_ALG_VIDEO_CONFIG_INSERT */
   OMX_ALG_IndexConfigVideoUseLongTerm,                        /**< reference: OMX_ALG_VIDEO_CONFIG_INSERT */
+  OMX_ALG_IndexConfigVideoNotifyResolutionChange,             /**< reference: OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE */
+  OMX_ALG_IndexConfigVideoInsertPrefixSEI,                    /**< reference: OMX_ALG_VIDEO_CONFIG_SEI */
+  OMX_ALG_IndexConfigVideoInsertSuffixSEI,                    /**< reference: OMX_ALG_VIDEO_CONFIG_SEI */
 
   /* Vender Image & Video common configurations */
   OMX_ALG_IndexVendorCommonStartUnused = OMX_IndexVendorStartUnused + 0x00700000,

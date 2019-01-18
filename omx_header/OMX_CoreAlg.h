@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Allegro DVT2. All rights reserved.
+ * Copyright (c) 2019 Allegro DVT2. All rights reserved.
  * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -38,6 +38,7 @@ extern "C" {
  * header to compile without errors.  The includes below are required
  * for this header file to compile successfully
  */
+#include <OMX_Core.h>
 
 // This buffer already exist in OpenMax IL version 1.2 (3.7.3.7.1)
 // Keep there names and values
@@ -48,6 +49,23 @@ extern "C" {
 // INTERLACED FLAG
 #define OMX_ALG_BUFFERFLAG_TOP_FIELD            0x00001000
 #define OMX_ALG_BUFFERFLAG_BOT_FIELD            0x00002000
+
+/**
+ * Vendor standard extension indices.
+ * This enum lists the current AllegroDVT2 extension indices to OpenMAX IL.
+ */
+typedef enum OMX_ALG_EVENTTYPE
+{
+  OMX_ALG_EventVendorStartUnused = OMX_EventVendorStartUnused,
+  /** OMX_ALG_EventSEIParsed should be called when a decoder parsed a SEI
+   * nData1: payload type
+   * nData2: payload size
+   * pEventData: payload buffer (OMX_U8*)
+   */
+  OMX_ALG_EventSEIParsed,
+
+  OMX_ALG_EventMax = OMX_EventMax,
+}OMX_ALG_EVENTTYPE;
 
 #ifdef __cplusplus
 }

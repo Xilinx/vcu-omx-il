@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -105,33 +105,40 @@ static std::map<ErrorType, const char*> ToStringError
 #define DYNAMIC_INDEX_NOTIFY_SCENE_CHANGE "DYNAMIC_INDEX_NOTIFY_SCENE_CHANGE"
 #define DYNAMIC_INDEX_IS_LONG_TERM "DYNAMIC_INDEX_IS_LONG_TERM"
 #define DYNAMIC_INDEX_USE_LONG_TERM "DYNAMIC_INDEX_USE_LONG_TERM"
+#define DYNAMIC_INDEX_INSERT_PREFIX_SEI "DYNAMIC_INDEX_INSERT_PREFIX_SEI"
+#define DYNAMIC_INDEX_INSERT_SUFFIX_SEI "DYNAMIC_INDEX_INSERT_SUFFIX_SEI"
+#define DYNAMIC_INDEX_CURRENT_DISPLAY_PICTURE_INFO "DYNAMIC_INDEX_CURRENT_DISPLAY_PICTURE_INFO"
 
 struct Callbacks
 {
-  enum CallbackEventType
+  enum class Event
   {
-    CALLBACK_EVENT_ERROR,
-    CALLBACK_EVENT_RESOLUTION_CHANGE,
-    CALLBACK_EVENT_MAX,
+    ERROR,
+    RESOLUTION_CHANGE,
+    SEI_PARSED,
+    MAX,
   };
 
   std::function<void(BufferHandleInterface* buffer)> emptied;
   std::function<void(BufferHandleInterface* input, BufferHandleInterface* output)> associate;
   std::function<void(BufferHandleInterface* buffer)> filled;
   std::function<void(bool isInput, BufferHandleInterface* buffer)> release;
-  std::function<void(CallbackEventType event, void* data)> event;
+  std::function<void(Event event, void* data)> event;
 };
 
-static std::map<Callbacks::CallbackEventType, const char*> ToStringCallbackEvent
+static std::map<Callbacks::Event, const char*> ToStringCallbackEvent
 {
   {
-    Callbacks::CALLBACK_EVENT_ERROR, "CALLBACK_EVENT_ERROR"
+    Callbacks::Event::ERROR, "ERROR"
   },
   {
-    Callbacks::CALLBACK_EVENT_RESOLUTION_CHANGE, "CALLBACK_EVENT_RESOLUTION_CHANGE"
+    Callbacks::Event::RESOLUTION_CHANGE, "RESOLUTION_CHANGE"
   },
   {
-    Callbacks::CALLBACK_EVENT_MAX, "CALLBACK_EVENT_MAX"
+    Callbacks::Event::SEI_PARSED, "SEI_PARSED"
+  },
+  {
+    Callbacks::Event::MAX, "EVENT_MAX"
   },
 };
 

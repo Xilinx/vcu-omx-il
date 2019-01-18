@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -60,8 +60,6 @@ struct DecModule final : public ModuleInterface
   DecModule(std::shared_ptr<DecMediatypeInterface> media, std::shared_ptr<DecDevice> device, std::shared_ptr<AL_TAllocator> allocator);
   ~DecModule() override;
 
-  int GetDisplayPictureType() const; // This can only be called on filled callback !
-
   void Free(void* buffer) override;
   void* Allocate(size_t size) override;
 
@@ -85,7 +83,7 @@ private:
   std::shared_ptr<DecDevice> device;
   std::shared_ptr<AL_TAllocator> allocator;
 
-  int currentDisplayPictureType = -1;
+  DisplayPictureInfo currentDisplayPictureInfo;
 
   Callbacks callbacks;
   ThreadSafeMap<AL_TBuffer*, BufferHandleInterface*> handles;
@@ -96,6 +94,7 @@ private:
   ThreadSafeMap<int, AL_HANDLE> allocatedDMA;
 
   AL_HDecoder decoder;
+  bool resolutionFoundAsBeenCalled;
 
   ErrorType CreateDecoder(bool shouldPrealloc);
   bool DestroyDecoder();
@@ -126,6 +125,14 @@ private:
     return AL_SUCCESS;
   };
   void ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSettings const& settings, AL_TCropInfo const& crop);
+
+  static void RedirectionParsedSei(int payloadType, uint8_t* payload, int payloadSize, void* userParam)
+  {
+    auto pThis = static_cast<DecModule*>(userParam);
+    pThis->ParsedSei(payloadType, payload, payloadSize);
+  }
+
+  void ParsedSei(int type, uint8_t* payload, int size);
 
   static void RedirectionInputBufferDestroy(AL_TBuffer* input)
   {

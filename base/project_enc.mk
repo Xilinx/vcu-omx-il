@@ -23,10 +23,11 @@ OMX_ENC_CFLAGS+=-pthread
 OMX_ENC_LDFLAGS:=$(DEFAULT_LDFLAGS)
 OMX_ENC_LDFLAGS+=-lpthread
 
+-include $(THIS.base_enc)/ref_enc.mk
+
 ifdef EXTERNAL_LIB
 LIB_ENCODE:=$(EXTERNAL_LIB)/$(EXTERNAL_ENCODE_LIB_NAME)
 LIBS_ENCODE+=$(LIB_ENCODE)
--include $(THIS.base_enc)/ref_enc.mk
 
 $(LIB_ENCODE):
 ifndef EXTERNAL_SRC

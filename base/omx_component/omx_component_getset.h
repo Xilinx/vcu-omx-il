@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -64,8 +64,6 @@ OMX_ERRORTYPE GetVideoPortFormatSupported(OMX_VIDEO_PARAM_PORTFORMATTYPE& format
 OMX_ERRORTYPE ConstructVideoPortCurrentFormat(OMX_VIDEO_PARAM_PORTFORMATTYPE& f, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetFormat(OMX_COLOR_FORMATTYPE const& color, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoPortFormat(OMX_VIDEO_PARAM_PORTFORMATTYPE const& format, Port const& port, std::shared_ptr<MediatypeInterface> media);
-
-OMX_ERRORTYPE SetResolution(OMX_VIDEO_PORTDEFINITIONTYPE const& definition, std::shared_ptr<MediatypeInterface> media);
 
 OMX_ERRORTYPE SetClock(OMX_U32 framerateInQ16, std::shared_ptr<MediatypeInterface> media);
 
@@ -147,7 +145,7 @@ OMX_ERRORTYPE SetVideoLongTerm(OMX_ALG_VIDEO_PARAM_LONG_TERM const& longTerm, Po
 OMX_ERRORTYPE SetTargetBitrate(OMX_U32 bitrate, std::shared_ptr<MediatypeInterface> media);
 
 OMX_ERRORTYPE ConstructVideoLookAhead(OMX_ALG_VIDEO_PARAM_LOOKAHEAD& la, Port const& port, std::shared_ptr<MediatypeInterface> media);
-OMX_ERRORTYPE SetLookAhead(OMX_U32 nLookAhead, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetLookAhead(OMX_U32 nLookAhead, OMX_BOOL bEnableFirstPassCrop, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoLookAhead(OMX_ALG_VIDEO_PARAM_LOOKAHEAD const& la, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
 OMX_ERRORTYPE ConstructVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS& tp, Port const& port, std::shared_ptr<MediatypeInterface> media);

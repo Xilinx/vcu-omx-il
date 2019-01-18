@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -40,7 +40,7 @@
 #include "base/omx_component/omx_expertise_hevc.h"
 #include "base/omx_mediatype/omx_mediatype_dec_hevc.h"
 
-#if AL_ENABLE_SYNCIP
+#if AL_ENABLE_SYNCIP_DEC
 #include "base/omx_module/omx_sync_ip_dec.h"
 #else
 #include "base/omx_module/null_sync_ip.h"
@@ -63,7 +63,7 @@ extern "C" {
 
 static SyncIpInterface* createSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator)
 {
-#if AL_ENABLE_SYNCIP
+#if AL_ENABLE_SYNCIP_DEC
   return new OMXDecSyncIp {
            media, allocator
   };

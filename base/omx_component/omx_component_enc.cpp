@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -108,6 +108,20 @@ void EncComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandle
   auto fillHeader = fill->header;
 
   PropagateHeaderData(emptyHeader, fillHeader);
+
+  if(seisMap.Exist(empty_))
+  {
+    auto seis = seisMap.Pop(empty_);
+
+    for(auto sei : seis)
+    {
+      Sei moduleSei {};
+      moduleSei.type = sei.configSei.nType;
+      moduleSei.data = sei.configSei.pBuffer + sei.configSei.nOffset;
+      moduleSei.payload = sei.configSei.nFilledLen;
+      sei.isPrefix ? module->SetDynamic(DYNAMIC_INDEX_INSERT_PREFIX_SEI, &moduleSei) : module->SetDynamic(DYNAMIC_INDEX_INSERT_SUFFIX_SEI, &moduleSei);
+    }
+  }
   AddEncoderFlags(fill, ToEncModule(*module));
 
   if(IsEOSDetected(emptyHeader->nFlags))
@@ -365,6 +379,7 @@ void EncComponent::TreatEmptyBufferCommand(Task* task)
 
   auto handle = new OMXBufferHandle(header);
 
+  seisMap.Add(handle, move(tmpSeis));
   auto success = module->Empty(handle);
   assert(success);
 

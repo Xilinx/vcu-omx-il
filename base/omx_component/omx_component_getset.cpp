@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -249,7 +249,7 @@ OMX_ERRORTYPE SetVideoPortFormat(OMX_VIDEO_PARAM_PORTFORMATTYPE const& format, P
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetResolution(OMX_VIDEO_PORTDEFINITIONTYPE const& definition, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetResolution(OMX_VIDEO_PORTDEFINITIONTYPE const& definition, shared_ptr<MediatypeInterface> media)
 {
   Resolution resolution;
   auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
@@ -389,15 +389,17 @@ OMX_ERRORTYPE ConstructVideoLookAhead(OMX_ALG_VIDEO_PARAM_LOOKAHEAD& la, Port co
   auto ret = media->Get(SETTINGS_INDEX_LOOKAHEAD, &lookAhead);
   OMX_CHECK_MEDIA_GET(ret);
   la.nLookAhead = lookAhead.nLookAhead;
+  la.bEnableFirstPassCrop = ConvertMediaToOMXBool(lookAhead.bEnableFirstPassCrop);
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetLookAhead(OMX_U32 nLookAhead, shared_ptr<MediatypeInterface> media)
+OMX_ERRORTYPE SetLookAhead(OMX_U32 nLookAhead, OMX_BOOL enableFirstPassCrop, shared_ptr<MediatypeInterface> media)
 {
   LookAhead lookAhead;
   auto ret = media->Get(SETTINGS_INDEX_LOOKAHEAD, &lookAhead);
   OMX_CHECK_MEDIA_GET(ret);
   lookAhead.nLookAhead = nLookAhead;
+  lookAhead.bEnableFirstPassCrop = ConvertOMXToMediaBool(enableFirstPassCrop);
   ret = media->Set(SETTINGS_INDEX_LOOKAHEAD, &lookAhead);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
@@ -408,7 +410,7 @@ OMX_ERRORTYPE SetVideoLookAhead(OMX_ALG_VIDEO_PARAM_LOOKAHEAD const& la, Port co
   OMX_ALG_VIDEO_PARAM_LOOKAHEAD rollback;
   ConstructVideoLookAhead(rollback, port, media);
 
-  auto ret = SetLookAhead(la.nLookAhead, media);
+  auto ret = SetLookAhead(la.nLookAhead, la.bEnableFirstPassCrop, media);
 
   if(ret != OMX_ErrorNone)
   {

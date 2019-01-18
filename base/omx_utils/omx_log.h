@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -48,28 +48,30 @@
 #define AllegroLOGE ALOGE
 #else
 
-#define LOG(level, err, fmt, ...) \
+#define LOG(level, err, ...) \
   do { \
     if(level <= LOG_LEVEL) \
     { \
       if(VERBOSE) \
       { \
-        fprintf(stderr, "[" err "] %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ## __VA_ARGS__); \
+        fprintf(stderr, "[" err "] %s:%d [%s]: ", __FILE__, __LINE__, __func__); \
+        fprintf(stderr, __VA_ARGS__); \
       } \
       else \
       { \
-        fprintf(stderr, "[" err "] [%s]: " fmt "\n", __func__, ## __VA_ARGS__); \
+        fprintf(stderr, "[" err "] [%s]: ", __func__); \
+        fprintf(stderr, __VA_ARGS__); \
       } \
     } \
   } while(0)
 
 #if VERBOSE
-#define LOGV(fmt, ...) LOG(10, "V", fmt, ## __VA_ARGS__)
+#define LOGV(...) LOG(10, "V", ## __VA_ARGS__)
 #else
-#define LOGV(fmt, ...) ((void)0)
+#define LOGV(...) ((void)0)
 #endif
-#define LOGI(fmt, ...) LOG(5, "I", fmt, ## __VA_ARGS__)
-#define LOGW(fmt, ...) LOG(3, "W", fmt, ## __VA_ARGS__)
-#define LOGE(fmt, ...) LOG(1, "E", fmt, ## __VA_ARGS__)
+#define LOGI(...) LOG(5, "I", ## __VA_ARGS__)
+#define LOGW(...) LOG(3, "W", ## __VA_ARGS__)
+#define LOGE(...) LOG(1, "E", ## __VA_ARGS__)
 #endif
 

@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -41,7 +41,6 @@ OMXComponentInterface* GetThis(OMX_IN OMX_HANDLETYPE hComponent)
 {
   if(!hComponent)
     return nullptr;
-
   return static_cast<OMXComponentInterface*>((((OMX_COMPONENTTYPE*)hComponent)->pComponentPrivate));
 }
 
@@ -51,7 +50,6 @@ OMX_ERRORTYPE WrapSendCommand(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_COMMA
 
   if(!pThis)
     return OMX_ErrorBadParameter;
-
   return pThis->SendCommand(Cmd, nParam1, pCmdData);
 }
 

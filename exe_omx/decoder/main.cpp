@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -73,20 +73,13 @@ extern "C"
 #include "../common/helpers.h"
 #include "../common/setters.h"
 #include "../common/CommandLineParser.h"
+#include "../common/codec.h"
 
 extern "C"
 {
 #include "lib_fpga/DmaAlloc.h"
 #include "lib_fpga/DmaAllocLinux.h"
 }
-
-enum DecCodec
-{
-  HEVC,
-  HEVC_HARD,
-  AVC,
-  AVC_HARD,
-};
 
 #include <vector>
 #include <map>
@@ -203,8 +196,8 @@ static OMX_U32 outportIndex = 1;
 
 struct Settings
 {
-  DecCodec codecImplem = HEVC;
-  DecCodec codec = HEVC;
+  Codec codecImplem = Codec::HEVC;
+  Codec codec = Codec::HEVC;
   bool bDMAIn = false;
   bool bDMAOut = false;
   OMX_ALG_BUFFER_MODE eDMAIn = OMX_ALG_BUF_NORMAL;
@@ -238,10 +231,10 @@ struct Application
   bool pipelineEnded = false;
 };
 
-string input_file;
-string output_file;
-ifstream infile;
-ofstream outfile;
+static string input_file;
+static string output_file;
+static ifstream infile;
+static ofstream outfile;
 
 static OMX_PARAM_PORTDEFINITIONTYPE paramPort;
 
@@ -342,6 +335,7 @@ void parsePreAllocArgs(Settings* settings, string& toParse)
     throw runtime_error("wrong prealloc arguments");
 }
 
+static bool print_sei = false;
 void parseCommandLine(int argc, char** argv, Application& app)
 {
   Settings& settings = app.settings;
@@ -350,10 +344,10 @@ void parseCommandLine(int argc, char** argv, Application& app)
   bool help = false;
   opt.addString("input_file", &input_file, "Input file");
   opt.addFlag("--help", &help, "Show this help");
-  opt.addFlag("--hevc,-hevc", &settings.codecImplem, "load HEVC decoder (default)", HEVC);
-  opt.addFlag("--avc,-avc", &settings.codecImplem, "load AVC decoder", AVC);
-  opt.addFlag("--hevc-hard,-hevc-hard", &settings.codecImplem, "Use hard hevc decoder", HEVC_HARD);
-  opt.addFlag("--avc-hard,-hevc-hard", &settings.codecImplem, "Use hard avc decoder", AVC_HARD);
+  opt.addFlag("--hevc,-hevc", &settings.codecImplem, "load HEVC decoder (default)", Codec::HEVC);
+  opt.addFlag("--avc,-avc", &settings.codecImplem, "load AVC decoder", Codec::AVC);
+  opt.addFlag("--hevc-hard,-hevc-hard", &settings.codecImplem, "Use hard hevc decoder", Codec::HEVC_HARD);
+  opt.addFlag("--avc-hard,-hevc-hard", &settings.codecImplem, "Use hard avc decoder", Codec::AVC_HARD);
   opt.addString("--out,-o", &output_file, "Output compressed file name");
   opt.addOption("--dma-in,-dma-in", [&](string) {
     settings.bDMAIn = true;
@@ -366,6 +360,7 @@ void parseCommandLine(int argc, char** argv, Application& app)
   string prealloc_args = "";
   opt.addString("--prealloc-args", &prealloc_args, "Specify the stream dimension: 1920x1080:unkwn:nv12:omx-profile-value:omx-level-value");
   opt.addFlag("--subframe", &settings.enableSubframe, "Use the subframe latency mode");
+  opt.addFlag("--print-sei", &print_sei, "Print SEI on stdout");
 
   if(argc < 2)
   {
@@ -381,13 +376,13 @@ void parseCommandLine(int argc, char** argv, Application& app)
     exit(0);
   }
 
-  bool isHevc = settings.codecImplem == HEVC;
-  isHevc = isHevc || settings.codecImplem == HEVC_HARD;
+  bool isHevc = settings.codecImplem == Codec::HEVC;
+  isHevc = isHevc || settings.codecImplem == Codec::HEVC_HARD;
 
   if(isHevc)
-    settings.codec = HEVC;
+    settings.codec = Codec::HEVC;
   else
-    settings.codec = AVC;
+    settings.codec = Codec::AVC;
 
   if(!prealloc_args.empty())
   {
@@ -458,7 +453,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Applicati
   if(isSupplier(nPortIndex, app))
   {
     // Allocate buffer
-    LOGV("Component port (%u) is supplier", nPortIndex);
+    LOGV("Component port (%u) is supplier\n", nPortIndex);
 
     for(decltype(minBuf)nbBuf = 0; nbBuf < minBuf; nbBuf++)
     {
@@ -481,7 +476,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Applicati
   else
   {
     // Use Buffer
-    LOGV("Component port (%u) is not supplier", nPortIndex);
+    LOGV("Component port (%u) is not supplier\n", nPortIndex);
 
     for(decltype(minBuf)nbBuf = 0; nbBuf < minBuf; nbBuf++)
     {
@@ -494,7 +489,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Applicati
 
         if(!hBuf)
         {
-          LOGE("Failed to allocate Buffer for dma");
+          LOGE("Failed to allocate Buffer for dma\n");
           assert(0);
         }
         auto fd = AL_LinuxDmaAllocator_GetFd((AL_TLinuxDmaAllocator*)(app.pAllocator), hBuf);
@@ -503,7 +498,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Applicati
 
         if((int)(uintptr_t)pBufData <= 0)
         {
-          LOGE("Failed to ExportToFd %p", hBuf);
+          LOGE("Failed to ExportToFd %p\n", hBuf);
           assert(0);
         }
         AL_Allocator_Free(app.pAllocator, hBuf);
@@ -530,7 +525,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Applicati
 
 static OMX_ERRORTYPE freeBuffers(OMX_U32 nPortIndex, Application& app)
 {
-  LOGV("Port (%u)", nPortIndex);
+  LOGV("Port (%u)\n", nPortIndex);
 
   if(isSupplier(nPortIndex, app))
   {
@@ -575,22 +570,23 @@ static OMX_ERRORTYPE freeBuffers(OMX_U32 nPortIndex, Application& app)
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent, OMX_U32 Data1, OMX_U32 Data2, OMX_PTR /*pEventData*/)
+OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent, OMX_U32 Data1, OMX_U32 Data2, OMX_PTR pEventData)
 {
+  (void)pEventData;
   auto app = static_cast<Application*>(pAppData);
   assert(hComponent == app->hDecoder);
-  LOGI("Event from decoder: 0x%.8X", eEvent);
+  LOGI("Event from decoder: 0x%.8X\n", eEvent);
 
   if(eEvent == OMX_EventCmdComplete)
   {
     if(Data1 == OMX_CommandStateSet)
     {
-      LOGI("State changed to %s", toStringCompState((OMX_STATETYPE)Data2));
+      LOGI("State changed to %s\n", toStringCompState((OMX_STATETYPE)Data2));
       app->decoderEventState.notify();
     }
     else if(Data1 == OMX_CommandPortEnable)
     {
-      LOGI("Received Port Enable Event");
+      LOGI("Received Port Enable Event\n");
 
       /* if the output port is enabled */
       if(Data2 == 1)
@@ -601,14 +597,14 @@ OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENT
     }
     else if(Data1 == OMX_CommandPortDisable)
     {
-      LOGI("Received Port Disable Event");
+      LOGI("Received Port Disable Event\n");
       app->disableEvent.notify();
     }
     else if(Data1 == OMX_CommandMarkBuffer)
-      LOGI("Mark Buffer Event ");
+      LOGI("Mark Buffer Event\n");
     else if(Data1 == OMX_CommandFlush)
     {
-      LOGI("Flush Port Event");
+      LOGI("Flush Port Event\n");
       app->flushEvent.notify();
     }
   }
@@ -616,7 +612,7 @@ OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENT
   {
     if(!app->settings.hasPrealloc)
     {
-      LOGI("Port settings change");
+      LOGI("Port settings change\n");
       initHeader(paramPort);
       paramPort.nPortIndex = 1;
       OMX_CALL(OMX_GetParameter(hComponent, OMX_IndexParamPortDefinition, &paramPort));
@@ -630,18 +626,31 @@ OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENT
   else if(eEvent == OMX_EventError)
   {
     auto cmd = static_cast<OMX_ERRORTYPE>(Data1);
-    LOGE("Comp %p : %s (%s)\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXError.at(cmd));
+    LOGE("Comp %p: %s (%s)\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXError.at(cmd));
     exit(1);
   }
   else if(eEvent == OMX_EventBufferFlag)
-    LOGI("Event EOS");
+    LOGI("Event EOS\n");
   else
-    LOGI("Param1 is %u, Param2 is %u", Data1, Data2);
+    LOGI("Param1 is %u, Param2 is %u\n", Data1, Data2);
   return OMX_ErrorNone;
 }
 
 OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent, OMX_U32 Data1, OMX_U32 Data2, OMX_PTR pEventData)
 {
+  if(eEvent == static_cast<OMX_EVENTTYPE>(OMX_ALG_EventSEIParsed))
+  {
+    if(!print_sei)
+      return OMX_ErrorNone;
+    fprintf(stderr, "%s\n", __func__);
+    fprintf(stderr, "sei-type:%i\nsei-size:%i\n", Data1, Data2);
+
+    for(auto i = 0; i < static_cast<int>(Data2); i++)
+      fprintf(stderr, "0x%.2X ", static_cast<OMX_U8*>(pEventData)[i]);
+
+    fprintf(stderr, "\n");
+    return OMX_ErrorNone;
+  }
   auto app = static_cast<Application*>(pAppData);
   auto data = make_shared<OmxEventData>(hComponent, pAppData, eEvent, Data1, Data2, pEventData);
   app->eventBus.queueEvent({ omxEvent, data });
@@ -672,7 +681,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
 OMX_ERRORTYPE onInputBufferAvailable(OMX_HANDLETYPE /*hComponent*/, OMX_PTR pAppData, OMX_BUFFERHEADERTYPE* pBuffer)
 {
   auto app = static_cast<Application*>(pAppData);
-  LOGV("one input buffer is available");
+  LOGV("One input buffer is available\n");
   assert(pBuffer->nFilledLen == 0);
   app->inputBuffers.push(pBuffer);
   return OMX_ErrorNone;
@@ -683,7 +692,7 @@ OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
   static bool end = false;
   auto app = static_cast<Application*>(pAppData);
 
-  LOGV("one output buffer is available");
+  LOGV("One output buffer is available\n");
 
   if(end)
     return OMX_ErrorNone;
@@ -758,17 +767,17 @@ static bool readFrame(OMX_BUFFERHEADERTYPE* pInputBuf, Application& app)
   return false;
 }
 
-string chooseComponent(DecCodec codecImplem)
+string chooseComponent(Codec codecImplem)
 {
   switch(codecImplem)
   {
-  case AVC:
+  case Codec::AVC:
     return "OMX.allegro.h264.decoder";
-  case AVC_HARD:
+  case Codec::AVC_HARD:
     return "OMX.allegro.h264.hardware.decoder";
-  case HEVC:
+  case Codec::HEVC:
     return "OMX.allegro.h265.decoder";
-  case HEVC_HARD:
+  case Codec::HEVC_HARD:
     return "OMX.allegro.h265.hardware.decoder";
   default:
     assert(0);
@@ -864,7 +873,7 @@ OMX_ERRORTYPE setWorstCaseParameters(Application& app)
   settings.width = 7680;
   settings.height = 4320;
 
-  if(settings.codec == HEVC)
+  if(settings.codec == Codec::HEVC)
   {
     settings.profile = static_cast<OMX_VIDEO_HEVCPROFILETYPE>(OMX_ALG_VIDEO_HEVCProfileMain422_10);
     settings.level = static_cast<OMX_VIDEO_HEVCLEVELTYPE>(OMX_ALG_VIDEO_HEVCHighTierLevel6);
@@ -904,7 +913,7 @@ static OMX_ERRORTYPE disablePrealloc(Application& app)
   return OMX_SetParameter(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamPreallocation), &param);
 }
 
-OMX_ERRORTYPE configureComponent(Application& app)
+static OMX_ERRORTYPE configureComponent(Application& app)
 {
   auto outputPortDisabled = false;
 
@@ -962,7 +971,7 @@ OMX_ERRORTYPE configureComponent(Application& app)
   return OMX_ErrorNone;
 }
 
-void omxWorker(Application* app)
+static void omxWorker(Application* app)
 {
   auto eof = false;
 
@@ -1013,7 +1022,7 @@ void omxWorker(Application* app)
 
     if(eof)
     {
-      LOGV("End of file");
+      LOGV("End of file\n");
       auto emptyBuffer = app->inputBuffers.pop();
       emptyBuffer->nFilledLen = 0;
       emptyBuffer->nFlags |= OMX_BUFFERFLAG_EOS;
@@ -1028,21 +1037,21 @@ void omxWorker(Application* app)
   }
 }
 
-OMX_ERRORTYPE showComponentVersion(Application& app)
+static OMX_ERRORTYPE showComponentVersion(Application& app)
 {
-  char name[128];
+  char name[OMX_MAX_STRINGNAME_SIZE];
   OMX_VERSIONTYPE compType;
   OMX_VERSIONTYPE ilType;
 
   OMX_CALL(OMX_GetComponentVersion(app.hDecoder, (OMX_STRING)name, &compType, &ilType, nullptr));
 
-  LOGI("Component : %s (v.%u) made for OMX_IL client : %u.%u.%u", name, compType.nVersion, ilType.s.nVersionMajor, ilType.s.nVersionMinor, ilType.s.nRevision);
+  LOGI("Component: %s (v.%u) made for OMX_IL client : %u.%u.%u\n", name, compType.nVersion, ilType.s.nVersionMajor, ilType.s.nVersionMinor, ilType.s.nRevision);
   return OMX_ErrorNone;
 }
 
-void deletePipeline(Application* app)
+static void deletePipeline(Application* app)
 {
-  LOGV("Stopping the pipeline");
+  LOGV("Stopping the pipeline\n");
 
   auto err = stopPipeline(*app);
 
@@ -1061,7 +1070,7 @@ void deletePipeline(Application* app)
   app->eventBus.queueEvent({ pipelineEndEvent, nullptr });
 }
 
-OMX_ERRORTYPE safeMain(int argc, char** argv)
+static OMX_ERRORTYPE safeMain(int argc, char** argv)
 {
   Application app;
   parseCommandLine(argc, argv, app);
@@ -1107,6 +1116,10 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
     return OMX_ErrorUndefined;
   }
 
+  auto scopeInfile = scopeExit([]() {
+    infile.close();
+  });
+
   outfile.open(output_file, ios::binary);
 
   if(!outfile.is_open())
@@ -1114,6 +1127,10 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
     cerr << "Error in opening output file '" << output_file << "'" << endl;
     return OMX_ErrorUndefined;
   }
+
+  auto scopeOutfile = scopeExit([]() {
+    outfile.close();
+  });
 
   OMX_CALL(OMX_Init());
   auto scopeOMX = scopeExit([]() {
@@ -1155,7 +1172,7 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
   });
 
   thread omxThread(omxWorker, &app);
-  LOGV("Waiting for Events");
+  LOGV("Waiting for Events\n");
 
   while(!app.pipelineEnded)
   {
@@ -1166,31 +1183,24 @@ OMX_ERRORTYPE safeMain(int argc, char** argv)
   deleteThread.join();
 
   cerr.flush();
-  infile.close();
-  outfile.close();
   return OMX_ErrorNone;
 }
 
 int main(int argc, char** argv)
 {
-  OMX_ERRORTYPE ret;
-
   try
   {
-    ret = safeMain(argc, argv);
-
-    if(ret == OMX_ErrorNone)
-      return 0;
-    else
+    if(safeMain(argc, argv) != OMX_ErrorNone)
     {
       cerr << "Fatal error" << endl;
-      return 1;
+      return EXIT_FAILURE;
     }
+    return EXIT_SUCCESS;
   }
   catch(runtime_error const& error)
   {
     cerr << endl << "Exception caught: " << error.what() << endl;
-    return 1;
+    return EXIT_FAILURE;
   }
 }
 

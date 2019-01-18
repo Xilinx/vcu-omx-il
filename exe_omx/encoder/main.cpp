@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -82,25 +82,19 @@ extern "C"
 #include "base/omx_utils/semaphore.h"
 #include "base/omx_utils/omx_log.h"
 #include "base/omx_utils/omx_translate.h"
+#include "base/omx_utils/round.h"
 
 #include "../common/helpers.h"
 #include "../common/setters.h"
 #include "../common/getters.h"
 #include "../common/CommandLineParser.h"
+#include "../common/codec.h"
 
 extern "C"
 {
 #include <lib_fpga/DmaAlloc.h>
 #include <lib_fpga/DmaAllocLinux.h>
 }
-
-enum EncCodec
-{
-  HEVC,
-  HEVC_HARD,
-  AVC,
-  AVC_HARD,
-};
 
 struct Ports
 {
@@ -121,11 +115,12 @@ struct Settings
   int width;
   int height;
   int framerate;
-  EncCodec codec;
+  Codec codec;
   OMX_COLOR_FORMATTYPE format;
   int lookahead;
   int pass;
   string twoPassLogFile;
+  bool isDummySeiEnabled;
 };
 
 struct Application
@@ -154,11 +149,12 @@ static inline void SetDefaultSettings(Settings& settings)
   settings.width = 176;
   settings.height = 144;
   settings.framerate = 1;
-  settings.codec = HEVC;
+  settings.codec = Codec::HEVC;
   settings.format = OMX_COLOR_FormatYUV420SemiPlanar;
   settings.lookahead = 0;
   settings.pass = 0;
   settings.twoPassLogFile = "";
+  settings.isDummySeiEnabled = false;
 }
 
 static inline void SetDefaultApplication(Application& app)
@@ -174,11 +170,6 @@ static inline void SetDefaultApplication(Application& app)
   app.output.isFlushing = false;
   app.output.isEOS = false;
   app.read = false;
-}
-
-static inline int RoundUp(int iVal, int iRnd)
-{
-  return (iVal + iRnd - 1) & (~(iRnd - 1));
 }
 
 static string input_file;
@@ -253,6 +244,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
     initHeader(la);
     la.nPortIndex = 1;
     la.nLookAhead = app.settings.lookahead;
+    la.bEnableFirstPassCrop = OMX_FALSE;
     OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLookAhead), &la);
   }
 
@@ -280,7 +272,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
 
   setEnableLongTerm(app);
 
-  LOGV("Input picture: %ux%u", app.settings.width, app.settings.height);
+  LOGV("Input picture: %ux%u\n", app.settings.width, app.settings.height);
   return OMX_ErrorNone;
 }
 
@@ -293,7 +285,7 @@ static void Usage(CommandLineParser& opt, char* ExeName)
     cerr << "  " << opt.descs[command] << endl;
 }
 
-static bool fourCCExist(string const& fourcc)
+static bool isFourCCExist(string const& fourcc)
 {
   return fourcc == "y800" || fourcc == "xv10" || fourcc == "nv12" || fourcc == "xv15" || fourcc == "nv16" || fourcc == "xv20";
 }
@@ -312,10 +304,10 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addInt("--framerate", &settings.framerate, "Input fps ('1')");
   opt.addString("--out", &output_file, "Output compressed file name");
   opt.addString("--fourcc", &fourcc, "Input file fourcc <y800 || xv10 || nv12 || xv15 || nv16 || xv20> ('nv12')");
-  opt.addFlag("--hevc", &settings.codec, "", HEVC);
-  opt.addFlag("--avc", &settings.codec, "", AVC);
-  opt.addFlag("--hevc-hard", &settings.codec, "Use hard hevc encoder", HEVC_HARD);
-  opt.addFlag("--avc-hard", &settings.codec, "Use hard avc encoder", AVC_HARD);
+  opt.addFlag("--hevc", &settings.codec, "", Codec::HEVC);
+  opt.addFlag("--avc", &settings.codec, "", Codec::AVC);
+  opt.addFlag("--hevc-hard", &settings.codec, "Use hard hevc encoder", Codec::HEVC_HARD);
+  opt.addFlag("--avc-hard", &settings.codec, "Use hard avc encoder", Codec::AVC_HARD);
   opt.addFlag("--dma-in", &app.input.isDMA, "Use dmabufs on input port");
   opt.addFlag("--dma-out", &app.output.isDMA, "Use dmabufs on output port");
   opt.addInt("--subframe", &user_slice, "<4 || 8 || 16>: activate subframe latency '(0)'");
@@ -323,6 +315,7 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addInt("--lookahead", &settings.lookahead, "<0 || above 2>: activate lookahead mode '(0)'");
   opt.addInt("--pass", &settings.pass, "<0 || 1 || 2>: specify which pass we encode'(0)'");
   opt.addString("--pass-logfile", &settings.twoPassLogFile, "LogFile to transmit dualpass statistics");
+  opt.addFlag("--dummy-sey", &settings.isDummySeiEnabled, "Enable dummy seis on firsts frames");
 
   opt.parse(argc, argv);
 
@@ -332,7 +325,7 @@ static void parseCommandLine(int argc, char** argv, Application& app)
     exit(0);
   }
 
-  if(!fourCCExist(fourcc))
+  if(!isFourCCExist(fourcc))
   {
     cerr << "[Error] fourcc doesn't exist" << endl;
     Usage(opt, argv[0]);
@@ -375,17 +368,17 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   {
     switch(settings.codec)
     {
-    case AVC:
+    case Codec::AVC:
       output_file = "output.hardware.h264";
       break;
-    case AVC_HARD:
+    case Codec::AVC_HARD:
       output_file = "output.hardware.h264";
       break;
-    case HEVC:
+    case Codec::HEVC:
       output_file = "output.hardware.h265";
       break;
 
-    case HEVC_HARD:
+    case Codec::HEVC_HARD:
       output_file = "output.hardware.h265";
       break;
     default:
@@ -404,10 +397,10 @@ static bool readOneYuvFrame(OMX_BUFFERHEADERTYPE* pBufferHdr, Application const&
   auto height = paramPort.format.video.nFrameHeight;
 
   static int input_frame_count;
-  LOGV("Reading input frame %i", input_frame_count);
+  LOGV("Reading input frame %i\n", input_frame_count);
   auto stride = paramPort.format.video.nStride;
   auto sliceHeight = paramPort.format.video.nSliceHeight;
-  LOGV("%dx%d, stride %d, sliceHeight %d", (int)width, (int)height, (int)stride, (int)sliceHeight);
+  LOGV("%dx%d, stride %d, sliceHeight %d\n", (int)width, (int)height, (int)stride, (int)sliceHeight);
   input_frame_count++;
 
   auto color = app.settings.format;
@@ -453,26 +446,26 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
     {
     case OMX_CommandStateSet:
     {
-      LOGI("Comp %p : %s : %s : %s\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), ToStringOMXState.at(static_cast<OMX_STATETYPE>(Data2)));
+      LOGI("Comp %p: %s: %s: %s\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), ToStringOMXState.at(static_cast<OMX_STATETYPE>(Data2)));
       app->encoderEventState.notify();
       break;
     }
     case OMX_CommandPortEnable:
     case OMX_CommandPortDisable:
     {
-      LOGI("Comp %p : %s : %s : %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
+      LOGI("Comp %p: %s: %s: %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
       app->encoderEventSem.notify();
       break;
     }
     case OMX_CommandMarkBuffer:
     {
-      LOGI("Comp %p : %s : %s : %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
+      LOGI("Comp %p: %s: %s: %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
       app->encoderEventSem.notify();
       break;
     }
     case OMX_CommandFlush:
     {
-      LOGI("Comp %p : %s : %s : %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
+      LOGI("Comp %p: %s: %s: %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
       app->encoderEventSem.notify();
       break;
     }
@@ -486,19 +479,19 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
   case OMX_EventError:
   {
     auto cmd = static_cast<OMX_ERRORTYPE>(Data1);
-    LOGE("Comp %p : %s (%s)\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXError.at(cmd));
+    LOGE("Comp %p: %s (%s)\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXError.at(cmd));
     exit(1);
   }
   /* this event will be fired by the component but we have nothing special to do with them */
   case OMX_EventBufferFlag: // fallthrough
   case OMX_EventPortSettingsChanged:
   {
-    LOGI("Comp %p : Got %s\n", hComponent, ToStringOMXEvent.at(eEvent));
+    LOGI("Comp %p: Got %s\n", hComponent, ToStringOMXEvent.at(eEvent));
     break;
   }
   default:
   {
-    LOGE("Comp %p : Unsupported %s\n", hComponent, ToStringOMXEvent.at(eEvent));
+    LOGI("Comp %p: Unsupported %s\n", hComponent, ToStringOMXEvent.at(eEvent));
     return OMX_ErrorNotImplemented;
   }
   }
@@ -605,7 +598,7 @@ static void useBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Application& app)
 
       if(!hBuf)
       {
-        LOGE("Failed to allocate Buffer for dma");
+        LOGE("Failed to allocate Buffer for dma\n");
         assert(0);
       }
       auto fd = AL_LinuxDmaAllocator_GetFd((AL_TLinuxDmaAllocator*)(app.pAllocator), hBuf);
@@ -613,7 +606,7 @@ static void useBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Application& app)
 
       if(!pBufData)
       {
-        LOGE("Failed to ExportToFd %p", hBuf);
+        LOGE("Failed to ExportToFd %p\n", hBuf);
         assert(0);
       }
 
@@ -673,32 +666,43 @@ static void freeAllocBuffers(OMX_U32 nPortIndex, Application& app)
   }
 }
 
-string chooseComponent(EncCodec codec)
+static string chooseComponent(Codec codec)
 {
   switch(codec)
   {
-  case AVC:
+  case Codec::AVC:
     return "OMX.allegro.h264.encoder";
-  case AVC_HARD:
+  case Codec::AVC_HARD:
     return "OMX.allegro.h264.hardware.encoder";
-  case HEVC:
+  case Codec::HEVC:
     return "OMX.allegro.h265.encoder";
-  case HEVC_HARD:
+  case Codec::HEVC_HARD:
     return "OMX.allegro.h265.hardware.encoder";
   default:
     assert(0);
   }
 }
 
+static bool isFormatSupported(OMX_COLOR_FORMATTYPE format)
+{
+  return (format == OMX_COLOR_FormatL8) ||
+         (format == OMX_COLOR_FormatYUV420SemiPlanar) ||
+         (format == OMX_COLOR_FormatYUV422SemiPlanar) ||
+         (format == static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitPacked)) ||
+         (format == static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked)) ||
+         (format == static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked))
+  ;
+}
+
 static OMX_ERRORTYPE showComponentVersion(Application& app)
 {
-  char name[128];
+  char name[OMX_MAX_STRINGNAME_SIZE];
   OMX_VERSIONTYPE compType;
   OMX_VERSIONTYPE ilType;
 
   OMX_CALL(OMX_GetComponentVersion(app.hEncoder, (OMX_STRING)name, &compType, &ilType, nullptr));
 
-  LOGI("Component : %s (v.%u) made for OMX_IL client : %u.%u.%u", name, compType.nVersion, ilType.s.nVersionMajor, ilType.s.nVersionMinor, ilType.s.nRevision);
+  LOGI("Component: %s (v.%u) made for OMX_IL client: %u.%u.%u\n", name, compType.nVersion, ilType.s.nVersionMajor, ilType.s.nVersionMinor, ilType.s.nRevision);
   return OMX_ErrorNone;
 }
 
@@ -712,20 +716,31 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   if(!infile.is_open())
   {
-    cerr << "Error in opening input file '" << input_file.c_str() << "'" << endl;
+    cerr << "Error in opening input file '" << input_file << "'" << endl;
     return OMX_ErrorUndefined;
   }
+
+  auto scopeInfile = scopeExit([]() {
+    infile.close();
+  });
 
   outfile.open(output_file, ios::binary);
 
   if(!outfile.is_open())
   {
-    cerr << "Error in opening output file '" << output_file.c_str() << "'" << endl;
+    cerr << "Error in opening output file '" << output_file << "'" << endl;
     return OMX_ErrorUndefined;
   }
 
+  auto scopeOutfile = scopeExit([]() {
+    outfile.close();
+  });
+
   LOGI("cmd file = %s\n", cmd_file.c_str());
   ifstream cmdfile(cmd_file != "" ? cmd_file.c_str() : "/dev/null");
+  auto scopeCmdfile = scopeExit([&]() {
+    cmdfile.close();
+  });
   auto encCmd = CEncCmdMngr(cmdfile, 3, -1);
   app.encCmd = &encCmd;
 
@@ -769,15 +784,9 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   Getters get(&app.hEncoder);
 
-  if((app.settings.format != OMX_COLOR_FormatL8) &&
-     (app.settings.format != OMX_COLOR_FormatYUV420SemiPlanar) &&
-     (app.settings.format != OMX_COLOR_FormatYUV422SemiPlanar) &&
-     (app.settings.format != static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitPacked)) &&
-     (app.settings.format != static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked)) &&
-     (app.settings.format != static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked))
-     )
+  if(!isFormatSupported(app.settings.format))
   {
-    LOGE("Unsupported color format : 0X%.8X", app.settings.format);
+    LOGE("Unsupported color format : 0X%.8X\n", app.settings.format);
     return OMX_ErrorUnsupportedSetting;
   }
 
@@ -806,10 +815,37 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   auto cmdSender = CommandsSender(app.hEncoder);
   app.cmdSender = &cmdSender;
 
+  OMX_ALG_VIDEO_CONFIG_SEI seiPrefix;
+  OMX_ALG_VIDEO_CONFIG_SEI seiSuffix;
+  initHeader(seiPrefix);
+  initHeader(seiSuffix);
+  seiPrefix.nType = 15;
+  seiPrefix.pBuffer = new OMX_U8[128];
+  seiPrefix.nOffset = 0;
+  seiPrefix.nFilledLen = 128;
+  seiPrefix.nAllocLen = 128;
+  seiSuffix.nType = 18;
+  seiSuffix.pBuffer = new OMX_U8[128];
+  seiSuffix.nOffset = 0;
+  seiSuffix.nFilledLen = 128;
+  seiSuffix.nAllocLen = 128;
+
+  for(int i = 0; i < static_cast<int>(seiPrefix.nFilledLen); i++)
+  {
+    seiPrefix.pBuffer[i] = i;
+    seiSuffix.pBuffer[i] = seiSuffix.nFilledLen - 1 - i;
+  }
+
   for(auto i = 0; i < get.GetBuffersCount(app.input.index); i++)
   {
     auto buf = app.input.buffers.at(i);
     Read(buf, app);
+
+    if(app.settings.isDummySeiEnabled)
+    {
+      OMX_SetConfig(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertPrefixSEI), &seiPrefix);
+      OMX_SetConfig(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertSuffixSEI), &seiSuffix);
+    }
     OMX_EmptyThisBuffer(app.hEncoder, buf);
 
     if(app.input.isEOS)
@@ -822,7 +858,9 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   lock.unlock();
 
   app.eof.wait();
-  LOGV("EOS received");
+  LOGV("EOS received\n");
+  delete[] seiPrefix.pBuffer;
+  delete[] seiSuffix.pBuffer;
 
   /** send flush in input port */
   app.input.isFlushing = true;
@@ -849,33 +887,24 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   app.encoderEventState.wait();
 
-  infile.close();
-  outfile.close();
-  cmdfile.close();
-
   return OMX_ErrorNone;
 }
 
 int main(int argc, char** argv)
 {
-  OMX_ERRORTYPE ret;
-
   try
   {
-    ret = safeMain(argc, argv);
-
-    if(ret == OMX_ErrorNone)
-      return 0;
-    else
+    if(safeMain(argc, argv) != OMX_ErrorNone)
     {
       cerr << "Fatal error" << endl;
-      return 1;
+      return EXIT_FAILURE;
     }
+    return EXIT_SUCCESS;
   }
   catch(runtime_error const& error)
   {
     cerr << endl << "Exception caught: " << error.what() << endl;
-    return 1;
+    return EXIT_FAILURE;
   }
 }
 

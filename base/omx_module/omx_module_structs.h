@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -229,11 +229,25 @@ struct RegionQuality
 struct LookAhead
 {
   int nLookAhead;
+  bool bEnableFirstPassCrop;
 };
 
 struct TwoPass
 {
   int nPass;
   std::string sLogFile;
+};
+
+struct Sei
+{
+  int type;
+  uint8_t* data;
+  int payload;
+};
+
+struct DisplayPictureInfo
+{
+  int type;
+  bool concealed;
 };
 

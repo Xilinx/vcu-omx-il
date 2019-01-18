@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -65,7 +65,7 @@ extern "C"
 
 using namespace std;
 
-static char const* syncDeviceDec = "/dev/xvsfsync1";
+static char const* syncDeviceNameDec = "/dev/xsync_decode";
 static constexpr bool usingDummy = false;
 
 static AL_TDriver* getDriver()
@@ -108,7 +108,7 @@ static AL_TBuffer* CreateBuffer(AL_TLinuxDmaAllocator* allocator, int fd, int si
   return AL_Buffer_Create((AL_TAllocator*)allocator, dmaHandle, size, AL_Buffer_Destroy);
 }
 
-OMXDecSyncIp::OMXDecSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator) : media(media), allocator(allocator), syncIp(getDriver(), syncDeviceDec), sync{&syncIp, syncIp.getFreeChannel()}
+OMXDecSyncIp::OMXDecSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator) : media(media), allocator(allocator), syncIp(getDriver(), syncDeviceNameDec), sync{&syncIp, syncIp.getFreeChannel()}
 {
   assert(media);
   assert(allocator);
@@ -116,7 +116,7 @@ OMXDecSyncIp::OMXDecSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_T
   media->Set(SETTINGS_INDEX_LLP2_EARLY_CB, &enableEarlyCB);
 }
 
-#if AL_ENABLE_SYNCIP
+#if AL_ENABLE_SYNCIP_DEC
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -126,7 +126,7 @@ OMXDecSyncIp::OMXDecSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_T
 
 static void TxStreamUp()
 {
-  int fd = open("/sys/kernel/debug/xlnx-hdmi/hdmitx_55", O_RDWR);
+  int fd = open("/sys/kernel/debug/xlnx-hdmi/hdmitx_57", O_RDWR);
 
   if(fd < 0)
   {

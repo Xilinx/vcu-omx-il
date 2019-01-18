@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -159,14 +159,8 @@ void EncModule::InitEncoders(int numPass)
   }
 }
 
-ErrorType EncModule::CreateEncoder()
+static TwoPassMngr* createTwoPassManager(shared_ptr<MediatypeInterface> media)
 {
-  if(encoders.size())
-  {
-    fprintf(stderr, "Encoder is ALREADY created\n");
-    return ERROR_UNDEFINED;
-  }
-
   TwoPass tp {};
   media->Get(SETTINGS_INDEX_TWOPASS, &tp);
   Gop gop {};
@@ -175,7 +169,18 @@ ErrorType EncModule::CreateEncoder()
   media->Get(SETTINGS_INDEX_CLOCK, &ck);
   Bitrate br {};
   media->Get(SETTINGS_INDEX_BITRATE, &br);
-  twoPassMngr.reset(new TwoPassMngr(tp.sLogFile, tp.nPass, false, gop.length, br.cpb, br.ird, ck.framerate));
+  return new TwoPassMngr(tp.sLogFile, tp.nPass, false, gop.length, br.cpb, br.ird, ck.framerate);
+}
+
+ErrorType EncModule::CreateEncoder()
+{
+  if(encoders.size())
+  {
+    fprintf(stderr, "Encoder is ALREADY created\n");
+    return ERROR_UNDEFINED;
+  }
+
+  twoPassMngr.reset(createTwoPassManager(media));
 
   auto chan = media->settings.tChParam[0];
   roiCtx = AL_RoiMngr_Create(chan.uWidth, chan.uHeight, chan.eProfile, AL_ROI_QUALITY_MEDIUM, AL_ROI_INCOMING_ORDER);
@@ -204,13 +209,13 @@ ErrorType EncModule::CreateEncoder()
     if(twoPassMngr && twoPassMngr->iPass == 1)
       AL_TwoPassMngr_SetPass1Settings(settingsPass);
 
-    if(pass < numPass - 1 && AL_TwoPassMngr_HasLookAhead(settings))
+    if((pass < (numPass - 1)) && (AL_TwoPassMngr_HasLookAhead(settings)))
     {
       AL_TwoPassMngr_SetPass1Settings(settingsPass);
       callback = { EncModule::RedirectionEndEncodingLookAhead, &(encoderPass.callbackParam) };
       LookAhead la;
       media->Get(SETTINGS_INDEX_LOOKAHEAD, &la);
-      encoderPass.lookAheadMngr.reset(new LookAheadMngr(la.nLookAhead));
+      encoderPass.lookAheadMngr.reset(new LookAheadMngr(la.nLookAhead, la.bEnableFirstPassCrop));
     }
 
     auto errorCode = AL_Encoder_Create(&encoderPass.enc, scheduler, allocator.get(), &settingsPass, callback);
@@ -303,7 +308,7 @@ void EncModule::Stop()
   DestroyEncoder();
 }
 
-static void StubCallbackEvent(Callbacks::CallbackEventType, void*)
+static void StubCallbackEvent(Callbacks::Event, void*)
 {
 }
 
@@ -699,7 +704,7 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
     fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
 
     if((errorCode & AL_ERROR) && (errorCode != AL_ERR_STREAM_OVERFLOW))
-      callbacks.event(Callbacks::CALLBACK_EVENT_ERROR, (void*)ToModuleError(errorCode));
+      callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(errorCode));
   }
 
   BufferHandles bufferHandles;
@@ -741,6 +746,15 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
     return;
   }
 
+  auto rhandleIn = handles.Get(source);
+  assert(rhandleIn->data);
+
+  auto rhandleOut = handles.Get(stream);
+  assert(rhandleOut->data);
+
+  currentOutputedStreamForSei = stream;
+  callbacks.associate(rhandleIn, rhandleOut);
+
   auto async_stream_reconstruction = [&]() -> int
                                      {
                                        int size = ReconstructStream(*stream);
@@ -754,14 +768,6 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
                                      };
 
   auto async_stream_reconstruction_handle = async(async_stream_reconstruction);
-
-  auto rhandleIn = handles.Get(source);
-  assert(rhandleIn->data);
-
-  auto rhandleOut = handles.Get(stream);
-  assert(rhandleOut->data);
-
-  callbacks.associate(rhandleIn, rhandleOut);
 
   if(isEndOfFrame(stream))
     handles.Remove(source);
@@ -809,7 +815,7 @@ void EncModule::EndEncodingLookAhead(AL_TBuffer* stream, AL_TBuffer const* sourc
     fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
 
     if((errorCode & AL_ERROR) && (errorCode != AL_ERR_STREAM_OVERFLOW))
-      callbacks.event(Callbacks::CALLBACK_EVENT_ERROR, (void*)ToModuleError(errorCode));
+      callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(errorCode));
   }
 
   if(isEOS)
@@ -1019,6 +1025,30 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
   if(index == "DYNAMIC_INDEX_USE_LONG_TERM")
   {
     AL_Encoder_NotifyUseLongTerm(encoder);
+    return SUCCESS;
+  }
+
+  if(index == "DYNAMIC_INDEX_INSERT_PREFIX_SEI")
+  {
+    auto sei = static_cast<Sei const*>(param);
+
+    if(AL_Encoder_AddSei(encoder, currentOutputedStreamForSei, true, sei->type, sei->data, sei->payload) < 0)
+    {
+      assert(0);
+      return ERROR_BAD_PARAMETER;
+    }
+    return SUCCESS;
+  }
+
+  if(index == "DYNAMIC_INDEX_INSERT_SUFFIX_SEI")
+  {
+    auto sei = static_cast<Sei const*>(param);
+
+    if(AL_Encoder_AddSei(encoder, currentOutputedStreamForSei, false, sei->type, sei->data, sei->payload) < 0)
+    {
+      assert(0);
+      return ERROR_BAD_PARAMETER;
+    }
     return SUCCESS;
   }
 

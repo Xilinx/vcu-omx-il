@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -40,7 +40,7 @@
 #include "base/omx_component/omx_expertise_hevc.h"
 #include "base/omx_mediatype/omx_mediatype_enc_hevc.h"
 
-#if AL_ENABLE_SYNCIP
+#if AL_ENABLE_SYNCIP_ENC
 #include "base/omx_module/omx_sync_ip_enc.h"
 #else
 #include "base/omx_module/null_sync_ip.h"
@@ -61,14 +61,16 @@ extern "C" {
 #include <lib_fpga/DmaAlloc.h>
 }
 
-static SyncIpInterface* createSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator)
+static int const HARDWARE_HORIZONTAL_STRIDE_ALIGNMENT = 64;
+
+static SyncIpInterface* createSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator, int hardwareHorizontalStrideAlignment, int hardwareVerticalStrideAlignment)
 {
-#if AL_ENABLE_SYNCIP
+#if AL_ENABLE_SYNCIP_ENC
   return new OMXEncSyncIp {
-           media, allocator
+           media, allocator, hardwareHorizontalStrideAlignment, hardwareVerticalStrideAlignment
   };
 #else
-  (void)media, (void)allocator;
+  (void)media, (void)allocator, (void)hardwareHorizontalStrideAlignment, (void)hardwareVerticalStrideAlignment;
   return new NullSyncIp {};
 #endif
 }
@@ -97,8 +99,11 @@ static BufferBytesAlignments const bufferBytesAlignmentsHardware {
 
 
 
+static int const HARDWARE_HEVC_VERTICAL_STRIDE_ALIGNMENT = 32;
 #include "base/omx_component/omx_expertise_avc.h"
 #include "base/omx_mediatype/omx_mediatype_enc_avc.h"
+
+static int const HARDWARE_AVC_VERTICAL_STRIDE_ALIGNMENT = 16;
 
 
 static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
@@ -127,7 +132,7 @@ static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
     new ExpertiseAVC {}
   };
   shared_ptr<SyncIpInterface> syncIp {
-    createSyncIp(media, allocator)
+    createSyncIp(media, allocator, HARDWARE_HORIZONTAL_STRIDE_ALIGNMENT, HARDWARE_AVC_VERTICAL_STRIDE_ALIGNMENT)
   };
   return new EncComponent {
            hComponent, media, move(module), cComponentName, cRole, move(expertise), syncIp
@@ -161,7 +166,7 @@ static EncComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
     new ExpertiseHEVC {}
   };
   shared_ptr<SyncIpInterface> syncIp {
-    createSyncIp(media, allocator)
+    createSyncIp(media, allocator, HARDWARE_HORIZONTAL_STRIDE_ALIGNMENT, HARDWARE_HEVC_VERTICAL_STRIDE_ALIGNMENT)
   };
   return new EncComponent {
            hComponent, media, move(module), cComponentName, cRole, move(expertise), syncIp

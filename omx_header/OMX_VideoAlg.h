@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+ * Copyright (C) 2019 Allegro DVT2.  All rights reserved.
  * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -266,10 +266,11 @@ typedef struct OMX_ALG_VIDEO_PARAM_SLICES
  * LookAhead parameters
  *
  * STRUCT MEMBERS:
- *  nSize      : Size of the structure in bytes
- *  nVersion   : OMX specification version information
- *  nPortIndex : Port that this structure applies to
- *  nLookAhead : Indicate the Lookahead size, disabled if 0
+ *  nSize                : Size of the structure in bytes
+ *  nVersion             : OMX specification version information
+ *  nPortIndex           : Port that this structure applies to
+ *  nLookAhead           : Indicate the Lookahead size, disabled if 0
+ *  bEnableFirstPassCrop : Speed up the first pass, by encoding 5 zones of the frame
  */
 typedef struct OMX_ALG_VIDEO_PARAM_LOOKAHEAD
 {
@@ -277,6 +278,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_LOOKAHEAD
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
   OMX_U32 nLookAhead;
+  OMX_BOOL bEnableFirstPassCrop;
 }OMX_ALG_VIDEO_PARAM_LOOKAHEAD;
 
 /**
@@ -631,6 +633,23 @@ typedef struct OMX_ALG_VIDEO_PARAM_LONG_TERM
   OMX_S32 nLongTermFrequency;
 }OMX_ALG_VIDEO_PARAM_LONG_TERM;
 
+/**
+ * Skip frame parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize            : Size of the structure in bytes
+ *  nVersion         : OMX specification version information
+ *  nPortIndex       : Port that this structure applies to
+ *  bEnableSkipFrame : Indicate if skip frame should be enabled
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_SKIP_FRAME
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bEnableSkipFrame;
+}OMX_ALG_VIDEO_PARAM_SKIP_FRAME;
+
 /** Extented enumeration of video formats */
 typedef enum OMX_ALG_COLOR_FORMATTYPE
 {
@@ -737,6 +756,46 @@ typedef struct OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE
   OMX_U32 nPortIndex;
   OMX_U32 nLookAhead;
 }OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE;
+
+/**
+ * Structure for dynamically notifying a resolution change
+ *
+ * STRUCT MEMBERS:
+ *  nSize    : Size of the structure in bytes
+ *  nVersion : OMX specification version information
+ *  nWidth   : Width of the resolution
+ *  nHeight  : Height of the resoluton
+ */
+typedef struct OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nWidth;
+  OMX_U32 nHeight;
+}OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE;
+
+/**
+ * Struct for dynamically send sei
+ *
+ * STRUCT MEMBERS:
+ *  nSize      : Size of the structure in bytes
+ *  nVersion   : OMX specification version information
+ *  nType      : Sei payload type
+ *  pBuffer    : Pointer to actual block of memory that is acting as the buffer
+ *  nAllocLen  : Size of the buffer allocated, in bytes
+ *  nFilledLen : Number of bytes currently in the buffer
+ *  nOffset    : Start offset of valid data in bytes from the start of the buffer
+ */
+typedef struct OMX_ALG_VIDEO_CONFIG_SEI
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_S32 nType;
+  OMX_U8* pBuffer;
+  OMX_U32 nAllocLen;
+  OMX_U32 nFilledLen;
+  OMX_U32 nOffset;
+}OMX_ALG_VIDEO_CONFIG_SEI;
 
 #ifdef __cplusplus
 }

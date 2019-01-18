@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -58,12 +58,9 @@ extern "C"
 #include "base/omx_utils/round.h"
 #include "base/omx_module/omx_module_structs.h"
 
-#include <chrono>
-#include <thread>
-
 using namespace std;
 
-static char const* syncDeviceEnc = "/dev/xvsfsync0";
+static char const* syncDeviceNameEnc = "/dev/xsync_encode";
 static constexpr bool usingDummy = false;
 
 static AL_TDriver* getDriver()
@@ -74,7 +71,7 @@ static AL_TDriver* getDriver()
   return AL_GetHardwareDriver();
 }
 
-OMXEncSyncIp::OMXEncSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator) : media(media), allocator(allocator), syncIp(getDriver(), syncDeviceEnc), sync{&syncIp, syncIp.getFreeChannel()}
+OMXEncSyncIp::OMXEncSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator, int hardwareHorizontalStrideAlignment, int hardwareVerticalStrideAlignment) : media(media), allocator(allocator), syncIp(getDriver(), syncDeviceNameEnc), sync{&syncIp, syncIp.getFreeChannel(), hardwareHorizontalStrideAlignment, hardwareVerticalStrideAlignment}
 {
   assert(media);
   assert(allocator);

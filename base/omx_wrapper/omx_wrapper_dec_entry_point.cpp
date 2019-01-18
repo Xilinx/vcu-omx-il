@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -52,7 +52,7 @@ static OMX_ERRORTYPE WrapComponentDeInit(OMX_IN OMX_HANDLETYPE hComponent)
 
   pThis->ComponentDeInit();
 
-  auto pComp = (OMX_COMPONENTTYPE*)hComponent;
+  auto pComp = static_cast<OMX_COMPONENTTYPE*>(hComponent);
   DestroyDecComponentPrivate(pComp->pComponentPrivate);
 
   return OMX_ErrorNone;

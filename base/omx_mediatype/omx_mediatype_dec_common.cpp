@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -122,7 +122,7 @@ bool UpdateFormat(AL_TDecSettings& settings, Format format, vector<ColorType> co
   stream.eChroma = ConvertModuleToSoftChroma(format.color);
   stream.iBitDepth = format.bitdepth;
 
-  auto minStride = (int)RoundUp(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode), strideAlignment.widthStride);
+  int minStride = static_cast<int>(RoundUp(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode), strideAlignment.widthStride));
   stride = max(minStride, stride);
 
   return true;
@@ -193,11 +193,11 @@ bool UpdateResolution(AL_TDecSettings& settings, int& stride, int& sliceHeight, 
   auto& streamSettings = settings.tStream;
   streamSettings.tDim = { resolution.width, resolution.height };
 
-  auto minStride = (int)RoundUp(AL_Decoder_GetMinPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, settings.eFBStorageMode), strideAlignment.widthStride);
-  stride = max(minStride, (int)RoundUp(resolution.stride.widthStride, strideAlignment.widthStride));
+  int minStride = static_cast<int>(RoundUp(AL_Decoder_GetMinPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, settings.eFBStorageMode), strideAlignment.widthStride));
+  stride = max(minStride, static_cast<int>(RoundUp(resolution.stride.widthStride, strideAlignment.widthStride)));
 
-  auto minSliceHeight = (int)RoundUp(AL_Decoder_GetMinStrideHeight(streamSettings.tDim.iHeight), strideAlignment.heightStride);
-  sliceHeight = max(minSliceHeight, (int)RoundUp(resolution.stride.heightStride, strideAlignment.heightStride));
+  int minSliceHeight = static_cast<int>(RoundUp(AL_Decoder_GetMinStrideHeight(streamSettings.tDim.iHeight), strideAlignment.heightStride));
+  sliceHeight = max(minSliceHeight, static_cast<int>(RoundUp(resolution.stride.heightStride, strideAlignment.heightStride)));
 
   return true;
 }

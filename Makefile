@@ -10,7 +10,7 @@ PWD:=$(shell pwd)
 
 BIN?=$(PWD)/bin
 OMX_HEADERS?=$(PWD)/omx_header
-EXTERNAL_INCLUDE?=
+EXTERNAL_INCLUDE?=$(PWD)/../allegro-vcu-ctrl-sw/include
 EXTERNAL_CONFIG?=$(EXTERNAL_INCLUDE)/config.h
 
 ifndef BIN
@@ -29,14 +29,15 @@ ifndef EXTERNAL_CONFIG
 $(error EXTERNAL_CONFIG must be set)
 endif
 
-EXTERNAL_SRC?=
-EXTERNAL_LIB?=
+EXTERNAL_SRC?=$(PWD)/../allegro-vcu-ctrl-sw
+EXTERNAL_LIB?=$(PWD)/../allegro-vcu-ctrl-sw/bin
 
 
 ENABLE_VCU?=1
 ENABLE_MCU?=1
 ENABLE_64BIT?=1
-ENABLE_SYNCIP?=0
+ENABLE_SYNCIP_ENC?=0
+ENABLE_SYNCIP_DEC?=0
 
 -include quirks.mk
 CROSS_COMPILE?=
@@ -53,8 +54,13 @@ RANLIB:=$(CROSS_COMPILE)ranlib
 STRIP:=$(CROSS_COMPILE)strip
 SIZE:=$(CROSS_COMPILE)size
 
-ifeq ($(ENABLE_SYNCIP),1)
-  CFLAGS+=-DAL_ENABLE_SYNCIP
+ifeq ($(ENABLE_SYNCIP_ENC),1)
+  CFLAGS+=-DAL_ENABLE_SYNCIP_ENC
+  LDFLAGS+=-lrt
+endif
+
+ifeq ($(ENABLE_SYNCIP_DEC),1)
+  CFLAGS+=-DAL_ENABLE_SYNCIP_DEC
   LDFLAGS+=-lrt
 endif
 
@@ -73,6 +79,7 @@ include $(THIS)/builder.mk
 
 DEFAULT_CFLAGS:=$(CFLAGS)
 DEFAULT_CFLAGS+=-O3
+DEFAULT_CFLAGS+=-pedantic
 DEFAULT_CFLAGS+=-g3
 DEFAULT_CFLAGS+=-Wall
 DEFAULT_CFLAGS+=-Wextra
@@ -80,7 +87,6 @@ DEFAULT_CFLAGS+=-Wextra
 DEFAULT_CFLAGS+=-Wno-missing-field-initializers
 
 DEFAULT_LDFLAGS:=$(LDFLAGS)
-DEFAULT_LDFLAGS+=-g3
 
 INCLUDES+=-I$(THIS)
 INCLUDES+=-I$(OMX_HEADERS)

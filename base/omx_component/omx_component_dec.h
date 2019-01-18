@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -67,7 +67,7 @@ private:
   void EmptyThisBufferCallBack(BufferHandleInterface* handle) override;
   void AssociateCallBack(BufferHandleInterface* empty, BufferHandleInterface* fill) override;
   void FillThisBufferCallBack(BufferHandleInterface* filled) override;
-  void EventCallBack(Callbacks::CallbackEventType type, void* data) override;
+  void EventCallBack(Callbacks::Event type, void* data) override;
   void FlushComponent() override;
 
   void TreatEmptyBufferCommand(Task* task) override;

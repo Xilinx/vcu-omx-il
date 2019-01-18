@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2018 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -123,7 +123,13 @@ void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
   auto header = (OMX_BUFFERHEADERTYPE*)((OMXBufferHandle*)filled)->header;
   auto offset = ((OMXBufferHandle*)filled)->offset;
   auto payload = ((OMXBufferHandle*)filled)->payload;
-  switch(ToDecModule(*module).GetDisplayPictureType())
+  DisplayPictureInfo displayPictureInfo {};
+  auto err = module->GetDynamic(DYNAMIC_INDEX_CURRENT_DISPLAY_PICTURE_INFO, &displayPictureInfo);
+  assert(err == SUCCESS);
+
+  if(displayPictureInfo.concealed)
+    header->nFlags |= OMX_BUFFERFLAG_DATACORRUPT;
+  switch(displayPictureInfo.type)
   {
   case 0:
   {
@@ -161,19 +167,27 @@ void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
   ReturnFilledBuffer(header, offset, payload);
 }
 
-void DecComponent::EventCallBack(Callbacks::CallbackEventType type, void* data)
+void DecComponent::EventCallBack(Callbacks::Event type, void* data)
 {
-  assert(type <= Callbacks::CALLBACK_EVENT_MAX);
+  assert(type <= Callbacks::Event::MAX);
   switch(type)
   {
-  case Callbacks::CALLBACK_EVENT_RESOLUTION_CHANGE:
+  case Callbacks::Event::RESOLUTION_CHANGE:
   {
-    LOGI("%s", ToStringCallbackEvent.at(type));
+    LOGI("%s\n", ToStringCallbackEvent.at(type));
 
     auto port = GetPort(1);
 
     if(port->isTransientToEnable || !port->enable)
       callbacks.EventHandler(component, app, OMX_EventPortSettingsChanged, 1, 0, nullptr);
+    break;
+  }
+  case Callbacks::Event::SEI_PARSED:
+  {
+    LOGI("%s\n", ToStringCallbackEvent.at(type));
+
+    auto sei = static_cast<Sei*>(data);
+    callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_ALG_EventSEIParsed), sei->type, sei->payload, sei->data);
     break;
   }
   default:

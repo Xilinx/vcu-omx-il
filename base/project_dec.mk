@@ -23,10 +23,11 @@ OMX_DEC_CFLAGS+=-pthread
 OMX_DEC_LDFLAGS:=$(DEFAULT_LDFLAGS)
 OMX_DEC_LDFLAGS+=-lpthread
 
+-include $(THIS.base_dec)/ref_dec.mk
+
 ifdef EXTERNAL_LIB
 LIB_DECODE:=$(EXTERNAL_LIB)/$(EXTERNAL_DECODE_LIB_NAME)
 LIBS_DECODE+=$(LIB_DECODE)
--include $(THIS.base_dec)/ref_dec.mk
 
 $(LIB_DECODE):
 ifndef EXTERNAL_SRC
