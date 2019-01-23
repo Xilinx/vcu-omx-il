@@ -29,8 +29,8 @@ ifndef EXTERNAL_CONFIG
 $(error EXTERNAL_CONFIG must be set)
 endif
 
-EXTERNAL_SRC?=$(PWD)/../allegro-vcu-ctrl-sw
-EXTERNAL_LIB?=$(PWD)/../allegro-vcu-ctrl-sw/bin
+EXTERNAL_SRC?=
+EXTERNAL_LIB?=
 
 
 ENABLE_VCU?=1
