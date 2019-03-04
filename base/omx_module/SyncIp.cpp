@@ -264,7 +264,14 @@ static void printFrameBufferConfig(struct xvsfsync_chan_config const& config, in
 
   for(int user = 0; user < maxUsers; ++user)
   {
-    Log("framebuffer", "user[%i]:\n", user)
+    Log("framebuffer", "user[%s]:\n", (user == XVSFSYNC_PROD) ? "prod" : (user == XVSFSYNC_CONS) ? "cons" : "unknown");
+
+    if(config.fb_id[user] == XVSFSYNC_AUTO_SEARCH)
+    {
+      Log("framebuffer", "\t-fb_id:%s\n", "auto_search");
+    }
+    else
+      Log("framebuffer", "\t-fb_id:%d\n", config.fb_id[user]);
     Log("framebuffer", "\t-fb_id:%d\n", config.fb_id[user]);
     Log("framebuffer", "\t-ismono:%d\n", config.ismono[user]);
     Log("framebuffer", "\t-luma_start_address:%" PRIx64 "\n", config.luma_start_address[user]);

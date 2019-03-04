@@ -58,8 +58,11 @@ private:
 };
 
 #define Log(category, ...) \
-  if(LogCategories::getInstance().categories[category]) \
-    printf(__VA_ARGS__);
+  { \
+    if(LogCategories::getInstance().categories[category]) \
+      printf(__VA_ARGS__); \
+  } \
+  void FORCE_SEMICOLON()
 
 void printChannelStatus(ChannelStatus const& status);
 void printChannelStatus(int channelId, ChannelStatus const& status);
