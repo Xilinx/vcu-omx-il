@@ -391,17 +391,17 @@ OMX_ERRORTYPE ConstructVideoLookAhead(OMX_ALG_VIDEO_PARAM_LOOKAHEAD& la, Port co
   auto ret = media->Get(SETTINGS_INDEX_LOOKAHEAD, &lookAhead);
   OMX_CHECK_MEDIA_GET(ret);
   la.nLookAhead = lookAhead.nLookAhead;
-  la.bEnableFirstPassCrop = ConvertMediaToOMXBool(lookAhead.bEnableFirstPassCrop);
+  la.bEnableFirstPassSceneChangeDetection = ConvertMediaToOMXBool(lookAhead.bEnableFirstPassSceneChangeDetection);
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetLookAhead(OMX_U32 nLookAhead, OMX_BOOL enableFirstPassCrop, shared_ptr<MediatypeInterface> media)
+OMX_ERRORTYPE SetLookAhead(OMX_U32 nLookAhead, OMX_BOOL enableFirstPassSceneChangeDetection, shared_ptr<MediatypeInterface> media)
 {
   LookAhead lookAhead;
   auto ret = media->Get(SETTINGS_INDEX_LOOKAHEAD, &lookAhead);
   OMX_CHECK_MEDIA_GET(ret);
   lookAhead.nLookAhead = nLookAhead;
-  lookAhead.bEnableFirstPassCrop = ConvertOMXToMediaBool(enableFirstPassCrop);
+  lookAhead.bEnableFirstPassSceneChangeDetection = ConvertOMXToMediaBool(enableFirstPassSceneChangeDetection);
   ret = media->Set(SETTINGS_INDEX_LOOKAHEAD, &lookAhead);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
@@ -412,7 +412,7 @@ OMX_ERRORTYPE SetVideoLookAhead(OMX_ALG_VIDEO_PARAM_LOOKAHEAD const& la, Port co
   OMX_ALG_VIDEO_PARAM_LOOKAHEAD rollback;
   ConstructVideoLookAhead(rollback, port, media);
 
-  auto ret = SetLookAhead(la.nLookAhead, la.bEnableFirstPassCrop, media);
+  auto ret = SetLookAhead(la.nLookAhead, la.bEnableFirstPassSceneChangeDetection, media);
 
   if(ret != OMX_ErrorNone)
   {
@@ -430,17 +430,19 @@ OMX_ERRORTYPE ConstructVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS& tp, Port const&
   auto ret = media->Get(SETTINGS_INDEX_TWOPASS, &twopass);
   OMX_CHECK_MEDIA_GET(ret);
   tp.nPass = twopass.nPass;
-  tp.sLogFile = const_cast<char*>(twopass.sLogFile.c_str());
+  strncpy((char*)tp.cLogFile, twopass.sLogFile.c_str(), OMX_MAX_STRINGNAME_SIZE);
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetTwoPass(OMX_U32 nPass, OMX_STRING sLogFile, std::shared_ptr<MediatypeInterface> media)
+OMX_ERRORTYPE SetTwoPass(OMX_U32 nPass, OMX_U8 const cLogFile[OMX_MAX_STRINGNAME_SIZE], std::shared_ptr<MediatypeInterface> media)
 {
   TwoPass twopass;
   auto ret = media->Get(SETTINGS_INDEX_TWOPASS, &twopass);
   OMX_CHECK_MEDIA_GET(ret);
   twopass.nPass = nPass;
-  twopass.sLogFile = sLogFile;
+  twopass.sLogFile = string {
+    (char*)cLogFile
+  };
   ret = media->Set(SETTINGS_INDEX_TWOPASS, &twopass);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
@@ -451,7 +453,7 @@ OMX_ERRORTYPE SetVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS const& tp, Port const&
   OMX_ALG_VIDEO_PARAM_TWOPASS rollback;
   ConstructVideoTwoPass(rollback, port, media);
 
-  auto ret = SetTwoPass(tp.nPass, tp.sLogFile, media);
+  auto ret = SetTwoPass(tp.nPass, tp.cLogFile, media);
 
   if(ret != OMX_ErrorNone)
   {

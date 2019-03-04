@@ -109,7 +109,8 @@ static map<AL_ERR, string> MapToStringEncodeError =
   { AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE, "encoder: hardware doesn't have enough resources" },
   { AL_ERR_CHAN_CREATION_NOT_ENOUGH_CORES, "encoder, hardware doesn't have enough resources (fragmentation)" },
   { AL_ERR_REQUEST_MALFORMED, "encoder: request to hardware was malformed" },
-  { AL_WARN_LCU_OVERFLOW, "encoder: lcu overflow" }
+  { AL_WARN_LCU_OVERFLOW, "encoder: lcu overflow" },
+  { AL_WARN_NUM_SLICES_ADJUSTED, "encoder: num slices have been adjusted" }
 };
 
 static string ToStringEncodeError(int error)
@@ -215,17 +216,20 @@ ErrorType EncModule::CreateEncoder()
       callback = { EncModule::RedirectionEndEncodingLookAhead, &(encoderPass.callbackParam) };
       LookAhead la;
       media->Get(SETTINGS_INDEX_LOOKAHEAD, &la);
-      encoderPass.lookAheadMngr.reset(new LookAheadMngr(la.nLookAhead, la.bEnableFirstPassCrop));
+      encoderPass.lookAheadMngr.reset(new LookAheadMngr(la.nLookAhead, la.bEnableFirstPassSceneChangeDetection));
     }
 
     auto errorCode = AL_Encoder_Create(&encoderPass.enc, scheduler, allocator.get(), &settingsPass, callback);
 
-    if(errorCode != AL_SUCCESS)
+    if(AL_IS_ERROR_CODE(errorCode))
     {
       fprintf(stderr, "Failed to create Encoder:\n");
-      fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
+      fprintf(stderr, "/!\\ ERROR:%s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
       return ToModuleError(errorCode);
     }
+
+    if(AL_IS_WARNING_CODE(errorCode))
+      fprintf(stderr, "/!\\ WARNING:%s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
 
     for(int i = 0; i < (int)encoderPass.streamBuffers.size(); i++)
     {
@@ -497,7 +501,7 @@ static bool CreateAndAttachSourceMeta(AL_TBuffer& buf, shared_ptr<MediatypeInter
 
   if(!AL_Buffer_AddMetaData(&buf, meta))
   {
-    meta->MetaDestroy(meta);
+    AL_MetaData_Destroy(meta);
     return false;
   }
   return true;
@@ -595,7 +599,7 @@ bool EncModule::CreateAndAttachStreamMeta(AL_TBuffer& buf)
 
   if(!AL_Buffer_AddMetaData(&buf, meta))
   {
-    meta->MetaDestroy(meta);
+    AL_MetaData_Destroy(meta);
     return false;
   }
   return true;
@@ -699,13 +703,14 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 
   auto errorCode = AL_Encoder_GetLastError(encoder);
 
-  if(errorCode != AL_SUCCESS)
+  if(AL_IS_ERROR_CODE(errorCode))
   {
-    fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
-
-    if((errorCode & AL_ERROR) && (errorCode != AL_ERR_STREAM_OVERFLOW))
-      callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(errorCode));
+    fprintf(stderr, "/!\\ ERROR:%s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
+    callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(errorCode));
   }
+
+  if(AL_IS_WARNING_CODE(errorCode))
+    fprintf(stderr, "/!\\ WARNING:%s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
 
   BufferHandles bufferHandles;
   media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
@@ -813,13 +818,14 @@ void EncModule::EndEncodingLookAhead(AL_TBuffer* stream, AL_TBuffer const* sourc
 
   auto errorCode = AL_Encoder_GetLastError(encoder.enc);
 
-  if(errorCode != AL_SUCCESS)
+  if(AL_IS_ERROR_CODE(errorCode))
   {
     fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
-
-    if((errorCode & AL_ERROR) && (errorCode != AL_ERR_STREAM_OVERFLOW))
-      callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(errorCode));
+    callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(errorCode));
   }
+
+  if(AL_IS_WARNING_CODE(errorCode))
+    fprintf(stderr, "/!\\ WARNING:%s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
 
   if(isEOS)
   {

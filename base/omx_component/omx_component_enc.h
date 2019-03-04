@@ -38,7 +38,6 @@
 #pragma once
 
 #include <vector>
-#include <map>
 
 #include "omx_component.h"
 #include "base/omx_module/omx_module_enc.h"

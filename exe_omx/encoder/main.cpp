@@ -244,7 +244,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
     initHeader(la);
     la.nPortIndex = 1;
     la.nLookAhead = app.settings.lookahead;
-    la.bEnableFirstPassCrop = OMX_FALSE;
+    la.bEnableFirstPassSceneChangeDetection = OMX_FALSE;
     OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLookAhead), &la);
   }
 
@@ -254,7 +254,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
     initHeader(tp);
     tp.nPortIndex = 1;
     tp.nPass = app.settings.pass;
-    tp.sLogFile = const_cast<char*>(app.settings.twoPassLogFile.c_str());
+    strncpy((char*)tp.cLogFile, app.settings.twoPassLogFile.c_str(), OMX_MAX_STRINGNAME_SIZE);
     OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoTwoPass), &tp);
   }
 

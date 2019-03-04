@@ -230,7 +230,7 @@ ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
 
   auto errorCode = AL_Decoder_Create(&decoder, channel, allocator.get(), &media->settings, &decCallbacks);
 
-  if(errorCode != AL_SUCCESS)
+  if(AL_IS_ERROR_CODE(errorCode))
   {
     fprintf(stderr, "Failed to create Decoder: %d\n", errorCode);
     return ToModuleError(errorCode);
@@ -496,7 +496,7 @@ AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
     if(!dmaHandle)
     {
       fprintf(stderr, "Failed to import fd : %i\n", fd);
-      ((AL_TMetaData*)sourceMeta)->MetaDestroy((AL_TMetaData*)sourceMeta);
+      AL_MetaData_Destroy((AL_TMetaData*)sourceMeta);
       return nullptr;
     }
 
@@ -518,7 +518,7 @@ AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
 
   if(output == nullptr)
   {
-    ((AL_TMetaData*)sourceMeta)->MetaDestroy((AL_TMetaData*)sourceMeta);
+    AL_MetaData_Destroy((AL_TMetaData*)sourceMeta);
     return nullptr;
   }
 

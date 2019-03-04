@@ -52,64 +52,61 @@ typedef uint64_t u64;
 
 using namespace std;
 
-bool isSane(struct xvsfsync_chan_config const& config, int maxChan)
+static bool isSane(struct xvsfsync_chan_config const& config, int maxChan)
 {
   if(config.channel_id > maxChan)
     return false;
 
-  if(config.fb_id != XVSFSYNC_AUTO_SEARCH && config.fb_id >= MAX_FB_NUMBER)
+  if(config.fb_id[XVSFSYNC_PROD] != XVSFSYNC_AUTO_SEARCH && config.fb_id[XVSFSYNC_PROD] >= MAX_FB_NUMBER)
+    return false;
+
+  if(config.fb_id[XVSFSYNC_CONS] != XVSFSYNC_AUTO_SEARCH && config.fb_id[XVSFSYNC_CONS] >= MAX_FB_NUMBER)
     return false;
 
   return true;
 }
 
-int findAvailableFrameBuffer(ChannelStatus const& channelStatus)
+static int findAvailableFrameBuffer(ChannelStatus const& channelStatus, int user)
 {
   for(int fbNum = 0; fbNum < MAX_FB_NUMBER; ++fbNum)
   {
-    if(channelStatus.fbAvail[fbNum])
+    if(channelStatus.fbAvail[fbNum][user])
       return fbNum;
   }
 
   return -1;
 }
 
-int findFirstBusyFrameBuffer(ChannelStatus const& channelStatus)
+static int findFirstBusyFrameBuffer(ChannelStatus const& channelStatus, int user)
 {
   for(int fbNum = 0; fbNum < MAX_FB_NUMBER; ++fbNum)
   {
-    if(!channelStatus.fbAvail[fbNum])
+    if(!channelStatus.fbAvail[fbNum][user])
       return fbNum;
   }
 
   return -1;
 }
 
-static u32 encodeChannelStatus(vector<ChannelStatus>& channelStatuses)
+static struct xvsfsync_stat encodeChannelStatus(vector<ChannelStatus>& channelStatuses)
 {
-  u32 status = 0;
+  struct xvsfsync_stat status {};
 
-  for(size_t i = 0; i < channelStatuses.size(); ++i)
+  for(size_t channel = 0; channel < channelStatuses.size(); ++channel)
   {
-    auto& chan = channelStatuses[i];
+    auto const& channelStatus = channelStatuses[channel];
 
-    if(chan.fbAvail[0])
-      status |= XVSFSYNC_CHX_FB0_MASK(i);
+    for(int buffer = 0; buffer < XVSFSYNC_BUF_PER_CHANNEL; ++buffer)
+    {
+      for(int user = 0; user < XVSFSYNC_IO; ++user)
+        status.fbdone[channel][buffer][user] = channelStatus.fbAvail[buffer][user];
+    }
 
-    if(chan.fbAvail[1])
-      status |= XVSFSYNC_CHX_FB1_MASK(i);
-
-    if(chan.fbAvail[2])
-      status |= XVSFSYNC_CHX_FB2_MASK(i);
-
-    if(chan.enable)
-      status |= XVSFSYNC_CHX_ENB_MASK(i);
-
-    if(chan.syncError)
-      status |= XVSFSYNC_CHX_SYNC_ERR_MASK(i);
-
-    if(chan.watchdogError)
-      status |= XVSFSYNC_CHX_WDG_ERR_MASK(i);
+    status.enable[channel] = channelStatus.enable;
+    status.sync_err[channel] = channelStatus.syncError;
+    status.wdg_err[channel] = channelStatus.watchdogError;
+    status.ldiff_err[channel] = channelStatus.lumaDiffError;
+    status.cdiff_err[channel] = channelStatus.chromaDiffError;
   }
 
   return status;
@@ -163,7 +160,7 @@ static AL_EDriverError xvsfsync_get_cfg(DummyDriver* pThis, struct xvsfsync_conf
   return DRIVER_SUCCESS;
 }
 
-static AL_EDriverError xvsfsync_get_chan_status(DummyDriver* pThis, u32* channelStatus)
+static AL_EDriverError xvsfsync_get_chan_status(DummyDriver* pThis, struct xvsfsync_stat* channelStatus)
 {
   *channelStatus = encodeChannelStatus(pThis->channelStatuses);
   return DRIVER_SUCCESS;
@@ -173,14 +170,20 @@ static AL_EDriverError xvsfsync_set_chan_config(DummyDriver* pThis, struct xvsfs
 {
   assert(isSane(*config, pThis->numChan));
   auto& channelStatus = pThis->channelStatuses[config->channel_id];
-  int fbNum = config->fb_id;
 
-  if(fbNum == XVSFSYNC_AUTO_SEARCH)
-    fbNum = findAvailableFrameBuffer(channelStatus);
+  int fbNum[XVSFSYNC_IO] = { config->fb_id[XVSFSYNC_PROD], config->fb_id[XVSFSYNC_CONS] };
 
-  if(fbNum == -1 || !channelStatus.fbAvail[fbNum])
-    return DRIVER_ERROR_UNKNOWN;
-  channelStatus.fbAvail[fbNum] = false;
+  for(int user = 0; user < XVSFSYNC_IO; ++user)
+  {
+    if(fbNum[user] == XVSFSYNC_AUTO_SEARCH)
+      fbNum[user] = findAvailableFrameBuffer(channelStatus, user);
+
+    if(fbNum[user] == -1 || !channelStatus.fbAvail[fbNum[user]][user])
+      return DRIVER_ERROR_UNKNOWN;
+
+    channelStatus.fbAvail[fbNum[user]][user] = false;
+  }
+
   return DRIVER_SUCCESS;
 }
 
@@ -207,6 +210,13 @@ static AL_EDriverError xvsfsync_clear_chan_errors(DummyDriver* pThis, struct xvs
 
   if(clr->wdg_err)
     pThis->channelStatuses[clr->channel_id].watchdogError = false;
+
+  if(clr->ldiff_err)
+    pThis->channelStatuses[clr->channel_id].lumaDiffError = false;
+
+  if(clr->cdiff_err)
+    pThis->channelStatuses[clr->channel_id].chromaDiffError = false;
+
   return DRIVER_SUCCESS;
 }
 
@@ -216,7 +226,7 @@ static AL_EDriverError xvsfsync_poll(DummyDriver* pThis)
   {
     auto& channelStatus = pThis->channelStatuses[i];
 
-    if(channelStatus.watchdogError || channelStatus.syncError)
+    if(channelStatus.watchdogError || channelStatus.syncError || channelStatus.lumaDiffError || channelStatus.chromaDiffError)
       return DRIVER_SUCCESS;
   }
 
@@ -233,7 +243,7 @@ AL_EDriverError DummyDriver::PostMessage(int fd, long unsigned int messageId, vo
     return xvsfsync_get_cfg(this, (struct xvsfsync_config*)data);
 
   case XVSFSYNC_GET_CHAN_STATUS:
-    return xvsfsync_get_chan_status(this, (u32*)data);
+    return xvsfsync_get_chan_status(this, (struct xvsfsync_stat*)data);
 
   case XVSFSYNC_SET_CHAN_CONFIG:
     return xvsfsync_set_chan_config(this, (struct xvsfsync_chan_config*)data);
@@ -262,14 +272,20 @@ void DummyDriver::FinalizeBuffer(int chanId, int fb_id)
   if(!channelStatus.enable)
     throw runtime_error("Can't finalize a buffer if the channel isn't enabled");
 
-  if(fb_id == -1)
-    fb_id = findFirstBusyFrameBuffer(channelStatus);
+  for(int user = 0; user < MAX_USER; user++)
+  {
+    if(fb_id == -1)
+      fb_id = findFirstBusyFrameBuffer(channelStatus, user);
 
-  auto& fbAvail = channelStatus.fbAvail[fb_id];
+    if(fb_id == -1)
+      throw runtime_error("Frame buffer isn't busy");
 
-  if(fbAvail)
-    throw runtime_error("Frame buffer isn't busy");
-  fbAvail = true;
+    auto& fbAvail = channelStatus.fbAvail[fb_id][user];
+
+    if(fbAvail)
+      throw runtime_error("Frame buffer isn't busy");
+    fbAvail = true;
+  }
 
   Log("framebuffer", "Finalize framebuffer id %d for channel %d\n", fb_id, chanId);
 }
@@ -284,6 +300,16 @@ void DummyDriver::SignalWatchdogError(int chanId)
   channelStatuses[chanId].watchdogError = true;
 }
 
+void DummyDriver::SignalLumaDiffError(int chanId)
+{
+  channelStatuses[chanId].lumaDiffError = true;
+}
+
+void DummyDriver::SignalChromaDiffError(int chanId)
+{
+  channelStatuses[chanId].chromaDiffError = true;
+}
+
 static DummyDriver dummyDriver;
 
 DummyDriver* AL_InitDummyDriver(bool encode, int numChan)
@@ -295,7 +321,10 @@ DummyDriver* AL_InitDummyDriver(bool encode, int numChan)
   for(auto& channelStatus : dummyDriver.channelStatuses)
   {
     for(auto& fbAvail : channelStatus.fbAvail)
-      fbAvail = true;
+    {
+      for(auto& user: fbAvail)
+        user = true;
+    }
   }
 
   return &dummyDriver;

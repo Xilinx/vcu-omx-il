@@ -60,6 +60,8 @@ struct DummyDriver : public AL_TDriver
   void FinalizeBuffer(int chanId, int fb_id = -1);
   void SignalSyncError(int chanId);
   void SignalWatchdogError(int chanId);
+  void SignalLumaDiffError(int chanId);
+  void SignalChromaDiffError(int chanId);
   bool encode = true;
   int numChan = 4;
   std::vector<ChannelStatus> channelStatuses {};

@@ -51,12 +51,16 @@ extern "C"
 #include <stdexcept>
 
 static int constexpr MAX_FB_NUMBER = 3;
+static int constexpr MAX_USER = 2; /* consumer and producter */
+
 struct ChannelStatus
 {
-  bool fbAvail[MAX_FB_NUMBER];
+  bool fbAvail[MAX_FB_NUMBER][MAX_USER];
   bool enable;
   bool syncError;
   bool watchdogError;
+  bool lumaDiffError;
+  bool chromaDiffError;
 };
 
 struct sync_error : public std::runtime_error
@@ -87,10 +91,12 @@ struct SyncIp
   void removeListener(int chanId);
   ChannelStatus& getStatus(int chanId);
   int maxChannels;
+  int maxUsers;
+  int maxBuffers;
+  int maxCores;
 
 private:
   void getLatestChanStatus();
-  void parseChanStatus(uint32_t status);
   void resetStatus(int chanId);
   int fd = -1;
   bool quit = false;

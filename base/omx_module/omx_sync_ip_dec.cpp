@@ -65,7 +65,7 @@ extern "C"
 
 using namespace std;
 
-static char const* syncDeviceNameDec = "/dev/xsync_decode";
+static char const* syncDeviceNameDec = "/dev/xvsfsync1";
 static constexpr bool usingDummy = false;
 
 static AL_TDriver* getDriver()
@@ -86,7 +86,7 @@ static bool CreateAndAttachSourceMeta(AL_TBuffer* buf, shared_ptr<MediatypeInter
 
   if(!AL_Buffer_AddMetaData(buf, meta))
   {
-    meta->MetaDestroy(meta);
+    AL_MetaData_Destroy(meta);
     return false;
   }
   return true;

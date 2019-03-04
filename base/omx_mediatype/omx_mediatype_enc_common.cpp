@@ -400,7 +400,7 @@ LookAhead CreateLookAhead(AL_TEncSettings settings)
 {
   LookAhead la {};
   la.nLookAhead = settings.LookAhead;
-  la.bEnableFirstPassCrop = settings.bEnableFirstPassCrop;
+  la.bEnableFirstPassSceneChangeDetection = settings.bEnableFirstPassSceneChangeDetection;
   return la;
 }
 
@@ -410,7 +410,7 @@ bool UpdateLookAhead(AL_TEncSettings& settings, LookAhead la)
     return false;
 
   settings.LookAhead = la.nLookAhead;
-  settings.bEnableFirstPassCrop = la.bEnableFirstPassCrop;
+  settings.bEnableFirstPassSceneChangeDetection = la.bEnableFirstPassSceneChangeDetection;
 
   return true;
 }

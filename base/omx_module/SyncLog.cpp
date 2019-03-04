@@ -37,22 +37,32 @@
 
 #include "SyncLog.h"
 
-std::map<std::string, bool> g_Categories =
+LogCategories::LogCategories() :
+  categories{{ "framebuffer", true },
+  {
+    "channel", true
+  },
+  {
+    "driver", true
+  }}
 {
-  { "framebuffer", true },
-  { "channel", true },
-  { "driver", true },
-};
+}
+
+LogCategories::~LogCategories() = default;
 
 void printChannelStatus(ChannelStatus const& status)
 {
-  for(int i = 0; i < MAX_FB_NUMBER; ++i)
-    Log("channel", "%sFB %d = %s", i == 0 ? "" : ", ", i, status.fbAvail[i] ? "available" : "busy");
+  for(int fb = 0; fb < MAX_FB_NUMBER; ++fb)
+  {
+    for(int user = 0; user < MAX_USER; ++user)
+      Log("channel", "[%s]FB %d = %s\n", user == 0 ? "prod" : "cons", fb, status.fbAvail[fb][user] ? "available" : "busy");
+  }
 
-  Log("channel", "\n");
   Log("channel", "Enabled = %s\n", status.enable ? "true" : "false");
   Log("channel", "Sync Error = %s\n", status.syncError ? "true" : "false");
   Log("channel", "Wdg Error = %s\n", status.watchdogError ? "true" : "false");
+  Log("channel", "Luma Diff Error = %s\n", status.lumaDiffError ? "true" : "false");
+  Log("channel", "Chroma Diff Error = %s\n", status.chromaDiffError ? "true" : "false");
 }
 
 void printChannelStatus(int channelId, ChannelStatus const& status)

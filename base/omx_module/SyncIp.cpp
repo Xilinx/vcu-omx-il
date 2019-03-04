@@ -42,7 +42,6 @@
 #include "SyncIp.h"
 #include <cassert>
 #include <iostream>
-#include <map>
 #include <algorithm>
 
 extern "C"
@@ -63,10 +62,31 @@ typedef uint64_t u64;
 
 static int RoundUp(int iVal, int iRnd)
 {
+  assert((iRnd % 2) == 0);
   return (iVal + iRnd - 1) / iRnd * iRnd;
 }
 
 using namespace std;
+
+static void parseChanStatus(struct xvsfsync_stat const& status, vector<ChannelStatus>& channelStatuses, int maxChannels, int maxUsers, int maxBuffers)
+{
+  for(int channel = 0; channel < maxChannels; ++channel)
+  {
+    auto& channelStatus = channelStatuses[channel];
+
+    for(int buffer = 0; buffer < maxBuffers; ++buffer)
+    {
+      for(int user = 0; user < maxUsers; ++user)
+        channelStatus.fbAvail[buffer][user] = status.fbdone[channel][buffer][user];
+    }
+
+    channelStatus.enable = status.enable[channel];
+    channelStatus.syncError = status.sync_err[channel];
+    channelStatus.watchdogError = status.wdg_err[channel];
+    channelStatus.lumaDiffError = status.ldiff_err[channel];
+    channelStatus.chromaDiffError = status.cdiff_err[channel];
+  }
+}
 
 template<typename L>
 std::unique_lock<L> Lock(L& lockMe)
@@ -88,6 +108,9 @@ SyncIp::SyncIp(AL_TDriver* driver, char const* device) : driver{driver}
 
   Log("driver", "[fd: %d] mode: %s, channel number: %d\n", fd, config.encode ? "encode" : "decode", config.max_channels);
   maxChannels = config.max_channels;
+  maxUsers = XVSFSYNC_IO;
+  maxBuffers = XVSFSYNC_BUF_PER_CHANNEL;
+  maxCores = XVSFSYNC_MAX_CORES;
   channelStatuses.resize(config.max_channels);
   eventListeners.resize(config.max_channels);
 
@@ -103,11 +126,11 @@ SyncIp::~SyncIp()
 
 void SyncIp::getLatestChanStatus()
 {
-  u32 chan_status;
+  struct xvsfsync_stat chan_status;
 
   if(AL_Driver_PostMessage(driver, fd, XVSFSYNC_GET_CHAN_STATUS, &chan_status) != DRIVER_SUCCESS)
     throw runtime_error("Couldn't get sync ip channel status");
-  parseChanStatus(chan_status);
+  parseChanStatus(chan_status, channelStatuses, maxChannels, maxUsers, maxBuffers);
 }
 
 void SyncIp::resetStatus(int chanId)
@@ -116,6 +139,8 @@ void SyncIp::resetStatus(int chanId)
   clr.channel_id = chanId;
   clr.sync_err = 1;
   clr.wdg_err = 1;
+  clr.ldiff_err = 1;
+  clr.cdiff_err = 1;
 
   if(AL_Driver_PostMessage(driver, fd, XVSFSYNC_CLR_CHAN_ERR, &clr) != DRIVER_SUCCESS)
     throw runtime_error("Couldnt reset status of channel " + to_string(chanId));
@@ -130,15 +155,18 @@ int SyncIp::getFreeChannel()
    * For now we look if all the framebuffer of a channel are available to
    * decide if a channel is free or not
    */
-  for(int i = 0; i < maxChannels; i++)
+  for(int channel = 0; channel < maxChannels; ++channel)
   {
     bool isAvailable = true;
 
-    for(int j = 0; j < MAX_FB_NUMBER; ++j)
-      isAvailable = isAvailable && channelStatuses[i].fbAvail[j];
+    for(int buffer = 0; buffer < maxBuffers; ++buffer)
+    {
+      for(int user = 0; user < maxUsers; ++user)
+        isAvailable = isAvailable && channelStatuses[channel].fbAvail[buffer][user];
+    }
 
     if(isAvailable)
-      return i;
+      return channel;
   }
 
   throw runtime_error("No channel available");
@@ -183,7 +211,7 @@ void SyncIp::pollErrors(int timeout)
   {
     ChannelStatus& status = channelStatuses[i];
 
-    if(eventListeners[i] && (status.syncError || status.watchdogError))
+    if(eventListeners[i] && (status.syncError || status.watchdogError || status.lumaDiffError || status.chromaDiffError))
     {
       eventListeners[i] (status);
       resetStatus(i);
@@ -227,34 +255,31 @@ ChannelStatus & SyncIp::getStatus(int chanId)
   return channelStatuses[chanId];
 }
 
-void SyncIp::parseChanStatus(u32 status)
-{
-  for(int i = 0; i < maxChannels; ++i)
-  {
-    auto& chan = channelStatuses[i];
-    chan.fbAvail[0] = status & XVSFSYNC_CHX_FB0_MASK(i);
-    chan.fbAvail[1] = status & XVSFSYNC_CHX_FB1_MASK(i);
-    chan.fbAvail[2] = status & XVSFSYNC_CHX_FB2_MASK(i);
-    chan.enable = status & XVSFSYNC_CHX_ENB_MASK(i);
-    chan.syncError = status & XVSFSYNC_CHX_SYNC_ERR_MASK(i);
-    chan.watchdogError = status & XVSFSYNC_CHX_WDG_ERR_MASK(i);
-  }
-}
-
-void printFrameBufferConfig(struct xvsfsync_chan_config const& config)
+static void printFrameBufferConfig(struct xvsfsync_chan_config const& config, int maxUsers, int maxCores)
 {
   Log("framebuffer", "********************************\n");
-  Log("framebuffer", "fb_id: %d, channel_id: %d\n", config.fb_id, config.channel_id);
-  Log("framebuffer", "prod_luma_start_address: %" PRIx64 "\n", config.prod_luma_start_address);
-  Log("framebuffer", "prod_luma_end_address: %" PRIx64 "\n", config.prod_luma_end_address);
-  Log("framebuffer", "cons_luma_start_address: %" PRIx64 "\n", config.cons_luma_start_address);
-  Log("framebuffer", "cons_luma_end_address: %" PRIx64 "\n", config.cons_luma_end_address);
-  Log("framebuffer", "luma_margin %d\n", config.luma_margin);
-  Log("framebuffer", "prod_chroma_start_address: %" PRIx64 "\n", config.prod_chroma_start_address);
-  Log("framebuffer", "prod_chroma_end_address: %" PRIx64 "\n", config.prod_chroma_end_address);
-  Log("framebuffer", "cons_chroma_start_address: %" PRIx64 "\n", config.cons_chroma_start_address);
-  Log("framebuffer", "cons_chroma_end_address: %" PRIx64 "\n", config.cons_chroma_end_address);
-  Log("framebuffer", "chroma_margin %d\n", config.chroma_margin);
+  Log("framebuffer", "channel_id:%d\n", config.channel_id);
+  Log("framebuffer", "luma_margin:%d\n", config.luma_margin);
+  Log("framebuffer", "chroma_margin:%d\n", config.chroma_margin);
+
+  for(int user = 0; user < maxUsers; ++user)
+  {
+    Log("framebuffer", "user[%i]:\n", user)
+    Log("framebuffer", "\t-fb_id:%d\n", config.fb_id[user]);
+    Log("framebuffer", "\t-ismono:%d\n", config.ismono[user]);
+    Log("framebuffer", "\t-luma_start_address:%" PRIx64 "\n", config.luma_start_address[user]);
+    Log("framebuffer", "\t-luma_end_address:%" PRIx64 "\n", config.luma_end_address[user]);
+    Log("framebuffer", "\t-chroma_start_address:%" PRIx64 "\n", config.chroma_start_address[user]);
+    Log("framebuffer", "\t-chroma_end_address:%" PRIx64 "\n", config.chroma_end_address[user]);
+  }
+
+  for(int core = 0; core < maxCores; ++core)
+  {
+    Log("framebuffer", "core[%i]:\n", core);
+    Log("framebuffer", "\t-luma_core_offset:%d\n", config.luma_core_offset[core]);
+    Log("framebuffer", "\t-chroma_core_offset:%d\n", config.chroma_core_offset[core]);
+  }
+
   Log("framebuffer", "********************************\n");
 }
 
@@ -268,10 +293,10 @@ static struct xvsfsync_chan_config setEncFrameBufferConfig(int channelId, AL_TBu
 
   struct xvsfsync_chan_config config {};
 
-  config.prod_luma_start_address = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
-  config.prod_luma_end_address = config.prod_luma_start_address + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcMeta->tDim.iWidth - 1;
+  config.luma_start_address[XVSFSYNC_PROD] = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
+  config.luma_end_address[XVSFSYNC_PROD] = config.luma_start_address[XVSFSYNC_PROD] + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcMeta->tDim.iWidth - 1;
 
-  config.cons_luma_start_address = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
+  config.luma_start_address[XVSFSYNC_CONS] = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
   /*           <------------> stride
    *           <--------> width
    * height   ^
@@ -284,35 +309,42 @@ static struct xvsfsync_chan_config setEncFrameBufferConfig(int channelId, AL_TBu
    */
   int iHardwarePitch = RoundUp(srcMeta->tPlanes[AL_PLANE_Y].iPitch, hardwareHorizontalStrideAlignment);
   int iHardwareLumaVertivalPitch = RoundUp(srcMeta->tDim.iHeight, hardwareVerticalStrideAlignment);
-  config.cons_luma_end_address = config.cons_luma_start_address + (iHardwarePitch * (iHardwareLumaVertivalPitch - 1)) + RoundUp(srcMeta->tDim.iWidth, hardwareHorizontalStrideAlignment) - 1;
+  config.luma_end_address[XVSFSYNC_CONS] = config.luma_start_address[XVSFSYNC_CONS] + (iHardwarePitch * (iHardwareLumaVertivalPitch - 1)) + RoundUp(srcMeta->tDim.iWidth, hardwareHorizontalStrideAlignment) - 1;
 
   /* chroma is the same, but the width depends on the format of the yuv
    * here we make the assumption that the fourcc is semi planar */
   if(!AL_IsMonochrome(srcMeta->tFourCC))
   {
     assert(AL_IsSemiPlanar(srcMeta->tFourCC));
-    config.prod_chroma_start_address = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
-    config.prod_chroma_end_address = config.prod_chroma_start_address + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
-
-    config.cons_chroma_start_address = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
+    config.chroma_start_address[XVSFSYNC_PROD] = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
+    config.chroma_end_address[XVSFSYNC_PROD] = config.chroma_start_address[XVSFSYNC_PROD] + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
+    config.chroma_start_address[XVSFSYNC_CONS] = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
     int iVerticalFactor = (AL_GetChromaMode(srcMeta->tFourCC) == CHROMA_4_2_0) ? 2 : 1;
     int iHardwareChromaVertivalPitch = RoundUp((srcMeta->tDim.iHeight / iVerticalFactor), hardwareVerticalStrideAlignment / iVerticalFactor);
-    config.cons_chroma_end_address = config.cons_chroma_start_address + (iHardwarePitch * (iHardwareChromaVertivalPitch - 1)) + RoundUp(srcMeta->tDim.iWidth, hardwareHorizontalStrideAlignment) - 1;
+    config.chroma_end_address[XVSFSYNC_CONS] = config.chroma_start_address[XVSFSYNC_CONS] + (iHardwarePitch * (iHardwareChromaVertivalPitch - 1)) + RoundUp(srcMeta->tDim.iWidth, hardwareHorizontalStrideAlignment) - 1;
   }
   else
   {
-    config.prod_chroma_start_address = 0;
-    config.prod_chroma_end_address = 0;
-    config.cons_chroma_start_address = 0;
-    config.cons_chroma_end_address = 0;
-    config.ismono = 1;
+    for(int user = 0; user < XVSFSYNC_IO; user++)
+    {
+      config.chroma_start_address[user] = 0;
+      config.chroma_end_address[user] = 0;
+      config.ismono[user] = 1;
+    }
+  }
+
+  for(int core = 0; core < XVSFSYNC_MAX_CORES; core++)
+  {
+    config.luma_core_offset[core] = 0;
+    config.chroma_core_offset[core] = 0;
   }
 
   /* no margin for now (only needed for the decoder) */
   config.luma_margin = 0;
   config.chroma_margin = 0;
 
-  config.fb_id = XVSFSYNC_AUTO_SEARCH;
+  config.fb_id[XVSFSYNC_PROD] = XVSFSYNC_AUTO_SEARCH;
+  config.fb_id[XVSFSYNC_CONS] = XVSFSYNC_AUTO_SEARCH;
   config.channel_id = channelId;
 
   return config;
@@ -328,7 +360,7 @@ static struct xvsfsync_chan_config setDecFrameBufferConfig(int channelId, AL_TBu
 
   struct xvsfsync_chan_config config {};
 
-  config.prod_luma_start_address = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
+  config.luma_start_address[XVSFSYNC_PROD] = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
 
   /*           <------------> stride
    *           <--------> width
@@ -341,38 +373,43 @@ static struct xvsfsync_chan_config setDecFrameBufferConfig(int channelId, AL_TBu
    * end = total_size - stride + width - 1
    */
   // TODO : This should be LCU and 64 aligned
-  config.prod_luma_end_address = config.prod_luma_start_address + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcMeta->tDim.iWidth - 1;
-
-  config.cons_luma_start_address = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
-  config.cons_luma_end_address = config.cons_luma_start_address + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcMeta->tDim.iWidth - 1;
+  config.luma_end_address[XVSFSYNC_PROD] = config.luma_start_address[XVSFSYNC_PROD] + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcMeta->tDim.iWidth - 1;
+  config.luma_start_address[XVSFSYNC_CONS] = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
+  config.luma_end_address[XVSFSYNC_CONS] = config.luma_start_address[XVSFSYNC_CONS] + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcMeta->tDim.iWidth - 1;
 
   /* chroma is the same, but the width depends on the format of the yuv
    * here we make the assumption that the fourcc is semi planar */
   if(!AL_IsMonochrome(srcMeta->tFourCC))
   {
     assert(AL_IsSemiPlanar(srcMeta->tFourCC));
-
-    config.prod_chroma_start_address = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
+    config.chroma_start_address[XVSFSYNC_PROD] = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
     // TODO : This should be LCU and 64 aligned
-    config.prod_chroma_end_address = config.prod_chroma_start_address + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
-
-    config.cons_chroma_start_address = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
-    config.cons_chroma_end_address = config.cons_chroma_start_address + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
+    config.chroma_end_address[XVSFSYNC_PROD] = config.chroma_start_address[XVSFSYNC_PROD] + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
+    config.chroma_start_address[XVSFSYNC_CONS] = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
+    config.chroma_end_address[XVSFSYNC_CONS] = config.chroma_start_address[XVSFSYNC_CONS] + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
   }
   else
   {
-    config.prod_chroma_start_address = 0;
-    config.prod_chroma_end_address = 0;
-    config.cons_chroma_start_address = 0;
-    config.cons_chroma_end_address = 0;
-    config.ismono = 1;
+    for(int user = 0; user < XVSFSYNC_IO; user++)
+    {
+      config.chroma_start_address[user] = 0;
+      config.chroma_end_address[user] = 0;
+      config.ismono[user] = 1;
+    }
+  }
+
+  for(int core = 0; core < XVSFSYNC_MAX_CORES; core++)
+  {
+    config.luma_core_offset[core] = 0;
+    config.chroma_core_offset[core] = 0;
   }
 
   /* no margin for now (only needed for the decoder) */
   config.luma_margin = 0;
   config.chroma_margin = 0;
 
-  config.fb_id = XVSFSYNC_AUTO_SEARCH;
+  config.fb_id[XVSFSYNC_PROD] = XVSFSYNC_AUTO_SEARCH;
+  config.fb_id[XVSFSYNC_CONS] = XVSFSYNC_AUTO_SEARCH;
   config.channel_id = channelId;
 
   return config;
@@ -382,7 +419,7 @@ SyncChannel::SyncChannel(SyncIp* sync, int id) :  id{id}, sync{sync}
 {
   sync->addListener(id, [&](ChannelStatus& status)
   {
-    Log("channel", "watchdog: %d, sync: %d\n", status.watchdogError, status.syncError);
+    Log("channel", "watchdog: %d, sync: %d, ldiff: %d, cdiff: %d\n", status.watchdogError, status.syncError, status.lumaDiffError, status.chromaDiffError);
   });
 }
 
@@ -448,7 +485,7 @@ void EncSyncChannel::addBuffer_(AL_TBuffer* buf, int numFbToEnable)
     buf = buffers.front();
 
     auto config = setEncFrameBufferConfig(id, buf, hardwareHorizontalStrideAlignment, hardwareVerticalStrideAlignment);
-    printFrameBufferConfig(config);
+    printFrameBufferConfig(config, sync->maxUsers, sync->maxCores);
 
     sync->addBuffer(&config);
     Log("framebuffer", "Pushed buffer in sync ip\n");
@@ -470,7 +507,7 @@ void EncSyncChannel::enable()
 {
   auto lock = Lock(mutex);
   isRunning = true;
-  auto numFbToEnable = std::min((int)buffers.size(), MAX_FB_NUMBER);
+  auto numFbToEnable = std::min((int)buffers.size(), sync->maxBuffers);
   addBuffer_(nullptr, numFbToEnable);
   sync->enableChannel(id);
   enabled = true;
@@ -480,7 +517,7 @@ void EncSyncChannel::enable()
 void DecSyncChannel::addBuffer(AL_TBuffer* buf)
 {
   auto config = setDecFrameBufferConfig(id, buf);
-  printFrameBufferConfig(config);
+  printFrameBufferConfig(config, sync->maxUsers, sync->maxCores);
 
   sync->addBuffer(&config);
   Log("framebuffer", "Pushed buffer in sync ip\n");

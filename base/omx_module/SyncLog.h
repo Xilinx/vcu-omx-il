@@ -40,9 +40,25 @@
 #include "SyncIp.h"
 #include <string>
 
-extern std::map<std::string, bool> g_Categories;
+struct LogCategories
+{
+  static LogCategories& getInstance()
+  {
+    static LogCategories instance;
+    return instance;
+  }
+
+  std::map<char const*, bool> categories;
+
+private:
+  LogCategories();
+  ~LogCategories();
+  LogCategories(const LogCategories &) = delete;
+  LogCategories & operator = (const LogCategories &) = delete;
+};
+
 #define Log(category, ...) \
-  if(g_Categories[category]) \
+  if(LogCategories::getInstance().categories[category]) \
     printf(__VA_ARGS__);
 
 void printChannelStatus(ChannelStatus const& status);

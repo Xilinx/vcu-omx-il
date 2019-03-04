@@ -270,7 +270,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_SLICES
  *  nVersion             : OMX specification version information
  *  nPortIndex           : Port that this structure applies to
  *  nLookAhead           : Indicate the Lookahead size, disabled if 0
- *  bEnableFirstPassCrop : Speed up the first pass, by encoding 5 zones of the frame
+ *  bEnableFirstPassSceneChangeDetection : Speed up the first pass, by encoding 5 zones of the frame
  */
 typedef struct OMX_ALG_VIDEO_PARAM_LOOKAHEAD
 {
@@ -278,7 +278,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_LOOKAHEAD
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
   OMX_U32 nLookAhead;
-  OMX_BOOL bEnableFirstPassCrop;
+  OMX_BOOL bEnableFirstPassSceneChangeDetection;
 }OMX_ALG_VIDEO_PARAM_LOOKAHEAD;
 
 /**
@@ -289,7 +289,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_LOOKAHEAD
  *  nVersion   : OMX specification version information
  *  nPortIndex : Port that this structure applies to
  *  nPass      : Indicate which pass we encode (1 or 2), disabled if 0
- *  sLogFile   : Path of the pass 1 statistics logfile
+ *  cLogFile   : Path of the pass 1 statistics logfile
  */
 typedef struct OMX_ALG_VIDEO_PARAM_TWOPASS
 {
@@ -297,7 +297,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_TWOPASS
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
   OMX_U32 nPass;
-  OMX_STRING sLogFile;
+  OMX_U8 cLogFile[OMX_MAX_STRINGNAME_SIZE];
 }OMX_ALG_VIDEO_PARAM_TWOPASS;
 
 /**

@@ -145,11 +145,10 @@ OMX_ERRORTYPE SetVideoLongTerm(OMX_ALG_VIDEO_PARAM_LONG_TERM const& longTerm, Po
 OMX_ERRORTYPE SetTargetBitrate(OMX_U32 bitrate, std::shared_ptr<MediatypeInterface> media);
 
 OMX_ERRORTYPE ConstructVideoLookAhead(OMX_ALG_VIDEO_PARAM_LOOKAHEAD& la, Port const& port, std::shared_ptr<MediatypeInterface> media);
-OMX_ERRORTYPE SetLookAhead(OMX_U32 nLookAhead, OMX_BOOL bEnableFirstPassCrop, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetLookAhead(OMX_U32 nLookAhead, OMX_BOOL bEnableFirstPassSceneChangeDetection, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoLookAhead(OMX_ALG_VIDEO_PARAM_LOOKAHEAD const& la, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
 OMX_ERRORTYPE ConstructVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS& tp, Port const& port, std::shared_ptr<MediatypeInterface> media);
-OMX_ERRORTYPE SetTwoPass(OMX_U32 nPass, OMX_STRING sLogFile, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS const& tp, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
 OMX_ERRORTYPE ConstructVideoColorimetry(OMX_ALG_VIDEO_PARAM_COLORIMETRY& colorimetry, Port const& port, std::shared_ptr<MediatypeInterface> media);

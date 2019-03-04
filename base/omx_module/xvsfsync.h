@@ -38,15 +38,6 @@
 #ifndef __XVCUSYNCLL2_H__
 #define __XVCUSYNCLL2_H__
 
-/* Bit offset in channel status byte */
-/* x = channel */
-#define XVSFSYNC_CHX_FB0_MASK(x) BIT(0 + (x << 3))
-#define XVSFSYNC_CHX_FB1_MASK(x) BIT(1 + (x << 3))
-#define XVSFSYNC_CHX_FB2_MASK(x) BIT(2 + (x << 3))
-#define XVSFSYNC_CHX_ENB_MASK(x) BIT(3 + (x << 3))
-#define XVSFSYNC_CHX_SYNC_ERR_MASK(x) BIT(4 + (x << 3))
-#define XVSFSYNC_CHX_WDG_ERR_MASK(x) BIT(5 + (x << 3))
-
 /*
  * This is set in the fb_id or channel_id of struct xvsfsync_chan_config when
  * configuring the channel. This makes the driver auto search for the free
@@ -58,6 +49,12 @@
 #define XVSFSYNC_MAX_DEC_CHANNEL 2
 #define XVSFSYNC_BUF_PER_CHANNEL 3
 
+#define XVSFSYNC_PROD 0
+#define XVSFSYNC_CONS 1
+#define XVSFSYNC_IO 2
+
+#define XVSFSYNC_MAX_CORES 4
+
 /**
  * struct xvsfsync_chan_config - Synchronizer channel configuration struct
  * @luma_start_address: Start address of Luma buffer
@@ -66,29 +63,29 @@
  * @chroma_end_address: End address of Chroma buffer
  * @luma_margin: Margin for Luma buffer
  * @chroma_margin: Margin for Chroma buffer
+ * @luma_core_offset: Array of 4 offsets for luma
+ * @chroma_core_offset: Array of 4 offsets for chroma
  * @fb_id: Framebuffer index. Valid values 0/1/2/XVSFSYNC_AUTO_SEARCH
+ * @ismono: Flag to indicate if buffer is Luma only.
  * @channel_id: Channel index to be configured.
  * Valid 0..3 & XVSFSYNC_AUTO_SEARCH
- * @ismono: Flag to indicate if buffer is Luma only.
  *
  * This structure contains the configuration for monitoring a particular
  * framebuffer on a particular channel.
  */
 struct xvsfsync_chan_config
 {
-  u64 prod_luma_start_address;
-  u64 prod_chroma_start_address;
-  u64 cons_luma_start_address;
-  u64 cons_chroma_start_address;
-  u64 prod_luma_end_address;
-  u64 prod_chroma_end_address;
-  u64 cons_luma_end_address;
-  u64 cons_chroma_end_address;
+  u64 luma_start_address[XVSFSYNC_IO];
+  u64 chroma_start_address[XVSFSYNC_IO];
+  u64 luma_end_address[XVSFSYNC_IO];
+  u64 chroma_end_address[XVSFSYNC_IO];
   u32 luma_margin;
   u32 chroma_margin;
-  u8 fb_id;
+  u32 luma_core_offset[XVSFSYNC_MAX_CORES];
+  u32 chroma_core_offset[XVSFSYNC_MAX_CORES];
+  u8 fb_id[XVSFSYNC_IO];
+  u8 ismono[XVSFSYNC_IO];
   u8 channel_id;
-  u8 ismono;
 };
 
 /**
@@ -96,12 +93,16 @@ struct xvsfsync_chan_config
  * @channel_id: Channel id whose error needs to be cleared
  * @sync_err: Set this to clear sync error
  * @wdg_err: Set this to clear watchdog error
+ * @ldiff_err: Set this to clear luma difference error
+ * @cdiff_err: Set this to clear chroma difference error
  */
 struct xvsfsync_clr_err
 {
   u8 channel_id;
   u8 sync_err;
   u8 wdg_err;
+  u8 ldiff_err;
+  u8 cdiff_err;
 };
 
 /** struct xvsfsync_fbdone - Framebuffer Done
@@ -109,7 +110,7 @@ struct xvsfsync_clr_err
  */
 struct xvsfsync_fbdone
 {
-  u8 status[XVSFSYNC_MAX_ENC_CHANNEL][XVSFSYNC_BUF_PER_CHANNEL];
+  u8 status[XVSFSYNC_MAX_ENC_CHANNEL][XVSFSYNC_BUF_PER_CHANNEL][XVSFSYNC_IO];
 };
 
 /**
@@ -121,6 +122,25 @@ struct xvsfsync_config
 {
   bool encode;
   u8 max_channels;
+};
+
+/**
+ * struct xvsfsync_stat - Sync IP status
+ * @fbdone: for every pair of luma/chroma buffer for every producer/consumer
+ * @enable: channel enable
+ * @sync_err: Synchronization error
+ * @wdg_err: Watchdog error
+ * @ldiff_err: Luma difference > 1 for channel
+ * @cdiff_err: Chroma difference > 1 for channel
+ */
+struct xvsfsync_stat
+{
+  u8 fbdone[XVSFSYNC_MAX_ENC_CHANNEL][XVSFSYNC_BUF_PER_CHANNEL][XVSFSYNC_IO];
+  u8 enable[XVSFSYNC_MAX_ENC_CHANNEL];
+  u8 sync_err[XVSFSYNC_MAX_ENC_CHANNEL];
+  u8 wdg_err[XVSFSYNC_MAX_ENC_CHANNEL];
+  u8 ldiff_err[XVSFSYNC_MAX_ENC_CHANNEL];
+  u8 cdiff_err[XVSFSYNC_MAX_ENC_CHANNEL];
 };
 
 #define XVSFSYNC_MAGIC 'X'

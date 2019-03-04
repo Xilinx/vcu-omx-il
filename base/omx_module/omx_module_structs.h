@@ -230,7 +230,7 @@ struct RegionQuality
 struct LookAhead
 {
   int nLookAhead;
-  bool bEnableFirstPassCrop;
+  bool bEnableFirstPassSceneChangeDetection;
 };
 
 struct TwoPass
