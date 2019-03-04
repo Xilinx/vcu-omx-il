@@ -803,18 +803,24 @@ static inline bool IsMainTier(OMX_ALG_VIDEO_HEVCLEVELTYPE level)
 {
   switch(level)
   {
-  case OMX_ALG_VIDEO_HEVCHighTierLevel4:
-  case OMX_ALG_VIDEO_HEVCHighTierLevel41:
-  case OMX_ALG_VIDEO_HEVCHighTierLevel5:
-  case OMX_ALG_VIDEO_HEVCHighTierLevel51:
-  case OMX_ALG_VIDEO_HEVCHighTierLevel52:
-  case OMX_ALG_VIDEO_HEVCHighTierLevel6:
-  case OMX_ALG_VIDEO_HEVCHighTierLevel61:
-  case OMX_ALG_VIDEO_HEVCHighTierLevel62: return false;
-  default: return true;
+  case OMX_ALG_VIDEO_HEVCMainTierLevel1:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel2:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel21:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel3:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel31:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel4:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel41:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel5:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel51:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel52:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel6:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel61:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel62:
+    return true;
+  default: return false;
   }
 
-  return true;
+  return false;
 }
 
 ProfileLevelType ConvertOMXToMediaHEVCProfileLevel(OMX_ALG_VIDEO_HEVCPROFILETYPE profile, OMX_ALG_VIDEO_HEVCLEVELTYPE level)
@@ -934,15 +940,43 @@ static inline bool IsMainTier(ProfileLevelType profileLevel)
 {
   switch(profileLevel.profile.hevc)
   {
-  case HEVCProfileType::HEVC_PROFILE_MAIN_HIGH_TIER:
-  case HEVCProfileType::HEVC_PROFILE_MAIN_10_HIGH_TIER:
-  case HEVCProfileType::HEVC_PROFILE_MAIN_422_HIGH_TIER:
-  case HEVCProfileType::HEVC_PROFILE_MAIN_422_10_HIGH_TIER:
-  case HEVCProfileType::HEVC_PROFILE_MAIN_STILL_HIGH_TIER: return false;
-  default: return true;
+  case HEVCProfileType::HEVC_PROFILE_MONOCHROME:
+  case HEVCProfileType::HEVC_PROFILE_MONOCHROME_10:
+  case HEVCProfileType::HEVC_PROFILE_MONOCHROME_12:
+  case HEVCProfileType::HEVC_PROFILE_MONOCHROME_16:
+  case HEVCProfileType::HEVC_PROFILE_MAIN:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_10:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_12:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_16:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_10:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_12:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_16:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_10:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_12:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_16:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_STILL:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_10_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_12_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_16_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_10_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_12_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_422_16_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_10_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_12_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_16_INTRA:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_STILL:
+  case HEVCProfileType::HEVC_PROFILE_MAIN_444_16_STILL:
+  case HEVCProfileType::HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA:
+    return true;
+  default: return false;
   }
 
-  return true;
+  return false;
 }
 
 OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertMediaToOMXHEVCLevel(ProfileLevelType profileLevel)
