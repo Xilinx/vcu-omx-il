@@ -393,7 +393,7 @@ bool UpdateColorimetry(AL_TEncSettings& settings, ColorimetryType colorimetry)
     return false;
 
   settings.eColourDescription = ConvertModuleToSoftColorimetry(colorimetry);
-  return false;
+  return true;
 }
 
 LookAhead CreateLookAhead(AL_TEncSettings settings)
