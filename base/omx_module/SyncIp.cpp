@@ -264,16 +264,9 @@ static void printFrameBufferConfig(struct xvsfsync_chan_config const& config, in
 
   for(int user = 0; user < maxUsers; ++user)
   {
-    Log("framebuffer", "user[%s]:\n", (user == XVSFSYNC_PROD) ? "prod" : (user == XVSFSYNC_CONS) ? "cons" : "unknown");
-
-    if(config.fb_id[user] == XVSFSYNC_AUTO_SEARCH)
-    {
-      Log("framebuffer", "\t-fb_id:%s\n", "auto_search");
-    }
-    else
-      Log("framebuffer", "\t-fb_id:%d\n", config.fb_id[user]);
-    Log("framebuffer", "\t-fb_id:%d\n", config.fb_id[user]);
-    Log("framebuffer", "\t-ismono:%d\n", config.ismono[user]);
+    Log("framebuffer", "%s[%d]:\n", (user == XVSFSYNC_PROD) ? "prod" : (user == XVSFSYNC_CONS) ? "cons" : "unknown", user);
+    Log("framebuffer", "\t-fb_id:%d %s\n", config.fb_id[user], config.fb_id[user] == XVSFSYNC_AUTO_SEARCH ? "(auto_search)" : "");
+    Log("framebuffer", "\t-ismono:%s\n", (config.ismono[user] == 0) ? "false" : "true");
     Log("framebuffer", "\t-luma_start_address:%" PRIx64 "\n", config.luma_start_address[user]);
     Log("framebuffer", "\t-luma_end_address:%" PRIx64 "\n", config.luma_end_address[user]);
     Log("framebuffer", "\t-chroma_start_address:%" PRIx64 "\n", config.chroma_start_address[user]);

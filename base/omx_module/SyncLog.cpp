@@ -55,7 +55,7 @@ void printChannelStatus(ChannelStatus const& status)
   for(int fb = 0; fb < MAX_FB_NUMBER; ++fb)
   {
     for(int user = 0; user < MAX_USER; ++user)
-      Log("channel", "[%s]FB %d = %s\n", user == 0 ? "prod" : "cons", fb, status.fbAvail[fb][user] ? "available" : "busy");
+      Log("channel", "%s[%d] Framebuffer %d = %s\n", (user == 0) ? "prod" : (user == 1) ? "cons" : "unknown", user, fb, status.fbAvail[fb][user] ? "available" : "busy");
   }
 
   Log("channel", "Enabled = %s\n", status.enable ? "true" : "false");
