@@ -119,6 +119,12 @@ bool CheckBitrate(Bitrate bitrate, Clock clock)
   if(bitrate.ird > bitrate.cpb)
     return false;
 
+  if(bitrate.quality < 0)
+    return false;
+
+  if(bitrate.quality > 20)
+    return false;
+
   return true;
 }
 
@@ -180,6 +186,14 @@ bool CheckBufferHandles(BufferHandles bufferHandles)
     return false;
 
   if(bufferHandles.output == BufferHandleType::BUFFER_HANDLE_MAX_ENUM)
+    return false;
+
+  return true;
+}
+
+bool CheckColorimetry(ColorimetryType colorimetry)
+{
+  if(colorimetry == ColorimetryType::COLORIMETRY_MAX_ENUM)
     return false;
 
   return true;

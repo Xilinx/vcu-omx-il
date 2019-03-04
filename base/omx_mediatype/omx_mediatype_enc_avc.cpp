@@ -84,9 +84,10 @@ void EncMediatypeAVC::Reset()
   channel.uHeight = 144;
   channel.ePicFormat = AL_420_8BITS;
   channel.uSrcBitDepth = 8;
-  channel.eOptions = static_cast<AL_EChEncOption>(channel.eOptions & ~(AL_OPT_LF_X_TILE));
+  channel.eEncTools = static_cast<AL_EChEncTool>(channel.eEncTools & ~(AL_OPT_LF_X_TILE));
   auto& rateControl = channel.tRCParam;
   rateControl.eRCMode = AL_RC_CBR;
+  rateControl.iInitialQP = 30;
   rateControl.eOptions = AL_RC_OPT_SCN_CHG_RES;
   rateControl.uMaxBitRate = rateControl.uTargetBitRate = 64000;
   rateControl.uFrameRate = 15;
@@ -183,7 +184,7 @@ static BufferCounts CreateBufferCounts(AL_TEncSettings settings)
 static LoopFilterType CreateLoopFilter(AL_TEncSettings settings)
 {
   auto channel = settings.tChParam[0];
-  return ConvertSoftToModuleLoopFilter(channel.eOptions);
+  return ConvertSoftToModuleLoopFilter(channel.eEncTools);
 }
 
 static ProfileLevelType CreateProfileLevel(AL_TEncSettings settings)
@@ -374,6 +375,12 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Get(std::string index, vo
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_COLORIMETRY")
+  {
+    *(static_cast<ColorimetryType*>(settings)) = CreateColorimetry(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
 
   if(index == "SETTINGS_INDEX_LOOKAHEAD")
   {
@@ -431,8 +438,8 @@ static bool UpdateLoopFilter(AL_TEncSettings& settings, LoopFilterType loopFilte
   if(!CheckLoopFilter(loopFilter))
     return false;
 
-  auto& options = settings.tChParam[0].eOptions;
-  options = static_cast<AL_EChEncOption>(options | ConvertModuleToSoftLoopFilter(loopFilter));
+  auto& options = settings.tChParam[0].eEncTools;
+  options = static_cast<AL_EChEncTool>(options | ConvertModuleToSoftLoopFilter(loopFilter));
 
   return true;
 }
@@ -639,6 +646,15 @@ MediatypeInterface::ErrorSettingsType EncMediatypeAVC::Set(std::string index, vo
     auto resolution = *(static_cast<Resolution const*>(settings));
 
     if(!UpdateResolution(this->settings, this->stride, this->sliceHeight, this->strideAlignment, resolution))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_COLORIMETRY")
+  {
+    auto colorimerty = *(static_cast<ColorimetryType const*>(settings));
+
+    if(!UpdateColorimetry(this->settings, colorimerty))
       return ERROR_SETTINGS_BAD_PARAMETER;
     return ERROR_SETTINGS_NONE;
   }

@@ -371,20 +371,20 @@ MediatypeInterface::ErrorSettingsType DecMediatypeHEVC::Set(std::string index, v
     return ERROR_SETTINGS_NONE;
   }
 
-  if(index == "SETTINGS_INDEX_DECODED_PICTURE_BUFFER")
-  {
-    auto decodedPictureBuffer = *(static_cast<DecodedPictureBufferType const*>(settings));
-
-    if(!UpdateDecodedPictureBuffer(this->settings, decodedPictureBuffer))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
-  }
-
   if(index == "SETTINGS_INDEX_RESOLUTION")
   {
     auto resolution = *(static_cast<Resolution const*>(settings));
 
     if(!UpdateResolution(this->settings, this->stride, this->sliceHeight, this->strideAlignment, resolution))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_DECODED_PICTURE_BUFFER")
+  {
+    auto decodedPictureBuffer = *(static_cast<DecodedPictureBufferType const*>(settings));
+
+    if(!UpdateDecodedPictureBuffer(this->settings, decodedPictureBuffer))
       return ERROR_SETTINGS_BAD_PARAMETER;
     return ERROR_SETTINGS_NONE;
   }

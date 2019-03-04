@@ -63,17 +63,16 @@ static const omx_comp_type* getComp(char* cComponentName)
 
 OMX_ERRORTYPE OMX_APIENTRY OMX_Init(void)
 {
-  string path;
-#if __ANDROID_API__
-  path = "/system/lib/";
-#else
   string env("/usr/lib");
 
   if(getenv("OMX_ALLEGRO_PATH"))
     env = getenv("OMX_ALLEGRO_PATH");
 
-  path = env + "/";
-#endif /* __ANDROID_API__ */
+  string path = env + "/";
+
+#if defined(ANDROID) || defined(__ANDROID_API__)
+  path = "/system/lib/";
+#endif /* ANDROID */
 
   auto uNumLibraryLoad = 0;
 

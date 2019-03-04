@@ -74,7 +74,8 @@ OMX_ERRORTYPE SetPortExpectedBuffer(OMX_PARAM_PORTDEFINITIONTYPE const& settings
 {
   BufferCounts bufferCounts {};
   media->Get(SETTINGS_INDEX_BUFFER_COUNTS, &bufferCounts);
-  auto min = IsInputPort(settings.nPortIndex) ? bufferCounts.input : bufferCounts.output + 1; // +1 for eos
+  int const eosBuffer = 1;
+  auto min = IsInputPort(settings.nPortIndex) ? bufferCounts.input : bufferCounts.output + eosBuffer;
   auto actual = static_cast<int>(settings.nBufferCountActual);
 
   if(actual < min)
@@ -284,7 +285,8 @@ OMX_ERRORTYPE ConstructPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE& def, Port& p
 
   BufferCounts bufferCounts {};
   media->Get(SETTINGS_INDEX_BUFFER_COUNTS, &bufferCounts);
-  int min = IsInputPort(def.nPortIndex) ? bufferCounts.input : bufferCounts.output + 1; // +1 for eos
+  int const eosBuffer = 1;
+  int min = IsInputPort(def.nPortIndex) ? bufferCounts.input : bufferCounts.output + eosBuffer;
 
   if(port.getExpected() < min)
     port.setExpected(min);
@@ -666,15 +668,17 @@ OMX_ERRORTYPE ConstructVideoMaxBitrate(OMX_ALG_VIDEO_PARAM_MAX_BITRATE& b, Port 
   auto ret = media->Get(SETTINGS_INDEX_BITRATE, &bitrate);
   OMX_CHECK_MEDIA_GET(ret);
   b.nMaxBitrate = bitrate.max;
+  b.nMaxQuality = bitrate.quality;
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetMaxBitrate(OMX_U32 max, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetMaxBitrate(OMX_U32 max, OMX_U32 quality, shared_ptr<MediatypeInterface> media)
 {
   Bitrate bitrate;
   auto ret = media->Get(SETTINGS_INDEX_BITRATE, &bitrate);
   OMX_CHECK_MEDIA_GET(ret);
   bitrate.max = max;
+  bitrate.quality = quality;
 
   if(bitrate.target > bitrate.max)
     bitrate.target = bitrate.max;
@@ -689,7 +693,7 @@ OMX_ERRORTYPE SetVideoMaxBitrate(OMX_ALG_VIDEO_PARAM_MAX_BITRATE const& maxBitra
   OMX_ALG_VIDEO_PARAM_MAX_BITRATE rollback;
   ConstructVideoMaxBitrate(rollback, port, media);
 
-  auto ret = SetMaxBitrate(maxBitrate.nMaxBitrate, media);
+  auto ret = SetMaxBitrate(maxBitrate.nMaxBitrate, maxBitrate.nMaxQuality, media);
 
   if(ret != OMX_ErrorNone)
   {
@@ -1130,6 +1134,43 @@ OMX_ERRORTYPE SetTargetBitrate(OMX_U32 bitrate, shared_ptr<MediatypeInterface> m
     curBitrate.max = curBitrate.target;
   ret = media->Set(SETTINGS_INDEX_BITRATE, &curBitrate);
   OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoColorimetry(OMX_ALG_VIDEO_PARAM_COLORIMETRY& colorimetry, Port const& port, shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(colorimetry);
+  colorimetry.nPortIndex = port.index;
+  ColorimetryType colorimetryType {};
+  auto ret = media->Get(SETTINGS_INDEX_COLORIMETRY, &colorimetryType);
+  OMX_CHECK_MEDIA_GET(ret);
+  colorimetry.eColorimetryMode = ConvertMediaToOMXColorimetry(colorimetryType);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetColorimetry(OMX_ALG_VIDEO_COLORIMETRYTYPE colorimetry, shared_ptr<MediatypeInterface> media)
+{
+  ColorimetryType colorimetryType {};
+  auto ret = media->Get(SETTINGS_INDEX_COLORIMETRY, &colorimetryType);
+  OMX_CHECK_MEDIA_GET(ret);
+  colorimetryType = ConvertOMXToMediaColorimetry(colorimetry);
+  ret = media->Set(SETTINGS_INDEX_COLORIMETRY, &colorimetryType);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoColorimetry(OMX_ALG_VIDEO_PARAM_COLORIMETRY const& colorimetry, Port const& port, shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_COLORIMETRY rollback;
+  ConstructVideoColorimetry(rollback, port, media);
+
+  auto ret = SetColorimetry(colorimetry.eColorimetryMode, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoColorimetry(rollback, port, media);
+    throw ret;
+  }
   return OMX_ErrorNone;
 }
 

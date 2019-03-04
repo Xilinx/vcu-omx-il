@@ -753,6 +753,9 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
   assert(rhandleOut->data);
 
   currentOutputedStreamForSei = stream;
+  AL_TStreamMetaData* streamMeta = (AL_TStreamMetaData*)AL_Buffer_GetMetaData(stream, AL_META_TYPE_STREAM);
+  assert(streamMeta);
+  currentTemporalId = streamMeta->uTemporalID;
   callbacks.associate(rhandleIn, rhandleOut);
 
   auto async_stream_reconstruction = [&]() -> int
@@ -1032,7 +1035,7 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
   {
     auto sei = static_cast<Sei const*>(param);
 
-    if(AL_Encoder_AddSei(encoder, currentOutputedStreamForSei, true, sei->type, sei->data, sei->payload) < 0)
+    if(AL_Encoder_AddSei(encoder, currentOutputedStreamForSei, true, sei->type, sei->data, sei->payload, currentTemporalId) < 0)
     {
       assert(0);
       return ERROR_BAD_PARAMETER;
@@ -1044,7 +1047,7 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
   {
     auto sei = static_cast<Sei const*>(param);
 
-    if(AL_Encoder_AddSei(encoder, currentOutputedStreamForSei, false, sei->type, sei->data, sei->payload) < 0)
+    if(AL_Encoder_AddSei(encoder, currentOutputedStreamForSei, false, sei->type, sei->data, sei->payload, currentTemporalId) < 0)
     {
       assert(0);
       return ERROR_BAD_PARAMETER;

@@ -152,6 +152,9 @@ OMX_ERRORTYPE ConstructVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS& tp, Port const&
 OMX_ERRORTYPE SetTwoPass(OMX_U32 nPass, OMX_STRING sLogFile, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS const& tp, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
+OMX_ERRORTYPE ConstructVideoColorimetry(OMX_ALG_VIDEO_PARAM_COLORIMETRY& colorimetry, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoColorimetry(OMX_ALG_VIDEO_PARAM_COLORIMETRY const& colorimetry, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
 // Decoder
 
 OMX_ERRORTYPE ConstructPreallocation(OMX_ALG_PARAM_PREALLOCATION& prealloc, bool isEnabled);

@@ -636,6 +636,12 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto tp = static_cast<OMX_ALG_VIDEO_PARAM_TWOPASS*>(param);
     return ConstructVideoTwoPass(*tp, *port, media);
   }
+  case OMX_ALG_IndexParamVideoColorimetry:
+  {
+    auto port = getCurrentPort(param);
+    auto c = static_cast<OMX_ALG_VIDEO_PARAM_COLORIMETRY*>(param);
+    return ConstructVideoColorimetry(*c, *port, media);
+  }
   // only decoder
   case OMX_ALG_IndexParamPreallocation:
   {
@@ -844,6 +850,11 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
   {
     auto tp = static_cast<OMX_ALG_VIDEO_PARAM_TWOPASS*>(param);
     return SetVideoTwoPass(*tp, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoColorimetry:
+  {
+    auto c = static_cast<OMX_ALG_VIDEO_PARAM_COLORIMETRY*>(param);
+    return SetVideoColorimetry(*c, *port, media);
   }
   // only decoder
   case OMX_ALG_IndexParamPreallocation:

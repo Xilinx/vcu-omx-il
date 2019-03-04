@@ -121,15 +121,15 @@ bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop gop)
 bool CreateConstrainedIntraPrediction(AL_TEncSettings settings)
 {
   auto channel = settings.tChParam[0];
-  return channel.eOptions & AL_OPT_CONST_INTRA_PRED;
+  return channel.eEncTools & AL_OPT_CONST_INTRA_PRED;
 }
 
 bool UpdateConstrainedIntraPrediction(AL_TEncSettings& settings, bool isConstrainedIntraPredictionEnabled)
 {
-  auto& opt = settings.tChParam[0].eOptions;
+  auto& opt = settings.tChParam[0].eEncTools;
 
   if(isConstrainedIntraPredictionEnabled)
-    opt = static_cast<AL_EChEncOption>(opt | AL_OPT_CONST_INTRA_PRED);
+    opt = static_cast<AL_EChEncTool>(opt | AL_OPT_CONST_INTRA_PRED);
 
   return true;
 }
@@ -152,13 +152,14 @@ bool UpdateVideoMode(AL_TEncSettings& settings, VideoModeType videoMode)
 
 Bitrate CreateBitrate(AL_TEncSettings settings)
 {
-  Bitrate bitrate;
+  Bitrate bitrate {};
   auto rateCtrl = settings.tChParam[0].tRCParam;
 
   bitrate.target = rateCtrl.uTargetBitRate / 1000;
   bitrate.max = rateCtrl.uMaxBitRate / 1000;
   bitrate.cpb = rateCtrl.uCPBSize / 90;
   bitrate.ird = rateCtrl.uInitialRemDelay / 90;
+  bitrate.quality = (rateCtrl.uMaxPSNR / 100) - 28;
   bitrate.mode = ConvertSoftToModuleRateControl(rateCtrl.eRCMode);
   bitrate.option = ConvertSoftToModuleRateControlOption(rateCtrl.eOptions);
   return bitrate;
@@ -177,6 +178,7 @@ bool UpdateBitrate(AL_TEncSettings& settings, Bitrate bitrate)
   rateCtrl.uMaxBitRate = bitrate.max * 1000;
   rateCtrl.uCPBSize = bitrate.cpb * 90;
   rateCtrl.uInitialRemDelay = bitrate.ird * 90;
+  rateCtrl.uMaxPSNR = (bitrate.quality + 28) * 100;
   rateCtrl.eRCMode = ConvertModuleToSoftRateControl(bitrate.mode);
   rateCtrl.eOptions = ConvertModuleToSoftRateControlOption(bitrate.option);
   return true;
@@ -378,6 +380,20 @@ bool UpdateResolution(AL_TEncSettings& settings, int& stride, int& sliceHeight, 
   sliceHeight = max(minSliceHeight, static_cast<int>(RoundUp(resolution.stride.heightStride, strideAlignment.heightStride)));
 
   return true;
+}
+
+ColorimetryType CreateColorimetry(AL_TEncSettings settings)
+{
+  return ConvertSoftToModuleColorimetry(settings.eColourDescription);
+}
+
+bool UpdateColorimetry(AL_TEncSettings& settings, ColorimetryType colorimetry)
+{
+  if(!CheckColorimetry(colorimetry))
+    return false;
+
+  settings.eColourDescription = ConvertModuleToSoftColorimetry(colorimetry);
+  return false;
 }
 
 LookAhead CreateLookAhead(AL_TEncSettings settings)

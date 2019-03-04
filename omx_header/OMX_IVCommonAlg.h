@@ -63,13 +63,14 @@ extern "C" {
  *  nFormat    : Specifies a bitmapped value identifying the interlace formats supported by the component port. This format information identifies the temporal relationship between the two fields
  *  nTimeStamp : Specifies the temporal timestamp information for the second field. If the temporal timestamp information can not be determined for the second field, the nTimeStamp parameter for OMX_INTERLACEFORMATTYPE structure shall be set the same as the nTimeStamp parameter via the OMX_BUFFERHEADERTYPE structure
  */
-typedef struct OMX_INTERLACEFORMATTYPE {
-    OMX_U32 nSize;
-    OMX_VERSIONTYPE nVersion;
-    OMX_U32 nPortIndex;
-    OMX_U32 nFormat;
-    OMX_TICKS nTimeStamp;
-} OMX_INTERLACEFORMATTYPE;
+typedef struct OMX_INTERLACEFORMATTYPE
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_U32 nFormat;
+  OMX_TICKS nTimeStamp;
+}OMX_INTERLACEFORMATTYPE;
 
 typedef enum OMX_ALG_SEQUENCE_PICTURE_MODE
 {
@@ -97,7 +98,7 @@ typedef struct OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE
   OMX_U32 nPortIndex;
   OMX_ALG_SEQUENCE_PICTURE_MODE eMode;
   OMX_U32 nModeIndex;
-} OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE;
+}OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE;
 
 /** @} */
 

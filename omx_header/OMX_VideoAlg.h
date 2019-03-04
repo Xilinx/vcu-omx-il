@@ -563,6 +563,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH
  *  nVersion    : OMX specification version information
  *  nPortIndex  : Port that this structure applies to
  *  nMaxBitrate : Maximum bitrate threshold in kbits per second
+ *  nMaxQuality : Maximum quality target. This parameter should only be used when eControlRate = OMX_ALG_Video_ControlRateVariableCapped
  */
 typedef struct OMX_ALG_VIDEO_PARAM_MAX_BITRATE
 {
@@ -570,6 +571,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_MAX_BITRATE
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
   OMX_U32 nMaxBitrate;
+  OMX_U32 nMaxQuality;
 }OMX_ALG_VIDEO_PARAM_MAX_BITRATE;
 
 /**
@@ -592,8 +594,8 @@ typedef struct OMX_ALG_VIDEO_PARAM_FILLER_DATA
 typedef enum OMX_ALG_VIDEO_BUFFER_MODE
 {
   OMX_ALG_VIDEO_BUFFER_MODE_FRAME, // frame-level buffer, no latency optimization, no custom frame delimiter
-  OMX_ALG_VIDEO_BUFFER_MODE_FRAME_NO_REORDERING, //frame-level buffer, reduced latency assuming only I & P frames, custom frame delimiter enabled (SEI)
-  OMX_ALG_VIDEO_BUFFER_MODE_SLICE, //slice-level buffer, low latency, custom frame delimiter enabled (SEI)
+  OMX_ALG_VIDEO_BUFFER_MODE_FRAME_NO_REORDERING, // frame-level buffer, reduced latency assuming only I & P frames, custom frame delimiter enabled (SEI)
+  OMX_ALG_VIDEO_BUFFER_MODE_SLICE, // slice-level buffer, low latency, custom frame delimiter enabled (SEI)
   OMX_ALG_VIDEO_BUFFER_MODE_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_BUFFER_MODE;
 
@@ -650,6 +652,41 @@ typedef struct OMX_ALG_VIDEO_PARAM_SKIP_FRAME
   OMX_BOOL bEnableSkipFrame;
 }OMX_ALG_VIDEO_PARAM_SKIP_FRAME;
 
+/** Colorymetry enumeration */
+typedef enum OMX_ALG_VIDEO_COLORIMETRYTYPE
+{
+  OMX_ALG_VIDEO_COLORIMETRY_UNSPECIFIED,
+  OMX_ALG_VIDEO_COLORIMETRY_RESERVED_0,
+  OMX_ALG_VIDEO_COLORIMETRY_RESERVED_3,
+  OMX_ALG_VIDEO_COLORIMETRY_SRGB,
+  OMX_ALG_VIDEO_COLORIMETRY_BT_470_NTSC,
+  OMX_ALG_VIDEO_COLORIMETRY_BT_470_PAL,
+  OMX_ALG_VIDEO_COLORIMETRY_BT_601,
+  OMX_ALG_VIDEO_COLORIMETRY_BT_709,
+  OMX_ALG_VIDEO_COLORIMETRY_BT_2020,
+  OMX_ALG_VIDEO_COLORIMETRY_SMPTE_170M,
+  OMX_ALG_VIDEO_COLORIMETRY_SMPTE_240M,
+  OMX_ALG_VIDEO_COLORIMETRY_GENERIC_FILM,
+  OMX_ALG_VIDEO_COLORIMETRY_MAX_ENUM = 0x7FFFFFFF,
+}OMX_ALG_VIDEO_COLORIMETRYTYPE;
+
+/**
+ * Colorimetry parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize            : Size of the structure in bytes
+ *  nVersion         : OMX specification version information
+ *  nPortIndex       : Port that this structure applies to
+ *  eColorimetryMode : Colorimetry mode
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_COLORIMETRY
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_ALG_VIDEO_COLORIMETRYTYPE eColorimetryMode;
+}OMX_ALG_VIDEO_PARAM_COLORIMETRY;
+
 /** Extented enumeration of video formats */
 typedef enum OMX_ALG_COLOR_FORMATTYPE
 {
@@ -682,7 +719,7 @@ typedef struct OMX_ALG_VIDEO_CONFIG_INSERT
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
-} OMX_ALG_VIDEO_CONFIG_INSERT;
+}OMX_ALG_VIDEO_CONFIG_INSERT;
 
 /**
  * Structure for dynamically changing group of picture

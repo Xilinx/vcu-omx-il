@@ -133,3 +133,5 @@ VideoModeType ConvertOMXToMediaVideoMode(OMX_U32 flag);
 SequencePictureModeType ConvertOMXToMediaSequencePictureMode(OMX_ALG_SEQUENCE_PICTURE_MODE mode);
 OMX_ALG_SEQUENCE_PICTURE_MODE ConvertMediaToOMXSequencePictureMode(SequencePictureModeType mode);
 
+OMX_ALG_VIDEO_COLORIMETRYTYPE ConvertMediaToOMXColorimetry(ColorimetryType colorimetry);
+ColorimetryType ConvertOMXToMediaColorimetry(OMX_ALG_VIDEO_COLORIMETRYTYPE colorimetry);

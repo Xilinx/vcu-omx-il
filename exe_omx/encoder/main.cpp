@@ -52,12 +52,12 @@
 #include <atomic>
 #include <unistd.h>
 
-#if __ANDROID_API__
+#if defined(ANDROID) || defined(__ANDROID_API__)
 #define LOG_NDEBUG 0
 #define LOG_TAG "AL_OMX_MAIN_EXE"
 #include <android/log.h>
 #include "HardwareAPI.h"
-#endif
+#endif /* ANDROID */
 
 using namespace std;
 
@@ -315,7 +315,7 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addInt("--lookahead", &settings.lookahead, "<0 || above 2>: activate lookahead mode '(0)'");
   opt.addInt("--pass", &settings.pass, "<0 || 1 || 2>: specify which pass we encode'(0)'");
   opt.addString("--pass-logfile", &settings.twoPassLogFile, "LogFile to transmit dualpass statistics");
-  opt.addFlag("--dummy-sey", &settings.isDummySeiEnabled, "Enable dummy seis on firsts frames");
+  opt.addFlag("--dummy-sei", &settings.isDummySeiEnabled, "Enable dummy seis on firsts frames");
 
   opt.parse(argc, argv);
 

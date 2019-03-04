@@ -126,6 +126,7 @@ private:
   AL_TRoiMngrCtx* roiCtx;
   std::shared_ptr<TwoPassMngr> twoPassMngr;
   AL_TBuffer* currentOutputedStreamForSei;
+  int currentTemporalId;
 
   bool CreateAndAttachStreamMeta(AL_TBuffer& buf);
   void InitEncoders(int numPass);

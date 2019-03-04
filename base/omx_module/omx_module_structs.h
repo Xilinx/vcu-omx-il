@@ -201,6 +201,7 @@ struct Bitrate
   int max; // In kbits
   int cpb; // CPB in milliseconds
   int ird; // InitialRemovalDelay in milliseconds
+  int quality;
   RateControlType mode;
   RateControlOptionType option;
 };

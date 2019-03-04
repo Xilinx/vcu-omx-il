@@ -41,7 +41,7 @@
 #define LOG_LEVEL 4
 #define VERBOSE 0
 
-#if __ANDROID_API__
+#if defined(ANDROID) || defined(__ANDROID_API__)
 #define AllegroLOGV ALOGV
 #define AllegroLOGI ALOGI
 #define AllegroLOGW ALOGW

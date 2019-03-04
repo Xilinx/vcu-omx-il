@@ -238,7 +238,7 @@ AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType mode)
   return QP_MAX_ENUM;
 }
 
-LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncOption option)
+LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncTool option)
 {
   auto loopFilterFlags = AL_OPT_LF | AL_OPT_LF_X_SLICE | AL_OPT_LF_X_TILE;
   auto loopFilterOptions = option & loopFilterFlags;
@@ -261,18 +261,64 @@ LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncOption option)
   return LoopFilterType::LOOP_FILTER_MAX_ENUM;
 }
 
-AL_EChEncOption ConvertModuleToSoftLoopFilter(LoopFilterType loopFilter)
+AL_EChEncTool ConvertModuleToSoftLoopFilter(LoopFilterType loopFilter)
 {
   switch(loopFilter)
   {
-  case LoopFilterType::LOOP_FILTER_ENABLE: return static_cast<AL_EChEncOption>(AL_OPT_LF);
-  case LoopFilterType::LOOP_FILTER_ENABLE_CROSS_SLICE: return static_cast<AL_EChEncOption>(AL_OPT_LF | AL_OPT_LF_X_SLICE);
-  case LoopFilterType::LOOP_FILTER_ENABLE_CROSS_TILE: return static_cast<AL_EChEncOption>(AL_OPT_LF | AL_OPT_LF_X_TILE);
-  case LoopFilterType::LOOP_FILTER_ENABLE_CROSS_TILE_AND_SLICE: return static_cast<AL_EChEncOption>(AL_OPT_LF | AL_OPT_LF_X_TILE | AL_OPT_LF_X_SLICE);
-  case LoopFilterType::LOOP_FILTER_DISABLE: return static_cast<AL_EChEncOption>(0);
-  case LoopFilterType::LOOP_FILTER_MAX_ENUM: return static_cast<AL_EChEncOption>(0);
+  case LoopFilterType::LOOP_FILTER_ENABLE: return static_cast<AL_EChEncTool>(AL_OPT_LF);
+  case LoopFilterType::LOOP_FILTER_ENABLE_CROSS_SLICE: return static_cast<AL_EChEncTool>(AL_OPT_LF | AL_OPT_LF_X_SLICE);
+  case LoopFilterType::LOOP_FILTER_ENABLE_CROSS_TILE: return static_cast<AL_EChEncTool>(AL_OPT_LF | AL_OPT_LF_X_TILE);
+  case LoopFilterType::LOOP_FILTER_ENABLE_CROSS_TILE_AND_SLICE: return static_cast<AL_EChEncTool>(AL_OPT_LF | AL_OPT_LF_X_TILE | AL_OPT_LF_X_SLICE);
+  case LoopFilterType::LOOP_FILTER_DISABLE: return static_cast<AL_EChEncTool>(0);
+  case LoopFilterType::LOOP_FILTER_MAX_ENUM: return static_cast<AL_EChEncTool>(0);
   }
 
-  return static_cast<AL_EChEncOption>(0);
+  return static_cast<AL_EChEncTool>(0);
+}
+
+ColorimetryType ConvertSoftToModuleColorimetry(AL_EColourDescription colourDescription)
+{
+  switch(colourDescription)
+  {
+  case COLOUR_DESC_RESERVED_0: return ColorimetryType::COLORIMETRY_RESERVED_0;
+  case COLOUR_DESC_RESERVED_3: return ColorimetryType::COLORIMETRY_RESERVED_3;
+  case COLOUR_DESC_UNSPECIFIED: return ColorimetryType::COLORIMETRY_UNSPECIFIED;
+  case COLOUR_DESC_SRGB: return ColorimetryType::COLORIMETRY_SRGB;
+  case COLOUR_DESC_BT_470_NTSC: return ColorimetryType::COLORIMETRY_BT_470_NTSC;
+  case COLOUR_DESC_BT_470_PAL: return ColorimetryType::COLORIMETRY_BT_470_PAL;
+  case COLOUR_DESC_BT_601: return ColorimetryType::COLORIMETRY_BT_601;
+  case COLOUR_DESC_BT_709: return ColorimetryType::COLORIMETRY_BT_709;
+  case COLOUR_DESC_BT_2020: return ColorimetryType::COLORIMETRY_BT_2020;
+  case COLOUR_DESC_SMPTE_170M: return ColorimetryType::COLORIMETRY_SMPTE_170M;
+  case COLOUR_DESC_SMPTE_240M: return ColorimetryType::COLORIMETRY_SMPTE_240M;
+  case COLOUR_DESC_GENERIC_FILM: return ColorimetryType::COLORIMETRY_GENERIC_FILM;
+  case COLOUR_DESC_MAX_ENUM: return ColorimetryType::COLORIMETRY_MAX_ENUM;
+  default: return ColorimetryType::COLORIMETRY_MAX_ENUM;
+  }
+
+  return ColorimetryType::COLORIMETRY_MAX_ENUM;
+}
+
+AL_EColourDescription ConvertModuleToSoftColorimetry(ColorimetryType colorimetry)
+{
+  switch(colorimetry)
+  {
+  case ColorimetryType::COLORIMETRY_RESERVED_0: return COLOUR_DESC_RESERVED_0;
+  case ColorimetryType::COLORIMETRY_RESERVED_3: return COLOUR_DESC_RESERVED_3;
+  case ColorimetryType::COLORIMETRY_UNSPECIFIED: return COLOUR_DESC_UNSPECIFIED;
+  case ColorimetryType::COLORIMETRY_SRGB: return COLOUR_DESC_SRGB;
+  case ColorimetryType::COLORIMETRY_BT_470_NTSC: return COLOUR_DESC_BT_470_NTSC;
+  case ColorimetryType::COLORIMETRY_BT_470_PAL: return COLOUR_DESC_BT_470_PAL;
+  case ColorimetryType::COLORIMETRY_BT_601: return COLOUR_DESC_BT_601;
+  case ColorimetryType::COLORIMETRY_BT_709: return COLOUR_DESC_BT_709;
+  case ColorimetryType::COLORIMETRY_BT_2020: return COLOUR_DESC_BT_2020;
+  case ColorimetryType::COLORIMETRY_SMPTE_170M: return COLOUR_DESC_SMPTE_170M;
+  case ColorimetryType::COLORIMETRY_SMPTE_240M: return COLOUR_DESC_SMPTE_240M;
+  case ColorimetryType::COLORIMETRY_GENERIC_FILM: return COLOUR_DESC_GENERIC_FILM;
+  case ColorimetryType::COLORIMETRY_MAX_ENUM: return COLOUR_DESC_MAX_ENUM;
+  default: return COLOUR_DESC_MAX_ENUM;
+  }
+
+  return COLOUR_DESC_MAX_ENUM;
 }
 

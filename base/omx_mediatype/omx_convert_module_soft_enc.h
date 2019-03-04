@@ -52,7 +52,8 @@ GdrType ConvertSoftToModuleGdr(AL_EGdrMode gdr);
 RateControlOptionType ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption option);
 QPControlType ConvertSoftToModuleQPControl(AL_EQpCtrlMode mode);
 ScalingListType ConvertSoftToModuleScalingList(AL_EScalingList scalingList);
-LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncOption option);
+LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncTool option);
+ColorimetryType ConvertSoftToModuleColorimetry(AL_EColourDescription colourDescription);
 
 AL_ERateCtrlMode ConvertModuleToSoftRateControl(RateControlType mode);
 AL_EAspectRatio ConvertModuleToSoftAspectRatio(AspectRatioType aspectRatio);
@@ -61,5 +62,6 @@ AL_EScalingList ConvertModuleToSoftScalingList(ScalingListType scalingList);
 AL_EGdrMode ConvertModuleToSoftGdr(GdrType gdr);
 AL_ERateCtrlOption ConvertModuleToSoftRateControlOption(RateControlOptionType option);
 AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType mode);
-AL_EChEncOption ConvertModuleToSoftLoopFilter(LoopFilterType loopFilter);
+AL_EChEncTool ConvertModuleToSoftLoopFilter(LoopFilterType loopFilter);
+AL_EColourDescription ConvertModuleToSoftColorimetry(ColorimetryType colorimetry);
 

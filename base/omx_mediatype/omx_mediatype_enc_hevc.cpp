@@ -85,6 +85,7 @@ void EncMediatypeHEVC::Reset()
   channel.uSrcBitDepth = 8;
   auto& rateControl = channel.tRCParam;
   rateControl.eRCMode = AL_RC_CBR;
+  rateControl.iInitialQP = 30;
   rateControl.eOptions = AL_RC_OPT_SCN_CHG_RES;
   rateControl.uMaxBitRate = rateControl.uTargetBitRate = 64000;
   rateControl.uFrameRate = 15;
@@ -177,7 +178,7 @@ static BufferCounts CreateBufferCounts(AL_TEncSettings settings)
 static LoopFilterType CreateLoopFilter(AL_TEncSettings settings)
 {
   auto channel = settings.tChParam[0];
-  return ConvertSoftToModuleLoopFilter(channel.eOptions);
+  return ConvertSoftToModuleLoopFilter(channel.eEncTools);
 }
 
 static ProfileLevelType CreateProfileLevel(AL_TEncSettings settings)
@@ -362,6 +363,12 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Get(std::string index, v
     return ERROR_SETTINGS_NONE;
   }
 
+  if(index == "SETTINGS_INDEX_COLORIMETRY")
+  {
+    *(static_cast<ColorimetryType*>(settings)) = CreateColorimetry(this->settings);
+    return ERROR_SETTINGS_NONE;
+  }
+
 
   if(index == "SETTINGS_INDEX_LOOKAHEAD")
   {
@@ -398,8 +405,8 @@ static bool UpdateLoopFilter(AL_TEncSettings& settings, LoopFilterType loopFilte
   if(!CheckLoopFilter(loopFilter))
     return false;
 
-  auto& options = settings.tChParam[0].eOptions;
-  options = static_cast<AL_EChEncOption>(options | ConvertModuleToSoftLoopFilter(loopFilter));
+  auto& options = settings.tChParam[0].eEncTools;
+  options = static_cast<AL_EChEncTool>(options | ConvertModuleToSoftLoopFilter(loopFilter));
 
   return true;
 }
@@ -598,6 +605,15 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto resolution = *(static_cast<Resolution const*>(settings));
 
     if(!UpdateResolution(this->settings, this->stride, this->sliceHeight, this->strideAlignment, resolution))
+      return ERROR_SETTINGS_BAD_PARAMETER;
+    return ERROR_SETTINGS_NONE;
+  }
+
+  if(index == "SETTINGS_INDEX_COLORIMETRY")
+  {
+    auto colorimerty = *(static_cast<ColorimetryType const*>(settings));
+
+    if(!UpdateColorimetry(this->settings, colorimerty))
       return ERROR_SETTINGS_BAD_PARAMETER;
     return ERROR_SETTINGS_NONE;
   }

@@ -64,6 +64,7 @@ bool CheckQuantizationParameter(QPs qps);
 bool CheckSlicesParameter(Slices slices);
 bool CheckFormat(Format format, std::vector<ColorType> colors, std::vector<int> bitdepths);
 bool CheckBufferHandles(BufferHandles bufferHandles);
+bool CheckColorimetry(ColorimetryType colorimetry);
 bool CheckLookAhead(LookAhead la);
 bool CheckTwoPass(TwoPass tp);
 
