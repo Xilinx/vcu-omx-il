@@ -120,6 +120,7 @@ void EncComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandle
       moduleSei.data = sei.configSei.pBuffer + sei.configSei.nOffset;
       moduleSei.payload = sei.configSei.nFilledLen;
       sei.isPrefix ? module->SetDynamic(DYNAMIC_INDEX_INSERT_PREFIX_SEI, &moduleSei) : module->SetDynamic(DYNAMIC_INDEX_INSERT_SUFFIX_SEI, &moduleSei);
+      delete[]moduleSei.data;
     }
   }
   AddEncoderFlags(fill, ToEncModule(*module));

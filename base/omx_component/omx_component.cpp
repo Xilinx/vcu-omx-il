@@ -1200,15 +1200,21 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
   }
   case OMX_ALG_IndexConfigVideoInsertPrefixSEI:
   {
-    OMX_ALG_VIDEO_CONFIG_SEI* seiPrefix = new OMX_ALG_VIDEO_CONFIG_SEI;
-    memcpy(seiPrefix, static_cast<OMX_ALG_VIDEO_CONFIG_SEI*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_SEI));
+    OMX_ALG_VIDEO_CONFIG_SEI* userPrefixSei = static_cast<OMX_ALG_VIDEO_CONFIG_SEI*>(config);
+    OMX_ALG_VIDEO_CONFIG_SEI* seiPrefix = new OMX_ALG_VIDEO_CONFIG_SEI {};
+    memcpy(seiPrefix, userPrefixSei, sizeof(OMX_ALG_VIDEO_CONFIG_SEI));
+    seiPrefix->pBuffer = new OMX_U8[userPrefixSei->nAllocLen] {};
+    memcpy(seiPrefix->pBuffer, userPrefixSei->pBuffer, userPrefixSei->nAllocLen);
     processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoInsertPrefixSEI, shared_ptr<void>(seiPrefix)));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexConfigVideoInsertSuffixSEI:
   {
-    OMX_ALG_VIDEO_CONFIG_SEI* seiSuffix = new OMX_ALG_VIDEO_CONFIG_SEI;
-    memcpy(seiSuffix, static_cast<OMX_ALG_VIDEO_CONFIG_SEI*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_SEI));
+    OMX_ALG_VIDEO_CONFIG_SEI* userSuffixSei = static_cast<OMX_ALG_VIDEO_CONFIG_SEI*>(config);
+    OMX_ALG_VIDEO_CONFIG_SEI* seiSuffix = new OMX_ALG_VIDEO_CONFIG_SEI {};
+    memcpy(seiSuffix, userSuffixSei, sizeof(OMX_ALG_VIDEO_CONFIG_SEI));
+    seiSuffix->pBuffer = new OMX_U8[userSuffixSei->nAllocLen] {};
+    memcpy(seiSuffix->pBuffer, userSuffixSei->pBuffer, userSuffixSei->nAllocLen);
     processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoInsertSuffixSEI, shared_ptr<void>(seiSuffix)));
     return OMX_ErrorNone;
   }
