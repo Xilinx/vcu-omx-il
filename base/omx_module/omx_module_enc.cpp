@@ -86,10 +86,11 @@ static ErrorType ToModuleError(int errorCode)
   }
 }
 
-EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, shared_ptr<EncDevice> device, shared_ptr<AL_TAllocator> allocator) :
+EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, shared_ptr<EncDevice> device, shared_ptr<AL_TAllocator> allocator, shared_ptr<CopyInterface> copycat) :
   media(media),
   device(device),
-  allocator(allocator)
+  allocator(allocator),
+  copycat(copycat)
 {
   assert(this->media);
   assert(this->device);
@@ -484,7 +485,8 @@ static AL_TMetaData* CreateSourceMeta(shared_ptr<MediatypeInterface> media)
   auto picFormat = AL_EncGetSrcPicFormat(ConvertModuleToSoftChroma(format.color), static_cast<uint8_t>(format.bitdepth), AL_FB_RASTER, false);
   auto fourCC = AL_EncGetSrcFourCC(picFormat);
   Resolution resolution;
-  media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
+  auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
+  assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
   auto stride = resolution.stride.widthStride;
   auto sliceHeight = resolution.stride.heightStride;
   AL_TPlane planeY = { 0, stride };
@@ -572,7 +574,7 @@ bool EncModule::Empty(BufferHandleInterface* handle)
   if(shouldBeCopied.Exist(input))
   {
     auto buffer = shouldBeCopied.Get(input);
-    copy(buffer, buffer + input->zSize, AL_Buffer_GetData(input));
+    copycat->copy(AL_Buffer_GetData(input), buffer, input->zSize);
   }
 
   if(currentEnc.roiBuffers.empty())
@@ -770,7 +772,7 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
                                        if(shouldBeCopied.Exist(stream))
                                        {
                                          auto buffer = shouldBeCopied.Get(stream);
-                                         copy(AL_Buffer_GetData(stream), AL_Buffer_GetData(stream) + size, buffer);
+                                         copycat->copy(buffer, AL_Buffer_GetData(stream), size);
                                        }
                                        return size;
                                      };
@@ -952,9 +954,14 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
   if(index == "DYNAMIC_INDEX_CLOCK")
   {
     auto clock = static_cast<Clock const*>(param);
+
+    if(!AL_Encoder_SetFrameRate(encoder, clock->framerate, clock->clockratio))
+    {
+      assert(0);
+      return ERROR_BAD_PARAMETER;
+    }
     auto ret = media->Set(SETTINGS_INDEX_CLOCK, clock);
     assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
-    AL_Encoder_SetFrameRate(encoder, clock->framerate, clock->clockratio);
     return SUCCESS;
   }
 
@@ -1007,13 +1014,19 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
   if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_EMPTY")
   {
     assert(roiCtx);
-    auto bufferToEmpty = static_cast<char const*>(param);
-    auto chan = media->settings.tChParam[0];
-    AL_TDimension tDim = { chan.uWidth, chan.uHeight };
-    auto size = AL_GetAllocSizeEP2(tDim, chan.uMaxCuSize);
+    auto bufferToEmpty = static_cast<unsigned char const*>(param);
+    Resolution resolution {};
+    auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
+    assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
+    AL_TDimension tDim {
+      resolution.width, resolution.height
+    };
+    ProfileLevelType profileLevel {};
+    ret = media->Get(SETTINGS_INDEX_PROFILE_LEVEL, &profileLevel);
+    auto size = AL_GetAllocSizeEP2(tDim, static_cast<AL_ECodec>(AL_GET_PROFILE_CODEC(media->settings.tChParam[0].eProfile)));
     auto roiBuffer = AL_Buffer_Create_And_Allocate(allocator.get(), size, AL_Buffer_Destroy);
     AL_Buffer_Ref(roiBuffer);
-    copy(bufferToEmpty, bufferToEmpty + size, AL_Buffer_GetData(roiBuffer));
+    copycat->copy(AL_Buffer_GetData(roiBuffer), bufferToEmpty, size);
     encoders.front().roiBuffers.push_back(roiBuffer);
     return SUCCESS;
   }
@@ -1061,6 +1074,22 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
     return SUCCESS;
   }
 
+  if(index == "DYNAMIC_INDEX_RESOLUTION")
+  {
+    auto resolution = static_cast<Resolution const*>(param);
+    AL_TDimension dimension {
+      resolution->width, resolution->height
+    };
+
+    if(!AL_Encoder_SetInputResolution(encoder, dimension))
+    {
+      assert(0);
+      return ERROR_BAD_PARAMETER;
+    }
+    auto ret = media->Set(SETTINGS_INDEX_RESOLUTION, &resolution);
+    assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
+    return SUCCESS;
+  }
   return ERROR_NOT_IMPLEMENTED;
 }
 
@@ -1096,10 +1125,13 @@ ErrorType EncModule::GetDynamic(std::string index, void* param)
 
   if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_SIZE")
   {
-    Resolution mediaResolution;
-    media->Get(SETTINGS_INDEX_RESOLUTION, &mediaResolution);
-    AL_TDimension tDim = { mediaResolution.width, mediaResolution.height };
-    *static_cast<int*>(param) = AL_GetAllocSizeEP2(tDim, media->settings.tChParam[0].uMaxCuSize);
+    Resolution resolution {};
+    auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
+    assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
+    AL_TDimension tDim {
+      resolution.width, resolution.height
+    };
+    *static_cast<int*>(param) = AL_GetAllocSizeEP2(tDim, static_cast<AL_ECodec>(AL_GET_PROFILE_CODEC(media->settings.tChParam[0].eProfile)));
     return SUCCESS;
   }
 

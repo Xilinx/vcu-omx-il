@@ -169,7 +169,7 @@ void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
 
 void DecComponent::EventCallBack(Callbacks::Event type, void* data)
 {
-  assert(type <= Callbacks::Event::MAX);
+  assert(type < Callbacks::Event::MAX);
   switch(type)
   {
   case Callbacks::Event::RESOLUTION_CHANGE:
@@ -182,28 +182,26 @@ void DecComponent::EventCallBack(Callbacks::Event type, void* data)
       callbacks.EventHandler(component, app, OMX_EventPortSettingsChanged, 1, 0, nullptr);
     break;
   }
-  case Callbacks::Event::SEI_PARSED:
+  case Callbacks::Event::SEI_PREFIX_PARSED:
   {
     LOGI("%s\n", ToStringCallbackEvent.at(type));
 
     auto sei = static_cast<Sei*>(data);
-    callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_ALG_EventSEIParsed), sei->type, sei->payload, sei->data);
+    callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_ALG_EventSEIPrefixParsed), sei->type, sei->payload, sei->data);
+    break;
+  }
+  case Callbacks::Event::SEI_SUFFIX_PARSED:
+  {
+    LOGI("%s\n", ToStringCallbackEvent.at(type));
+
+    auto sei = static_cast<Sei*>(data);
+    callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_ALG_EventSEISuffixParsed), sei->type, sei->payload, sei->data);
     break;
   }
   default:
     Component::EventCallBack(type, data);
     break;
   }
-}
-
-OMX_ERRORTYPE DecComponent::GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_INDEXTYPE* index)
-{
-  OMX_TRY();
-  OMXChecker::CheckNotNull(name);
-  OMXChecker::CheckNotNull(index);
-  OMXChecker::CheckStateOperation(AL_GetExtensionIndex, state);
-  return OMX_ErrorNoMore;
-  OMX_CATCH();
 }
 
 static OMX_BUFFERHEADERTYPE* AllocateHeader(OMX_PTR app, int size, OMX_U8* buffer, bool isBufferAllocatedByModule, int index)

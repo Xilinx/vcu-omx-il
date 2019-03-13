@@ -40,6 +40,12 @@
 #include "base/omx_component/omx_expertise_hevc.h"
 #include "base/omx_mediatype/omx_mediatype_dec_hevc.h"
 
+#include "base/omx_module/omx_cpp_copy.h"
+
+#if AL_ENABLE_DMA_COPY
+#include "base/omx_module/omx_dma_copy.h"
+#endif
+
 #if AL_ENABLE_SYNCIP_DEC
 #include "base/omx_module/omx_sync_ip_dec.h"
 #else
@@ -70,6 +76,15 @@ static SyncIpInterface* createSyncIp(shared_ptr<MediatypeInterface> media, share
 #else
   (void)media, (void)allocator;
   return new NullSyncIp {};
+#endif
+}
+
+static CopyInterface* createCopycat()
+{
+#if AL_ENABLE_DMA_COPY
+  return new DMACopy {};
+#else
+  return new CPPCopy {};
 #endif
 }
 
@@ -116,9 +131,12 @@ static DecComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
       AL_Allocator_Destroy(allocator);
     }
   };
+  shared_ptr<CopyInterface> copycat {
+    createCopycat()
+  };
   unique_ptr<DecModule> module {
     new DecModule {
-      media, device, allocator
+      media, device, allocator, copycat
     }
   };
   unique_ptr<ExpertiseAVC> expertise {
@@ -148,9 +166,12 @@ static DecComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
       AL_Allocator_Destroy(allocator);
     }
   };
+  shared_ptr<CopyInterface> copycat {
+    createCopycat()
+  };
   unique_ptr<DecModule> module {
     new DecModule {
-      media, device, allocator
+      media, device, allocator, copycat
     }
   };
   unique_ptr<ExpertiseHEVC> expertise {

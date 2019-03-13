@@ -57,12 +57,18 @@ extern "C" {
 typedef enum OMX_ALG_EVENTTYPE
 {
   OMX_ALG_EventVendorStartUnused = OMX_EventVendorStartUnused,
-  /** OMX_ALG_EventSEIParsed should be called when a decoder parsed a SEI
+  /** OMX_ALG_EventSEIPrefixParsed should be called when a decoder parsed a prefix SEI
    * nData1: payload type
    * nData2: payload size
    * pEventData: payload buffer (OMX_U8*)
    */
-  OMX_ALG_EventSEIParsed,
+  OMX_ALG_EventSEIPrefixParsed,
+ /** OMX_ALG_EventSEISuffixParsed should be called when a decoder parsed a suffix SEI
+   * nData1: payload type
+   * nData2: payload size
+   * pEventData: payload buffer (OMX_U8*)
+   */
+  OMX_ALG_EventSEISuffixParsed,
 
   OMX_ALG_EventMax = OMX_EventMax,
 }OMX_ALG_EVENTTYPE;

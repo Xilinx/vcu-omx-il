@@ -40,6 +40,7 @@
 #include "omx_device_dec_interface.h"
 #include "omx_module_enums.h"
 #include "omx_module_codec_structs.h"
+#include "omx_copy_interface.h"
 
 #include <vector>
 #include <queue>
@@ -57,7 +58,7 @@ extern "C"
 
 struct DecModule final : public ModuleInterface
 {
-  DecModule(std::shared_ptr<DecMediatypeInterface> media, std::shared_ptr<DecDevice> device, std::shared_ptr<AL_TAllocator> allocator);
+  DecModule(std::shared_ptr<DecMediatypeInterface> media, std::shared_ptr<DecDevice> device, std::shared_ptr<AL_TAllocator> allocator, std::shared_ptr<CopyInterface> copycat);
   ~DecModule() override;
 
   void Free(void* buffer) override;
@@ -82,6 +83,7 @@ private:
   std::shared_ptr<DecMediatypeInterface> const media;
   std::shared_ptr<DecDevice> device;
   std::shared_ptr<AL_TAllocator> allocator;
+  std::shared_ptr<CopyInterface> copycat;
 
   DisplayPictureInfo currentDisplayPictureInfo;
 
@@ -126,13 +128,14 @@ private:
   };
   void ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSettings const& settings, AL_TCropInfo const& crop);
 
-  static void RedirectionParsedSei(int payloadType, uint8_t* payload, int payloadSize, void* userParam)
+  static void RedirectionParsedSei(bool isPrefix, int payloadType, uint8_t* payload, int payloadSize, void* userParam)
   {
     auto pThis = static_cast<DecModule*>(userParam);
-    pThis->ParsedSei(payloadType, payload, payloadSize);
+    isPrefix ? pThis->ParsedPrefixSei(payloadType, payload, payloadSize) : pThis->ParsedSuffixSei(payloadType, payload, payloadSize);
   }
 
-  void ParsedSei(int type, uint8_t* payload, int size);
+  void ParsedPrefixSei(int type, uint8_t* payload, int size);
+  void ParsedSuffixSei(int type, uint8_t* payload, int size);
 
   static void RedirectionInputBufferDestroy(AL_TBuffer* input)
   {

@@ -636,19 +636,30 @@ OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENT
   return OMX_ErrorNone;
 }
 
+static bool isEventPrefixSei(OMX_EVENTTYPE eEvent)
+{
+  return eEvent == static_cast<OMX_EVENTTYPE>(OMX_ALG_EventSEIPrefixParsed);
+}
+
+static bool isEventSuffixSei(OMX_EVENTTYPE eEvent)
+{
+  return eEvent == static_cast<OMX_EVENTTYPE>(OMX_ALG_EventSEISuffixParsed);
+}
+
 OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent, OMX_U32 Data1, OMX_U32 Data2, OMX_PTR pEventData)
 {
-  if(eEvent == static_cast<OMX_EVENTTYPE>(OMX_ALG_EventSEIParsed))
+  if(isEventPrefixSei(eEvent) || isEventSuffixSei(eEvent))
   {
     if(!print_sei)
       return OMX_ErrorNone;
-    fprintf(stderr, "%s\n", __func__);
-    fprintf(stderr, "sei-type:%i\nsei-size:%i\n", Data1, Data2);
+    fprintf(stdout, "%s\n", __func__);
+    fprintf(stdout, "%s\n", isEventPrefixSei(eEvent) ? "sei-prefix" : "sei-suffix");
+    fprintf(stdout, "sei-type:%i\nsei-size:%i\n", Data1, Data2);
 
     for(auto i = 0; i < static_cast<int>(Data2); i++)
-      fprintf(stderr, "0x%.2X ", static_cast<OMX_U8*>(pEventData)[i]);
+      fprintf(stdout, "0x%.2X ", static_cast<OMX_U8*>(pEventData)[i]);
 
-    fprintf(stderr, "\n");
+    fprintf(stdout, "\n");
     return OMX_ErrorNone;
   }
   auto app = static_cast<Application*>(pAppData);

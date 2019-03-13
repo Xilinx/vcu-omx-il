@@ -1218,7 +1218,13 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
     processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoInsertSuffixSEI, shared_ptr<void>(seiSuffix)));
     return OMX_ErrorNone;
   }
-
+  case OMX_ALG_IndexConfigVideoNotifyResolutionChange:
+  {
+    OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE* drc = new OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE;
+    memcpy(drc, static_cast<OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE));
+    processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoNotifyResolutionChange, shared_ptr<void>(drc)));
+    return OMX_ErrorNone;
+  }
   default:
     LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
     return OMX_ErrorUnsupportedIndex;
@@ -1768,6 +1774,17 @@ void Component::TreatDynamicCommand(Task* task)
       *static_cast<OMX_ALG_VIDEO_CONFIG_SEI*>(opt), false
     };
     tmpSeis.push_back(suffix);
+    return;
+  }
+  case OMX_ALG_IndexConfigVideoNotifyResolutionChange:
+  {
+    Resolution resolution {};
+    auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
+    assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
+    auto drc = static_cast<OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE*>(opt);
+    resolution.width = drc->nWidth;
+    resolution.height = drc->nHeight;
+    module->SetDynamic(DYNAMIC_INDEX_RESOLUTION, (void*)(&resolution));
     return;
   }
 

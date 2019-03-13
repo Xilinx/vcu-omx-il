@@ -54,10 +54,11 @@ extern "C"
 
 using namespace std;
 
-DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, shared_ptr<DecDevice> device, shared_ptr<AL_TAllocator> allocator) :
+DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, shared_ptr<DecDevice> device, shared_ptr<AL_TAllocator> allocator, shared_ptr<CopyInterface> copycat) :
   media(media),
   device(device),
-  allocator(allocator)
+  allocator(allocator),
+  copycat(copycat)
 {
   assert(this->media);
   assert(this->device);
@@ -126,7 +127,7 @@ void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
 
     fprintf(stderr, "/!\\ %s (%d)\n", ToStringDecodeError(error).c_str(), error);
 
-    if(error & AL_ERROR)
+    if(AL_IS_ERROR_CODE(error))
       callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(error));
 
     return;
@@ -151,8 +152,8 @@ void DecModule::CopyIfRequired(AL_TBuffer* frameToDisplay, int size)
 {
   if(!shouldBeCopied.Exist(frameToDisplay))
     return;
-  auto buffer = shouldBeCopied.Get(frameToDisplay);
-  copy(AL_Buffer_GetData(frameToDisplay), AL_Buffer_GetData(frameToDisplay) + size, buffer);
+  auto buffer = (unsigned char*)(shouldBeCopied.Get(frameToDisplay));
+  copycat->copy(buffer, AL_Buffer_GetData(frameToDisplay), size);
 }
 
 void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
@@ -175,7 +176,7 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
   auto size = bufferSizes.output;
   CopyIfRequired(frameToDisplay, size);
   currentDisplayPictureInfo.type = info->ePicStruct;
-  currentDisplayPictureInfo.concealed = AL_Decoder_GetFrameError(decoder, frameToDisplay) == AL_WARN_CONCEAL_DETECT;
+  currentDisplayPictureInfo.concealed = (AL_Decoder_GetFrameError(decoder, frameToDisplay) == AL_WARN_CONCEAL_DETECT);
   auto rhandleOut = handles.Pop(frameToDisplay);
   rhandleOut->offset = 0;
   rhandleOut->payload = size;
@@ -205,12 +206,20 @@ void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSett
   callbacks.event(Callbacks::Event::RESOLUTION_CHANGE, nullptr);
 }
 
-void DecModule::ParsedSei(int type, uint8_t* payload, int size)
+void DecModule::ParsedPrefixSei(int type, uint8_t* payload, int size)
 {
   Sei sei {
     type, payload, size
   };
-  callbacks.event(Callbacks::Event::SEI_PARSED, &sei);
+  callbacks.event(Callbacks::Event::SEI_PREFIX_PARSED, &sei);
+}
+
+void DecModule::ParsedSuffixSei(int type, uint8_t* payload, int size)
+{
+  Sei sei {
+    type, payload, size
+  };
+  callbacks.event(Callbacks::Event::SEI_SUFFIX_PARSED, &sei);
 }
 
 ErrorType DecModule::CreateDecoder(bool shouldPrealloc)

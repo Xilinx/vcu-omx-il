@@ -71,12 +71,6 @@ struct BufferContiguities
   bool output;
 };
 
-struct BufferDefinitions
-{
-  int bytesAlignment;
-  bool contiguous;
-};
-
 struct Stride
 {
   int widthStride;

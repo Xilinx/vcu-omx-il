@@ -38,6 +38,7 @@
 #pragma once
 #include "omx_module_interface.h"
 #include "omx_module_structs.h"
+#include "omx_copy_interface.h"
 
 #include "omx_device_enc_interface.h"
 #include "omx_module_codec_structs.h"
@@ -94,7 +95,7 @@ struct GenericEncoder
 
 struct EncModule final : public ModuleInterface
 {
-  EncModule(std::shared_ptr<EncMediatypeInterface> media, std::shared_ptr<EncDevice> device, std::shared_ptr<AL_TAllocator> allocator);
+  EncModule(std::shared_ptr<EncMediatypeInterface> media, std::shared_ptr<EncDevice> device, std::shared_ptr<AL_TAllocator> allocator, std::shared_ptr<CopyInterface> copycat);
   ~EncModule() override;
 
   bool SetCallbacks(Callbacks callbacks) override;
@@ -120,6 +121,7 @@ private:
   std::shared_ptr<EncMediatypeInterface> const media;
   std::shared_ptr<EncDevice> const device;
   std::shared_ptr<AL_TAllocator> const allocator;
+  std::shared_ptr<CopyInterface> const copycat;
   std::vector<GenericEncoder> encoders;
   Callbacks callbacks;
 

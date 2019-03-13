@@ -161,16 +161,6 @@ void EncComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
   ReturnFilledBuffer(header, offset, payload);
 }
 
-OMX_ERRORTYPE EncComponent::GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_INDEXTYPE* index)
-{
-  OMX_TRY();
-  OMXChecker::CheckNotNull(name);
-  OMXChecker::CheckNotNull(index);
-  OMXChecker::CheckStateOperation(AL_GetExtensionIndex, state);
-  return OMX_ErrorNoMore;
-  OMX_CATCH();
-}
-
 static OMX_BUFFERHEADERTYPE* AllocateHeader(OMX_PTR app, int size, OMX_U8* buffer, bool isBufferAllocatedByModule, int index)
 {
   auto header = new OMX_BUFFERHEADERTYPE;

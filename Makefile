@@ -38,6 +38,7 @@ ENABLE_MCU?=1
 ENABLE_64BIT?=1
 ENABLE_SYNCIP_ENC?=0
 ENABLE_SYNCIP_DEC?=0
+ENABLE_DMA_COPY?=0
 
 -include quirks.mk
 CROSS_COMPILE?=
@@ -62,6 +63,10 @@ endif
 ifeq ($(ENABLE_SYNCIP_DEC),1)
   CFLAGS+=-DAL_ENABLE_SYNCIP_DEC
   LDFLAGS+=-lrt
+endif
+
+ifeq ($(ENABLE_DMA_COPY), 1)
+  CFLAGS+=-DAL_ENABLE_DMA_COPY
 endif
 
 TARGET?=$(shell $(CC) -dumpmachine)
