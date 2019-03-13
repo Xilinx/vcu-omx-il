@@ -44,55 +44,6 @@
 #include "omx_module_structs.h"
 #include "omx_buffer_handle_interface.h"
 
-enum ErrorType
-{
-  SUCCESS,
-  ERROR_BAD_PARAMETER,
-  ERROR_NOT_IMPLEMENTED,
-  ERROR_BAD_STATE,
-  ERROR_UNDEFINED,
-  /* channel creation error */
-  ERROR_CHAN_CREATION_NO_CHANNEL_AVAILABLE,
-  ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE,
-  ERROR_CHAN_CREATION_RESOURCE_FRAGMENTED,
-  ERROR_NO_MEMORY,
-  ERROR_MAX,
-};
-
-static std::map<ErrorType, const char*> ToStringError
-{
-  {
-    SUCCESS, "SUCCESS"
-  },
-  {
-    ERROR_BAD_PARAMETER, "ERROR_BAD_PARAMETER"
-  },
-  {
-    ERROR_NOT_IMPLEMENTED, "ERROR_NOT_IMPLEMENTED"
-  },
-  {
-    ERROR_BAD_STATE, "ERROR_BAD_STATE"
-  },
-  {
-    ERROR_UNDEFINED, "ERROR_UNDEFINED"
-  },
-  {
-    ERROR_CHAN_CREATION_NO_CHANNEL_AVAILABLE, "ERROR_CHAN_CREATION_NO_CHANNEL_AVAILABLE"
-  },
-  {
-    ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE, "ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE"
-  },
-  {
-    ERROR_CHAN_CREATION_RESOURCE_FRAGMENTED, "ERROR_CHAN_CREATION_RESOURCE_FRAGMENTED"
-  },
-  {
-    ERROR_NO_MEMORY, "ERROR_NO_MEMORY"
-  },
-  {
-    ERROR_MAX, "ERROR_MAX"
-  },
-};
-
 #define DYNAMIC_INDEX_GOP "DYNAMIC_INDEX_GOP"
 #define DYNAMIC_INDEX_INSERT_IDR "DYNAMIC_INDEX_INSERT_IDR"
 #define DYNAMIC_INDEX_CLOCK "DYNAMIC_INDEX_CLOCK"
@@ -109,6 +60,7 @@ static std::map<ErrorType, const char*> ToStringError
 #define DYNAMIC_INDEX_INSERT_PREFIX_SEI "DYNAMIC_INDEX_INSERT_PREFIX_SEI"
 #define DYNAMIC_INDEX_INSERT_SUFFIX_SEI "DYNAMIC_INDEX_INSERT_SUFFIX_SEI"
 #define DYNAMIC_INDEX_CURRENT_DISPLAY_PICTURE_INFO "DYNAMIC_INDEX_CURRENT_DISPLAY_PICTURE_INFO"
+#define DYNAMIC_INDEX_INSERT_QUANTIZATION_PARAMETER_BUFFER "DYNAMIC_INDEX_INSERT_QUANTIZATION_PARAMETER_BUFFER"
 
 struct Callbacks
 {
@@ -149,6 +101,22 @@ static std::map<Callbacks::Event, const char*> ToStringCallbackEvent
 
 struct ModuleInterface
 {
+  enum ErrorType
+  {
+    SUCCESS,
+    BAD_INDEX,
+    BAD_PARAMETER,
+    BAD_STATE,
+    NOT_IMPLEMENTED,
+    UNDEFINED,
+    /* channel creation error */
+    CHANNEL_CREATION_NO_CHANNEL_AVAILABLE,
+    CHANNEL_CREATION_RESOURCE_UNAVAILABLE,
+    CHANNEL_CREATION_RESOURCE_FRAGMENTED,
+    NO_MEMORY,
+    MAX,
+  };
+
   virtual ~ModuleInterface() = 0;
 
   virtual void Free(void* buffer) = 0;
@@ -167,3 +135,39 @@ struct ModuleInterface
   virtual ErrorType GetDynamic(std::string index, void* param) = 0;
 };
 
+static std::map<ModuleInterface::ErrorType, const char*> ToStringError
+{
+  {
+    ModuleInterface::SUCCESS, "SUCCESS"
+  },
+  {
+    ModuleInterface::BAD_INDEX, "BAD_INDEX"
+  },
+  {
+    ModuleInterface::BAD_PARAMETER, "BAD_PARAMETER"
+  },
+  {
+    ModuleInterface::NOT_IMPLEMENTED, "NOT_IMPLEMENTED"
+  },
+  {
+    ModuleInterface::BAD_STATE, "BAD_STATE"
+  },
+  {
+    ModuleInterface::UNDEFINED, "UNDEFINED"
+  },
+  {
+    ModuleInterface::CHANNEL_CREATION_NO_CHANNEL_AVAILABLE, "CHANNEL_CREATION_NO_CHANNEL_AVAILABLE"
+  },
+  {
+    ModuleInterface::CHANNEL_CREATION_RESOURCE_UNAVAILABLE, "CHANNEL_CREATION_RESOURCE_UNAVAILABLE"
+  },
+  {
+    ModuleInterface::CHANNEL_CREATION_RESOURCE_FRAGMENTED, "CHANNEL_CREATION_RESOURCE_FRAGMENTED"
+  },
+  {
+    ModuleInterface::NO_MEMORY, "NO_MEMORY"
+  },
+  {
+    ModuleInterface::MAX, "MAX"
+  },
+};

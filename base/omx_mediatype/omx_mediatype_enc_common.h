@@ -88,8 +88,8 @@ bool UpdateIsEnabledSubframe(AL_TEncSettings& settings, bool isEnabledSubframe);
 Resolution CreateResolution(AL_TEncSettings settings, int widthStride, int heightStride);
 bool UpdateResolution(AL_TEncSettings& settings, int& stride, int& sliceHeight, Stride strideAlignment, Resolution resolution);
 
-ColorimetryType CreateColorimetry(AL_TEncSettings settings);
-bool UpdateColorimetry(AL_TEncSettings& settings, ColorimetryType colorimetry);
+ColorPrimariesType CreateColorPrimaries(AL_TEncSettings settings);
+bool UpdateColorPrimaries(AL_TEncSettings& settings, ColorPrimariesType colorPrimaries);
 
 LookAhead CreateLookAhead(AL_TEncSettings settings);
 bool UpdateLookAhead(AL_TEncSettings& settings, LookAhead la);
@@ -97,5 +97,5 @@ bool UpdateLookAhead(AL_TEncSettings& settings, LookAhead la);
 TwoPass CreateTwoPass(AL_TEncSettings settings, std::string sTwoPassLogFile);
 bool UpdateTwoPass(AL_TEncSettings& settings, std::string& sTwoPassLogFile, TwoPass tp);
 
-ColorimetryType CreateColorimetry(AL_TEncSettings settings);
-bool UpdateColorimetry(AL_TEncSettings& settings, ColorimetryType colorimetry);
+ColorPrimariesType CreateColorPrimaries(AL_TEncSettings settings);
+bool UpdateColorPrimaries(AL_TEncSettings& settings, ColorPrimariesType colorPrimaries);

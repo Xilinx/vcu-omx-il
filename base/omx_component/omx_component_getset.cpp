@@ -40,18 +40,6 @@
 
 using namespace std;
 
-#define OMX_CHECK_MEDIA_GET(ret) \
-  if(ret == MediatypeInterface::ERROR_SETTINGS_BAD_INDEX) \
-    throw OMX_ErrorUnsupportedIndex; \
-  assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
-
-#define OMX_CHECK_MEDIA_SET(ret) \
-  if(ret == MediatypeInterface::ERROR_SETTINGS_BAD_INDEX) \
-    return OMX_ErrorUnsupportedIndex; \
-  if(ret == MediatypeInterface::ERROR_SETTINGS_BAD_PARAMETER) \
-    return OMX_ErrorBadParameter; \
-  assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
-
 // Common
 
 OMX_ERRORTYPE ConstructPortSupplier(OMX_PARAM_BUFFERSUPPLIERTYPE& s, Port const& port)
@@ -323,7 +311,7 @@ OMX_ERRORTYPE ConstructPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE& def, Port& p
   ret = media->Get(SETTINGS_INDEX_BITRATE, &bitrate);
 
   // Get Bitrate is encoder only
-  if(ret == MediatypeInterface::ERROR_SETTINGS_BAD_INDEX)
+  if(ret == MediatypeInterface::BAD_INDEX)
     bitrate.target = 0; // 0 by default for Decoder
   auto mime = IsInputPort(def.nPortIndex) ? mimes.input : mimes.output;
   v.pNativeRender = 0; // XXX
@@ -1127,9 +1115,9 @@ OMX_ERRORTYPE SetTargetBitrate(OMX_U32 bitrate, shared_ptr<MediatypeInterface> m
   Bitrate curBitrate;
   auto ret = media->Get(SETTINGS_INDEX_BITRATE, &curBitrate);
 
-  if(ret == MediatypeInterface::ERROR_SETTINGS_BAD_INDEX)
+  if(ret == MediatypeInterface::BAD_INDEX)
     return OMX_ErrorUnsupportedIndex;
-  assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
+  assert(ret == MediatypeInterface::SUCCESS);
   curBitrate.target = bitrate;
 
   if(curBitrate.max < curBitrate.target)
@@ -1139,38 +1127,38 @@ OMX_ERRORTYPE SetTargetBitrate(OMX_U32 bitrate, shared_ptr<MediatypeInterface> m
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE ConstructVideoColorimetry(OMX_ALG_VIDEO_PARAM_COLORIMETRY& colorimetry, Port const& port, shared_ptr<MediatypeInterface> media)
+OMX_ERRORTYPE ConstructVideoColorPrimaries(OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES& colorPrimaries, Port const& port, shared_ptr<MediatypeInterface> media)
 {
-  OMXChecker::SetHeaderVersion(colorimetry);
-  colorimetry.nPortIndex = port.index;
-  ColorimetryType colorimetryType {};
-  auto ret = media->Get(SETTINGS_INDEX_COLORIMETRY, &colorimetryType);
+  OMXChecker::SetHeaderVersion(colorPrimaries);
+  colorPrimaries.nPortIndex = port.index;
+  ColorPrimariesType colorPrimariesType {};
+  auto ret = media->Get(SETTINGS_INDEX_COLOR_PRIMARIES, &colorPrimariesType);
   OMX_CHECK_MEDIA_GET(ret);
-  colorimetry.eColorimetryMode = ConvertMediaToOMXColorimetry(colorimetryType);
+  colorPrimaries.eColorPrimaries = ConvertMediaToOMXColorPrimaries(colorPrimariesType);
   return OMX_ErrorNone;
 }
 
-static OMX_ERRORTYPE SetColorimetry(OMX_ALG_VIDEO_COLORIMETRYTYPE colorimetry, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetColorPrimaries(OMX_ALG_VIDEO_COLOR_PRIMARIESTYPE colorPrimaries, shared_ptr<MediatypeInterface> media)
 {
-  ColorimetryType colorimetryType {};
-  auto ret = media->Get(SETTINGS_INDEX_COLORIMETRY, &colorimetryType);
+  ColorPrimariesType colorPrimariesType {};
+  auto ret = media->Get(SETTINGS_INDEX_COLOR_PRIMARIES, &colorPrimariesType);
   OMX_CHECK_MEDIA_GET(ret);
-  colorimetryType = ConvertOMXToMediaColorimetry(colorimetry);
-  ret = media->Set(SETTINGS_INDEX_COLORIMETRY, &colorimetryType);
+  colorPrimariesType = ConvertOMXToMediaColorPrimaries(colorPrimaries);
+  ret = media->Set(SETTINGS_INDEX_COLOR_PRIMARIES, &colorPrimariesType);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetVideoColorimetry(OMX_ALG_VIDEO_PARAM_COLORIMETRY const& colorimetry, Port const& port, shared_ptr<MediatypeInterface> media)
+OMX_ERRORTYPE SetVideoColorPrimaries(OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES const& colorPrimaries, Port const& port, shared_ptr<MediatypeInterface> media)
 {
-  OMX_ALG_VIDEO_PARAM_COLORIMETRY rollback;
-  ConstructVideoColorimetry(rollback, port, media);
+  OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES rollback;
+  ConstructVideoColorPrimaries(rollback, port, media);
 
-  auto ret = SetColorimetry(colorimetry.eColorimetryMode, media);
+  auto ret = SetColorPrimaries(colorPrimaries.eColorPrimaries, media);
 
   if(ret != OMX_ErrorNone)
   {
-    SetVideoColorimetry(rollback, port, media);
+    SetVideoColorPrimaries(rollback, port, media);
     throw ret;
   }
   return OMX_ErrorNone;

@@ -191,9 +191,9 @@ bool CheckBufferHandles(BufferHandles bufferHandles)
   return true;
 }
 
-bool CheckColorimetry(ColorimetryType colorimetry)
+bool CheckColorPrimaries(ColorPrimariesType colorPrimaries)
 {
-  if(colorimetry == ColorimetryType::COLORIMETRY_MAX_ENUM)
+  if(colorPrimaries == ColorPrimariesType::COLOR_PRIMARIES_MAX_ENUM)
     return false;
 
   return true;

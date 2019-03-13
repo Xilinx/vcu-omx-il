@@ -125,7 +125,7 @@ void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
   auto payload = ((OMXBufferHandle*)filled)->payload;
   DisplayPictureInfo displayPictureInfo {};
   auto err = module->GetDynamic(DYNAMIC_INDEX_CURRENT_DISPLAY_PICTURE_INFO, &displayPictureInfo);
-  assert(err == SUCCESS);
+  assert(err == ModuleInterface::SUCCESS);
 
   if(displayPictureInfo.concealed)
     header->nFlags |= OMX_BUFFERFLAG_DATACORRUPT;

@@ -46,14 +46,14 @@ void DummyMediatype::Reset()
 {
 }
 
-MediatypeInterface::ErrorSettingsType DummyMediatype::Get(string, void*) const
+MediatypeInterface::ErrorType DummyMediatype::Get(string, void*) const
 {
-  return ErrorSettingsType::ERROR_SETTINGS_NONE;
+  return ErrorType::SUCCESS;
 }
 
-MediatypeInterface::ErrorSettingsType DummyMediatype::Set(string, void const*)
+MediatypeInterface::ErrorType DummyMediatype::Set(string, void const*)
 {
-  return ErrorSettingsType::ERROR_SETTINGS_NONE;
+  return ErrorType::SUCCESS;
 }
 
 bool DummyMediatype::Check()

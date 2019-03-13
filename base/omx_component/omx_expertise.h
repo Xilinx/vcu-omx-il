@@ -43,16 +43,16 @@
 #include "omx_convert_omx_media.h"
 
 #define OMX_CHECK_MEDIA_GET(ret) \
-  if(ret == MediatypeInterface::ERROR_SETTINGS_BAD_INDEX) \
+  if(ret == MediatypeInterface::BAD_INDEX) \
     throw OMX_ErrorUnsupportedIndex; \
-  assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
+  assert(ret == MediatypeInterface::SUCCESS);
 
 #define OMX_CHECK_MEDIA_SET(ret) \
-  if(ret == MediatypeInterface::ERROR_SETTINGS_BAD_INDEX) \
+  if(ret == MediatypeInterface::BAD_INDEX) \
     return OMX_ErrorUnsupportedIndex; \
-  if(ret == MediatypeInterface::ERROR_SETTINGS_BAD_PARAMETER) \
+  if(ret == MediatypeInterface::BAD_PARAMETER) \
     return OMX_ErrorBadParameter; \
-  assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
+  assert(ret == MediatypeInterface::SUCCESS);
 
 struct Expertise
 {

@@ -45,8 +45,8 @@ struct DummyMediatype final : public MediatypeInterface
   ~DummyMediatype() override;
 
   void Reset() override;
-  ErrorSettingsType Get(std::string, void*) const override;
-  ErrorSettingsType Set(std::string, void const*) override;
+  ErrorType Get(std::string, void*) const override;
+  ErrorType Set(std::string, void const*) override;
   bool Check() override;
 };
 

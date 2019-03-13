@@ -55,7 +55,7 @@ static OMX_ERRORTYPE SetMediaGop(OMX_U32 bFrames, OMX_U32 pFrames, std::shared_p
   Gop gop;
   auto ret = media->Get(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop);
 
-  if(ret == MediatypeInterface::ERROR_SETTINGS_BAD_INDEX)
+  if(ret == MediatypeInterface::BAD_INDEX)
     return OMX_ErrorUnsupportedIndex;
 
   gop.b = ConvertOMXToMediaBFrames(bFrames, pFrames);
@@ -139,9 +139,9 @@ OMX_ERRORTYPE ExpertiseHEVC::GetExpertise(OMX_PTR param, Port const& port, std::
   LoopFilterType loopFilter;
   auto ret = media->Get(SETTINGS_INDEX_PROFILE_LEVEL, &profileLevel);
   OMX_CHECK_MEDIA_GET(ret);
-  bool bGop = (media->Get(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop) == MediatypeInterface::ERROR_SETTINGS_NONE);
-  bool bIntraPred = (media->Get(SETTINGS_INDEX_CONSTRAINED_INTRA_PREDICTION, &isConstrainedIntraPrediction) == MediatypeInterface::ERROR_SETTINGS_NONE);
-  bool bLoopFilter = (media->Get(SETTINGS_INDEX_LOOP_FILTER, &loopFilter) == MediatypeInterface::ERROR_SETTINGS_NONE);
+  bool bGop = (media->Get(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop) == MediatypeInterface::SUCCESS);
+  bool bIntraPred = (media->Get(SETTINGS_INDEX_CONSTRAINED_INTRA_PREDICTION, &isConstrainedIntraPrediction) == MediatypeInterface::SUCCESS);
+  bool bLoopFilter = (media->Get(SETTINGS_INDEX_LOOP_FILTER, &loopFilter) == MediatypeInterface::SUCCESS);
   auto& hevc = *(OMX_ALG_VIDEO_PARAM_HEVCTYPE*)param;
   hevc.nPortIndex = port.index;
   hevc.nBFrames = bGop ? ConvertMediaToOMXBFrames(gop) : 0;

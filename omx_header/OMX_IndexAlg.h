@@ -85,7 +85,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamVideoLookAhead,                   /**< reference: OMX_ALG_VIDEO_PARAM_LOOKAHEAD */
   OMX_ALG_IndexParamVideoTwoPass,                     /**< reference: OMX_ALG_VIDEO_PARAM_TWOPASS */
   OMX_ALG_IndexParamVideoSkipFrame,                   /**< reference: OMX_ALG_VIDEO_PARAM_SKIP_FRAME */
-  OMX_ALG_IndexParamVideoColorimetry,                 /**< reference: OMX_ALG_VIDEO_PARAM_COLORIMETRY */
+  OMX_ALG_IndexParamVideoColorPrimaries,              /**< reference: OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES */
 
   /* Vendor Video configrations */
   OMX_ALG_IndexConfigVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00380000,

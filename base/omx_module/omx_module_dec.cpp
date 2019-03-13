@@ -96,27 +96,22 @@ static string ToStringDecodeError(int error)
   return str_error;
 }
 
-static ErrorType ToModuleError(int errorCode)
+static ModuleInterface::ErrorType ToModuleError(int errorCode)
 {
   switch(errorCode)
   {
-  case AL_SUCCESS:
-    return SUCCESS;
-  case AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE:
-    return ERROR_CHAN_CREATION_NO_CHANNEL_AVAILABLE;
-  case AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE:
-    return ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE;
-  case AL_ERR_CHAN_CREATION_NOT_ENOUGH_CORES:
-    return ERROR_CHAN_CREATION_RESOURCE_FRAGMENTED;
+  case AL_SUCCESS: return ModuleInterface::SUCCESS;
+  case AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE: return ModuleInterface::CHANNEL_CREATION_NO_CHANNEL_AVAILABLE;
+  case AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE: return ModuleInterface::CHANNEL_CREATION_RESOURCE_UNAVAILABLE;
+  case AL_ERR_CHAN_CREATION_NOT_ENOUGH_CORES: return ModuleInterface::CHANNEL_CREATION_RESOURCE_FRAGMENTED;
   case AL_ERR_REQUEST_MALFORMED: // fallthrough
   case AL_ERR_CMD_NOT_ALLOWED: // fallthrough
-  case AL_ERR_INVALID_CMD_VALUE:
-    return ERROR_BAD_PARAMETER;
-  case AL_ERR_NO_MEMORY:
-    return ERROR_NO_MEMORY;
-  default:
-    return ERROR_UNDEFINED;
+  case AL_ERR_INVALID_CMD_VALUE: return ModuleInterface::BAD_PARAMETER;
+  case AL_ERR_NO_MEMORY: return ModuleInterface::NO_MEMORY;
+  default: return ModuleInterface::UNDEFINED;
   }
+
+  return ModuleInterface::UNDEFINED;
 }
 
 void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
@@ -222,12 +217,12 @@ void DecModule::ParsedSuffixSei(int type, uint8_t* payload, int size)
   callbacks.event(Callbacks::Event::SEI_SUFFIX_PARSED, &sei);
 }
 
-ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
+ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
 {
   if(decoder)
   {
     fprintf(stderr, "Decoder is ALREADY created\n");
-    return ERROR_UNDEFINED;
+    return UNDEFINED;
   }
 
   auto channel = device->Init();
@@ -559,12 +554,12 @@ bool DecModule::Fill(BufferHandleInterface* handle)
   return true;
 }
 
-ErrorType DecModule::Run(bool shouldPrealloc)
+ModuleInterface::ErrorType DecModule::Run(bool shouldPrealloc)
 {
   if(decoder)
   {
     fprintf(stderr, "You can't call Run twice\n");
-    return ERROR_UNDEFINED;
+    return UNDEFINED;
   }
 
   return CreateDecoder(shouldPrealloc);
@@ -587,13 +582,13 @@ void DecModule::Stop()
   DestroyDecoder();
 }
 
-ErrorType DecModule::SetDynamic(std::string index, void const* param)
+ModuleInterface::ErrorType DecModule::SetDynamic(std::string index, void const* param)
 {
   (void)index, (void)param;
-  return ERROR_NOT_IMPLEMENTED;
+  return BAD_INDEX;
 }
 
-ErrorType DecModule::GetDynamic(std::string index, void* param)
+ModuleInterface::ErrorType DecModule::GetDynamic(std::string index, void* param)
 {
   if(index == "DYNAMIC_INDEX_CURRENT_DISPLAY_PICTURE_INFO")
   {
@@ -601,6 +596,6 @@ ErrorType DecModule::GetDynamic(std::string index, void* param)
     displayPictureInfo->type = currentDisplayPictureInfo.type;
     return SUCCESS;
   }
-  return ERROR_NOT_IMPLEMENTED;
+  return BAD_INDEX;
 }
 

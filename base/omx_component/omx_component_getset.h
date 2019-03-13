@@ -151,8 +151,8 @@ OMX_ERRORTYPE SetVideoLookAhead(OMX_ALG_VIDEO_PARAM_LOOKAHEAD const& la, Port co
 OMX_ERRORTYPE ConstructVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS& tp, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS const& tp, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
-OMX_ERRORTYPE ConstructVideoColorimetry(OMX_ALG_VIDEO_PARAM_COLORIMETRY& colorimetry, Port const& port, std::shared_ptr<MediatypeInterface> media);
-OMX_ERRORTYPE SetVideoColorimetry(OMX_ALG_VIDEO_PARAM_COLORIMETRY const& colorimetry, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE ConstructVideoColorPrimaries(OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES& colorPrimaries, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoColorPrimaries(OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES const& colorPrimaries, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
 // Decoder
 

@@ -46,8 +46,8 @@ struct EncMediatypeHEVC final : public EncMediatypeInterface
   EncMediatypeHEVC(BufferContiguities bufferContiguities, BufferBytesAlignments bufferBytesAlignments);
   ~EncMediatypeHEVC() override;
 
-  ErrorSettingsType Get(std::string index, void* settings) const override;
-  ErrorSettingsType Set(std::string index, void const* settings) override;
+  ErrorType Get(std::string index, void* settings) const override;
+  ErrorType Set(std::string index, void const* settings) override;
   void Reset() override;
 
   bool Check() override;

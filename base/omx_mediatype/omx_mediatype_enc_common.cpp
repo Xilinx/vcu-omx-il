@@ -382,17 +382,17 @@ bool UpdateResolution(AL_TEncSettings& settings, int& stride, int& sliceHeight, 
   return true;
 }
 
-ColorimetryType CreateColorimetry(AL_TEncSettings settings)
+ColorPrimariesType CreateColorPrimaries(AL_TEncSettings settings)
 {
-  return ConvertSoftToModuleColorimetry(settings.eColourDescription);
+  return ConvertSoftToModuleColorPrimaries(settings.eColourDescription);
 }
 
-bool UpdateColorimetry(AL_TEncSettings& settings, ColorimetryType colorimetry)
+bool UpdateColorPrimaries(AL_TEncSettings& settings, ColorPrimariesType colorPrimaries)
 {
-  if(!CheckColorimetry(colorimetry))
+  if(!CheckColorPrimaries(colorPrimaries))
     return false;
 
-  settings.eColourDescription = ConvertModuleToSoftColorimetry(colorimetry);
+  settings.eColourDescription = ConvertModuleToSoftColorPrimaries(colorPrimaries);
   return true;
 }
 

@@ -103,22 +103,22 @@ void DummyModule::Stop()
 {
 }
 
-ErrorType DummyModule::Run(bool)
+ModuleInterface::ErrorType DummyModule::Run(bool)
 {
   return SUCCESS;
 }
 
-ErrorType DummyModule::SetDynamic(std::string index, void const* param)
+ModuleInterface::ErrorType DummyModule::SetDynamic(std::string index, void const* param)
 {
   (void)index;
   (void)param;
-  return ERROR_NOT_IMPLEMENTED;
+  return NOT_IMPLEMENTED;
 }
 
-ErrorType DummyModule::GetDynamic(std::string index, void* param)
+ModuleInterface::ErrorType DummyModule::GetDynamic(std::string index, void* param)
 {
   (void)index;
   (void)param;
-  return ERROR_NOT_IMPLEMENTED;
+  return NOT_IMPLEMENTED;
 }
 

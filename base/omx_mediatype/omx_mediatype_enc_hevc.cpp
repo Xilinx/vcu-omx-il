@@ -187,153 +187,153 @@ static ProfileLevelType CreateProfileLevel(AL_TEncSettings settings)
   return IsHighTier(channel.uTier) ? CreateHEVCHighTierProfileLevel(channel.eProfile, channel.uLevel) : CreateHEVCMainTierProfileLevel(channel.eProfile, channel.uLevel);
 }
 
-MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Get(std::string index, void* settings) const
+MediatypeInterface::ErrorType EncMediatypeHEVC::Get(std::string index, void* settings) const
 {
   if(!settings)
-    return ERROR_SETTINGS_BAD_PARAMETER;
+    return BAD_PARAMETER;
 
   if(index == "SETTINGS_INDEX_MIMES")
   {
     *(static_cast<Mimes*>(settings)) = CreateMimes();
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_CLOCK")
   {
     *(static_cast<Clock*>(settings)) = CreateClock(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_STRIDE_ALIGNMENT")
   {
     *(static_cast<Stride*>(settings)) = this->strideAlignment;
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_GROUP_OF_PICTURES")
   {
     *(static_cast<Gop*>(settings)) = CreateGroupOfPictures(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_LATENCY")
   {
     *(static_cast<int*>(settings)) = CreateLatency(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_LOW_BANDWIDTH")
   {
     *(static_cast<bool*>(settings)) = CreateLowBandwidth(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_CONSTRAINED_INTRA_PREDICTION")
   {
     *(static_cast<bool*>(settings)) = CreateConstrainedIntraPrediction(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_VIDEO_MODE")
   {
     *(static_cast<VideoModeType*>(settings)) = CreateVideoMode(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_VIDEO_MODES_SUPPORTED")
   {
     *(static_cast<vector<VideoModeType>*>(settings)) = this->videoModes;
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_BITRATE")
   {
     *(static_cast<Bitrate*>(settings)) = CreateBitrate(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_CACHE_LEVEL2")
   {
     *(static_cast<bool*>(settings)) = CreateCacheLevel2(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_BUFFER_HANDLES")
   {
     *(static_cast<BufferHandles*>(settings)) = this->bufferHandles;
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_BUFFER_COUNTS")
   {
     *(static_cast<BufferCounts*>(settings)) = CreateBufferCounts(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_BUFFER_SIZES")
   {
     *(static_cast<BufferSizes*>(settings)) = CreateBufferSizes(this->settings, this->stride, this->sliceHeight);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_BUFFER_CONTIGUITIES")
   {
     *(static_cast<BufferContiguities*>(settings)) = this->bufferContiguities;
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_BUFFER_BYTES_ALIGNMENTS")
   {
     *(static_cast<BufferBytesAlignments*>(settings)) = this->bufferBytesAlignments;
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_FILLER_DATA")
   {
     *(static_cast<bool*>(settings)) = CreateFillerData(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_ASPECT_RATIO")
   {
     *(static_cast<AspectRatioType*>(settings)) = CreateAspectRatio(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_SCALING_LIST")
   {
     *(static_cast<ScalingListType*>(settings)) = CreateScalingList(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_QUANTIZATION_PARAMETER")
   {
     *(static_cast<QPs*>(settings)) = CreateQuantizationParameter(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_LOOP_FILTER")
   {
     *(static_cast<LoopFilterType*>(settings)) = CreateLoopFilter(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_PROFILE_LEVEL")
   {
     *(static_cast<ProfileLevelType*>(settings)) = CreateProfileLevel(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED")
   {
     *(static_cast<vector<ProfileLevelType>*>(settings)) = CreateHEVCProfileLevelSupported(profiles, levels);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_FORMAT")
   {
     *(static_cast<Format*>(settings)) = CreateFormat(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_FORMATS_SUPPORTED")
@@ -342,47 +342,47 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Get(std::string index, v
     supported.input = CreateFormatsSupported(colors, bitdepths);
     supported.output = CreateFormatsSupportedByCurrent(CreateFormat(this->settings), supportedFormatsMap);
     *(static_cast<SupportedFormats*>(settings)) = supported;
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_SLICE_PARAMETER")
   {
     *(static_cast<Slices*>(settings)) = CreateSlicesParameter(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_SUBFRAME")
   {
     *(static_cast<bool*>(settings)) = (this->settings.tChParam[0].bSubframeLatency);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_RESOLUTION")
   {
     *(static_cast<Resolution*>(settings)) = CreateResolution(this->settings, stride, sliceHeight);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
-  if(index == "SETTINGS_INDEX_COLORIMETRY")
+  if(index == "SETTINGS_INDEX_COLOR_PRIMARIES")
   {
-    *(static_cast<ColorimetryType*>(settings)) = CreateColorimetry(this->settings);
-    return ERROR_SETTINGS_NONE;
+    *(static_cast<ColorPrimariesType*>(settings)) = CreateColorPrimaries(this->settings);
+    return SUCCESS;
   }
 
 
   if(index == "SETTINGS_INDEX_LOOKAHEAD")
   {
     *(static_cast<LookAhead*>(settings)) = CreateLookAhead(this->settings);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_TWOPASS")
   {
     *(static_cast<TwoPass*>(settings)) = CreateTwoPass(this->settings, this->sTwoPassLogFile);
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
-  return ERROR_SETTINGS_BAD_INDEX;
+  return BAD_INDEX;
 }
 
 static bool UpdateLowBandwidth(AL_TEncSettings& settings, bool isLowBandwidthEnabled)
@@ -440,18 +440,18 @@ static bool UpdateProfileLevel(AL_TEncSettings& settings, ProfileLevelType profi
   return true;
 }
 
-MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, void const* settings)
+MediatypeInterface::ErrorType EncMediatypeHEVC::Set(std::string index, void const* settings)
 {
   if(!settings)
-    return ERROR_SETTINGS_BAD_PARAMETER;
+    return BAD_PARAMETER;
 
   if(index == "SETTINGS_INDEX_CLOCK")
   {
     auto clock = *(static_cast<Clock const*>(settings));
 
     if(!UpdateClock(this->settings, clock))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_GROUP_OF_PICTURES")
@@ -459,8 +459,8 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto gop = *(static_cast<Gop const*>(settings));
 
     if(!UpdateGroupOfPictures(this->settings, gop))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_LOW_BANDWIDTH")
@@ -468,8 +468,8 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto isLowBandwidthEnabled = *(static_cast<bool const*>(settings));
 
     if(!UpdateLowBandwidth(this->settings, isLowBandwidthEnabled))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_CONSTRAINED_INTRA_PREDICTION")
@@ -477,8 +477,8 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto isConstrainedIntraPredictionEnabled = *(static_cast<bool const*>(settings));
 
     if(!UpdateConstrainedIntraPrediction(this->settings, isConstrainedIntraPredictionEnabled))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_VIDEO_MODE")
@@ -486,8 +486,8 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto videoMode = *(static_cast<VideoModeType const*>(settings));
 
     if(!UpdateVideoMode(this->settings, videoMode))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_BITRATE")
@@ -495,8 +495,8 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto bitrate = *(static_cast<Bitrate const*>(settings));
 
     if(!UpdateBitrate(this->settings, bitrate))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_CACHE_LEVEL2")
@@ -504,8 +504,8 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto isCacheLevel2Enabled = *(static_cast<bool const*>(settings));
 
     if(!UpdateCacheLevel2(this->settings, isCacheLevel2Enabled))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_FILLER_DATA")
@@ -513,8 +513,8 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto isFillerDataEnabled = *(static_cast<bool const*>(settings));
 
     if(!UpdateFillerData(this->settings, isFillerDataEnabled))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_ASPECT_RATIO")
@@ -522,8 +522,8 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto aspectRatio = *(static_cast<AspectRatioType const*>(settings));
 
     if(!UpdateAspectRatio(this->settings, aspectRatio))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_SCALING_LIST")
@@ -531,8 +531,8 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto scalingList = *(static_cast<ScalingListType const*>(settings));
 
     if(!UpdateScalingList(this->settings, scalingList))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_QUANTIZATION_PARAMETER")
@@ -540,8 +540,8 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto qps = *(static_cast<QPs const*>(settings));
 
     if(!UpdateQuantizationParameter(this->settings, qps))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_LOOP_FILTER")
@@ -549,9 +549,9 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto loopFilter = *(static_cast<LoopFilterType const*>(settings));
 
     if(!UpdateLoopFilter(this->settings, loopFilter))
-      return ERROR_SETTINGS_BAD_PARAMETER;
+      return BAD_PARAMETER;
 
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_PROFILE_LEVEL")
@@ -559,8 +559,8 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto profilelevel = *(static_cast<ProfileLevelType const*>(settings));
 
     if(!UpdateProfileLevel(this->settings, profilelevel, profiles, levels))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_FORMAT")
@@ -568,8 +568,8 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto format = *(static_cast<Format const*>(settings));
 
     if(!UpdateFormat(this->settings, format, colors, bitdepths, this->stride, this->strideAlignment))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_SLICE_PARAMETER")
@@ -577,9 +577,9 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto slices = *(static_cast<Slices const*>(settings));
 
     if(!UpdateSlicesParameter(this->settings, slices))
-      return ERROR_SETTINGS_BAD_PARAMETER;
+      return BAD_PARAMETER;
 
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_BUFFER_HANDLES")
@@ -587,8 +587,8 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto bufferHandles = *(static_cast<BufferHandles const*>(settings));
 
     if(!UpdateBufferHandles(this->bufferHandles, bufferHandles))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_SUBFRAME")
@@ -596,8 +596,8 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto isEnabledSubframe = *(static_cast<bool const*>(settings));
 
     if(!UpdateIsEnabledSubframe(this->settings, isEnabledSubframe))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_RESOLUTION")
@@ -605,17 +605,17 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto resolution = *(static_cast<Resolution const*>(settings));
 
     if(!UpdateResolution(this->settings, this->stride, this->sliceHeight, this->strideAlignment, resolution))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
-  if(index == "SETTINGS_INDEX_COLORIMETRY")
+  if(index == "SETTINGS_INDEX_COLOR_PRIMARIES")
   {
-    auto colorimerty = *(static_cast<ColorimetryType const*>(settings));
+    auto colorimerty = *(static_cast<ColorPrimariesType const*>(settings));
 
-    if(!UpdateColorimetry(this->settings, colorimerty))
-      return ERROR_SETTINGS_BAD_PARAMETER;
-    return ERROR_SETTINGS_NONE;
+    if(!UpdateColorPrimaries(this->settings, colorimerty))
+      return BAD_PARAMETER;
+    return SUCCESS;
   }
 
 
@@ -624,9 +624,9 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto la = *(static_cast<LookAhead const*>(settings));
 
     if(!UpdateLookAhead(this->settings, la))
-      return ERROR_SETTINGS_BAD_PARAMETER;
+      return BAD_PARAMETER;
 
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_TWOPASS")
@@ -634,11 +634,11 @@ MediatypeInterface::ErrorSettingsType EncMediatypeHEVC::Set(std::string index, v
     auto tp = *(static_cast<TwoPass const*>(settings));
 
     if(!UpdateTwoPass(this->settings, this->sTwoPassLogFile, tp))
-      return ERROR_SETTINGS_BAD_PARAMETER;
+      return BAD_PARAMETER;
 
-    return ERROR_SETTINGS_NONE;
+    return SUCCESS;
   }
-  return ERROR_SETTINGS_BAD_INDEX;
+  return BAD_INDEX;
 }
 
 bool EncMediatypeHEVC::Check()

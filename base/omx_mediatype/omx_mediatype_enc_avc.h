@@ -46,8 +46,8 @@ struct EncMediatypeAVC final : public EncMediatypeInterface
   EncMediatypeAVC(BufferContiguities bufferContiguities, BufferBytesAlignments bufferBytesAlignments);
   ~EncMediatypeAVC() override;
 
-  ErrorSettingsType Get(std::string index, void* settings) const override;
-  ErrorSettingsType Set(std::string index, void const* settings) override;
+  ErrorType Get(std::string index, void* settings) const override;
+  ErrorType Set(std::string index, void const* settings) override;
   void Reset() override;
 
   bool Check() override;

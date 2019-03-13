@@ -126,23 +126,19 @@ void Component::ReleaseCallBack(bool isInput, BufferHandleInterface* released)
     ReturnFilledBuffer(header, 0, 0);
 }
 
-static OMX_ERRORTYPE ToOmxError(ErrorType error)
+static OMX_ERRORTYPE ToOmxError(ModuleInterface::ErrorType error)
 {
   switch(error)
   {
-  case ERROR_CHAN_CREATION_NO_CHANNEL_AVAILABLE:
-    return OMX_ALG_ErrorNoChannelLeft;
-  case ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE:
-    return OMX_ALG_ErrorChannelResourceUnavailable;
-  case ERROR_CHAN_CREATION_RESOURCE_FRAGMENTED:
-    return OMX_ALG_ErrorChannelResourceFragmented;
-  case ERROR_NO_MEMORY:
-    return OMX_ErrorInsufficientResources;
-  case ERROR_BAD_PARAMETER:
-    return OMX_ErrorBadParameter;
-  default:
-    return OMX_ErrorUndefined;
+  case ModuleInterface::CHANNEL_CREATION_NO_CHANNEL_AVAILABLE: return OMX_ALG_ErrorNoChannelLeft;
+  case ModuleInterface::CHANNEL_CREATION_RESOURCE_UNAVAILABLE: return OMX_ALG_ErrorChannelResourceUnavailable;
+  case ModuleInterface::CHANNEL_CREATION_RESOURCE_FRAGMENTED: return OMX_ALG_ErrorChannelResourceFragmented;
+  case ModuleInterface::NO_MEMORY: return OMX_ErrorInsufficientResources;
+  case ModuleInterface::BAD_PARAMETER: return OMX_ErrorBadParameter;
+  default: return OMX_ErrorUndefined;
   }
+
+  return OMX_ErrorUndefined;
 }
 
 void Component::EventCallBack(Callbacks::Event type, void* data)
@@ -152,7 +148,7 @@ void Component::EventCallBack(Callbacks::Event type, void* data)
   {
   case Callbacks::Event::ERROR:
   {
-    ErrorType errorCode = (ErrorType)(uintptr_t)data;
+    ModuleInterface::ErrorType errorCode = static_cast<ModuleInterface::ErrorType>((uintptr_t)data);
     processorMain->queue(CreateTask(Command::SetState, OMX_StateInvalid, shared_ptr<void>((uintptr_t*)ToOmxError(errorCode), nullDeleter)));
     break;
   }
@@ -636,11 +632,11 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto tp = static_cast<OMX_ALG_VIDEO_PARAM_TWOPASS*>(param);
     return ConstructVideoTwoPass(*tp, *port, media);
   }
-  case OMX_ALG_IndexParamVideoColorimetry:
+  case OMX_ALG_IndexParamVideoColorPrimaries:
   {
     auto port = getCurrentPort(param);
-    auto c = static_cast<OMX_ALG_VIDEO_PARAM_COLORIMETRY*>(param);
-    return ConstructVideoColorimetry(*c, *port, media);
+    auto c = static_cast<OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES*>(param);
+    return ConstructVideoColorPrimaries(*c, *port, media);
   }
   // only decoder
   case OMX_ALG_IndexParamPreallocation:
@@ -851,10 +847,10 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     auto tp = static_cast<OMX_ALG_VIDEO_PARAM_TWOPASS*>(param);
     return SetVideoTwoPass(*tp, *port, media);
   }
-  case OMX_ALG_IndexParamVideoColorimetry:
+  case OMX_ALG_IndexParamVideoColorPrimaries:
   {
-    auto c = static_cast<OMX_ALG_VIDEO_PARAM_COLORIMETRY*>(param);
-    return SetVideoColorimetry(*c, *port, media);
+    auto c = static_cast<OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES*>(param);
+    return SetVideoColorPrimaries(*c, *port, media);
   }
   // only decoder
   case OMX_ALG_IndexParamPreallocation:
@@ -1780,7 +1776,7 @@ void Component::TreatDynamicCommand(Task* task)
   {
     Resolution resolution {};
     auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
-    assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
+    assert(ret == MediatypeInterface::SUCCESS);
     auto drc = static_cast<OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE*>(opt);
     resolution.width = drc->nWidth;
     resolution.height = drc->nHeight;

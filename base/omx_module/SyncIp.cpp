@@ -308,8 +308,8 @@ static struct xvsfsync_chan_config setEncFrameBufferConfig(int channelId, AL_TBu
    * end = total_size - stride + width - 1
    */
   int iHardwarePitch = RoundUp(srcMeta->tPlanes[AL_PLANE_Y].iPitch, hardwareHorizontalStrideAlignment);
-  int iHardwareLumaVertivalPitch = RoundUp(srcMeta->tDim.iHeight, hardwareVerticalStrideAlignment);
-  config.luma_end_address[XVSFSYNC_CONS] = config.luma_start_address[XVSFSYNC_CONS] + (iHardwarePitch * (iHardwareLumaVertivalPitch - 1)) + RoundUp(srcMeta->tDim.iWidth, hardwareHorizontalStrideAlignment) - 1;
+  int iHardwareLumaVerticalPitch = RoundUp(srcMeta->tDim.iHeight, hardwareVerticalStrideAlignment);
+  config.luma_end_address[XVSFSYNC_CONS] = config.luma_start_address[XVSFSYNC_CONS] + (iHardwarePitch * (iHardwareLumaVerticalPitch - 1)) + RoundUp(srcMeta->tDim.iWidth, hardwareHorizontalStrideAlignment) - 1;
 
   /* chroma is the same, but the width depends on the format of the yuv
    * here we make the assumption that the fourcc is semi planar */
@@ -320,9 +320,8 @@ static struct xvsfsync_chan_config setEncFrameBufferConfig(int channelId, AL_TBu
     config.chroma_end_address[XVSFSYNC_PROD] = config.chroma_start_address[XVSFSYNC_PROD] + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
     config.chroma_start_address[XVSFSYNC_CONS] = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
     int iVerticalFactor = (AL_GetChromaMode(srcMeta->tFourCC) == CHROMA_4_2_0) ? 2 : 1;
-    int iNumPlanes = 2;
-    int iHardwareChromaVertivalPitch = RoundUp(((srcMeta->tDim.iHeight / iVerticalFactor) * iNumPlanes), hardwareVerticalStrideAlignment);
-    config.chroma_end_address[XVSFSYNC_CONS] = config.chroma_start_address[XVSFSYNC_CONS] + (iHardwarePitch * (iHardwareChromaVertivalPitch - 1)) + RoundUp(srcMeta->tDim.iWidth, hardwareHorizontalStrideAlignment) - 1;
+    int iHardwareChromaVerticalPitch = RoundUp((srcMeta->tDim.iHeight / iVerticalFactor), (hardwareVerticalStrideAlignment / iVerticalFactor));
+    config.chroma_end_address[XVSFSYNC_CONS] = config.chroma_start_address[XVSFSYNC_CONS] + (iHardwarePitch * (iHardwareChromaVerticalPitch - 1)) + RoundUp(srcMeta->tDim.iWidth, hardwareHorizontalStrideAlignment) - 1;
   }
   else
   {

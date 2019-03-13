@@ -63,27 +63,22 @@ extern "C"
 
 using namespace std;
 
-static ErrorType ToModuleError(int errorCode)
+static ModuleInterface::ErrorType ToModuleError(int errorCode)
 {
   switch(errorCode)
   {
-  case AL_SUCCESS:
-    return SUCCESS;
-  case AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE:
-    return ERROR_CHAN_CREATION_NO_CHANNEL_AVAILABLE;
-  case AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE:
-    return ERROR_CHAN_CREATION_RESOURCE_UNAVAILABLE;
-  case AL_ERR_CHAN_CREATION_NOT_ENOUGH_CORES:
-    return ERROR_CHAN_CREATION_RESOURCE_FRAGMENTED;
+  case AL_SUCCESS: return ModuleInterface::SUCCESS;
+  case AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE: return ModuleInterface::CHANNEL_CREATION_NO_CHANNEL_AVAILABLE;
+  case AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE: return ModuleInterface::CHANNEL_CREATION_RESOURCE_UNAVAILABLE;
+  case AL_ERR_CHAN_CREATION_NOT_ENOUGH_CORES: return ModuleInterface::CHANNEL_CREATION_RESOURCE_FRAGMENTED;
   case AL_ERR_REQUEST_MALFORMED: // fallthrough
   case AL_ERR_CMD_NOT_ALLOWED: // fallthrough
-  case AL_ERR_INVALID_CMD_VALUE:
-    return ERROR_BAD_PARAMETER;
-  case AL_ERR_NO_MEMORY:
-    return ERROR_NO_MEMORY;
-  default:
-    return ERROR_UNDEFINED;
+  case AL_ERR_INVALID_CMD_VALUE: return ModuleInterface::BAD_PARAMETER;
+  case AL_ERR_NO_MEMORY: return ModuleInterface::NO_MEMORY;
+  default: return ModuleInterface::UNDEFINED;
   }
+
+  return ModuleInterface::UNDEFINED;
 }
 
 EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, shared_ptr<EncDevice> device, shared_ptr<AL_TAllocator> allocator, shared_ptr<CopyInterface> copycat) :
@@ -174,12 +169,12 @@ static TwoPassMngr* createTwoPassManager(shared_ptr<MediatypeInterface> media)
   return new TwoPassMngr(tp.sLogFile, tp.nPass, false, gop.length, br.cpb, br.ird, ck.framerate);
 }
 
-ErrorType EncModule::CreateEncoder()
+ModuleInterface::ErrorType EncModule::CreateEncoder()
 {
   if(encoders.size())
   {
     fprintf(stderr, "Encoder is ALREADY created\n");
-    return ERROR_UNDEFINED;
+    return UNDEFINED;
   }
 
   twoPassMngr.reset(createTwoPassManager(media));
@@ -190,7 +185,7 @@ ErrorType EncModule::CreateEncoder()
   if(!roiCtx)
   {
     fprintf(stderr, "Failed to create ROI manager:\n");
-    return ERROR_BAD_PARAMETER;
+    return BAD_PARAMETER;
   }
 
   auto scheduler = device->Init();
@@ -294,12 +289,12 @@ bool EncModule::DestroyEncoder()
   return true;
 }
 
-ErrorType EncModule::Run(bool)
+ModuleInterface::ErrorType EncModule::Run(bool)
 {
   if(encoders.size())
   {
     fprintf(stderr, "You can't call Run twice\n");
-    return ERROR_UNDEFINED;
+    return UNDEFINED;
   }
 
   return CreateEncoder();
@@ -486,7 +481,7 @@ static AL_TMetaData* CreateSourceMeta(shared_ptr<MediatypeInterface> media)
   auto fourCC = AL_EncGetSrcFourCC(picFormat);
   Resolution resolution;
   auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
-  assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
+  assert(ret == MediatypeInterface::SUCCESS);
   auto stride = resolution.stride.widthStride;
   auto sliceHeight = resolution.stride.heightStride;
   AL_TPlane planeY = { 0, stride };
@@ -944,10 +939,10 @@ Flags EncModule::GetFlags(BufferHandleInterface* handle)
   return GetFlags(stream);
 }
 
-ErrorType EncModule::SetDynamic(std::string index, void const* param)
+ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* param)
 {
   if(!encoders.size())
-    return ERROR_UNDEFINED;
+    return UNDEFINED;
 
   AL_HEncoder encoder = encoders.back().enc;
 
@@ -958,10 +953,10 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
     if(!AL_Encoder_SetFrameRate(encoder, clock->framerate, clock->clockratio))
     {
       assert(0);
-      return ERROR_BAD_PARAMETER;
+      return BAD_PARAMETER;
     }
     auto ret = media->Set(SETTINGS_INDEX_CLOCK, clock);
-    assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
+    assert(ret == MediatypeInterface::SUCCESS);
     return SUCCESS;
   }
 
@@ -989,7 +984,7 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
   {
     auto gop = static_cast<Gop const*>(param);
     auto ret = media->Set(SETTINGS_INDEX_GROUP_OF_PICTURES, gop);
-    assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
+    assert(ret == MediatypeInterface::SUCCESS);
     AL_Encoder_SetGopNumB(encoder, gop->b);
     AL_Encoder_SetGopLength(encoder, gop->length);
     return SUCCESS;
@@ -1017,7 +1012,7 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
     auto bufferToEmpty = static_cast<unsigned char const*>(param);
     Resolution resolution {};
     auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
-    assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
+    assert(ret == MediatypeInterface::SUCCESS);
     AL_TDimension tDim {
       resolution.width, resolution.height
     };
@@ -1057,7 +1052,7 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
     if(AL_Encoder_AddSei(encoder, currentOutputedStreamForSei, true, sei->type, sei->data, sei->payload, currentTemporalId) < 0)
     {
       assert(0);
-      return ERROR_BAD_PARAMETER;
+      return BAD_PARAMETER;
     }
     return SUCCESS;
   }
@@ -1069,7 +1064,7 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
     if(AL_Encoder_AddSei(encoder, currentOutputedStreamForSei, false, sei->type, sei->data, sei->payload, currentTemporalId) < 0)
     {
       assert(0);
-      return ERROR_BAD_PARAMETER;
+      return BAD_PARAMETER;
     }
     return SUCCESS;
   }
@@ -1084,16 +1079,22 @@ ErrorType EncModule::SetDynamic(std::string index, void const* param)
     if(!AL_Encoder_SetInputResolution(encoder, dimension))
     {
       assert(0);
-      return ERROR_BAD_PARAMETER;
+      return BAD_PARAMETER;
     }
     auto ret = media->Set(SETTINGS_INDEX_RESOLUTION, &resolution);
-    assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
+    assert(ret == MediatypeInterface::SUCCESS);
     return SUCCESS;
   }
-  return ERROR_NOT_IMPLEMENTED;
+
+  if(index == "DYNAMIC_INDEX_INSERT_QUANTIZATION_PARAMETER_BUFFER")
+  {
+    return NOT_IMPLEMENTED;
+  }
+
+  return BAD_INDEX;
 }
 
-ErrorType EncModule::GetDynamic(std::string index, void* param)
+ModuleInterface::ErrorType EncModule::GetDynamic(std::string index, void* param)
 {
   if(index == "DYNAMIC_INDEX_CLOCK")
   {
@@ -1127,7 +1128,7 @@ ErrorType EncModule::GetDynamic(std::string index, void* param)
   {
     Resolution resolution {};
     auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
-    assert(ret == MediatypeInterface::ERROR_SETTINGS_NONE);
+    assert(ret == MediatypeInterface::SUCCESS);
     AL_TDimension tDim {
       resolution.width, resolution.height
     };
@@ -1135,7 +1136,7 @@ ErrorType EncModule::GetDynamic(std::string index, void* param)
     return SUCCESS;
   }
 
-  return ERROR_NOT_IMPLEMENTED;
+  return BAD_INDEX;
 }
 
 void EncModule::_ProcessEmptyFifo(void* data)

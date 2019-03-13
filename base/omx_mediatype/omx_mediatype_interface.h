@@ -72,7 +72,7 @@
 #define SETTINGS_INDEX_SUBFRAME "SETTINGS_INDEX_SUBFRAME"
 #define SETTINGS_INDEX_RESOLUTION "SETTINGS_INDEX_RESOLUTION"
 #define SETTINGS_INDEX_DECODED_PICTURE_BUFFER "SETTINGS_INDEX_DECODED_PICTURE_BUFFER"
-#define SETTINGS_INDEX_COLORIMETRY "SETTINGS_INDEX_COLORIMETRY"
+#define SETTINGS_INDEX_COLOR_PRIMARIES "SETTINGS_INDEX_COLOR_PRIMARIES"
 
 #define SETTINGS_INDEX_LOOKAHEAD "SETTINGS_INDEX_LOOKAHEAD"
 #define SETTINGS_INDEX_TWOPASS "SETTINGS_INDEX_TWOPASS"
@@ -80,44 +80,43 @@
 
 struct MediatypeInterface
 {
-  enum ErrorSettingsType
+  enum ErrorType
   {
-    ERROR_SETTINGS_NONE,
-    ERROR_SETTINGS_BAD_INDEX,
-    ERROR_SETTINGS_BAD_PARAMETER,
-    ERROR_SETTINGS_NOT_IMPLEMENTED,
-    ERROR_SETTINGS_UNDEFINED,
-    ERROR_SETTINGS_MAX,
+    SUCCESS,
+    BAD_INDEX,
+    BAD_PARAMETER,
+    NOT_IMPLEMENTED,
+    UNDEFINED,
+    MAX,
   };
 
   virtual ~MediatypeInterface() = 0;
-  virtual ErrorSettingsType Get(std::string index, void* settings) const = 0;
-  virtual ErrorSettingsType Set(std::string index, void const* settings) = 0;
+  virtual ErrorType Get(std::string index, void* settings) const = 0;
+  virtual ErrorType Set(std::string index, void const* settings) = 0;
   virtual void Reset() = 0;
-
   virtual bool Check() = 0;
 };
 
 #include <map>
-static std::map<MediatypeInterface::ErrorSettingsType, std::string> ToStringErrorSettings
+static std::map<MediatypeInterface::ErrorType, std::string> ToStringErrorSettings
 {
   {
-    MediatypeInterface::ERROR_SETTINGS_NONE, "ERROR_SETTINGS_NONE"
+    MediatypeInterface::SUCCESS, "SUCCESS"
   },
   {
-    MediatypeInterface::ERROR_SETTINGS_BAD_INDEX, "ERROR_SETTINGS_BAD_INDEX"
+    MediatypeInterface::BAD_INDEX, "BAD_INDEX"
   },
   {
-    MediatypeInterface::ERROR_SETTINGS_BAD_PARAMETER, "ERROR_SETTINGS_BAD_PARAMETER"
+    MediatypeInterface::BAD_PARAMETER, "BAD_PARAMETER"
   },
   {
-    MediatypeInterface::ERROR_SETTINGS_NOT_IMPLEMENTED, "ERROR_SETTINGS_NOT_IMPLEMENTED"
+    MediatypeInterface::NOT_IMPLEMENTED, "NOT_IMPLEMENTED"
   },
   {
-    MediatypeInterface::ERROR_SETTINGS_UNDEFINED, "ERROR_SETTINGS_UNDEFINED"
+    MediatypeInterface::UNDEFINED, "UNDEFINED"
   },
   {
-    MediatypeInterface::ERROR_SETTINGS_MAX, "ERROR_SETTINGS_MAX"
+    MediatypeInterface::MAX, "MAX"
   },
 };
 
