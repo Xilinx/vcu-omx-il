@@ -36,11 +36,35 @@
 ******************************************************************************/
 
 #include "omx_dma_memory.h"
+#include "dmaproxy.h"
 
+#include <algorithm>
 #include <cassert>
+#include <cstdio>
+#include <utility>
 
-DMAMemory::DMAMemory() = default;
-DMAMemory::~DMAMemory() = default;
+extern "C"
+{
+#include <lib_fpga/DmaAlloc.h>
+#include <lib_fpga/DmaAllocLinux.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+}
+
+DMAMemory::DMAMemory()
+{
+  fd = open("/dev/dmaproxy",O_RDWR);
+  if(fd == -1) {
+    perror("As DMA channel is not available, CPU move will be performed\n");
+  }
+}
+
+DMAMemory::~DMAMemory()
+{
+  if(fd != -1)
+    close(fd);
+}
 
 void DMAMemory::copy(AL_TBuffer* destination, int destination_offset, AL_TBuffer const* source, int source_offset, size_t size)
 {
@@ -54,11 +78,27 @@ void DMAMemory::copy(AL_TBuffer* destination, int destination_offset, AL_TBuffer
 
 void DMAMemory::move(AL_TBuffer* destination, int destination_offset, AL_TBuffer const* source, int source_offset, size_t size)
 {
-  (void)destination;
-  (void)destination_offset;
-  (void)source;
-  (void)source_offset;
-  (void)size;
-  assert(0 && "not implemented yet");
-}
 
+  if(fd == -1) {
+    std::move(AL_Buffer_GetData(source) + source_offset, AL_Buffer_GetData(source) + source_offset + size, AL_Buffer_GetData(destination) + destination_offset);
+    return;
+  }
+
+  auto src_allocator = source->pAllocator;
+  int src_fd = AL_LinuxDmaAllocator_GetFd((AL_TLinuxDmaAllocator*)src_allocator, source->hBuf);
+
+  auto dst_allocator = destination->pAllocator;
+  int dst_fd = AL_LinuxDmaAllocator_GetFd((AL_TLinuxDmaAllocator*)dst_allocator, destination->hBuf);
+
+  dmaproxy_arg_t dmaproxy {};
+  dmaproxy.size = size;
+  dmaproxy.dst_offset = destination_offset;
+  dmaproxy.src_offset = source_offset;
+  dmaproxy.src_fd = src_fd;
+  dmaproxy.dst_fd = dst_fd;
+
+  if(ioctl(fd, DMAPROXY_COPY, &dmaproxy)) {
+    perror("DMA copy get failed, CPU move will be performed\n");
+    std::move(AL_Buffer_GetData(source) + source_offset, AL_Buffer_GetData(source) + source_offset + size, AL_Buffer_GetData(destination) + destination_offset);
+  }
+}
