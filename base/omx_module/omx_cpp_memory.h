@@ -43,6 +43,7 @@ struct CPPMemory final : MemoryInterface
 {
   CPPMemory();
   ~CPPMemory() override;
-  void copy(unsigned char* destination, unsigned char const* source, size_t size) override;
-  void move(unsigned char* destination, unsigned char const* source, size_t size) override;
+  void copy(AL_TBuffer* destination, int destination_offset, AL_TBuffer const* source, int source_offset, size_t size) override;
+  void move(AL_TBuffer* destination, int destination_offset, AL_TBuffer const* source, int source_offset, size_t size) override;
 };
+

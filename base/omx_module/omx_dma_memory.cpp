@@ -42,18 +42,22 @@
 DMAMemory::DMAMemory() = default;
 DMAMemory::~DMAMemory() = default;
 
-void DMAMemory::copy(unsigned char* destination, unsigned char const* source, size_t size)
+void DMAMemory::copy(AL_TBuffer* destination, int destination_offset, AL_TBuffer const* source, int source_offset, size_t size)
 {
   (void)destination;
+  (void)destination_offset;
   (void)source;
+  (void)source_offset;
   (void)size;
   assert(0 && "not implemented yet");
 }
 
-void DMAMemory::move(unsigned char* destination, unsigned char const* source, size_t size)
+void DMAMemory::move(AL_TBuffer* destination, int destination_offset, AL_TBuffer const* source, int source_offset, size_t size)
 {
   (void)destination;
+  (void)destination_offset;
   (void)source;
+  (void)source_offset;
   (void)size;
   assert(0 && "not implemented yet");
 }

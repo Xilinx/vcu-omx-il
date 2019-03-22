@@ -39,9 +39,15 @@
 
 #include <cstddef>
 
+extern "C"
+{
+#include "lib_common/BufferAPI.h"
+}
+
 struct MemoryInterface
 {
   virtual ~MemoryInterface() = 0;
-  virtual void copy(unsigned char* destination, unsigned char const* source, size_t size) = 0;
-  virtual void move(unsigned char* destination, unsigned char const* source, size_t size) = 0;
+  virtual void copy(AL_TBuffer* destination, int destination_offset, AL_TBuffer const* source, int source_offset, size_t size) = 0;
+  virtual void move(AL_TBuffer* destination, int destination_offset, AL_TBuffer const* source, int source_offset, size_t size) = 0;
 };
+

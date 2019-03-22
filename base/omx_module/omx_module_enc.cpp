@@ -637,13 +637,7 @@ bool EncModule::Fill(BufferHandleInterface* handle)
   return AL_Encoder_PutStreamBuffer(encoder, output);
 }
 
-static void AppendBuffer(shared_ptr<MemoryInterface> memory, uint8_t*& dst, uint8_t const* src, size_t len)
-{
-  memory->move(dst, src, len);
-  dst += len;
-}
-
-static int WriteOneSection(shared_ptr<MemoryInterface> memory, uint8_t*& dst, AL_TBuffer& stream, int numSection)
+static int WriteOneSection(shared_ptr<MemoryInterface> memory, int offset, AL_TBuffer& stream, int numSection)
 {
   auto meta = (AL_TStreamMetaData*)AL_Buffer_GetMetaData(&stream, AL_META_TYPE_STREAM);
 
@@ -654,25 +648,23 @@ static int WriteOneSection(shared_ptr<MemoryInterface> memory, uint8_t*& dst, AL
 
   if(size < (meta->pSections[numSection]).uLength)
   {
-    AppendBuffer(memory, dst, (AL_Buffer_GetData(&stream) + meta->pSections[numSection].uOffset), size);
-    AppendBuffer(memory, dst, AL_Buffer_GetData(&stream), (meta->pSections[numSection]).uLength - size);
+    memory->move(&stream, offset, &stream, meta->pSections[numSection].uOffset, size);
+    memory->move(&stream, offset, &stream, 0, (meta->pSections[numSection]).uLength - size);
   }
   else
-    AppendBuffer(memory, dst, (AL_Buffer_GetData(&stream) + meta->pSections[numSection].uOffset), meta->pSections[numSection].uLength);
+    memory->move(&stream, offset, &stream, meta->pSections[numSection].uOffset, meta->pSections[numSection].uLength);
 
   return meta->pSections[numSection].uLength;
 }
 
 static int ReconstructStream(shared_ptr<MemoryInterface> memory, AL_TBuffer& stream)
 {
-  auto origin = AL_Buffer_GetData(&stream);
   auto size = 0;
-
   auto meta = (AL_TStreamMetaData*)(AL_Buffer_GetMetaData(&stream, AL_META_TYPE_STREAM));
   assert(meta);
 
   for(int i = 0; i < meta->uNumSection; i++)
-    size += WriteOneSection(memory, origin, stream, i);
+    size += WriteOneSection(memory, size, stream, i);
 
   return size;
 }

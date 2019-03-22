@@ -42,12 +42,13 @@
 CPPMemory::CPPMemory() = default;
 CPPMemory::~CPPMemory() = default;
 
-void CPPMemory::copy(unsigned char* destination, unsigned char const* source, size_t size)
+void CPPMemory::copy(AL_TBuffer* destination, int destination_offset, AL_TBuffer const* source, int source_offset, size_t size)
 {
-  std::copy(source, source + size, destination);
+  std::copy(AL_Buffer_GetData(source) + source_offset, AL_Buffer_GetData(source) + source_offset + size, AL_Buffer_GetData(destination) + destination_offset);
 }
 
-void CPPMemory::move(unsigned char* destination, unsigned char const* source, size_t size)
+void CPPMemory::move(AL_TBuffer* destination, int destination_offset, AL_TBuffer const* source, int source_offset, size_t size)
 {
-  std::move(source, source + size, destination);
+  std::move(AL_Buffer_GetData(source) + source_offset, AL_Buffer_GetData(source) + source_offset + size, AL_Buffer_GetData(destination) + destination_offset);
 }
+
