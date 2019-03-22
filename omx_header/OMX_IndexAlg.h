@@ -98,6 +98,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexConfigVideoNotifyResolutionChange,             /**< reference: OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE */
   OMX_ALG_IndexConfigVideoInsertPrefixSEI,                    /**< reference: OMX_ALG_VIDEO_CONFIG_SEI */
   OMX_ALG_IndexConfigVideoInsertSuffixSEI,                    /**< reference: OMX_ALG_VIDEO_CONFIG_SEI */
+  OMX_ALG_IndexConfigVideoQuantizationParameterTable,         /**< reference: OMX_ALG_VIDEO_CONFIG_DATA */
 
   /* Vender Image & Video common configurations */
   OMX_ALG_IndexVendorCommonStartUnused = OMX_IndexVendorStartUnused + 0x00700000,

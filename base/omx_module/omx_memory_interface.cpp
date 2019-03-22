@@ -35,13 +35,6 @@
 *
 ******************************************************************************/
 
-#pragma once
+#include "omx_memory_interface.h"
 
-#include "omx_copy_interface.h"
-
-struct  DMACopy final : CopyInterface
-{
-  DMACopy();
-  ~DMACopy() override;
-  void copy(unsigned char* dest, unsigned char const* src, int size) override;
-};
+MemoryInterface::~MemoryInterface() = default;

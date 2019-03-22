@@ -108,9 +108,9 @@ bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop gop)
   gopParam.eGdrMode = ConvertModuleToSoftGdr(gop.gdr);
 
   if(isGDREnabled(gop))
-    settings.uEnableSEI |= SEI_RP;
+    settings.uEnableSEI |= AL_SEI_RP;
   else
-    settings.uEnableSEI &= ~SEI_RP;
+    settings.uEnableSEI &= ~AL_SEI_RP;
 
   gopParam.bEnableLT = gop.isLongTermEnabled;
   gopParam.uFreqLT = gop.ltFrequency;
@@ -204,9 +204,9 @@ static int RawAllocationSize(int stride, int sliceHeight, AL_EChromaMode eChroma
   auto size = stride * sliceHeight;
   switch(eChromaMode)
   {
-  case CHROMA_MONO: return size;
-  case CHROMA_4_2_0: return (3 * size) / 2;
-  case CHROMA_4_2_2: return 2 * size;
+  case AL_CHROMA_MONO: return size;
+  case AL_CHROMA_4_2_0: return (3 * size) / 2;
+  case AL_CHROMA_4_2_2: return 2 * size;
   default: return -1;
   }
 }

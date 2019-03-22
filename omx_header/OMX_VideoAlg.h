@@ -750,6 +750,7 @@ typedef enum
   OMX_ALG_ROI_QUALITY_MEDIUM,
   OMX_ALG_ROI_QUALITY_LOW,
   OMX_ALG_ROI_QUALITY_DONT_CARE,
+  OMX_ALG_ROI_QUALITY_INTRA,
   OMX_ALG_ROI_QUALITY_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_ERoiQuality;
 
@@ -834,6 +835,27 @@ typedef struct OMX_ALG_VIDEO_CONFIG_SEI
   OMX_U32 nFilledLen;
   OMX_U32 nOffset;
 }OMX_ALG_VIDEO_CONFIG_SEI;
+
+/**
+ * Struct for dynamically send data
+ *
+ * STRUCT MEMBERS:
+ *  nSize      : Size of the structure in bytes
+ *  nVersion   : OMX specification version information
+ *  pBuffer    : Pointer to actual block of memory that is acting as the buffer
+ *  nAllocLen  : Size of the buffer allocated, in bytes
+ *  nFilledLen : Number of bytes currently in the buffer
+ *  nOffset    : Start offset of valid data in bytes from the start of the buffer
+ */
+typedef struct OMX_ALG_VIDEO_CONFIG_DATA
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U8* pBuffer;
+  OMX_U32 nAllocLen;
+  OMX_U32 nFilledLen;
+  OMX_U32 nOffset;
+}OMX_ALG_VIDEO_CONFIG_DATA;
 
 #ifdef __cplusplus
 }

@@ -319,7 +319,7 @@ static struct xvsfsync_chan_config setEncFrameBufferConfig(int channelId, AL_TBu
     config.chroma_start_address[XVSFSYNC_PROD] = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
     config.chroma_end_address[XVSFSYNC_PROD] = config.chroma_start_address[XVSFSYNC_PROD] + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
     config.chroma_start_address[XVSFSYNC_CONS] = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
-    int iVerticalFactor = (AL_GetChromaMode(srcMeta->tFourCC) == CHROMA_4_2_0) ? 2 : 1;
+    int iVerticalFactor = (AL_GetChromaMode(srcMeta->tFourCC) == AL_CHROMA_4_2_0) ? 2 : 1;
     int iHardwareChromaVerticalPitch = RoundUp((srcMeta->tDim.iHeight / iVerticalFactor), (hardwareVerticalStrideAlignment / iVerticalFactor));
     config.chroma_end_address[XVSFSYNC_CONS] = config.chroma_start_address[XVSFSYNC_CONS] + (iHardwarePitch * (iHardwareChromaVerticalPitch - 1)) + RoundUp(srcMeta->tDim.iWidth, hardwareHorizontalStrideAlignment) - 1;
   }

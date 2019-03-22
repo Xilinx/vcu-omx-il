@@ -41,26 +41,26 @@ AL_EChromaMode ConvertModuleToSoftChroma(ColorType color)
 {
   switch(color)
   {
-  case ColorType::COLOR_400: return CHROMA_4_0_0;
-  case ColorType::COLOR_420: return CHROMA_4_2_0;
-  case ColorType::COLOR_422: return CHROMA_4_2_2;
-  case ColorType::COLOR_444: return CHROMA_4_4_4;
-  case ColorType::COLOR_MAX_ENUM: return CHROMA_MAX_ENUM;
-  default: return CHROMA_MAX_ENUM;
+  case ColorType::COLOR_400: return AL_CHROMA_4_0_0;
+  case ColorType::COLOR_420: return AL_CHROMA_4_2_0;
+  case ColorType::COLOR_422: return AL_CHROMA_4_2_2;
+  case ColorType::COLOR_444: return AL_CHROMA_4_4_4;
+  case ColorType::COLOR_MAX_ENUM: return AL_CHROMA_MAX_ENUM;
+  default: return AL_CHROMA_MAX_ENUM;
   }
 
-  return CHROMA_MAX_ENUM;
+  return AL_CHROMA_MAX_ENUM;
 }
 
 ColorType ConvertSoftToModuleColor(AL_EChromaMode chroma)
 {
   switch(chroma)
   {
-  case CHROMA_4_0_0: return ColorType::COLOR_400;
-  case CHROMA_4_2_0: return ColorType::COLOR_420;
-  case CHROMA_4_2_2: return ColorType::COLOR_422;
-  case CHROMA_4_4_4: return ColorType::COLOR_444;
-  case CHROMA_MAX_ENUM: return ColorType::COLOR_MAX_ENUM;
+  case AL_CHROMA_4_0_0: return ColorType::COLOR_400;
+  case AL_CHROMA_4_2_0: return ColorType::COLOR_420;
+  case AL_CHROMA_4_2_2: return ColorType::COLOR_422;
+  case AL_CHROMA_4_4_4: return ColorType::COLOR_444;
+  case AL_CHROMA_MAX_ENUM: return ColorType::COLOR_MAX_ENUM;
   default: return ColorType::COLOR_MAX_ENUM;
   }
 

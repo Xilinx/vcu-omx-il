@@ -147,7 +147,7 @@ static int CreateLatency(AL_TEncSettings settings)
 static bool CreateLowBandwidth(AL_TEncSettings settings)
 {
   auto channel = settings.tChParam[0];
-  return channel.pMeRange[SLICE_P][1] == 16;
+  return channel.pMeRange[AL_SLICE_P][1] == 16;
 }
 
 static BufferCounts CreateBufferCounts(AL_TEncSettings settings)
@@ -388,7 +388,7 @@ MediatypeInterface::ErrorType EncMediatypeHEVC::Get(std::string index, void* set
 static bool UpdateLowBandwidth(AL_TEncSettings& settings, bool isLowBandwidthEnabled)
 {
   auto& channel = settings.tChParam[0];
-  channel.pMeRange[SLICE_P][1] = isLowBandwidthEnabled ? 16 : 32;
+  channel.pMeRange[AL_SLICE_P][1] = isLowBandwidthEnabled ? 16 : 32;
   return true;
 }
 

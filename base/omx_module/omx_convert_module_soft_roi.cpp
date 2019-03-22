@@ -45,6 +45,7 @@ AL_ERoiQuality ConvertModuleToSoftQuality(QualityType const& quality)
   case QualityType::REGION_OF_INTEREST_QUALITY_MEDIUM: return AL_ROI_QUALITY_MEDIUM;
   case QualityType::REGION_OF_INTEREST_QUALITY_LOW: return AL_ROI_QUALITY_LOW;
   case QualityType::REGION_OF_INTEREST_QUALITY_DONT_CARE: return AL_ROI_QUALITY_DONT_CARE;
+  case QualityType::REGION_OF_INTEREST_QUALITY_INTRA: return AL_ROI_QUALITY_INTRA;
   case QualityType::REGION_OF_INTEREST_QUALITY_MAX_ENUM: return AL_ROI_QUALITY_MAX_ENUM;
   default: return AL_ROI_QUALITY_MAX_ENUM;
   }
@@ -60,6 +61,7 @@ QualityType ConvertSoftToModuleQuality(AL_ERoiQuality const& quality)
   case AL_ROI_QUALITY_MEDIUM: return QualityType::REGION_OF_INTEREST_QUALITY_MEDIUM;
   case AL_ROI_QUALITY_LOW: return QualityType::REGION_OF_INTEREST_QUALITY_LOW;
   case AL_ROI_QUALITY_DONT_CARE: return QualityType::REGION_OF_INTEREST_QUALITY_DONT_CARE;
+  case AL_ROI_QUALITY_INTRA: return QualityType::REGION_OF_INTEREST_QUALITY_INTRA;
   case AL_ROI_QUALITY_MAX_ENUM: return QualityType::REGION_OF_INTEREST_QUALITY_MAX_ENUM;
   default: return QualityType::REGION_OF_INTEREST_QUALITY_MAX_ENUM;
   }

@@ -35,10 +35,25 @@
 *
 ******************************************************************************/
 
-#pragma once
+#include "omx_dma_memory.h"
 
-struct CopyInterface
+#include <cassert>
+
+DMAMemory::DMAMemory() = default;
+DMAMemory::~DMAMemory() = default;
+
+void DMAMemory::copy(unsigned char* destination, unsigned char const* source, size_t size)
 {
-  virtual ~CopyInterface() = 0;
-  virtual void copy(unsigned char* dest, unsigned char const* src, int size) = 0;
-};
+  (void)destination;
+  (void)source;
+  (void)size;
+  assert(0 && "not implemented yet");
+}
+
+void DMAMemory::move(unsigned char* destination, unsigned char const* source, size_t size)
+{
+  (void)destination;
+  (void)source;
+  (void)size;
+  assert(0 && "not implemented yet");
+}

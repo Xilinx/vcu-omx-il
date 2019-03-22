@@ -79,7 +79,7 @@ void DecMediatypeHEVC::Reset()
 
   auto& stream = settings.tStream;
   stream.tDim = { 176, 144 };
-  stream.eChroma = CHROMA_4_2_0;
+  stream.eChroma = AL_CHROMA_4_2_0;
   stream.iBitDepth = 8;
   stream.iLevel = 10;
   stream.iProfileIdc = AL_PROFILE_HEVC_MAIN;

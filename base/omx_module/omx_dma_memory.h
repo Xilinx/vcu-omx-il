@@ -35,17 +35,14 @@
 *
 ******************************************************************************/
 
-#include "omx_dma_copy.h"
+#pragma once
 
-#include <cassert>
+#include "omx_memory_interface.h"
 
-DMACopy::DMACopy() = default;
-DMACopy::~DMACopy() = default;
-
-void DMACopy::copy(unsigned char* dest, unsigned char const* src, int size)
+struct  DMAMemory final : MemoryInterface
 {
-  (void)dest;
-  (void)src;
-  (void)size;
-  assert(0 && "none-implemented yet");
-}
+  DMAMemory();
+  ~DMAMemory() override;
+  void copy(unsigned char* destination, unsigned char const* source, size_t size) override;
+  void move(unsigned char* destination, unsigned char const* sourec, size_t size) override;
+};

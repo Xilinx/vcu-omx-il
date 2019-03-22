@@ -35,13 +35,19 @@
 *
 ******************************************************************************/
 
-#include "omx_cpp_copy.h"
+#include "omx_cpp_memory.h"
 
 #include <algorithm>
 
-CPPCopy::CPPCopy() = default;
-CPPCopy::~CPPCopy() = default;
-void CPPCopy::copy(unsigned char* dest, unsigned char const* src, int size)
+CPPMemory::CPPMemory() = default;
+CPPMemory::~CPPMemory() = default;
+
+void CPPMemory::copy(unsigned char* destination, unsigned char const* source, size_t size)
 {
-  std::copy(src, src + size, dest);
+  std::copy(source, source + size, destination);
+}
+
+void CPPMemory::move(unsigned char* destination, unsigned char const* source, size_t size)
+{
+  std::move(source, source + size, destination);
 }

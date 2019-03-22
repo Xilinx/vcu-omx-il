@@ -206,6 +206,7 @@ Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> me
   shouldClearROI = false;
   shouldPushROI = false;
   shouldFireEventPortSettingsChanges = true;
+  isQuantizationParameterTableUsed = false;
   version.nVersion = ALLEGRODVT_OMX_VERSION;
   AssociateSpecVersion(spec);
 
@@ -1221,6 +1222,20 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
     processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoNotifyResolutionChange, shared_ptr<void>(drc)));
     return OMX_ErrorNone;
   }
+  case OMX_ALG_IndexConfigVideoQuantizationParameterTable:
+  {
+    if(shouldPushROI)
+      return OMX_ErrorUnsupportedIndex;
+    OMX_ALG_VIDEO_CONFIG_DATA* userData = static_cast<OMX_ALG_VIDEO_CONFIG_DATA*>(config);
+    OMX_ALG_VIDEO_CONFIG_DATA* data = new OMX_ALG_VIDEO_CONFIG_DATA {};
+    memcpy(data, userData, sizeof(OMX_ALG_VIDEO_CONFIG_DATA));
+    data->pBuffer = new OMX_U8[userData->nAllocLen] {};
+    memcpy(data->pBuffer, userData->pBuffer, userData->nAllocLen);
+    isQuantizationParameterTableUsed = true;
+    processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoQuantizationParameterTable, shared_ptr<void>(data)));
+    return OMX_ErrorNone;
+  }
+
   default:
     LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
     return OMX_ErrorUnsupportedIndex;
@@ -1674,7 +1689,7 @@ void Component::TreatFillBufferCommand(Task* task)
 
 RegionQuality CreateRegionQuality(OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST const& roi)
 {
-  RegionQuality rq;
+  RegionQuality rq {};
   rq.region.x = roi.nLeft;
   rq.region.y = roi.nTop;
   rq.region.width = roi.nWidth;
@@ -1781,6 +1796,14 @@ void Component::TreatDynamicCommand(Task* task)
     resolution.width = drc->nWidth;
     resolution.height = drc->nHeight;
     module->SetDynamic(DYNAMIC_INDEX_RESOLUTION, (void*)(&resolution));
+    return;
+  }
+  case OMX_ALG_IndexConfigVideoQuantizationParameterTable:
+  {
+    auto data = static_cast<OMX_ALG_VIDEO_CONFIG_DATA*>(opt);
+    module->SetDynamic(DYNAMIC_INDEX_INSERT_QUANTIZATION_PARAMETER_BUFFER, data->pBuffer + data->nOffset);
+    isQuantizationParameterTableUsed = false;
+    delete[] data->pBuffer;
     return;
   }
 

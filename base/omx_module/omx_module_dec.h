@@ -40,7 +40,7 @@
 #include "omx_device_dec_interface.h"
 #include "omx_module_enums.h"
 #include "omx_module_codec_structs.h"
-#include "omx_copy_interface.h"
+#include "omx_memory_interface.h"
 
 #include <vector>
 #include <queue>
@@ -58,7 +58,7 @@ extern "C"
 
 struct DecModule final : public ModuleInterface
 {
-  DecModule(std::shared_ptr<DecMediatypeInterface> media, std::shared_ptr<DecDevice> device, std::shared_ptr<AL_TAllocator> allocator, std::shared_ptr<CopyInterface> copycat);
+  DecModule(std::shared_ptr<DecMediatypeInterface> media, std::shared_ptr<DecDevice> device, std::shared_ptr<AL_TAllocator> allocator, std::shared_ptr<MemoryInterface> memory);
   ~DecModule() override;
 
   void Free(void* buffer) override;
@@ -83,7 +83,7 @@ private:
   std::shared_ptr<DecMediatypeInterface> const media;
   std::shared_ptr<DecDevice> device;
   std::shared_ptr<AL_TAllocator> allocator;
-  std::shared_ptr<CopyInterface> copycat;
+  std::shared_ptr<MemoryInterface> memory;
 
   DisplayPictureInfo currentDisplayPictureInfo;
 

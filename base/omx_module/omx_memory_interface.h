@@ -35,6 +35,13 @@
 *
 ******************************************************************************/
 
-#include "omx_copy_interface.h"
+#pragma once
 
-CopyInterface::~CopyInterface() = default;
+#include <cstddef>
+
+struct MemoryInterface
+{
+  virtual ~MemoryInterface() = 0;
+  virtual void copy(unsigned char* destination, unsigned char const* source, size_t size) = 0;
+  virtual void move(unsigned char* destination, unsigned char const* source, size_t size) = 0;
+};

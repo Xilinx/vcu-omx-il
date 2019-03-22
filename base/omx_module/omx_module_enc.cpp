@@ -81,11 +81,11 @@ static ModuleInterface::ErrorType ToModuleError(int errorCode)
   return ModuleInterface::UNDEFINED;
 }
 
-EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, shared_ptr<EncDevice> device, shared_ptr<AL_TAllocator> allocator, shared_ptr<CopyInterface> copycat) :
+EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, shared_ptr<EncDevice> device, shared_ptr<AL_TAllocator> allocator, shared_ptr<MemoryInterface> memory) :
   media(media),
   device(device),
   allocator(allocator),
-  copycat(copycat)
+  memory(memory)
 {
   assert(this->media);
   assert(this->device);
@@ -179,8 +179,9 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
 
   twoPassMngr.reset(createTwoPassManager(media));
 
-  auto chan = media->settings.tChParam[0];
-  roiCtx = AL_RoiMngr_Create(chan.uWidth, chan.uHeight, chan.eProfile, AL_ROI_QUALITY_MEDIUM, AL_ROI_INCOMING_ORDER);
+  Resolution resolution;
+  media->Get("SETTINGS_INDEX_RESOLUTION", &resolution);
+  roiCtx = AL_RoiMngr_Create(resolution.width, resolution.height, media->settings.tChParam[0].eProfile, AL_ROI_QUALITY_MEDIUM, AL_ROI_INCOMING_ORDER);
 
   if(!roiCtx)
   {
@@ -254,11 +255,10 @@ bool EncModule::DestroyEncoder()
 
     AL_Encoder_Destroy(encoder.enc);
 
-    while(!encoder.roiBuffers.empty())
+    if(encoder.nextQPBuffer != nullptr)
     {
-      auto roiBuffer = encoder.roiBuffers.front();
-      encoder.roiBuffers.pop_front();
-      AL_Buffer_Unref(roiBuffer);
+      AL_Buffer_Unref(encoder.nextQPBuffer);
+      encoder.nextQPBuffer = nullptr;
     }
 
     while(encoder.lookAheadMngr && !encoder.lookAheadMngr->m_fifo.empty())
@@ -569,20 +569,21 @@ bool EncModule::Empty(BufferHandleInterface* handle)
   if(shouldBeCopied.Exist(input))
   {
     auto buffer = shouldBeCopied.Get(input);
-    copycat->copy(AL_Buffer_GetData(input), buffer, input->zSize);
+    copy(buffer, buffer + input->zSize, AL_Buffer_GetData(input));
   }
 
-  if(currentEnc.roiBuffers.empty())
+  if(currentEnc.nextQPBuffer == nullptr)
     return AL_Encoder_Process(encoder, input, nullptr);
 
-  auto roiBuffer = currentEnc.roiBuffers.front();
-  currentEnc.roiBuffers.pop_front();
-  auto success = AL_Encoder_Process(encoder, input, roiBuffer);
+  auto success = AL_Encoder_Process(encoder, input, currentEnc.nextQPBuffer);
 
   if(currentEnc.index != encoders.back().index)
-    encoders[currentEnc.index + 1].roiBuffers.push_back(roiBuffer);
+    encoders[currentEnc.index + 1].nextQPBuffer = currentEnc.nextQPBuffer;
   else
-    AL_Buffer_Unref(roiBuffer);
+  {
+    AL_Buffer_Unref(currentEnc.nextQPBuffer);
+    currentEnc.nextQPBuffer = nullptr;
+  }
 
   return success;
 }
@@ -636,13 +637,13 @@ bool EncModule::Fill(BufferHandleInterface* handle)
   return AL_Encoder_PutStreamBuffer(encoder, output);
 }
 
-static void AppendBuffer(uint8_t*& dst, uint8_t const* src, size_t len)
+static void AppendBuffer(shared_ptr<MemoryInterface> memory, uint8_t*& dst, uint8_t const* src, size_t len)
 {
-  move(src, src + len, dst);
+  memory->move(dst, src, len);
   dst += len;
 }
 
-static int WriteOneSection(uint8_t*& dst, AL_TBuffer& stream, int numSection)
+static int WriteOneSection(shared_ptr<MemoryInterface> memory, uint8_t*& dst, AL_TBuffer& stream, int numSection)
 {
   auto meta = (AL_TStreamMetaData*)AL_Buffer_GetMetaData(&stream, AL_META_TYPE_STREAM);
 
@@ -653,16 +654,16 @@ static int WriteOneSection(uint8_t*& dst, AL_TBuffer& stream, int numSection)
 
   if(size < (meta->pSections[numSection]).uLength)
   {
-    AppendBuffer(dst, (AL_Buffer_GetData(&stream) + meta->pSections[numSection].uOffset), size);
-    AppendBuffer(dst, AL_Buffer_GetData(&stream), (meta->pSections[numSection]).uLength - size);
+    AppendBuffer(memory, dst, (AL_Buffer_GetData(&stream) + meta->pSections[numSection].uOffset), size);
+    AppendBuffer(memory, dst, AL_Buffer_GetData(&stream), (meta->pSections[numSection]).uLength - size);
   }
   else
-    AppendBuffer(dst, (AL_Buffer_GetData(&stream) + meta->pSections[numSection].uOffset), meta->pSections[numSection].uLength);
+    AppendBuffer(memory, dst, (AL_Buffer_GetData(&stream) + meta->pSections[numSection].uOffset), meta->pSections[numSection].uLength);
 
   return meta->pSections[numSection].uLength;
 }
 
-static int ReconstructStream(AL_TBuffer& stream)
+static int ReconstructStream(shared_ptr<MemoryInterface> memory, AL_TBuffer& stream)
 {
   auto origin = AL_Buffer_GetData(&stream);
   auto size = 0;
@@ -671,7 +672,7 @@ static int ReconstructStream(AL_TBuffer& stream)
   assert(meta);
 
   for(int i = 0; i < meta->uNumSection; i++)
-    size += WriteOneSection(origin, stream, i);
+    size += WriteOneSection(memory, origin, stream, i);
 
   return size;
 }
@@ -762,12 +763,12 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 
   auto async_stream_reconstruction = [&]() -> int
                                      {
-                                       int size = ReconstructStream(*stream);
+                                       int size = ReconstructStream(memory, *stream);
 
                                        if(shouldBeCopied.Exist(stream))
                                        {
                                          auto buffer = shouldBeCopied.Get(stream);
-                                         copycat->copy(buffer, AL_Buffer_GetData(stream), size);
+                                         copy(AL_Buffer_GetData(stream), AL_Buffer_GetData(stream) + size, buffer);
                                        }
                                        return size;
                                      };
@@ -880,22 +881,19 @@ void EncModule::EmptyFifo(GenericEncoder& encoder, bool isEOS)
   auto src = encoder.lookAheadMngr->m_fifo.front();
   encoder.lookAheadMngr->m_fifo.pop_front();
 
-  AL_TBuffer* roiBuffer = nullptr;
+  AL_TBuffer* qpBuffer = nextEnc.nextQPBuffer;
 
-  if(!nextEnc.roiBuffers.empty())
-  {
-    roiBuffer = nextEnc.roiBuffers.front();
-    nextEnc.roiBuffers.pop_front();
-  }
+  if(nextEnc.nextQPBuffer != nullptr)
+    nextEnc.nextQPBuffer = nullptr;
 
-  AL_Encoder_Process(nextEnc.enc, src, roiBuffer);
+  AL_Encoder_Process(nextEnc.enc, src, qpBuffer);
 
-  if(roiBuffer)
+  if(qpBuffer)
   {
     if(nextEnc.index != encoders.back().index)
-      encoders[nextEnc.index + 1].roiBuffers.push_back(roiBuffer);
+      encoders[nextEnc.index + 1].nextQPBuffer = qpBuffer;
     else
-      AL_Buffer_Unref(roiBuffer);
+      AL_Buffer_Unref(qpBuffer);
   }
 
   AL_Buffer_Unref(src);
@@ -1006,23 +1004,39 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
     return SUCCESS;
   }
 
+  auto createQPTable = [&](unsigned char const* bufferToCopy) -> AL_TBuffer*
+                       {
+                         Resolution resolution;
+                         auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
+                         assert(ret == MediatypeInterface::SUCCESS);
+                         AL_TDimension tDim {
+                           resolution.width, resolution.height
+                         };
+                         auto size = AL_GetAllocSizeEP2(tDim, static_cast<AL_ECodec>(AL_GET_PROFILE_CODEC(media->settings.tChParam[0].eProfile)));
+                         auto qpTable = AL_Buffer_Create_And_Allocate(allocator.get(), size, AL_Buffer_Destroy);
+                         copy(bufferToCopy, bufferToCopy + size, AL_Buffer_GetData(qpTable));
+                         return qpTable;
+                       };
+
   if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_EMPTY")
   {
     assert(roiCtx);
-    auto bufferToEmpty = static_cast<unsigned char const*>(param);
-    Resolution resolution {};
-    auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
-    assert(ret == MediatypeInterface::SUCCESS);
-    AL_TDimension tDim {
-      resolution.width, resolution.height
-    };
-    ProfileLevelType profileLevel {};
-    ret = media->Get(SETTINGS_INDEX_PROFILE_LEVEL, &profileLevel);
-    auto size = AL_GetAllocSizeEP2(tDim, static_cast<AL_ECodec>(AL_GET_PROFILE_CODEC(media->settings.tChParam[0].eProfile)));
-    auto roiBuffer = AL_Buffer_Create_And_Allocate(allocator.get(), size, AL_Buffer_Destroy);
+
+    if(encoders.front().nextQPBuffer)
+      AL_Buffer_Unref(encoders.front().nextQPBuffer);
+    auto roiBuffer = createQPTable(static_cast<unsigned char const*>(param));
     AL_Buffer_Ref(roiBuffer);
-    copycat->copy(AL_Buffer_GetData(roiBuffer), bufferToEmpty, size);
-    encoders.front().roiBuffers.push_back(roiBuffer);
+    encoders.front().nextQPBuffer = roiBuffer;
+    return SUCCESS;
+  }
+
+  if(index == "DYNAMIC_INDEX_INSERT_QUANTIZATION_PARAMETER_BUFFER")
+  {
+    if(encoders.front().nextQPBuffer)
+      AL_Buffer_Unref(encoders.front().nextQPBuffer);
+    auto qpTable = createQPTable(static_cast<unsigned char const*>(param));
+    AL_Buffer_Ref(qpTable);
+    encoders.front().nextQPBuffer = qpTable;
     return SUCCESS;
   }
 
@@ -1086,11 +1100,6 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
     return SUCCESS;
   }
 
-  if(index == "DYNAMIC_INDEX_INSERT_QUANTIZATION_PARAMETER_BUFFER")
-  {
-    return NOT_IMPLEMENTED;
-  }
-
   return BAD_INDEX;
 }
 
@@ -1119,7 +1128,7 @@ ModuleInterface::ErrorType EncModule::GetDynamic(std::string index, void* param)
   if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_FILL")
   {
     assert(roiCtx);
-    uint8_t* bufferToFill = static_cast<uint8_t*>(param);
+    auto bufferToFill = static_cast<unsigned char*>(param);
     AL_RoiMngr_FillBuff(roiCtx, 1, 1, bufferToFill + EP2_BUF_QP_BY_MB.Offset);
     return SUCCESS;
   }

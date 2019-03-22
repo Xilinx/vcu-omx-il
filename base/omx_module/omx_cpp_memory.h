@@ -37,11 +37,12 @@
 
 #pragma once
 
-#include "omx_copy_interface.h"
+#include "omx_memory_interface.h"
 
-struct CPPCopy final : CopyInterface
+struct CPPMemory final : MemoryInterface
 {
-  CPPCopy();
-  ~CPPCopy() override;
-  void copy(unsigned char* dest, unsigned char const* src, int size) override;
+  CPPMemory();
+  ~CPPMemory() override;
+  void copy(unsigned char* destination, unsigned char const* source, size_t size) override;
+  void move(unsigned char* destination, unsigned char const* source, size_t size) override;
 };

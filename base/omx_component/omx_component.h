@@ -139,6 +139,7 @@ protected:
   bool shouldClearROI;
   bool shouldPushROI;
   bool shouldFireEventPortSettingsChanges;
+  bool isQuantizationParameterTableUsed;
   std::vector<OMXSei> tmpSeis;
 
   OMX_STRING name;

@@ -54,11 +54,11 @@ extern "C"
 
 using namespace std;
 
-DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, shared_ptr<DecDevice> device, shared_ptr<AL_TAllocator> allocator, shared_ptr<CopyInterface> copycat) :
+DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, shared_ptr<DecDevice> device, shared_ptr<AL_TAllocator> allocator, shared_ptr<MemoryInterface> memory) :
   media(media),
   device(device),
   allocator(allocator),
-  copycat(copycat)
+  memory(memory)
 {
   assert(this->media);
   assert(this->device);
@@ -148,7 +148,7 @@ void DecModule::CopyIfRequired(AL_TBuffer* frameToDisplay, int size)
   if(!shouldBeCopied.Exist(frameToDisplay))
     return;
   auto buffer = (unsigned char*)(shouldBeCopied.Get(frameToDisplay));
-  copycat->copy(buffer, AL_Buffer_GetData(frameToDisplay), size);
+  copy(AL_Buffer_GetData(frameToDisplay), AL_Buffer_GetData(frameToDisplay) + size, buffer);
 }
 
 void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)

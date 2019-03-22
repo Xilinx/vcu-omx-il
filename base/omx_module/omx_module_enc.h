@@ -38,7 +38,7 @@
 #pragma once
 #include "omx_module_interface.h"
 #include "omx_module_structs.h"
-#include "omx_copy_interface.h"
+#include "omx_memory_interface.h"
 
 #include "omx_device_enc_interface.h"
 #include "omx_module_codec_structs.h"
@@ -86,16 +86,16 @@ struct GenericEncoder
   ~GenericEncoder() = default;
   AL_HEncoder enc {};
   int index {};
-  std::list<AL_TBuffer*> roiBuffers {};
+  AL_TBuffer* nextQPBuffer {};
   std::vector<AL_TBuffer*> streamBuffers {};
   std::shared_ptr<ProcessorFifo> threadFifo {};
   std::shared_ptr<LookAheadMngr> lookAheadMngr {};
-  LookAheadCallBackParam callbackParam;
+  LookAheadCallBackParam callbackParam {};
 };
 
 struct EncModule final : public ModuleInterface
 {
-  EncModule(std::shared_ptr<EncMediatypeInterface> media, std::shared_ptr<EncDevice> device, std::shared_ptr<AL_TAllocator> allocator, std::shared_ptr<CopyInterface> copycat);
+  EncModule(std::shared_ptr<EncMediatypeInterface> media, std::shared_ptr<EncDevice> device, std::shared_ptr<AL_TAllocator> allocator, std::shared_ptr<MemoryInterface> memory);
   ~EncModule() override;
 
   bool SetCallbacks(Callbacks callbacks) override;
@@ -121,7 +121,7 @@ private:
   std::shared_ptr<EncMediatypeInterface> const media;
   std::shared_ptr<EncDevice> const device;
   std::shared_ptr<AL_TAllocator> const allocator;
-  std::shared_ptr<CopyInterface> const copycat;
+  std::shared_ptr<MemoryInterface> const memory;
   std::vector<GenericEncoder> encoders;
   Callbacks callbacks;
 

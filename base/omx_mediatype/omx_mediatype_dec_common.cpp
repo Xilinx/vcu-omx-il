@@ -149,9 +149,9 @@ static int RawAllocationSize(int stride, int sliceHeight, AL_EChromaMode eChroma
   auto size = stride * sliceHeight;
   switch(eChromaMode)
   {
-  case CHROMA_MONO: return size;
-  case CHROMA_4_2_0: return (3 * size) / 2;
-  case CHROMA_4_2_2: return 2 * size;
+  case AL_CHROMA_MONO: return size;
+  case AL_CHROMA_4_2_0: return (3 * size) / 2;
+  case AL_CHROMA_4_2_2: return 2 * size;
   default: return -1;
   }
 }

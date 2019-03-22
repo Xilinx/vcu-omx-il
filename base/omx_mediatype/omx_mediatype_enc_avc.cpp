@@ -147,7 +147,7 @@ static int CreateLatency(AL_TEncSettings settings)
 static bool CreateLowBandwidth(AL_TEncSettings settings)
 {
   auto channel = settings.tChParam[0];
-  return channel.pMeRange[SLICE_P][1] == 8;
+  return channel.pMeRange[AL_SLICE_P][1] == 8;
 }
 
 static EntropyCodingType CreateEntropyCoding(AL_TEncSettings settings)
@@ -400,7 +400,7 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Get(std::string index, void* sett
 static bool UpdateLowBandwidth(AL_TEncSettings& settings, bool isLowBandwidthEnabled)
 {
   auto& channel = settings.tChParam[0];
-  channel.pMeRange[SLICE_P][1] = isLowBandwidthEnabled ? 8 : 16;
+  channel.pMeRange[AL_SLICE_P][1] = isLowBandwidthEnabled ? 8 : 16;
   return true;
 }
 
