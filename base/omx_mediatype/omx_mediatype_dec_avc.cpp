@@ -111,7 +111,7 @@ static int CreateLatency(AL_TDecSettings settings)
   auto buffers = AL_AVC_GetMinOutputBuffersNeeded(stream, settings.iStackSize);
 
   if(settings.eDpbMode == AL_DPB_NO_REORDERING)
-    buffers -= settings.iStackSize;
+    buffers = 3;
 
   if(settings.eDecUnit == AL_VCL_NAL_UNIT)
     buffers = 1;
