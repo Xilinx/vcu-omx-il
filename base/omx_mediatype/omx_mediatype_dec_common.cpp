@@ -172,9 +172,13 @@ DecodedPictureBufferType CreateDecodedPictureBuffer(AL_TDecSettings settings)
 
 bool UpdateIsEnabledSubframe(AL_TDecSettings& settings, bool isEnabledSubframe)
 {
-  settings.bLowLat = isEnabledSubframe;
   settings.eDecUnit = isEnabledSubframe ? ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_SLICE) : ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_FRAME);
-  settings.eDpbMode = isEnabledSubframe ? ConvertModuleToSoftDecodedPictureBuffer(DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NO_REORDERING) : ConvertModuleToSoftDecodedPictureBuffer(DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NORMAL);
+
+  if(isEnabledSubframe)
+  {
+    settings.bLowLat = true;
+    settings.eDpbMode = ConvertModuleToSoftDecodedPictureBuffer(DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NO_REORDERING);
+  }
   return true;
 }
 
