@@ -104,10 +104,7 @@ bool CheckBitrate(Bitrate bitrate, Clock clock)
   if(bitrate.max < bitrate.target)
     return false;
 
-  if(bitrate.mode == RateControlType::RATE_CONTROL_MAX_ENUM)
-    return false;
-
-  if(bitrate.option == RateControlOptionType::RATE_CONTROL_OPTION_MAX_ENUM)
+  if(bitrate.rateControl.mode == RateControlType::RATE_CONTROL_MAX_ENUM)
     return false;
 
   auto timeFrame = ((1 * 1000) / ((clock.framerate * 1000) / clock.clockratio));

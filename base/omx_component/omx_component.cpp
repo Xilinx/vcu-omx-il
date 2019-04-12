@@ -633,6 +633,12 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto tp = static_cast<OMX_ALG_VIDEO_PARAM_TWOPASS*>(param);
     return ConstructVideoTwoPass(*tp, *port, media);
   }
+  case OMX_ALG_IndexParamVideoSkipFrame:
+  {
+    auto port = getCurrentPort(param);
+    auto skip = static_cast<OMX_ALG_VIDEO_PARAM_SKIP_FRAME*>(param);
+    return ConstructVideoSkipFrame(*skip, *port, media);
+  }
   case OMX_ALG_IndexParamVideoColorPrimaries:
   {
     auto port = getCurrentPort(param);
@@ -848,6 +854,11 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     auto tp = static_cast<OMX_ALG_VIDEO_PARAM_TWOPASS*>(param);
     return SetVideoTwoPass(*tp, *port, media);
   }
+  case OMX_ALG_IndexParamVideoSkipFrame:
+  {
+    auto skipFrame = static_cast<OMX_ALG_VIDEO_PARAM_SKIP_FRAME*>(param);
+    return SetVideoSkipFrame(*skipFrame, *port, media);
+  }
   case OMX_ALG_IndexParamVideoColorPrimaries:
   {
     auto c = static_cast<OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES*>(param);
@@ -857,7 +868,7 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
   case OMX_ALG_IndexParamPreallocation:
   {
     auto p = (OMX_ALG_PARAM_PREALLOCATION*)param;
-    this->shouldPrealloc = p->bDisablePreallocation == OMX_FALSE;
+    this->shouldPrealloc = (p->bDisablePreallocation == OMX_FALSE);
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexParamVideoDecodedPictureBuffer:

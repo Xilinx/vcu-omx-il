@@ -162,7 +162,7 @@ struct SupportedFormats
   std::vector<Format> output;
 };
 
-struct ProfileLevelType
+struct ProfileLevel
 {
   ProfileType profile;
   int level;
@@ -189,6 +189,20 @@ struct QPs
   QPControlType mode;
 };
 
+struct RateControlOptions
+{
+  bool isSceneChangeResilienceEnabled;
+  bool isDelayEnabled;
+  bool isStaticSceneEnabled;
+  bool isSkipEnabled;
+};
+
+struct RateControl
+{
+  RateControlType mode;
+  RateControlOptions options;
+};
+
 struct Bitrate
 {
   int target; // In kbits
@@ -196,8 +210,7 @@ struct Bitrate
   int cpb; // CPB in milliseconds
   int ird; // InitialRemovalDelay in milliseconds
   int quality;
-  RateControlType mode;
-  RateControlOptionType option;
+  RateControl rateControl;
 };
 
 struct Slices

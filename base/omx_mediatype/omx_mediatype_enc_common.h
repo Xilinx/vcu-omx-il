@@ -83,7 +83,7 @@ bool UpdateSlicesParameter(AL_TEncSettings& settings, Slices slices);
 Format CreateFormat(AL_TEncSettings settings);
 bool UpdateFormat(AL_TEncSettings& settings, Format format, std::vector<ColorType> colors, std::vector<int> bitdepths, int& stride, Stride strideAlignment);
 
-bool UpdateIsEnabledSubframe(AL_TEncSettings& settings, bool isEnabledSubframe);
+bool UpdateIsEnabledSubframe(AL_TEncSettings& settings, bool isSubframeEnabled);
 
 Resolution CreateResolution(AL_TEncSettings settings, int widthStride, int heightStride);
 bool UpdateResolution(AL_TEncSettings& settings, int& stride, int& sliceHeight, Stride strideAlignment, Resolution resolution);

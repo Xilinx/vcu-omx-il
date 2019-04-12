@@ -957,7 +957,7 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
     media->Get(SETTINGS_INDEX_BITRATE, &mediaBitrate);
     mediaBitrate.target = bitrate;
 
-    if(mediaBitrate.mode != RateControlType::RATE_CONTROL_VARIABLE_BITRATE)
+    if(mediaBitrate.rateControl.mode != RateControlType::RATE_CONTROL_VARIABLE_BITRATE)
       mediaBitrate.max = mediaBitrate.target;
     media->Set(SETTINGS_INDEX_BITRATE, &mediaBitrate);
     AL_Encoder_SetBitRate(encoder, bitrate * 1000);

@@ -170,11 +170,11 @@ DecodedPictureBufferType CreateDecodedPictureBuffer(AL_TDecSettings settings)
   return ConvertSoftToModuleDecodedPictureBuffer(settings.eDpbMode);
 }
 
-bool UpdateIsEnabledSubframe(AL_TDecSettings& settings, bool isEnabledSubframe)
+bool UpdateIsEnabledSubframe(AL_TDecSettings& settings, bool isSubframeEnabled)
 {
-  settings.eDecUnit = isEnabledSubframe ? ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_SLICE) : ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_FRAME);
+  settings.eDecUnit = isSubframeEnabled ? ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_SLICE) : ConvertModuleToSoftDecodeUnit(DecodeUnitType::DECODE_UNIT_FRAME);
 
-  if(isEnabledSubframe)
+  if(isSubframeEnabled)
   {
     settings.bLowLat = true;
     settings.eDpbMode = ConvertModuleToSoftDecodedPictureBuffer(DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NO_REORDERING);
@@ -187,7 +187,7 @@ bool UpdateDecodedPictureBuffer(AL_TDecSettings& settings, DecodedPictureBufferT
   if(decodedPictureBuffer == DecodedPictureBufferType::DECODED_PICTURE_BUFFER_MAX_ENUM)
     return false;
 
-  settings.bLowLat = decodedPictureBuffer == DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NO_REORDERING;
+  settings.bLowLat = (decodedPictureBuffer == DecodedPictureBufferType::DECODED_PICTURE_BUFFER_NO_REORDERING);
   settings.eDpbMode = ConvertModuleToSoftDecodedPictureBuffer(decodedPictureBuffer);
   return true;
 }

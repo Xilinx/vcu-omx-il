@@ -65,7 +65,7 @@ BufferSizes CreateBufferSizes(AL_TDecSettings settings, int stride, int sliceHei
 
 DecodedPictureBufferType CreateDecodedPictureBuffer(AL_TDecSettings settings);
 
-bool UpdateIsEnabledSubframe(AL_TDecSettings& settings, bool isEnabledSubframe);
+bool UpdateIsEnabledSubframe(AL_TDecSettings& settings, bool isSubframeEnabled);
 
 bool UpdateDecodedPictureBuffer(AL_TDecSettings& settings, DecodedPictureBufferType decodedPictureBuffer);
 

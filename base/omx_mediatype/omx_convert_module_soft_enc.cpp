@@ -98,17 +98,26 @@ GdrType ConvertSoftToModuleGdr(AL_EGdrMode gdr)
   return GdrType::GDR_MAX_ENUM;
 }
 
-RateControlOptionType ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption option)
+RateControlOptions ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption options)
 {
-  switch(option)
-  {
-  case AL_RC_OPT_NONE: return RateControlOptionType::RATE_CONTROL_OPTION_NONE;
-  case AL_RC_OPT_SCN_CHG_RES: return RateControlOptionType::RATE_CONTROL_OPTION_SCENE_CHANGE_RESILIENCE;
-  case AL_RC_OPT_MAX_ENUM: return RateControlOptionType::RATE_CONTROL_OPTION_MAX_ENUM;
-  default: return RateControlOptionType::RATE_CONTROL_OPTION_MAX_ENUM;
-  }
+	if(options & AL_RC_OPT_NONE)
+		return RateControlOptions {};
 
-  return RateControlOptionType::RATE_CONTROL_OPTION_MAX_ENUM;
+	RateControlOptions moduleOptions {};
+
+  if(options & AL_RC_OPT_SCN_CHG_RES)
+    moduleOptions.isSceneChangeResilienceEnabled = true;
+
+  if(options & AL_RC_OPT_DELAYED)
+    moduleOptions.isDelayEnabled = true;
+
+  if(options & AL_RC_OPT_STATIC_SCENE)
+    moduleOptions.isStaticSceneEnabled = true;
+
+  if(options & AL_RC_OPT_ENABLE_SKIP)
+    moduleOptions.isSkipEnabled = true;
+
+  return moduleOptions;
 }
 
 QPControlType ConvertSoftToModuleQPControl(AL_EQpCtrlMode mode)
@@ -212,16 +221,23 @@ AL_EGdrMode ConvertModuleToSoftGdr(GdrType gdr)
   return AL_GDR_MAX_ENUM;
 }
 
-AL_ERateCtrlOption ConvertModuleToSoftRateControlOption(RateControlOptionType option)
+AL_ERateCtrlOption ConvertModuleToSoftRateControlOption(RateControlOptions options)
 {
-  switch(option)
-  {
-  case RateControlOptionType::RATE_CONTROL_OPTION_NONE: return AL_RC_OPT_NONE;
-  case RateControlOptionType::RATE_CONTROL_OPTION_SCENE_CHANGE_RESILIENCE: return AL_RC_OPT_SCN_CHG_RES;
-  default: return AL_RC_OPT_MAX_ENUM;
-  }
+  AL_ERateCtrlOption softOptions{};
 
-  return AL_RC_OPT_MAX_ENUM;
+  if(options.isSceneChangeResilienceEnabled)
+    softOptions = static_cast<AL_ERateCtrlOption>(softOptions|AL_RC_OPT_SCN_CHG_RES);
+
+  if(options.isDelayEnabled)
+    softOptions = static_cast<AL_ERateCtrlOption>(softOptions|AL_RC_OPT_DELAYED);
+
+  if(options.isStaticSceneEnabled)
+    softOptions = static_cast<AL_ERateCtrlOption>(softOptions|AL_RC_OPT_STATIC_SCENE);
+
+  if(options.isSkipEnabled)
+    softOptions = static_cast<AL_ERateCtrlOption>(softOptions|AL_RC_OPT_ENABLE_SKIP);
+
+  return softOptions;
 }
 
 AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType mode)
@@ -238,10 +254,10 @@ AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType mode)
   return QP_MAX_ENUM;
 }
 
-LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncTool option)
+LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncTool tools)
 {
   auto loopFilterFlags = AL_OPT_LF | AL_OPT_LF_X_SLICE | AL_OPT_LF_X_TILE;
-  auto loopFilterOptions = option & loopFilterFlags;
+  auto loopFilterOptions = tools & loopFilterFlags;
 
   if((loopFilterOptions & loopFilterFlags) == 0)
     return LoopFilterType::LOOP_FILTER_DISABLE;

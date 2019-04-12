@@ -288,15 +288,15 @@ static inline int ConvertOMXToMediaAVCLevel(OMX_VIDEO_AVCLEVELTYPE level)
   return 0;
 }
 
-ProfileLevelType ConvertOMXToMediaAVCProfileLevel(OMX_VIDEO_AVCPROFILETYPE profile, OMX_VIDEO_AVCLEVELTYPE level)
+ProfileLevel ConvertOMXToMediaAVCProfileLevel(OMX_VIDEO_AVCPROFILETYPE profile, OMX_VIDEO_AVCLEVELTYPE level)
 {
-  ProfileLevelType pf;
+  ProfileLevel pf;
   pf.profile.avc = ConvertOMXToMediaAVCProfile(profile);
   pf.level = ConvertOMXToMediaAVCLevel(level);
   return pf;
 }
 
-OMX_VIDEO_AVCPROFILETYPE ConvertMediaToOMXAVCProfile(ProfileLevelType profileLevel)
+OMX_VIDEO_AVCPROFILETYPE ConvertMediaToOMXAVCProfile(ProfileLevel profileLevel)
 {
   switch(profileLevel.profile.avc)
   {
@@ -320,7 +320,7 @@ OMX_VIDEO_AVCPROFILETYPE ConvertMediaToOMXAVCProfile(ProfileLevelType profileLev
   return OMX_VIDEO_AVCProfileMax;
 }
 
-OMX_VIDEO_AVCLEVELTYPE ConvertMediaToOMXAVCLevel(ProfileLevelType profileLevel)
+OMX_VIDEO_AVCLEVELTYPE ConvertMediaToOMXAVCLevel(ProfileLevel profileLevel)
 {
   switch(profileLevel.level)
   {
@@ -500,11 +500,6 @@ GdrType ConvertOMXToMediaGdr(OMX_ALG_EGdrMode gdr)
   return GdrType::GDR_MAX_ENUM;
 }
 
-RateControlOptionType ConvertOMXToMediaDisableSceneChangeResilience(OMX_BOOL disable)
-{
-  return (disable == OMX_TRUE) ? RateControlOptionType::RATE_CONTROL_OPTION_NONE : RateControlOptionType::RATE_CONTROL_OPTION_SCENE_CHANGE_RESILIENCE;
-}
-
 ScalingListType ConvertOMXToMediaScalingList(OMX_ALG_EScalingList scalingListMode)
 {
   switch(scalingListMode)
@@ -636,14 +631,6 @@ OMX_ALG_EGdrMode ConvertMediaToOMXGdr(GdrType gdr)
   }
 
   return OMX_ALG_GDR_MAX_ENUM;
-}
-
-OMX_BOOL ConvertMediaToOMXDisableSceneChangeResilience(RateControlOptionType option)
-{
-  if(option == RateControlOptionType::RATE_CONTROL_OPTION_SCENE_CHANGE_RESILIENCE)
-    return OMX_FALSE; // Because it's bDisableSceneChangeResilience
-
-  return OMX_TRUE;
 }
 
 OMX_ALG_EScalingList ConvertMediaToOMXScalingList(ScalingListType scalingLisgt)
@@ -823,15 +810,15 @@ static inline bool IsMainTier(OMX_ALG_VIDEO_HEVCLEVELTYPE level)
   return false;
 }
 
-ProfileLevelType ConvertOMXToMediaHEVCProfileLevel(OMX_ALG_VIDEO_HEVCPROFILETYPE profile, OMX_ALG_VIDEO_HEVCLEVELTYPE level)
+ProfileLevel ConvertOMXToMediaHEVCProfileLevel(OMX_ALG_VIDEO_HEVCPROFILETYPE profile, OMX_ALG_VIDEO_HEVCLEVELTYPE level)
 {
-  ProfileLevelType pf;
+  ProfileLevel pf;
   pf.profile.hevc = IsMainTier(level) ? ConvertOMXToMediaHEVCMainTierProfile(profile) : ConvertOMXToMediaHEVCHighTierProfile(profile);
   pf.level = ConvertOMXToMediaHEVCLevel(level);
   return pf;
 }
 
-OMX_ALG_VIDEO_HEVCPROFILETYPE ConvertMediaToOMXHEVCProfile(ProfileLevelType profileLevel)
+OMX_ALG_VIDEO_HEVCPROFILETYPE ConvertMediaToOMXHEVCProfile(ProfileLevel profileLevel)
 {
   switch(profileLevel.profile.hevc)
   {
@@ -895,7 +882,7 @@ OMX_ALG_VIDEO_HEVCPROFILETYPE ConvertMediaToOMXHEVCProfile(ProfileLevelType prof
   return OMX_ALG_VIDEO_HEVCProfileMaxEnum;
 }
 
-static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertMediaToOMXHEVCMainLevel(ProfileLevelType profileLevel)
+static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertMediaToOMXHEVCMainLevel(ProfileLevel profileLevel)
 {
   switch(profileLevel.level)
   {
@@ -918,7 +905,7 @@ static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertMediaToOMXHEVCMainLevel(Profile
   return OMX_ALG_VIDEO_HEVCLevelMaxEnum;
 }
 
-static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertMediaToOMXHEVCHighLevel(ProfileLevelType profileLevel)
+static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertMediaToOMXHEVCHighLevel(ProfileLevel profileLevel)
 {
   switch(profileLevel.level)
   {
@@ -936,7 +923,7 @@ static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertMediaToOMXHEVCHighLevel(Profile
   return OMX_ALG_VIDEO_HEVCLevelMaxEnum;
 }
 
-static inline bool IsMainTier(ProfileLevelType profileLevel)
+static inline bool IsMainTier(ProfileLevel profileLevel)
 {
   switch(profileLevel.profile.hevc)
   {
@@ -979,7 +966,7 @@ static inline bool IsMainTier(ProfileLevelType profileLevel)
   return false;
 }
 
-OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertMediaToOMXHEVCLevel(ProfileLevelType profileLevel)
+OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertMediaToOMXHEVCLevel(ProfileLevel profileLevel)
 {
   return IsMainTier(profileLevel) ? ConvertMediaToOMXHEVCMainLevel(profileLevel) : ConvertMediaToOMXHEVCHighLevel(profileLevel);
 }

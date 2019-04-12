@@ -46,9 +46,9 @@ extern "C"
 #include <lib_common/SliceConsts.h>
 }
 
-std::vector<ProfileLevelType> CreateHEVCProfileLevelSupported(std::vector<HEVCProfileType> profiles, std::vector<int> levels);
+std::vector<ProfileLevel> CreateHEVCProfileLevelSupported(std::vector<HEVCProfileType> profiles, std::vector<int> levels);
 
 bool IsHighTierProfile(HEVCProfileType profile);
-ProfileLevelType CreateHEVCMainTierProfileLevel(AL_EProfile profile, int level);
-ProfileLevelType CreateHEVCHighTierProfileLevel(AL_EProfile profile, int level);
+ProfileLevel CreateHEVCMainTierProfileLevel(AL_EProfile profile, int level);
+ProfileLevel CreateHEVCHighTierProfileLevel(AL_EProfile profile, int level);
 

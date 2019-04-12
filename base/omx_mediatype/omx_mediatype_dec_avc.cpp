@@ -131,7 +131,7 @@ static BufferCounts CreateBufferCounts(AL_TDecSettings settings)
   return bufferCounts;
 }
 
-static ProfileLevelType CreateProfileLevel(AL_TDecSettings settings)
+static ProfileLevel CreateProfileLevel(AL_TDecSettings settings)
 {
   auto stream = settings.tStream;
   return CreateAVCProfileLevel(static_cast<AL_EProfile>(stream.iProfileIdc), stream.iLevel);
@@ -216,13 +216,13 @@ MediatypeInterface::ErrorType DecMediatypeAVC::Get(std::string index, void* sett
 
   if(index == "SETTINGS_INDEX_PROFILE_LEVEL")
   {
-    *(static_cast<ProfileLevelType*>(settings)) = CreateProfileLevel(this->settings);
+    *(static_cast<ProfileLevel*>(settings)) = CreateProfileLevel(this->settings);
     return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED")
   {
-    *(static_cast<vector<ProfileLevelType>*>(settings)) = CreateAVCProfileLevelSupported(profiles, levels);
+    *(static_cast<vector<ProfileLevel>*>(settings)) = CreateAVCProfileLevelSupported(profiles, levels);
     return SUCCESS;
   }
 
@@ -259,7 +259,7 @@ MediatypeInterface::ErrorType DecMediatypeAVC::Get(std::string index, void* sett
     return SUCCESS;
   }
 
-  if(index == SETTINGS_INDEX_LLP2_EARLY_CB)
+  if(index == "SETTINGS_INDEX_LLP2_EARLY_CB")
   {
     *(static_cast<bool*>(settings)) = this->settings.bUseEarlyCallback;
     return SUCCESS;
@@ -268,7 +268,7 @@ MediatypeInterface::ErrorType DecMediatypeAVC::Get(std::string index, void* sett
   return BAD_INDEX;
 }
 
-static bool CheckProfileLevel(ProfileLevelType profilelevel, vector<AVCProfileType> profiles, vector<int> levels)
+static bool CheckProfileLevel(ProfileLevel profilelevel, vector<AVCProfileType> profiles, vector<int> levels)
 {
   if(!IsSupported(profilelevel.profile.avc, profiles))
     return false;
@@ -284,7 +284,7 @@ static bool CheckProfileLevel(ProfileLevelType profilelevel, vector<AVCProfileTy
   return true;
 }
 
-static bool UpdateProfileLevel(AL_TDecSettings& settings, ProfileLevelType profilelevel, vector<AVCProfileType> profiles, vector<int> levels)
+static bool UpdateProfileLevel(AL_TDecSettings& settings, ProfileLevel profilelevel, vector<AVCProfileType> profiles, vector<int> levels)
 {
   if(!CheckProfileLevel(profilelevel, profiles, levels))
     return false;
@@ -338,7 +338,7 @@ MediatypeInterface::ErrorType DecMediatypeAVC::Set(std::string index, void const
 
   if(index == "SETTINGS_INDEX_PROFILE_LEVEL")
   {
-    auto profilelevel = *(static_cast<ProfileLevelType const*>(settings));
+    auto profilelevel = *(static_cast<ProfileLevel const*>(settings));
 
     if(!UpdateProfileLevel(this->settings, profilelevel, profiles, levels))
       return BAD_PARAMETER;
@@ -356,9 +356,9 @@ MediatypeInterface::ErrorType DecMediatypeAVC::Set(std::string index, void const
 
   if(index == "SETTINGS_INDEX_SUBFRAME")
   {
-    auto isEnabledSubframe = *(static_cast<bool const*>(settings));
+    auto isSubframeEnabled = *(static_cast<bool const*>(settings));
 
-    if(!UpdateIsEnabledSubframe(this->settings, isEnabledSubframe))
+    if(!UpdateIsEnabledSubframe(this->settings, isSubframeEnabled))
       return BAD_PARAMETER;
     return SUCCESS;
   }
@@ -381,7 +381,7 @@ MediatypeInterface::ErrorType DecMediatypeAVC::Set(std::string index, void const
     return SUCCESS;
   }
 
-  if(index == SETTINGS_INDEX_LLP2_EARLY_CB)
+  if(index == "SETTINGS_INDEX_LLP2_EARLY_CB")
   {
     this->settings.bUseEarlyCallback = *(static_cast<bool const*>(settings));
     return SUCCESS;

@@ -41,7 +41,7 @@ using namespace std;
 
 static OMX_ERRORTYPE SetMediaProfileLevel(OMX_VIDEO_AVCPROFILETYPE const& profile, OMX_VIDEO_AVCLEVELTYPE const& level, std::shared_ptr<MediatypeInterface> media)
 {
-  ProfileLevelType p;
+  ProfileLevel p;
   p.profile.avc = ConvertOMXToMediaAVCProfileLevel(profile, level).profile.avc;
   p.level = ConvertOMXToMediaAVCProfileLevel(profile, level).level;
 
@@ -95,7 +95,7 @@ static OMX_ERRORTYPE SetMediaLoopFilter(OMX_VIDEO_AVCLOOPFILTERTYPE const& loopF
 
 OMX_ERRORTYPE ExpertiseAVC::GetProfileLevelSupported(OMX_PTR param, std::shared_ptr<MediatypeInterface> media)
 {
-  vector<ProfileLevelType> supported;
+  vector<ProfileLevel> supported;
   auto ret = media->Get(SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED, &supported);
   OMX_CHECK_MEDIA_GET(ret);
   auto& pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
@@ -111,7 +111,7 @@ OMX_ERRORTYPE ExpertiseAVC::GetProfileLevelSupported(OMX_PTR param, std::shared_
 
 OMX_ERRORTYPE ExpertiseAVC::GetProfileLevel(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media)
 {
-  ProfileLevelType profileLevel;
+  ProfileLevel profileLevel;
   auto ret = media->Get(SETTINGS_INDEX_PROFILE_LEVEL, &profileLevel);
   OMX_CHECK_MEDIA_GET(ret);
   auto& pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
@@ -142,7 +142,7 @@ OMX_ERRORTYPE ExpertiseAVC::SetProfileLevel(OMX_PTR param, Port const& port, std
 
 OMX_ERRORTYPE ExpertiseAVC::GetExpertise(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media)
 {
-  ProfileLevelType profileLevel;
+  ProfileLevel profileLevel;
   Gop gop;
   EntropyCodingType entropyCoding;
   bool isConstrainedIntraPrediction;

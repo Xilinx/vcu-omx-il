@@ -64,15 +64,15 @@ OMX_ALG_BUFFER_MODE ConvertMediaToOMXBufferHandle(BufferHandleType handle);
 DecodedPictureBufferType ConvertOMXToMediaDecodedPictureBuffer(OMX_ALG_EDpbMode mode);
 OMX_ALG_EDpbMode ConvertMediaToOMXDecodedPictureBuffer(DecodedPictureBufferType mode);
 
-ProfileLevelType ConvertOMXToMediaAVCProfileLevel(OMX_VIDEO_AVCPROFILETYPE profile, OMX_VIDEO_AVCLEVELTYPE level);
+ProfileLevel ConvertOMXToMediaAVCProfileLevel(OMX_VIDEO_AVCPROFILETYPE profile, OMX_VIDEO_AVCLEVELTYPE level);
 
-OMX_VIDEO_AVCPROFILETYPE ConvertMediaToOMXAVCProfile(ProfileLevelType profileLevel);
-OMX_VIDEO_AVCLEVELTYPE ConvertMediaToOMXAVCLevel(ProfileLevelType profileLevel);
+OMX_VIDEO_AVCPROFILETYPE ConvertMediaToOMXAVCProfile(ProfileLevel profileLevel);
+OMX_VIDEO_AVCLEVELTYPE ConvertMediaToOMXAVCLevel(ProfileLevel profileLevel);
 
-ProfileLevelType ConvertOMXToMediaHEVCProfileLevel(OMX_ALG_VIDEO_HEVCPROFILETYPE profile, OMX_ALG_VIDEO_HEVCLEVELTYPE level);
+ProfileLevel ConvertOMXToMediaHEVCProfileLevel(OMX_ALG_VIDEO_HEVCPROFILETYPE profile, OMX_ALG_VIDEO_HEVCLEVELTYPE level);
 
-OMX_ALG_VIDEO_HEVCPROFILETYPE ConvertMediaToOMXHEVCProfile(ProfileLevelType profileLevel);
-OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertMediaToOMXHEVCLevel(ProfileLevelType profileLevel);
+OMX_ALG_VIDEO_HEVCPROFILETYPE ConvertMediaToOMXHEVCProfile(ProfileLevel profileLevel);
+OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertMediaToOMXHEVCLevel(ProfileLevel profileLevel);
 
 LoopFilterType ConvertOMXToMediaAVCLoopFilter(OMX_VIDEO_AVCLOOPFILTERTYPE loopFilter);
 OMX_VIDEO_AVCLOOPFILTERTYPE ConvertMediaToOMXAVCLoopFilter(LoopFilterType loopFilter);
@@ -115,9 +115,6 @@ OMX_ALG_EGopCtrlMode ConvertMediaToOMXGopControl(GopControlType mode);
 
 GdrType ConvertOMXToMediaGdr(OMX_ALG_EGdrMode gdr);
 OMX_ALG_EGdrMode ConvertMediaToOMXGdr(GdrType gdr);
-
-RateControlOptionType ConvertOMXToMediaDisableSceneChangeResilience(OMX_BOOL disable);
-OMX_BOOL ConvertMediaToOMXDisableSceneChangeResilience(RateControlOptionType option);
 
 ScalingListType ConvertOMXToMediaScalingList(OMX_ALG_EScalingList scalingListMode);
 OMX_ALG_EScalingList ConvertMediaToOMXScalingList(ScalingListType scalingLisgt);

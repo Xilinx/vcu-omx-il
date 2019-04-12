@@ -52,9 +52,9 @@ using namespace std;
 Clock CreateClock(AL_TEncSettings settings)
 {
   Clock clock;
-  auto rateCtrl = settings.tChParam[0].tRCParam;
-  clock.framerate = rateCtrl.uFrameRate;
-  clock.clockratio = rateCtrl.uClkRatio;
+  auto rateControl = settings.tChParam[0].tRCParam;
+  clock.framerate = rateControl.uFrameRate;
+  clock.clockratio = rateControl.uClkRatio;
   return clock;
 }
 
@@ -66,10 +66,10 @@ bool UpdateClock(AL_TEncSettings& settings, Clock clock)
   if(clock.framerate == 0)
     return false;
 
-  auto& rateCtrl = settings.tChParam[0].tRCParam;
+  auto& rateControl = settings.tChParam[0].tRCParam;
 
-  rateCtrl.uFrameRate = clock.framerate;
-  rateCtrl.uClkRatio = clock.clockratio;
+  rateControl.uFrameRate = clock.framerate;
+  rateControl.uClkRatio = clock.clockratio;
 
   return true;
 }
@@ -153,15 +153,15 @@ bool UpdateVideoMode(AL_TEncSettings& settings, VideoModeType videoMode)
 Bitrate CreateBitrate(AL_TEncSettings settings)
 {
   Bitrate bitrate {};
-  auto rateCtrl = settings.tChParam[0].tRCParam;
+  auto rateControl = settings.tChParam[0].tRCParam;
 
-  bitrate.target = rateCtrl.uTargetBitRate / 1000;
-  bitrate.max = rateCtrl.uMaxBitRate / 1000;
-  bitrate.cpb = rateCtrl.uCPBSize / 90;
-  bitrate.ird = rateCtrl.uInitialRemDelay / 90;
-  bitrate.quality = (rateCtrl.uMaxPSNR / 100) - 28;
-  bitrate.mode = ConvertSoftToModuleRateControl(rateCtrl.eRCMode);
-  bitrate.option = ConvertSoftToModuleRateControlOption(rateCtrl.eOptions);
+  bitrate.target = rateControl.uTargetBitRate / 1000;
+  bitrate.max = rateControl.uMaxBitRate / 1000;
+  bitrate.cpb = rateControl.uCPBSize / 90;
+  bitrate.ird = rateControl.uInitialRemDelay / 90;
+  bitrate.quality = (rateControl.uMaxPSNR / 100) - 28;
+  bitrate.rateControl.mode = ConvertSoftToModuleRateControl(rateControl.eRCMode);
+  bitrate.rateControl.options = ConvertSoftToModuleRateControlOption(rateControl.eOptions);
   return bitrate;
 }
 
@@ -172,15 +172,15 @@ bool UpdateBitrate(AL_TEncSettings& settings, Bitrate bitrate)
   if(!CheckBitrate(bitrate, clock))
     return false;
 
-  auto& rateCtrl = settings.tChParam[0].tRCParam;
+  auto& rateControl = settings.tChParam[0].tRCParam;
 
-  rateCtrl.uTargetBitRate = bitrate.target * 1000;
-  rateCtrl.uMaxBitRate = bitrate.max * 1000;
-  rateCtrl.uCPBSize = bitrate.cpb * 90;
-  rateCtrl.uInitialRemDelay = bitrate.ird * 90;
-  rateCtrl.uMaxPSNR = (bitrate.quality + 28) * 100;
-  rateCtrl.eRCMode = ConvertModuleToSoftRateControl(bitrate.mode);
-  rateCtrl.eOptions = ConvertModuleToSoftRateControlOption(bitrate.option);
+  rateControl.uTargetBitRate = bitrate.target * 1000;
+  rateControl.uMaxBitRate = bitrate.max * 1000;
+  rateControl.uCPBSize = bitrate.cpb * 90;
+  rateControl.uInitialRemDelay = bitrate.ird * 90;
+  rateControl.uMaxPSNR = (bitrate.quality + 28) * 100;
+  rateControl.eRCMode = ConvertModuleToSoftRateControl(bitrate.rateControl.mode);
+  rateControl.eOptions = ConvertModuleToSoftRateControlOption(bitrate.rateControl.options);
   return true;
 }
 
@@ -271,12 +271,12 @@ QPs CreateQuantizationParameter(AL_TEncSettings settings)
 {
   QPs qps;
   qps.mode = ConvertSoftToModuleQPControl(settings.eQpCtrlMode);
-  auto rateCtrl = settings.tChParam[0].tRCParam;
-  qps.initial = rateCtrl.iInitialQP;
-  qps.deltaIP = rateCtrl.uIPDelta;
-  qps.deltaPB = rateCtrl.uPBDelta;
-  qps.min = rateCtrl.iMinQP;
-  qps.max = rateCtrl.iMaxQP;
+  auto rateControl = settings.tChParam[0].tRCParam;
+  qps.initial = rateControl.iInitialQP;
+  qps.deltaIP = rateControl.uIPDelta;
+  qps.deltaPB = rateControl.uPBDelta;
+  qps.min = rateControl.iMinQP;
+  qps.max = rateControl.iMaxQP;
   return qps;
 }
 
@@ -292,12 +292,12 @@ bool UpdateQuantizationParameter(AL_TEncSettings& settings, QPs qps)
     return false;
 
   settings.eQpCtrlMode = ConvertModuleToSoftQPControl(qps.mode);
-  auto& rateCtrl = settings.tChParam[0].tRCParam;
-  rateCtrl.iInitialQP = qps.initial;
-  rateCtrl.uIPDelta = qps.deltaIP;
-  rateCtrl.uPBDelta = qps.deltaPB;
-  rateCtrl.iMinQP = qps.min;
-  rateCtrl.iMaxQP = qps.max;
+  auto& rateControl = settings.tChParam[0].tRCParam;
+  rateControl.iInitialQP = qps.initial;
+  rateControl.uIPDelta = qps.deltaIP;
+  rateControl.uPBDelta = qps.deltaPB;
+  rateControl.iMinQP = qps.min;
+  rateControl.iMaxQP = qps.max;
 
   return true;
 }
@@ -361,9 +361,9 @@ Resolution CreateResolution(AL_TEncSettings settings, int widthStride, int heigh
   return resolution;
 }
 
-bool UpdateIsEnabledSubframe(AL_TEncSettings& settings, bool isEnabledSubframe)
+bool UpdateIsEnabledSubframe(AL_TEncSettings& settings, bool isSubframeEnabled)
 {
-  settings.tChParam[0].bSubframeLatency = isEnabledSubframe;
+  settings.tChParam[0].bSubframeLatency = isSubframeEnabled;
   return true;
 }
 

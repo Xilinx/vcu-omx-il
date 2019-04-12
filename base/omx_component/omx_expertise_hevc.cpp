@@ -41,7 +41,7 @@ using namespace std;
 
 static OMX_ERRORTYPE SetMediaProfileLevel(OMX_ALG_VIDEO_HEVCPROFILETYPE const& profile, OMX_ALG_VIDEO_HEVCLEVELTYPE const& level, std::shared_ptr<MediatypeInterface> media)
 {
-  ProfileLevelType p;
+  ProfileLevel p;
   p.profile.hevc = ConvertOMXToMediaHEVCProfileLevel(profile, level).profile.hevc;
   p.level = ConvertOMXToMediaHEVCProfileLevel(profile, level).level;
 
@@ -86,7 +86,7 @@ static OMX_ERRORTYPE SetMediaLoopFilter(OMX_ALG_VIDEO_HEVCLOOPFILTERTYPE const& 
 
 OMX_ERRORTYPE ExpertiseHEVC::GetProfileLevelSupported(OMX_PTR param, std::shared_ptr<MediatypeInterface> media)
 {
-  vector<ProfileLevelType> supported;
+  vector<ProfileLevel> supported;
   auto ret = media->Get(SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED, &supported);
   OMX_CHECK_MEDIA_GET(ret);
   auto& pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
@@ -102,7 +102,7 @@ OMX_ERRORTYPE ExpertiseHEVC::GetProfileLevelSupported(OMX_PTR param, std::shared
 
 OMX_ERRORTYPE ExpertiseHEVC::GetProfileLevel(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media)
 {
-  ProfileLevelType profileLevel;
+  ProfileLevel profileLevel;
   auto ret = media->Get(SETTINGS_INDEX_PROFILE_LEVEL, &profileLevel);
   OMX_CHECK_MEDIA_GET(ret);
   auto& pl = *(OMX_VIDEO_PARAM_PROFILELEVELTYPE*)param;
@@ -133,7 +133,7 @@ OMX_ERRORTYPE ExpertiseHEVC::SetProfileLevel(OMX_PTR param, Port const& port, st
 
 OMX_ERRORTYPE ExpertiseHEVC::GetExpertise(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media)
 {
-  ProfileLevelType profileLevel;
+  ProfileLevel profileLevel;
   Gop gop;
   bool isConstrainedIntraPrediction;
   LoopFilterType loopFilter;

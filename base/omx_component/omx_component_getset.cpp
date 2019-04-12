@@ -78,17 +78,17 @@ OMX_ERRORTYPE ConstructVideoSubframe(OMX_ALG_VIDEO_PARAM_SUBFRAME& subframe, Por
 {
   OMXChecker::SetHeaderVersion(subframe);
   subframe.nPortIndex = port.index;
-  bool isEnabledSubframe;
-  auto ret = media->Get(SETTINGS_INDEX_SUBFRAME, &isEnabledSubframe);
+  bool isSubframeEnabled;
+  auto ret = media->Get(SETTINGS_INDEX_SUBFRAME, &isSubframeEnabled);
   OMX_CHECK_MEDIA_GET(ret);
-  subframe.bEnableSubframe = ConvertMediaToOMXBool(isEnabledSubframe);
+  subframe.bEnableSubframe = ConvertMediaToOMXBool(isSubframeEnabled);
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetSubframe(OMX_BOOL enableSubframe, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetSubframe(OMX_BOOL enableSubframe, shared_ptr<MediatypeInterface> media)
 {
-  auto isEnabled = ConvertOMXToMediaBool(enableSubframe);
-  auto ret = media->Set(SETTINGS_INDEX_SUBFRAME, &isEnabled);
+  auto isSubframeEnabled = ConvertOMXToMediaBool(enableSubframe);
+  auto ret = media->Set(SETTINGS_INDEX_SUBFRAME, &isSubframeEnabled);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
 }
@@ -203,7 +203,7 @@ OMX_ERRORTYPE ConstructVideoPortCurrentFormat(OMX_VIDEO_PARAM_PORTFORMATTYPE& f,
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetFormat(OMX_COLOR_FORMATTYPE const& color, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetFormat(OMX_COLOR_FORMATTYPE const& color, shared_ptr<MediatypeInterface> media)
 {
   Format format;
   auto ret = media->Get(SETTINGS_INDEX_FORMAT, &format);
@@ -329,6 +329,23 @@ OMX_ERRORTYPE ConstructPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE& def, Port& p
   return OMX_ErrorNone;
 }
 
+static OMX_ERRORTYPE SetTargetBitrate(OMX_U32 bitrate, shared_ptr<MediatypeInterface> media)
+{
+  Bitrate curBitrate;
+  auto ret = media->Get(SETTINGS_INDEX_BITRATE, &curBitrate);
+
+  if(ret == MediatypeInterface::BAD_INDEX)
+    return OMX_ErrorUnsupportedIndex;
+  assert(ret == MediatypeInterface::SUCCESS);
+  curBitrate.target = bitrate;
+
+  if(curBitrate.max < curBitrate.target)
+    curBitrate.max = curBitrate.target;
+  ret = media->Set(SETTINGS_INDEX_BITRATE, &curBitrate);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
 OMX_ERRORTYPE SetPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE const& settings, Port& port, ModuleInterface& module, shared_ptr<MediatypeInterface> media)
 {
   OMX_PARAM_PORTDEFINITIONTYPE rollback;
@@ -383,7 +400,7 @@ OMX_ERRORTYPE ConstructVideoLookAhead(OMX_ALG_VIDEO_PARAM_LOOKAHEAD& la, Port co
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetLookAhead(OMX_U32 nLookAhead, OMX_BOOL enableFirstPassSceneChangeDetection, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetLookAhead(OMX_U32 nLookAhead, OMX_BOOL enableFirstPassSceneChangeDetection, shared_ptr<MediatypeInterface> media)
 {
   LookAhead lookAhead;
   auto ret = media->Get(SETTINGS_INDEX_LOOKAHEAD, &lookAhead);
@@ -460,17 +477,17 @@ OMX_ERRORTYPE ConstructVideoBitrate(OMX_VIDEO_PARAM_BITRATETYPE& b, Port const& 
   Bitrate bitrate;
   auto ret = media->Get(SETTINGS_INDEX_BITRATE, &bitrate);
   OMX_CHECK_MEDIA_GET(ret);
-  b.eControlRate = ConvertMediaToOMXControlRate(bitrate.mode);
+  b.eControlRate = ConvertMediaToOMXControlRate(bitrate.rateControl.mode);
   b.nTargetBitrate = bitrate.target;
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetModeBitrate(OMX_U32 target, OMX_VIDEO_CONTROLRATETYPE mode, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetModeBitrate(OMX_U32 target, OMX_VIDEO_CONTROLRATETYPE mode, shared_ptr<MediatypeInterface> media)
 {
   Bitrate bitrate;
   auto ret = media->Get(SETTINGS_INDEX_BITRATE, &bitrate);
   OMX_CHECK_MEDIA_GET(ret);
-  bitrate.mode = ConvertOMXToMediaControlRate(mode);
+  bitrate.rateControl.mode = ConvertOMXToMediaControlRate(mode);
   bitrate.target = target;
 
   if(bitrate.max < bitrate.target)
@@ -509,7 +526,7 @@ OMX_ERRORTYPE ConstructVideoQuantization(OMX_VIDEO_PARAM_QUANTIZATIONTYPE& q, Po
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetQuantization(OMX_U32 qpI, OMX_U32 qpP, OMX_U32 qpB, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetQuantization(OMX_U32 qpI, OMX_U32 qpP, OMX_U32 qpB, shared_ptr<MediatypeInterface> media)
 {
   QPs curQPs;
   auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
@@ -549,7 +566,7 @@ OMX_ERRORTYPE ConstructVideoQuantizationControl(OMX_ALG_VIDEO_PARAM_QUANTIZATION
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetQuantizationControl(OMX_ALG_EQpCtrlMode const& mode, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetQuantizationControl(OMX_ALG_EQpCtrlMode const& mode, shared_ptr<MediatypeInterface> media)
 {
   QPs curQPs;
   auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
@@ -588,7 +605,7 @@ OMX_ERRORTYPE ConstructVideoQuantizationExtension(OMX_ALG_VIDEO_PARAM_QUANTIZATI
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetQuantizationExtension(OMX_S32 qpMin, OMX_S32 qpMax, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetQuantizationExtension(OMX_S32 qpMin, OMX_S32 qpMax, shared_ptr<MediatypeInterface> media)
 {
   QPs curQPs;
   auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
@@ -627,7 +644,7 @@ OMX_ERRORTYPE ConstructVideoAspectRatio(OMX_ALG_VIDEO_PARAM_ASPECT_RATIO& a, Por
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetAspectRatio(OMX_ALG_EAspectRatio const& aspectRatio, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetAspectRatio(OMX_ALG_EAspectRatio const& aspectRatio, shared_ptr<MediatypeInterface> media)
 {
   auto ratio = ConvertOMXToMediaAspectRatio(aspectRatio);
   auto ret = media->Set(SETTINGS_INDEX_ASPECT_RATIO, &ratio);
@@ -704,7 +721,7 @@ OMX_ERRORTYPE ConstructVideoLowBandwidth(OMX_ALG_VIDEO_PARAM_LOW_BANDWIDTH& bw, 
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetLowBandwidth(OMX_BOOL enableLowBandwidth, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetLowBandwidth(OMX_BOOL enableLowBandwidth, shared_ptr<MediatypeInterface> media)
 {
   auto enabled = ConvertOMXToMediaBool(enableLowBandwidth);
   auto ret = media->Set(SETTINGS_INDEX_LOW_BANDWIDTH, &enabled);
@@ -739,7 +756,7 @@ OMX_ERRORTYPE ConstructVideoGopControl(OMX_ALG_VIDEO_PARAM_GOP_CONTROL& gc, Port
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetGopControl(OMX_ALG_EGopCtrlMode const& mode, OMX_ALG_EGdrMode const& gdr, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetGopControl(OMX_ALG_EGopCtrlMode const& mode, OMX_ALG_EGdrMode const& gdr, shared_ptr<MediatypeInterface> media)
 {
   Gop gop;
   auto ret = media->Get(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop);
@@ -766,23 +783,23 @@ OMX_ERRORTYPE SetVideoGopControl(OMX_ALG_VIDEO_PARAM_GOP_CONTROL const& gopContr
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE ConstructVideoSceneChangeResilience(OMX_ALG_VIDEO_PARAM_SCENE_CHANGE_RESILIENCE& r, Port const& port, shared_ptr<MediatypeInterface> media)
+OMX_ERRORTYPE ConstructVideoSceneChangeResilience(OMX_ALG_VIDEO_PARAM_SCENE_CHANGE_RESILIENCE& scr, Port const& port, shared_ptr<MediatypeInterface> media)
 {
-  OMXChecker::SetHeaderVersion(r);
-  r.nPortIndex = port.index;
+  OMXChecker::SetHeaderVersion(scr);
+  scr.nPortIndex = port.index;
   Bitrate bitrate;
   auto ret = media->Get(SETTINGS_INDEX_BITRATE, &bitrate);
   OMX_CHECK_MEDIA_GET(ret);
-  r.bDisableSceneChangeResilience = ConvertMediaToOMXDisableSceneChangeResilience(bitrate.option);
+  scr.bDisableSceneChangeResilience = ConvertMediaToOMXBool(!bitrate.rateControl.options.isSceneChangeResilienceEnabled);
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetSceneChangeResilience(OMX_BOOL disableSceneChangeResilience, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetSceneChangeResilience(OMX_BOOL disableSceneChangeResilience, shared_ptr<MediatypeInterface> media)
 {
   Bitrate bitrate;
   auto ret = media->Get(SETTINGS_INDEX_BITRATE, &bitrate);
   OMX_CHECK_MEDIA_GET(ret);
-  bitrate.option = ConvertOMXToMediaDisableSceneChangeResilience(disableSceneChangeResilience);
+  bitrate.rateControl.options.isSceneChangeResilienceEnabled = !ConvertOMXToMediaBool(disableSceneChangeResilience);
   ret = media->Set(SETTINGS_INDEX_BITRATE, &bitrate);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
@@ -803,6 +820,43 @@ OMX_ERRORTYPE SetVideoSceneChangeResilience(OMX_ALG_VIDEO_PARAM_SCENE_CHANGE_RES
   return OMX_ErrorNone;
 }
 
+OMX_ERRORTYPE ConstructVideoSkipFrame(OMX_ALG_VIDEO_PARAM_SKIP_FRAME& skipFrame, Port const& port, shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(skipFrame);
+  skipFrame.nPortIndex = port.index;
+  Bitrate bitrate;
+  auto ret = media->Get(SETTINGS_INDEX_BITRATE, &bitrate);
+  OMX_CHECK_MEDIA_GET(ret);
+  skipFrame.bEnableSkipFrame = ConvertMediaToOMXBool(bitrate.rateControl.options.isSkipEnabled);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetSkipFrame(OMX_BOOL enableSkipFrame, shared_ptr<MediatypeInterface> media)
+{
+  Bitrate bitrate;
+  auto ret = media->Get(SETTINGS_INDEX_BITRATE, &bitrate);
+  OMX_CHECK_MEDIA_GET(ret);
+  bitrate.rateControl.options.isSkipEnabled = ConvertOMXToMediaBool(enableSkipFrame);
+  ret = media->Set(SETTINGS_INDEX_BITRATE, &bitrate);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoSkipFrame(OMX_ALG_VIDEO_PARAM_SKIP_FRAME const& skipFrame, Port const& port, shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_SKIP_FRAME rollback;
+  ConstructVideoSkipFrame(rollback, port, media);
+
+  auto ret = SetSkipFrame(skipFrame.bEnableSkipFrame, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoSkipFrame(rollback, port, media);
+    throw ret;
+  }
+  return OMX_ErrorNone;
+}
+
 OMX_ERRORTYPE ConstructVideoInstantaneousDecodingRefresh(OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH& idr, Port const& port, shared_ptr<MediatypeInterface> media)
 {
   OMXChecker::SetHeaderVersion(idr);
@@ -814,7 +868,7 @@ OMX_ERRORTYPE ConstructVideoInstantaneousDecodingRefresh(OMX_ALG_VIDEO_PARAM_INS
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetInstantaneousDecodingRefresh(OMX_U32 instantaneousDecodingRefreshFrequency, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetInstantaneousDecodingRefresh(OMX_U32 instantaneousDecodingRefreshFrequency, shared_ptr<MediatypeInterface> media)
 {
   Gop gop;
   auto ret = media->Get(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop);
@@ -851,7 +905,7 @@ OMX_ERRORTYPE ConstructVideoPrefetchBuffer(OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER& 
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetPrefetchBuffer(OMX_BOOL enablePrefetchBuffer, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetPrefetchBuffer(OMX_BOOL enablePrefetchBuffer, shared_ptr<MediatypeInterface> media)
 {
   auto enabled = ConvertOMXToMediaBool(enablePrefetchBuffer);
   auto ret = media->Set(SETTINGS_INDEX_CACHE_LEVEL2, &enabled);
@@ -886,7 +940,7 @@ OMX_ERRORTYPE ConstructVideoCodedPictureBuffer(OMX_ALG_VIDEO_PARAM_CODED_PICTURE
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetCodedPictureBuffer(OMX_U32 codedPictureBufferSize, OMX_U32 initialRemovalDelay, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetCodedPictureBuffer(OMX_U32 codedPictureBufferSize, OMX_U32 initialRemovalDelay, shared_ptr<MediatypeInterface> media)
 {
   Bitrate bitrate;
   auto ret = media->Get(SETTINGS_INDEX_BITRATE, &bitrate);
@@ -924,7 +978,7 @@ OMX_ERRORTYPE ConstructVideoScalingList(OMX_ALG_VIDEO_PARAM_SCALING_LIST& scl, P
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetScalingList(OMX_ALG_EScalingList const& scalingListMode, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetScalingList(OMX_ALG_EScalingList const& scalingListMode, shared_ptr<MediatypeInterface> media)
 {
   auto scalingList = ConvertOMXToMediaScalingList(scalingListMode);
   auto ret = media->Set(SETTINGS_INDEX_SCALING_LIST, &scalingList);
@@ -958,7 +1012,7 @@ OMX_ERRORTYPE ConstructVideoFillerData(OMX_ALG_VIDEO_PARAM_FILLER_DATA& f, Port 
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetFillerData(OMX_BOOL disableFillerData, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetFillerData(OMX_BOOL disableFillerData, shared_ptr<MediatypeInterface> media)
 {
   auto enableFillerData = !ConvertOMXToMediaBool(disableFillerData);
   auto ret = media->Set(SETTINGS_INDEX_FILLER_DATA, &enableFillerData);
@@ -994,7 +1048,7 @@ OMX_ERRORTYPE ConstructVideoSlices(OMX_ALG_VIDEO_PARAM_SLICES& s, Port const& po
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetSlices(OMX_U32 numSlices, OMX_U32 slicesSize, OMX_BOOL dependentSlices, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetSlices(OMX_U32 numSlices, OMX_U32 slicesSize, OMX_BOOL dependentSlices, shared_ptr<MediatypeInterface> media)
 {
   Slices slices;
   auto ret = media->Get(SETTINGS_INDEX_SLICE_PARAMETER, &slices);
@@ -1048,7 +1102,7 @@ OMX_ERRORTYPE ConstructVideoModeCurrent(OMX_INTERLACEFORMATTYPE& interlace, Port
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetInterlaceMode(OMX_U32 flag, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetInterlaceMode(OMX_U32 flag, shared_ptr<MediatypeInterface> media)
 {
   auto videoMode = ConvertOMXToMediaVideoMode(flag);
   auto ret = media->Set(SETTINGS_INDEX_VIDEO_MODE, &videoMode);
@@ -1083,7 +1137,7 @@ OMX_ERRORTYPE ConstructVideoLongTerm(OMX_ALG_VIDEO_PARAM_LONG_TERM& longTerm, Po
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetLongTerm(OMX_BOOL isLongTermEnabled, OMX_S32 ltFrequency, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetLongTerm(OMX_BOOL isLongTermEnabled, OMX_S32 ltFrequency, shared_ptr<MediatypeInterface> media)
 {
   Gop gop;
   auto ret = media->Get(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop);
@@ -1107,23 +1161,6 @@ OMX_ERRORTYPE SetVideoLongTerm(OMX_ALG_VIDEO_PARAM_LONG_TERM const& longTerm, Po
     SetVideoLongTerm(rollback, port, media);
     throw ret;
   }
-  return OMX_ErrorNone;
-}
-
-OMX_ERRORTYPE SetTargetBitrate(OMX_U32 bitrate, shared_ptr<MediatypeInterface> media)
-{
-  Bitrate curBitrate;
-  auto ret = media->Get(SETTINGS_INDEX_BITRATE, &curBitrate);
-
-  if(ret == MediatypeInterface::BAD_INDEX)
-    return OMX_ErrorUnsupportedIndex;
-  assert(ret == MediatypeInterface::SUCCESS);
-  curBitrate.target = bitrate;
-
-  if(curBitrate.max < curBitrate.target)
-    curBitrate.max = curBitrate.target;
-  ret = media->Set(SETTINGS_INDEX_BITRATE, &curBitrate);
-  OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
 }
 
@@ -1166,10 +1203,10 @@ OMX_ERRORTYPE SetVideoColorPrimaries(OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES const& 
 
 // Decoder
 
-OMX_ERRORTYPE ConstructPreallocation(OMX_ALG_PARAM_PREALLOCATION& prealloc, bool isEnabled)
+OMX_ERRORTYPE ConstructPreallocation(OMX_ALG_PARAM_PREALLOCATION& prealloc, bool isPreallocationEnabled)
 {
   OMXChecker::SetHeaderVersion(prealloc);
-  prealloc.bDisablePreallocation = ConvertMediaToOMXBool(!isEnabled);
+  prealloc.bDisablePreallocation = ConvertMediaToOMXBool(!isPreallocationEnabled);
   return OMX_ErrorNone;
 }
 
@@ -1197,7 +1234,7 @@ OMX_ERRORTYPE ConstructVideoDecodedPictureBuffer(OMX_ALG_VIDEO_PARAM_DECODED_PIC
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetDecodedPictureBuffer(OMX_ALG_EDpbMode mode, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetDecodedPictureBuffer(OMX_ALG_EDpbMode mode, shared_ptr<MediatypeInterface> media)
 {
   DecodedPictureBufferType decodedPictureBuffer = ConvertOMXToMediaDecodedPictureBuffer(mode);
   auto ret = media->Set(SETTINGS_INDEX_DECODED_PICTURE_BUFFER, &decodedPictureBuffer);
@@ -1232,7 +1269,7 @@ OMX_ERRORTYPE ConstructVideoInternalEntropyBuffers(OMX_ALG_VIDEO_PARAM_INTERNAL_
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetInternalEntropyBuffers(OMX_U32 num, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetInternalEntropyBuffers(OMX_U32 num, shared_ptr<MediatypeInterface> media)
 {
   auto ret = media->Set(SETTINGS_INDEX_INTERNAL_ENTROPY_BUFFER, &num);
   OMX_CHECK_MEDIA_SET(ret);
@@ -1264,7 +1301,7 @@ OMX_ERRORTYPE ConstructCommonSequencePictureMode(OMX_ALG_COMMON_PARAM_SEQUENCE_P
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE SetSequencePictureMode(OMX_ALG_SEQUENCE_PICTURE_MODE mode, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetSequencePictureMode(OMX_ALG_SEQUENCE_PICTURE_MODE mode, shared_ptr<MediatypeInterface> media)
 {
   auto ret = media->Set(SETTINGS_INDEX_SEQUENCE_PICTURE_MODE, &mode);
   OMX_CHECK_MEDIA_SET(ret);

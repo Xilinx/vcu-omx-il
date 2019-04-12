@@ -172,13 +172,6 @@ enum class RateControlType
   RATE_CONTROL_MAX_ENUM,
 };
 
-enum class RateControlOptionType
-{
-  RATE_CONTROL_OPTION_NONE,
-  RATE_CONTROL_OPTION_SCENE_CHANGE_RESILIENCE,
-  RATE_CONTROL_OPTION_MAX_ENUM,
-};
-
 enum class AspectRatioType
 {
   ASPECT_RATIO_NONE,

@@ -187,7 +187,7 @@ static LoopFilterType CreateLoopFilter(AL_TEncSettings settings)
   return ConvertSoftToModuleLoopFilter(channel.eEncTools);
 }
 
-static ProfileLevelType CreateProfileLevel(AL_TEncSettings settings)
+static ProfileLevel CreateProfileLevel(AL_TEncSettings settings)
 {
   auto channel = settings.tChParam[0];
   return CreateAVCProfileLevel(channel.eProfile, channel.uLevel);
@@ -332,13 +332,13 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Get(std::string index, void* sett
 
   if(index == "SETTINGS_INDEX_PROFILE_LEVEL")
   {
-    *(static_cast<ProfileLevelType*>(settings)) = CreateProfileLevel(this->settings);
+    *(static_cast<ProfileLevel*>(settings)) = CreateProfileLevel(this->settings);
     return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_PROFILES_LEVELS_SUPPORTED")
   {
-    *(static_cast<vector<ProfileLevelType>*>(settings)) = CreateAVCProfileLevelSupported(profiles, levels);
+    *(static_cast<vector<ProfileLevel>*>(settings)) = CreateAVCProfileLevelSupported(profiles, levels);
     return SUCCESS;
   }
 
@@ -444,7 +444,7 @@ static bool UpdateLoopFilter(AL_TEncSettings& settings, LoopFilterType loopFilte
   return true;
 }
 
-static bool CheckProfileLevel(ProfileLevelType profilelevel, vector<AVCProfileType> profiles, vector<int> levels)
+static bool CheckProfileLevel(ProfileLevel profilelevel, vector<AVCProfileType> profiles, vector<int> levels)
 {
   if(!IsSupported(profilelevel.profile.avc, profiles))
     return false;
@@ -460,7 +460,7 @@ static bool CheckProfileLevel(ProfileLevelType profilelevel, vector<AVCProfileTy
   return true;
 }
 
-static bool UpdateProfileLevel(AL_TEncSettings& settings, ProfileLevelType profilelevel, vector<AVCProfileType> profiles, vector<int> levels)
+static bool UpdateProfileLevel(AL_TEncSettings& settings, ProfileLevel profilelevel, vector<AVCProfileType> profiles, vector<int> levels)
 {
   if(!CheckProfileLevel(profilelevel, profiles, levels))
     return false;
@@ -597,7 +597,7 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Set(std::string index, void const
 
   if(index == "SETTINGS_INDEX_PROFILE_LEVEL")
   {
-    auto profilelevel = *(static_cast<ProfileLevelType const*>(settings));
+    auto profilelevel = *(static_cast<ProfileLevel const*>(settings));
 
     if(!UpdateProfileLevel(this->settings, profilelevel, profiles, levels))
       return BAD_PARAMETER;
@@ -634,9 +634,9 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Set(std::string index, void const
 
   if(index == "SETTINGS_INDEX_SUBFRAME")
   {
-    auto isEnabledSubframe = *(static_cast<bool const*>(settings));
+    auto isSubframeEnabled = *(static_cast<bool const*>(settings));
 
-    if(!UpdateIsEnabledSubframe(this->settings, isEnabledSubframe))
+    if(!UpdateIsEnabledSubframe(this->settings, isSubframeEnabled))
       return BAD_PARAMETER;
     return SUCCESS;
   }
