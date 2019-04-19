@@ -45,7 +45,7 @@
 
 struct EncComponent final : public Component
 {
-  EncComponent(OMX_HANDLETYPE component, std::shared_ptr<MediatypeInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<Expertise>&& expertise, std::shared_ptr<SyncIpInterface> syncIp);
+  EncComponent(OMX_HANDLETYPE component, std::shared_ptr<MediatypeInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise, std::shared_ptr<SyncIpInterface> syncIp);
   ~EncComponent() override;
   OMX_ERRORTYPE AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size) override;
   OMX_ERRORTYPE UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size, OMX_IN OMX_U8* buffer) override;

@@ -37,9 +37,9 @@
 
 #pragma once
 
-#include "base/omx_utils/processor_fifo.h"
 #include "omx_buffer_handle.h"
 
+#include <utility/processor_fifo.h>
 #include <algorithm>
 #include <mutex>
 #include <memory>
@@ -76,7 +76,7 @@ enum class TransientState
 struct Task
 {
   Task() :
-    cmd(), data(nullptr), opt(nullptr)
+    cmd{Command::Max}, data{nullptr}, opt{nullptr}
   {
   }
 

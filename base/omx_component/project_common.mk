@@ -6,6 +6,7 @@ OMX_COMPONENT_COMMON_SRCS+=\
 	$(THIS.omx_component_common)/omx_convert_omx_media.cpp\
 	$(THIS.omx_component_common)/omx_buffer_handle.cpp\
 	$(THIS.omx_component_common)/omx_component_getset.cpp\
+	$(THIS.omx_component_common)/omx_expertise_interface.cpp\
 	$(THIS.omx_component_common)/omx_expertise_avc.cpp\
 	$(THIS.omx_component_common)/omx_expertise_hevc.cpp\
 

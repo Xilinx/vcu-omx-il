@@ -54,6 +54,18 @@ extern "C" {
  * Vendor standard extension indices.
  * This enum lists the current AllegroDVT2 extension indices to OpenMAX IL.
  */
+
+typedef enum OMX_ALG_ERRORTYPE
+{
+  OMX_ALG_ErrorVendorStartUnused = (OMX_S32) OMX_ErrorVendorStartUnused,
+
+  OMX_ALG_ErrorNoChannelLeft = (OMX_S32) OMX_ErrorVendorStartUnused + 0x1000,
+  OMX_ALG_ErrorChannelResourceUnavailable = (OMX_S32) OMX_ErrorVendorStartUnused + 0x1001,
+  OMX_ALG_ErrorChannelResourceFragmented = (OMX_S32) OMX_ErrorVendorStartUnused + 0x1002,
+
+  OMX_ALG_ErrorMax = (OMX_S32) OMX_ErrorMax,
+}OMX_ALG_ERRORTYPE;
+
 typedef enum OMX_ALG_EVENTTYPE
 {
   OMX_ALG_EventVendorStartUnused = OMX_EventVendorStartUnused,

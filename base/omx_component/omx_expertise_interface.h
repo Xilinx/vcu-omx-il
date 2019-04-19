@@ -37,13 +37,32 @@
 
 #pragma once
 
-static inline int RoundDown(int value, int multiple)
-{
-  return value >= 0 ? (value / multiple) * multiple : ((value - multiple + 1) / multiple) * multiple;
-}
+#include <OMX_Types.h>
+#include <cassert>
 
-static inline int RoundUp(int value, int multiple)
+#include "base/omx_mediatype/omx_mediatype_interface.h"
+#include "omx_component_structs.h"
+
+#define OMX_CHECK_MEDIA_GET(ret) \
+  if(ret == MediatypeInterface::BAD_INDEX) \
+    throw OMX_ErrorUnsupportedIndex; \
+  assert(ret == MediatypeInterface::SUCCESS);
+
+#define OMX_CHECK_MEDIA_SET(ret) \
+  if(ret == MediatypeInterface::BAD_INDEX) \
+    return OMX_ErrorUnsupportedIndex; \
+  if(ret == MediatypeInterface::BAD_PARAMETER) \
+    return OMX_ErrorBadParameter; \
+  assert(ret == MediatypeInterface::SUCCESS);
+
+struct ExpertiseInterface
 {
-  return value >= 0 ? ((value + multiple - 1) / multiple) * multiple : (value / multiple) * multiple;
-}
+  virtual ~ExpertiseInterface() = 0;
+
+  virtual OMX_ERRORTYPE GetProfileLevelSupported(OMX_PTR param, std::shared_ptr<MediatypeInterface> media) = 0;
+  virtual OMX_ERRORTYPE GetProfileLevel(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media) = 0;
+  virtual OMX_ERRORTYPE SetProfileLevel(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media) = 0;
+  virtual OMX_ERRORTYPE GetExpertise(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media) = 0;
+  virtual OMX_ERRORTYPE SetExpertise(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media) = 0;
+};
 

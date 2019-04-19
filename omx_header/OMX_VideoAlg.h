@@ -688,6 +688,24 @@ typedef struct OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES
   OMX_ALG_VIDEO_COLOR_PRIMARIESTYPE eColorPrimaries;
 }OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES;
 
+/**
+ * Input parsed parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize               : Size of the structure in bytes
+ *  nVersion            : OMX specification version information
+ *  nPortIndex          : Port that this structure applies to
+ *  bDisableInputParsed : Indicate if input parsed should be disabled
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_INPUT_PARSED
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bDisableInputParsed;
+}OMX_ALG_VIDEO_PARAM_INPUT_PARSED;
+
+
 /** Extented enumeration of video formats */
 typedef enum OMX_ALG_COLOR_FORMATTYPE
 {

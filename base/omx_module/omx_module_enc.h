@@ -51,8 +51,8 @@
 #include <future>
 #include <memory>
 
-#include "base/omx_utils/threadsafe_map.h"
-#include "base/omx_utils/processor_fifo.h"
+#include <utility/threadsafe_map.h>
+#include <utility/processor_fifo.h>
 #include "base/omx_mediatype/omx_mediatype_enc_interface.h"
 
 #include "TwoPassMngr.h"
@@ -62,16 +62,6 @@ extern "C"
 #include <lib_common/Allocator.h>
 #include <lib_encode/lib_encoder.h>
 }
-
-struct Flags
-{
-  Flags() = default;
-  ~Flags() = default;
-  bool isConfig = false;
-  bool isSync = false;
-  bool isEndOfSlice = false;
-  bool isEndOfFrame = false;
-};
 
 struct LookAheadCallBackParam
 {
@@ -88,12 +78,12 @@ struct GenericEncoder
   int index {};
   AL_TBuffer* nextQPBuffer {};
   std::vector<AL_TBuffer*> streamBuffers {};
-  std::shared_ptr<ProcessorFifo> threadFifo {};
+  std::shared_ptr<ProcessorFifo<void*>> threadFifo {};
   std::shared_ptr<LookAheadMngr> lookAheadMngr {};
   LookAheadCallBackParam callbackParam {};
 };
 
-struct EncModule final : public ModuleInterface
+struct EncModule final : ModuleInterface
 {
   EncModule(std::shared_ptr<EncMediatypeInterface> media, std::shared_ptr<EncDevice> device, std::shared_ptr<AL_TAllocator> allocator, std::shared_ptr<MemoryInterface> memory);
   ~EncModule() override;
@@ -108,11 +98,9 @@ struct EncModule final : public ModuleInterface
 
   bool Empty(BufferHandleInterface* handle) override;
   bool Fill(BufferHandleInterface* handle) override;
-  Flags GetFlags(BufferHandleInterface* handle);
 
   ErrorType Run(bool shouldPrealloc) override;
-  bool Flush() override;
-  void Stop() override;
+  bool Stop() override;
 
   ErrorType SetDynamic(std::string index, void const* param) override;
   ErrorType GetDynamic(std::string index, void* param) override;
@@ -129,6 +117,7 @@ private:
   std::shared_ptr<TwoPassMngr> twoPassMngr;
   AL_TBuffer* currentOutputedStreamForSei;
   int currentTemporalId;
+  Flags currentFlags;
 
   bool CreateAndAttachStreamMeta(AL_TBuffer& buf);
   void InitEncoders(int numPass);
@@ -140,7 +129,7 @@ private:
   bool DestroyEncoder();
   void ReleaseBuf(AL_TBuffer const* buf, bool isDma, bool isSrc);
   bool isEndOfFrame(AL_TBuffer* stream);
-  Flags GetFlags(AL_TBuffer* handle);
+  Flags GetCurrentFlags(AL_TBuffer* stream);
 
   void AddFifo(GenericEncoder& encoder, AL_TBuffer* src);
   void EmptyFifo(GenericEncoder& encoder, bool isEOS);

@@ -35,16 +35,10 @@
 *
 ******************************************************************************/
 
-#include "base/omx_module/omx_module_dec.h"
 #include "base/omx_component/omx_component_dec.h"
 #include "base/omx_component/omx_expertise_hevc.h"
 #include "base/omx_mediatype/omx_mediatype_dec_hevc.h"
-
-#include "base/omx_module/omx_cpp_memory.h"
-
-#if AL_ENABLE_DMA_COPY
-#include "base/omx_module/omx_dma_memory.h"
-#endif
+#include "base/omx_module/omx_module_dec.h"
 
 #if AL_ENABLE_SYNCIP_DEC
 #include "base/omx_module/omx_sync_ip_dec.h"
@@ -79,15 +73,7 @@ static SyncIpInterface* createSyncIp(shared_ptr<MediatypeInterface> media, share
 #endif
 }
 
-static MemoryInterface* createMemory()
-{
-#if AL_ENABLE_DMA_COPY
-  return new DMAMemory {};
-#else
-  return new CPPMemory {};
-#endif
-}
-
+static char const* ALLOC_DEVICE_DEC_NAME = "/dev/allegroDecodeIP";
 static AL_TAllocator* createDmaAlloc(string deviceName)
 {
   auto alloc = AL_DmaAlloc_Create(deviceName.c_str());
@@ -103,10 +89,10 @@ static AL_TAllocator* createDmaAlloc(string deviceName)
   return alloc;
 }
 
-static BufferContiguities const bufferContiguitiesHardware {
+static BufferContiguities constexpr bufferContiguitiesHardware {
   false, true
 };
-static BufferBytesAlignments const bufferBytesAlignmentsHardware {
+static BufferBytesAlignments constexpr bufferBytesAlignmentsHardware {
   0, 32
 };
 
@@ -127,16 +113,13 @@ static DecComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
     new DecDeviceHardwareMcu {}
   };
   shared_ptr<AL_TAllocator> allocator {
-    createDmaAlloc("/dev/allegroDecodeIP"), [](AL_TAllocator* allocator) {
+    createDmaAlloc(ALLOC_DEVICE_DEC_NAME), [](AL_TAllocator* allocator) {
       AL_Allocator_Destroy(allocator);
     }
   };
-  shared_ptr<MemoryInterface> memory {
-    createMemory()
-  };
   unique_ptr<DecModule> module {
     new DecModule {
-      media, device, allocator, memory
+      media, device, allocator
     }
   };
   unique_ptr<ExpertiseAVC> expertise {
@@ -162,16 +145,13 @@ static DecComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
     new DecDeviceHardwareMcu {}
   };
   shared_ptr<AL_TAllocator> allocator {
-    createDmaAlloc("/dev/allegroDecodeIP"), [](AL_TAllocator* allocator) {
+    createDmaAlloc(ALLOC_DEVICE_DEC_NAME), [](AL_TAllocator* allocator) {
       AL_Allocator_Destroy(allocator);
     }
   };
-  shared_ptr<MemoryInterface> memory {
-    createMemory()
-  };
   unique_ptr<DecModule> module {
     new DecModule {
-      media, device, allocator, memory
+      media, device, allocator
     }
   };
   unique_ptr<ExpertiseHEVC> expertise {

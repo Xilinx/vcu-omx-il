@@ -65,9 +65,9 @@ extern "C"
 #include <OMX_IVCommonAlg.h>
 }
 
-#include "base/omx_utils/locked_queue.h"
-#include "base/omx_utils/semaphore.h"
-#include "base/omx_utils/omx_log.h"
+#include <utility/logger.h>
+#include <utility/locked_queue.h>
+#include <utility/semaphore.h>
 #include "base/omx_utils/omx_translate.h"
 
 #include "../common/helpers.h"
@@ -453,7 +453,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Applicati
   if(isSupplier(nPortIndex, app))
   {
     // Allocate buffer
-    LOGV("Component port (%u) is supplier\n", nPortIndex);
+    LOG_VERBOSE(string { "Component port (" } +to_string(nPortIndex) + string { " is supplier" });
 
     for(decltype(minBuf)nbBuf = 0; nbBuf < minBuf; nbBuf++)
     {
@@ -476,7 +476,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Applicati
   else
   {
     // Use Buffer
-    LOGV("Component port (%u) is not supplier\n", nPortIndex);
+    LOG_VERBOSE(string { "Component port (" } +to_string(nPortIndex) + string { " is not supplier" });
 
     for(decltype(minBuf)nbBuf = 0; nbBuf < minBuf; nbBuf++)
     {
@@ -489,7 +489,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Applicati
 
         if(!hBuf)
         {
-          LOGE("Failed to allocate Buffer for dma\n");
+          LOG_ERROR("Failed to allocate Buffer for dma");
           assert(0);
         }
         auto fd = AL_LinuxDmaAllocator_GetFd((AL_TLinuxDmaAllocator*)(app.pAllocator), hBuf);
@@ -498,7 +498,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Applicati
 
         if((int)(uintptr_t)pBufData <= 0)
         {
-          LOGE("Failed to ExportToFd %p\n", hBuf);
+          LOG_ERROR(string { "Failed to ExportToFd: " } +ToStringAddr(hBuf));
           assert(0);
         }
         AL_Allocator_Free(app.pAllocator, hBuf);
@@ -525,7 +525,7 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Applicati
 
 static OMX_ERRORTYPE freeBuffers(OMX_U32 nPortIndex, Application& app)
 {
-  LOGV("Port (%u)\n", nPortIndex);
+  LOG_VERBOSE(string { "Port: " } +to_string(nPortIndex));
 
   if(isSupplier(nPortIndex, app))
   {
@@ -575,19 +575,18 @@ OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENT
   (void)pEventData;
   auto app = static_cast<Application*>(pAppData);
   assert(hComponent == app->hDecoder);
-  LOGI("Event from decoder: 0x%.8X\n", eEvent);
+  LOG_IMPORTANT(string { "Event from decoder: " } +ToStringOMXEvent.at(eEvent));
 
   if(eEvent == OMX_EventCmdComplete)
   {
+    LOG_IMPORTANT(string { "Command: " } +ToStringOMXCommand.at((OMX_COMMANDTYPE)Data1));
+
     if(Data1 == OMX_CommandStateSet)
     {
-      LOGI("State changed to %s\n", toStringCompState((OMX_STATETYPE)Data2));
       app->decoderEventState.notify();
     }
     else if(Data1 == OMX_CommandPortEnable)
     {
-      LOGI("Received Port Enable Event\n");
-
       /* if the output port is enabled */
       if(Data2 == 1)
       {
@@ -596,23 +595,15 @@ OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENT
       }
     }
     else if(Data1 == OMX_CommandPortDisable)
-    {
-      LOGI("Received Port Disable Event\n");
       app->disableEvent.notify();
-    }
-    else if(Data1 == OMX_CommandMarkBuffer)
-      LOGI("Mark Buffer Event\n");
     else if(Data1 == OMX_CommandFlush)
-    {
-      LOGI("Flush Port Event\n");
       app->flushEvent.notify();
-    }
   }
   else if(eEvent == OMX_EventPortSettingsChanged)
   {
     if(!app->settings.hasPrealloc)
     {
-      LOGI("Port settings change\n");
+      LOG_IMPORTANT("Port settings change");
       initHeader(paramPort);
       paramPort.nPortIndex = 1;
       OMX_CALL(OMX_GetParameter(hComponent, OMX_IndexParamPortDefinition, &paramPort));
@@ -626,13 +617,9 @@ OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENT
   else if(eEvent == OMX_EventError)
   {
     auto cmd = static_cast<OMX_ERRORTYPE>(Data1);
-    LOGE("Comp %p: %s (%s)\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXError.at(cmd));
+    LOG_ERROR(string { "Component (" } +ToStringAddr(hComponent) + string { "): " } +ToStringOMXEvent.at(eEvent) + string { "(" } +ToStringOMXError.at(cmd) + string { ")" });
     exit(1);
   }
-  else if(eEvent == OMX_EventBufferFlag)
-    LOGI("Event EOS\n");
-  else
-    LOGI("Param1 is %u, Param2 is %u\n", Data1, Data2);
   return OMX_ErrorNone;
 }
 
@@ -692,7 +679,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
 OMX_ERRORTYPE onInputBufferAvailable(OMX_HANDLETYPE /*hComponent*/, OMX_PTR pAppData, OMX_BUFFERHEADERTYPE* pBuffer)
 {
   auto app = static_cast<Application*>(pAppData);
-  LOGV("One input buffer is available\n");
+  LOG_VERBOSE("One input buffer is available");
   assert(pBuffer->nFilledLen == 0);
   app->inputBuffers.push(pBuffer);
   return OMX_ErrorNone;
@@ -703,7 +690,7 @@ OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
   static bool end = false;
   auto app = static_cast<Application*>(pAppData);
 
-  LOGV("One output buffer is available\n");
+  LOG_VERBOSE("One output buffer is available");
 
   if(end)
     return OMX_ErrorNone;
@@ -924,9 +911,22 @@ static OMX_ERRORTYPE disablePrealloc(Application& app)
   return OMX_SetParameter(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamPreallocation), &param);
 }
 
+static OMX_ERRORTYPE disableInputParsed(Application& app)
+{
+  OMX_ALG_VIDEO_PARAM_INPUT_PARSED param {};
+  initHeader(param);
+  param.bDisableInputParsed = OMX_TRUE;
+  return OMX_SetParameter(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInputParsed), &param);
+}
+
 static OMX_ERRORTYPE configureComponent(Application& app)
 {
   auto outputPortDisabled = false;
+
+  auto disabledError = disableInputParsed(app);
+
+  if(disabledError != OMX_ErrorNone)
+    return disabledError;
 
   if(app.settings.enableSubframe)
   {
@@ -1033,7 +1033,7 @@ static void omxWorker(Application* app)
 
     if(eof)
     {
-      LOGV("End of file\n");
+      LOG_VERBOSE("End of file");
       auto emptyBuffer = app->inputBuffers.pop();
       emptyBuffer->nFilledLen = 0;
       emptyBuffer->nFlags |= OMX_BUFFERFLAG_EOS;
@@ -1056,13 +1056,13 @@ static OMX_ERRORTYPE showComponentVersion(Application& app)
 
   OMX_CALL(OMX_GetComponentVersion(app.hDecoder, (OMX_STRING)name, &compType, &ilType, nullptr));
 
-  LOGI("Component: %s (v.%u) made for OMX_IL client : %u.%u.%u\n", name, compType.nVersion, ilType.s.nVersionMajor, ilType.s.nVersionMinor, ilType.s.nRevision);
+  LOG_IMPORTANT(string { "Component: " } +string { name } +string { "(v." } +to_string(compType.nVersion) + string { ") made for OMX_IL client: " } +to_string(ilType.s.nVersionMajor) + string { "." } +to_string(ilType.s.nVersionMinor) + string { "." } +to_string(ilType.s.nRevision));
   return OMX_ErrorNone;
 }
 
 static void deletePipeline(Application* app)
 {
-  LOGV("Stopping the pipeline\n");
+  LOG_VERBOSE("Stopping the pipeline");
 
   auto err = stopPipeline(*app);
 
@@ -1089,7 +1089,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   app.eventBus.addListener([&](shared_ptr<EventData> )
   {
-    LOGI("[EventBus] Received EOS\n");
+    LOG_IMPORTANT("[EventBus] Received EOS");
 
     if(app.quit)
       return;
@@ -1105,7 +1105,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   app.eventBus.addListener([&](shared_ptr<EventData> data_)
   {
     ErrorEventData* data = static_cast<ErrorEventData*>(data_.get());
-    LOGE("[EventBus] Got error code %d\n", data->errorCode);
+    LOG_ERROR(string { "[EventBus] Got error code: " } +to_string(data->errorCode));
 
     if(app.quit)
       return;
@@ -1183,7 +1183,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   });
 
   thread omxThread(omxWorker, &app);
-  LOGV("Waiting for Events\n");
+  LOG_VERBOSE("Waiting for Events");
 
   while(!app.pipelineEnded)
   {

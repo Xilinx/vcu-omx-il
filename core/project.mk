@@ -7,6 +7,7 @@ LIB_OMX_CORE:=$(BIN)/$(LIB_OMX_CORE_NAME)
 include $(THIS.core)/omx_core/project.mk
 
 OMX_CORE_OBJ:=$(OMX_CORE_SRCS:%=$(BIN)/%.o)
+OMX_CORE_OBJ+=$(UTILITY_SRCS:%=$(BIN)/%.o)
 
 OMX_CORE_CFLAGS:=$(DEFAULT_CFLAGS)
 OMX_CORE_CFLAGS+=-fPIC

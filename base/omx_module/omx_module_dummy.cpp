@@ -49,11 +49,6 @@ bool DummyModule::SetCallbacks(Callbacks const callbacks)
   return true;
 }
 
-bool DummyModule::Flush()
-{
-  return true;
-}
-
 void DummyModule::Free(void* buffer)
 {
   if(!buffer)
@@ -99,8 +94,9 @@ bool DummyModule::Fill(BufferHandleInterface* handle)
   return true;
 }
 
-void DummyModule::Stop()
+bool DummyModule::Stop()
 {
+  return true;
 }
 
 ModuleInterface::ErrorType DummyModule::Run(bool)

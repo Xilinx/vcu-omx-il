@@ -36,6 +36,7 @@
 ******************************************************************************/
 
 #include "omx_component_dec.h"
+#include "omx_component_getset.h"
 
 #include <OMX_VideoExt.h>
 #include <OMX_ComponentAlg.h>
@@ -44,10 +45,7 @@
 #include <cmath>
 
 #include "base/omx_checker/omx_checker.h"
-#include "base/omx_utils/omx_log.h"
 #include "base/omx_utils/omx_translate.h"
-
-#include "omx_component_getset.h"
 
 using namespace std;
 
@@ -56,7 +54,7 @@ static DecModule& ToDecModule(ModuleInterface& module)
   return dynamic_cast<DecModule &>(module);
 }
 
-DecComponent::DecComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<Expertise>&& expertise, shared_ptr<SyncIpInterface> syncIp) :
+DecComponent::DecComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise, shared_ptr<SyncIpInterface> syncIp) :
   Component(component, media, std::move(module), std::move(expertise), name, role), syncIp(syncIp)
 {
 }
@@ -77,29 +75,46 @@ void DecComponent::FlushComponent()
   transmit.clear();
 }
 
-void DecComponent::AssociateCallBack(BufferHandleInterface*, BufferHandleInterface* fill)
+void DecComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandleInterface* fill_)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  if(transmit.empty())
-    return;
-
-  auto emptyHeader = transmit.front();
-  auto fillHeader = (OMX_BUFFERHEADERTYPE*)((OMXBufferHandle*)fill)->header;
-  assert(fillHeader);
-  fillHeader->hMarkTargetComponent = emptyHeader.hMarkTargetComponent;
-  fillHeader->pMarkData = emptyHeader.pMarkData;
-  fillHeader->nTimeStamp = emptyHeader.nTimeStamp;
-  transmit.pop_front();
-
-  if(IsEOSDetected(emptyHeader.nFlags))
+  if(!empty_)
   {
-    callbacks.EventHandler(component, app, OMX_EventBufferFlag, output.index, emptyHeader.nFlags, nullptr);
-    transmit.clear();
+    if(transmit.empty())
+      return;
+
+    auto emptyHeader = transmit.front();
+    auto fill = (OMXBufferHandle*)(fill_);
+    auto fillHeader = (OMX_BUFFERHEADERTYPE*)((OMXBufferHandle*)fill)->header;
+    assert(fillHeader);
+    fillHeader->hMarkTargetComponent = emptyHeader.hMarkTargetComponent;
+    fillHeader->pMarkData = emptyHeader.pMarkData;
+    fillHeader->nTimeStamp = emptyHeader.nTimeStamp;
+    transmit.pop_front();
+
+    if(IsEOSDetected(emptyHeader.nFlags))
+    {
+      callbacks.EventHandler(component, app, OMX_EventBufferFlag, output.index, emptyHeader.nFlags, nullptr);
+      transmit.clear();
+    }
+
+    if(IsCompMarked(emptyHeader.hMarkTargetComponent, component))
+      callbacks.EventHandler(component, app, OMX_EventMark, 0, 0, emptyHeader.pMarkData);
+    return;
   }
 
-  if(IsCompMarked(emptyHeader.hMarkTargetComponent, component))
-    callbacks.EventHandler(component, app, OMX_EventMark, 0, 0, emptyHeader.pMarkData);
+  auto empty = (OMXBufferHandle*)(empty_);
+  auto fill = (OMXBufferHandle*)(fill_);
+  auto emptyHeader = empty->header;
+  auto fillHeader = fill->header;
+  PropagateHeaderData(*emptyHeader, *fillHeader);
+
+  if(IsEOSDetected(emptyHeader->nFlags))
+    callbacks.EventHandler(component, app, OMX_EventBufferFlag, output.index, emptyHeader->nFlags, nullptr);
+
+  if(IsCompMarked(emptyHeader->hMarkTargetComponent, component))
+    callbacks.EventHandler(component, app, OMX_EventMark, 0, 0, emptyHeader->pMarkData);
 }
 
 void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
@@ -174,7 +189,7 @@ void DecComponent::EventCallBack(Callbacks::Event type, void* data)
   {
   case Callbacks::Event::RESOLUTION_CHANGE:
   {
-    LOGI("%s\n", ToStringCallbackEvent.at(type));
+    LOG_IMPORTANT(ToStringCallbackEvent.at(type));
 
     auto port = GetPort(1);
 
@@ -184,7 +199,7 @@ void DecComponent::EventCallBack(Callbacks::Event type, void* data)
   }
   case Callbacks::Event::SEI_PREFIX_PARSED:
   {
-    LOGI("%s\n", ToStringCallbackEvent.at(type));
+    LOG_IMPORTANT(ToStringCallbackEvent.at(type));
 
     auto sei = static_cast<Sei*>(data);
     callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_ALG_EventSEIPrefixParsed), sei->type, sei->payload, sei->data);
@@ -192,7 +207,7 @@ void DecComponent::EventCallBack(Callbacks::Event type, void* data)
   }
   case Callbacks::Event::SEI_SUFFIX_PARSED:
   {
-    LOGI("%s\n", ToStringCallbackEvent.at(type));
+    LOG_IMPORTANT(ToStringCallbackEvent.at(type));
 
     auto sei = static_cast<Sei*>(data);
     callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_ALG_EventSEISuffixParsed), sei->type, sei->payload, sei->data);
@@ -287,6 +302,22 @@ OMX_ERRORTYPE DecComponent::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHE
   });
 }
 
+static Flags CreateFlags(OMX_U32 nFlags)
+{
+  Flags flags {};
+
+  if(nFlags & OMX_BUFFERFLAG_ENDOFFRAME)
+    flags.isEndOfFrame = true;
+
+  if(nFlags & OMX_BUFFERFLAG_ENDOFSUBFRAME)
+    flags.isEndOfSlice = true;
+
+  if(nFlags & OMX_BUFFERFLAG_SYNCFRAME)
+    flags.isSync = true;
+
+  return flags;
+}
+
 void DecComponent::TreatEmptyBufferCommand(Task* task)
 {
   std::lock_guard<std::mutex> lock(mutex);
@@ -318,9 +349,17 @@ void DecComponent::TreatEmptyBufferCommand(Task* task)
     return;
   }
 
-  if(header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME)
-    transmit.push_back(PropagatedData(header->hMarkTargetComponent, header->pMarkData, header->nTimeStamp, header->nFlags));
+  bool bInputParsed;
+  media->Get(SETTINGS_INDEX_INPUT_PARSED, &bInputParsed);
 
+  if(!bInputParsed)
+  {
+    if(header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME)
+      transmit.push_back(PropagatedData(header->hMarkTargetComponent, header->pMarkData, header->nTimeStamp, header->nFlags));
+  }
+
+  auto flags = CreateFlags(header->nFlags);
+  module->SetDynamic(DYNAMIC_INDEX_STREAM_FLAGS, &flags);
   auto handle = new OMXBufferHandle(header);
 
   auto success = module->Empty(handle);

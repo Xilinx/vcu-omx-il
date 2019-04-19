@@ -36,8 +36,10 @@
 ******************************************************************************/
 
 #include "omx_sync_ip_enc.h"
-#include <cassert>
 #include "DummySyncDriver.h"
+#include <cassert>
+#include <utility/logger.h>
+#include <string> // to_string
 
 extern "C"
 {
@@ -55,7 +57,6 @@ extern "C"
 #include "base/omx_checker/omx_checker.h"
 #include "base/omx_mediatype/omx_convert_module_soft_enc.h"
 #include "base/omx_mediatype/omx_convert_module_soft.h"
-#include "base/omx_utils/round.h"
 #include "base/omx_module/omx_module_structs.h"
 
 using namespace std;
@@ -117,7 +118,7 @@ static AL_TBuffer* CreateBuffer(AL_TLinuxDmaAllocator* allocator, int fd, int si
 
   if(!dmaHandle)
   {
-    fprintf(stderr, "SyncIp: Failed to import fd : %i\n", fd);
+    LOG_ERROR(string { "SyncIp: Failed to import fd " } +to_string(fd));
     return nullptr;
   }
 
@@ -134,7 +135,7 @@ void OMXEncSyncIp::addBuffer(BufferHandleInterface* handle)
     }
     catch(sync_no_buf_slot_available& e)
     {
-      fprintf(stderr, "Error while using the sync ip (Continuing): %s\n", e.what());
+      LOG_ERROR(string { "Error while using the sync ip (Continuing):" } +string { e.what() });
     }
 
     return;

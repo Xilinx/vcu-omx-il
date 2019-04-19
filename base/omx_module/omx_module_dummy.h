@@ -53,8 +53,7 @@ struct DummyModule final : public ModuleInterface
   bool Fill(BufferHandleInterface* handle) override;
 
   ErrorType Run(bool) override;
-  bool Flush() override;
-  void Stop() override;
+  bool Stop() override;
 
   ErrorType SetDynamic(std::string index, void const* param) override;
   ErrorType GetDynamic(std::string index, void* param) override;

@@ -36,8 +36,11 @@
 ******************************************************************************/
 
 #include "omx_expertise_hevc.h"
+#include "omx_convert_omx_media.h"
 
 using namespace std;
+
+ExpertiseHEVC::~ExpertiseHEVC() = default;
 
 static OMX_ERRORTYPE SetMediaProfileLevel(OMX_ALG_VIDEO_HEVCPROFILETYPE const& profile, OMX_ALG_VIDEO_HEVCLEVELTYPE const& level, std::shared_ptr<MediatypeInterface> media)
 {

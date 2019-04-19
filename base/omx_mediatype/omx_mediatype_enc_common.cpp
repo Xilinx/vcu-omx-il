@@ -39,7 +39,7 @@
 #include "omx_mediatype_checks.h"
 #include "omx_convert_module_soft.h"
 #include "omx_convert_module_soft_enc.h"
-#include "base/omx_utils/round.h"
+#include <utility/round.h>
 
 extern "C"
 {
@@ -339,12 +339,12 @@ bool UpdateFormat(AL_TEncSettings& settings, Format format, vector<ColorType> co
   if(!CheckFormat(format, colors, bitdepths))
     return false;
 
-  auto& chan = settings.tChParam[0];
-  AL_SET_CHROMA_MODE(chan.ePicFormat, ConvertModuleToSoftChroma(format.color));
-  AL_SET_BITDEPTH(chan.ePicFormat, format.bitdepth);
-  chan.uSrcBitDepth = AL_GET_BITDEPTH(chan.ePicFormat);
+  auto& channel = settings.tChParam[0];
+  AL_SET_CHROMA_MODE(&channel.ePicFormat, ConvertModuleToSoftChroma(format.color));
+  AL_SET_BITDEPTH(&channel.ePicFormat, format.bitdepth);
+  channel.uSrcBitDepth = AL_GET_BITDEPTH(channel.ePicFormat);
 
-  int minStride = static_cast<int>(RoundUp(AL_EncGetMinPitch(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride));
+  int minStride = static_cast<int>(RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride));
   stride = max(minStride, stride);
 
   return true;
@@ -352,10 +352,10 @@ bool UpdateFormat(AL_TEncSettings& settings, Format format, vector<ColorType> co
 
 Resolution CreateResolution(AL_TEncSettings settings, int widthStride, int heightStride)
 {
-  auto chan = settings.tChParam[0];
+  auto channel = settings.tChParam[0];
   Resolution resolution;
-  resolution.width = chan.uWidth;
-  resolution.height = chan.uHeight;
+  resolution.width = channel.uWidth;
+  resolution.height = channel.uHeight;
   resolution.stride.widthStride = widthStride;
   resolution.stride.heightStride = heightStride;
   return resolution;
@@ -369,14 +369,14 @@ bool UpdateIsEnabledSubframe(AL_TEncSettings& settings, bool isSubframeEnabled)
 
 bool UpdateResolution(AL_TEncSettings& settings, int& stride, int& sliceHeight, Stride strideAlignment, Resolution resolution)
 {
-  auto& chan = settings.tChParam[0];
-  chan.uWidth = resolution.width;
-  chan.uHeight = resolution.height;
+  auto& channel = settings.tChParam[0];
+  channel.uWidth = resolution.width;
+  channel.uHeight = resolution.height;
 
-  int minStride = static_cast<int>(RoundUp(AL_EncGetMinPitch(chan.uWidth, AL_GET_BITDEPTH(chan.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride));
+  int minStride = RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride);
   stride = max(minStride, static_cast<int>(RoundUp(resolution.stride.widthStride, strideAlignment.widthStride)));
 
-  int minSliceHeight = static_cast<int>(RoundUp(chan.uHeight, strideAlignment.heightStride));
+  int minSliceHeight = RoundUp(static_cast<int>(channel.uHeight), strideAlignment.heightStride);
   sliceHeight = max(minSliceHeight, static_cast<int>(RoundUp(resolution.stride.heightStride, strideAlignment.heightStride)));
 
   return true;

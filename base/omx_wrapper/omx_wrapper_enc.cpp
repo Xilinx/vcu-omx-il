@@ -35,13 +35,13 @@
 *
 ******************************************************************************/
 
-#include "base/omx_module/omx_module_enc.h"
 #include "base/omx_component/omx_component_enc.h"
 #include "base/omx_component/omx_expertise_hevc.h"
 #include "base/omx_mediatype/omx_mediatype_enc_hevc.h"
+#include "base/omx_module/omx_module_enc.h"
 #include "base/omx_module/omx_cpp_memory.h"
 
-#if AL_ENABLE_DMA_COPY
+#if AL_ENABLE_DMA_COPY_ENC
 #include "base/omx_module/omx_dma_memory.h"
 #endif
 
@@ -66,7 +66,7 @@ extern "C" {
 #include <lib_fpga/DmaAlloc.h>
 }
 
-static int const HARDWARE_HORIZONTAL_STRIDE_ALIGNMENT = 64;
+static int constexpr HARDWARE_HORIZONTAL_STRIDE_ALIGNMENT = 64;
 
 static SyncIpInterface* createSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator, int hardwareHorizontalStrideAlignment, int hardwareVerticalStrideAlignment)
 {
@@ -82,12 +82,17 @@ static SyncIpInterface* createSyncIp(shared_ptr<MediatypeInterface> media, share
 
 static MemoryInterface* createMemory()
 {
-#if AL_ENABLE_DMA_COPY
-  return new DMAMemory {};
+#if AL_ENABLE_DMA_COPY_ENC
+  char const* device = "/dev/dmaproxy";
+  return new DMAMemory {
+           device
+  };
 #else
   return new CPPMemory {};
 #endif
 }
+
+static char const* ALLOC_DEVICE_ENC_NAME = "/dev/allegroIP";
 
 static AL_TAllocator* createDmaAlloc(string deviceName)
 {
@@ -104,20 +109,20 @@ static AL_TAllocator* createDmaAlloc(string deviceName)
   return alloc;
 }
 
-static BufferContiguities const bufferContiguitiesHardware {
+static BufferContiguities constexpr bufferContiguitiesHardware {
   true, true
 };
-static BufferBytesAlignments const bufferBytesAlignmentsHardware {
+static BufferBytesAlignments constexpr bufferBytesAlignmentsHardware {
   32, 32
 };
 
 
 
-static int const HARDWARE_HEVC_VERTICAL_STRIDE_ALIGNMENT = 32;
+static int constexpr HARDWARE_HEVC_VERTICAL_STRIDE_ALIGNMENT = 32;
 #include "base/omx_component/omx_expertise_avc.h"
 #include "base/omx_mediatype/omx_mediatype_enc_avc.h"
 
-static int const HARDWARE_AVC_VERTICAL_STRIDE_ALIGNMENT = 16;
+static int constexpr HARDWARE_AVC_VERTICAL_STRIDE_ALIGNMENT = 16;
 
 
 static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
@@ -128,7 +133,7 @@ static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
     }
   };
   shared_ptr<AL_TAllocator> allocator {
-    createDmaAlloc("/dev/allegroIP"), [](AL_TAllocator* allocator) {
+    createDmaAlloc(ALLOC_DEVICE_ENC_NAME), [](AL_TAllocator* allocator) {
       AL_Allocator_Destroy(allocator);
     }
   };
@@ -165,7 +170,7 @@ static EncComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
     }
   };
   shared_ptr<AL_TAllocator> allocator {
-    createDmaAlloc("/dev/allegroIP"), [](AL_TAllocator* allocator) {
+    createDmaAlloc(ALLOC_DEVICE_ENC_NAME), [](AL_TAllocator* allocator) {
       AL_Allocator_Destroy(allocator);
     }
   };

@@ -40,11 +40,11 @@
 #include "omx_mediatype_common_hevc.h"
 #include "omx_mediatype_common.h"
 #include "omx_mediatype_checks.h"
-#include "base/omx_utils/round.h"
 #include "omx_convert_module_soft_hevc.h"
 #include "omx_convert_module_soft_enc.h"
 #include <cmath>
 #include <cstring> // memset
+#include <utility/round.h>
 
 extern "C"
 {
@@ -86,7 +86,7 @@ void EncMediatypeHEVC::Reset()
   auto& rateControl = channel.tRCParam;
   rateControl.eRCMode = AL_RC_CBR;
   rateControl.iInitialQP = 30;
-  rateControl.eOptions = AL_RC_OPT_SCN_CHG_RES;
+  rateControl.eOptions = static_cast<AL_ERateCtrlOption>(rateControl.eOptions | AL_RC_OPT_SCN_CHG_RES);
   rateControl.uMaxBitRate = rateControl.uTargetBitRate = 64000;
   rateControl.uFrameRate = 15;
   auto& gopParam = channel.tGopParam;
@@ -98,7 +98,7 @@ void EncMediatypeHEVC::Reset()
   settings.TwoPass = 0;
 
   stride = RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride);
-  sliceHeight = RoundUp(channel.uHeight, strideAlignment.heightStride);
+  sliceHeight = RoundUp(static_cast<int>(channel.uHeight), strideAlignment.heightStride);
 }
 
 static bool IsHighTier(uint8_t tier)
@@ -128,9 +128,8 @@ static int CreateLatency(AL_TEncSettings settings)
   auto rateControl = channel.tRCParam;
   auto gopParam = channel.tGopParam;
 
-  auto intermediate = 0;
   auto buffer = 1;
-  auto buffers = buffer + intermediate + gopParam.uNumB;
+  auto buffers = buffer + gopParam.uNumB;
 
   auto realFramerate = (static_cast<double>(rateControl.uFrameRate * rateControl.uClkRatio) / 1000.0);
   auto timeInMilliseconds = (static_cast<double>(buffers * 1000.0) / realFramerate);

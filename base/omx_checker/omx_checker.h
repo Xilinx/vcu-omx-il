@@ -41,31 +41,31 @@
 #include <OMX_Core.h>
 #include <cstring>
 
-enum AL_ComponentMethods
-{
-  AL_GetComponentVersion,
-  AL_SendCommand,
-  AL_GetParameter,
-  AL_SetParameter,
-  AL_GetConfig,
-  AL_SetConfig,
-  AL_GetExtensionIndex,
-  AL_GetState,
-  AL_ComponentTunnelRequest,
-  AL_UseBuffer,
-  AL_AllocateBuffer,
-  AL_FreeBuffer,
-  AL_EmptyThisBuffer,
-  AL_FillThisBuffer,
-  AL_SetCallbacks,
-  AL_ComponentDeinit,
-  AL_UseEGLImage,
-  AL_ComponentRoleEnum,
-};
-
 /*****************************************************************************/
 struct OMXChecker
 {
+  enum AL_ComponentMethods
+  {
+    AL_GetComponentVersion,
+    AL_SendCommand,
+    AL_GetParameter,
+    AL_SetParameter,
+    AL_GetConfig,
+    AL_SetConfig,
+    AL_GetExtensionIndex,
+    AL_GetState,
+    AL_ComponentTunnelRequest,
+    AL_UseBuffer,
+    AL_AllocateBuffer,
+    AL_FreeBuffer,
+    AL_EmptyThisBuffer,
+    AL_FillThisBuffer,
+    AL_SetCallbacks,
+    AL_ComponentDeinit,
+    AL_UseEGLImage,
+    AL_ComponentRoleEnum,
+  };
+
   /*************************************************************************//*!
      \brief  The CheckStateOperation method test if the OMX_Method can be called in the
             current state

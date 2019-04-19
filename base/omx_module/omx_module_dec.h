@@ -40,25 +40,25 @@
 #include "omx_device_dec_interface.h"
 #include "omx_module_enums.h"
 #include "omx_module_codec_structs.h"
-#include "omx_memory_interface.h"
 
 #include <vector>
 #include <queue>
 #include <memory>
 
 #include "base/omx_mediatype/omx_mediatype_dec_interface.h"
-#include "base/omx_utils/threadsafe_map.h"
+#include <utility/threadsafe_map.h>
 
 extern "C"
 {
 #include <lib_decode/lib_decode.h>
 #include <lib_common/SliceConsts.h>
 #include <lib_common/StreamBuffer.h>
+#include <lib_common/BufferSeiMeta.h>
 }
 
-struct DecModule final : public ModuleInterface
+struct DecModule final : ModuleInterface
 {
-  DecModule(std::shared_ptr<DecMediatypeInterface> media, std::shared_ptr<DecDevice> device, std::shared_ptr<AL_TAllocator> allocator, std::shared_ptr<MemoryInterface> memory);
+  DecModule(std::shared_ptr<DecMediatypeInterface> media, std::shared_ptr<DecDevice> device, std::shared_ptr<AL_TAllocator> allocator);
   ~DecModule() override;
 
   void Free(void* buffer) override;
@@ -73,8 +73,7 @@ struct DecModule final : public ModuleInterface
   bool Fill(BufferHandleInterface* handle) override;
 
   ErrorType Run(bool shouldPrealloc) override;
-  bool Flush() override;
-  void Stop() override;
+  bool Stop() override;
 
   ErrorType SetDynamic(std::string index, void const* param) override;
   ErrorType GetDynamic(std::string index, void* param) override;
@@ -83,9 +82,9 @@ private:
   std::shared_ptr<DecMediatypeInterface> const media;
   std::shared_ptr<DecDevice> device;
   std::shared_ptr<AL_TAllocator> allocator;
-  std::shared_ptr<MemoryInterface> memory;
 
   DisplayPictureInfo currentDisplayPictureInfo;
+  Flags currentFlags;
 
   Callbacks callbacks;
   ThreadSafeMap<AL_TBuffer*, BufferHandleInterface*> handles;
@@ -94,6 +93,7 @@ private:
 
   ThreadSafeMap<void*, AL_HANDLE> allocated;
   ThreadSafeMap<int, AL_HANDLE> allocatedDMA;
+  ThreadSafeMap<AL_TBuffer*, std::vector<AL_TSeiMetaData*>> displaySeis;
 
   AL_HDecoder decoder;
   bool resolutionFoundAsBeenCalled;
@@ -101,6 +101,7 @@ private:
   ErrorType CreateDecoder(bool shouldPrealloc);
   bool DestroyDecoder();
   void CopyIfRequired(AL_TBuffer* frameToDisplay, int size);
+  bool CreateAndAttachStreamMeta(AL_TBuffer& input);
 
   AL_TBuffer* CreateInputBuffer(char* buffer, int size);
   AL_TBuffer* CreateOutputBuffer(char* buffer, int size);

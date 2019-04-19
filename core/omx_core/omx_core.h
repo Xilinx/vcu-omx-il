@@ -38,22 +38,23 @@
 #pragma once
 
 #include <OMX_Core.h>
-#define OMX_MAX_COMP_ROLES 1
+
+static int constexpr OMX_MAX_COMP_ROLES = 1;
 
 typedef struct
 {
-  const char name[OMX_MAX_STRINGNAME_SIZE];
+  char const name[OMX_MAX_STRINGNAME_SIZE];
   void* pLibHandle;
-  const char* pSoLibName;
-  const int nRoles;
-  const char* roles[OMX_MAX_COMP_ROLES];
+  char const* pSoLibName;
+  int const nRoles;
+  char const* roles[OMX_MAX_COMP_ROLES];
 }omx_comp_type;
 
 static omx_comp_type AL_COMP_LIST[] =
 {
   {
     "OMX.allegro.h265.encoder",
-    NULL,
+    nullptr,
     "libOMX.allegro.video_encoder.so",
     1,
     {
@@ -62,7 +63,7 @@ static omx_comp_type AL_COMP_LIST[] =
   },
   {
     "OMX.allegro.h265.hardware.encoder",
-    NULL,
+    nullptr,
     "libOMX.allegro.video_encoder.so",
     1,
     {
@@ -71,7 +72,7 @@ static omx_comp_type AL_COMP_LIST[] =
   },
   {
     "OMX.allegro.h264.encoder",
-    NULL,
+    nullptr,
     "libOMX.allegro.video_encoder.so",
     1,
     {
@@ -80,7 +81,7 @@ static omx_comp_type AL_COMP_LIST[] =
   },
   {
     "OMX.allegro.h264.hardware.encoder",
-    NULL,
+    nullptr,
     "libOMX.allegro.video_encoder.so",
     1,
     {
@@ -90,7 +91,7 @@ static omx_comp_type AL_COMP_LIST[] =
 #if AL_ENABLE_VP9
   {
     "OMX.allegro.vp9.encoder",
-    NULL,
+    nullptr,
     "libOMX.allegro.video_encoder.so",
     1,
     {
@@ -100,7 +101,7 @@ static omx_comp_type AL_COMP_LIST[] =
 #endif
   {
     "OMX.allegro.h265.decoder",
-    NULL,
+    nullptr,
     "libOMX.allegro.video_decoder.so",
     1,
     {
@@ -109,7 +110,7 @@ static omx_comp_type AL_COMP_LIST[] =
   },
   {
     "OMX.allegro.h265.hardware.decoder",
-    NULL,
+    nullptr,
     "libOMX.allegro.video_decoder.so",
     1,
     {
@@ -118,7 +119,7 @@ static omx_comp_type AL_COMP_LIST[] =
   },
   {
     "OMX.allegro.h264.decoder",
-    NULL,
+    nullptr,
     "libOMX.allegro.video_decoder.so",
     1,
     {
@@ -127,7 +128,7 @@ static omx_comp_type AL_COMP_LIST[] =
   },
   {
     "OMX.allegro.h264.hardware.decoder",
-    NULL,
+    nullptr,
     "libOMX.allegro.video_decoder.so",
     1,
     {
@@ -135,6 +136,4 @@ static omx_comp_type AL_COMP_LIST[] =
     }
   },
 };
-
-const int NB_OF_COMP = sizeof(AL_COMP_LIST) / sizeof(omx_comp_type);
 

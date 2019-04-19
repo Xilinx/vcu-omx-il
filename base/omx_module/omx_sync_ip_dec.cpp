@@ -36,8 +36,12 @@
 ******************************************************************************/
 
 #include "omx_sync_ip_dec.h"
-#include <cassert>
 #include "DummySyncDriver.h"
+#include <cassert>
+#include <chrono>
+#include <thread>
+#include <utility/logger.h>
+#include <string>
 
 extern "C"
 {
@@ -54,14 +58,9 @@ extern "C"
 
 #include "base/omx_checker/omx_checker.h"
 #include "base/omx_mediatype/omx_convert_module_soft.h"
-#include "base/omx_utils/round.h"
-#include "base/omx_utils/logger.h"
 #include "base/omx_module/omx_module_structs.h"
 
 #include "base/omx_mediatype/omx_mediatype_dec_interface.h"
-
-#include <chrono>
-#include <thread>
 
 using namespace std;
 
@@ -101,7 +100,7 @@ static AL_TBuffer* CreateBuffer(AL_TLinuxDmaAllocator* allocator, int fd, int si
 
   if(!dmaHandle)
   {
-    fprintf(stderr, "SyncIp: Failed to import fd : %i\n", fd);
+    LOG_ERROR(string { "SyncIp: Failed to import fd: " } +to_string(fd));
     return nullptr;
   }
 
@@ -118,10 +117,10 @@ OMXDecSyncIp::OMXDecSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_T
 
 #if AL_ENABLE_SYNCIP_DEC
 
-#include <stdlib.h>
+#include <cstdlib>
+#include <ctime>
+#include <csignal>
 #include <unistd.h>
-#include <time.h>
-#include <signal.h>
 #include <fcntl.h>
 
 static void TxStreamUp()
@@ -135,12 +134,12 @@ static void TxStreamUp()
   }
 
   if(write(fd, "enable", 6) != 6)
-    printf("Failed to call TxStreamUp");
+    LOG_ERROR(string { "Failed to call TxStreamUp" });
 }
 
 static void wTxStreamUp(union sigval)
 {
-  LOG("End timer");
+  LOG_IMPORTANT("End timer");
   TxStreamUp();
 }
 
@@ -164,7 +163,7 @@ static void call_after(Func callback, void* user_param, int64_t sec, int64_t nse
   its.it_interval.tv_sec = 0;
   its.it_interval.tv_nsec = 0;
 
-  timer_settime(timer, 0, &its, NULL);
+  timer_settime(timer, 0, &its, nullptr);
 }
 
 #else
@@ -203,9 +202,9 @@ static void notifyDisplay(Clock const& clock)
   /* nano seconds */
   int64_t timeout = framePeriod / 2 - drmLatency;
 
-  fprintf(stderr, "will ask for VSYNC in %ld ns\n", timeout);
-  LOG("start timer");
-  call_after(wTxStreamUp, NULL, 0, timeout);
+  LOG_IMPORTANT(string { "will ask for VSYNC in " } +to_string(timeout));
+  LOG_IMPORTANT("start timer");
+  call_after(wTxStreamUp, nullptr, 0, timeout);
 }
 
 static AL_TMetaData* CreateDecSourceMeta(MediatypeInterface* media_)
@@ -251,8 +250,7 @@ void OMXDecSyncIp::addBuffer(BufferHandleInterface* handle)
   }
   catch(sync_no_buf_slot_available& e)
   {
-    (void)e;
-    fprintf(stderr, "Error while using the sync ip (Continuing): %s\n", e.what());
+    LOG_ERROR(string { "Error while using the sync ip (Continuing): " } +string { e.what() });
   }
 
   AL_Buffer_Unref(buf);

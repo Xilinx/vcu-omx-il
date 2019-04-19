@@ -38,7 +38,7 @@ ENABLE_MCU?=1
 ENABLE_64BIT?=1
 ENABLE_SYNCIP_ENC?=0
 ENABLE_SYNCIP_DEC?=0
-ENABLE_DMA_COPY?=1
+ENABLE_DMA_COPY_ENC?=1
 
 -include quirks.mk
 CROSS_COMPILE?=
@@ -65,8 +65,8 @@ ifeq ($(ENABLE_SYNCIP_DEC),1)
   LDFLAGS+=-lrt
 endif
 
-ifeq ($(ENABLE_DMA_COPY), 1)
-  CFLAGS+=-DAL_ENABLE_DMA_COPY
+ifeq ($(ENABLE_DMA_COPY_ENC), 1)
+  CFLAGS+=-DAL_ENABLE_DMA_COPY_ENC
 endif
 
 TARGET?=$(shell $(CC) -dumpmachine)
@@ -85,7 +85,7 @@ include $(THIS)/builder.mk
 DEFAULT_CFLAGS:=$(CFLAGS)
 DEFAULT_CFLAGS+=-O3
 DEFAULT_CFLAGS+=-pedantic
-DEFAULT_CFLAGS+=-g3
+DEFAULT_CFLAGS+=-g0
 DEFAULT_CFLAGS+=-Wall
 DEFAULT_CFLAGS+=-Wextra
 
@@ -99,6 +99,8 @@ INCLUDES+=-I$(EXTERNAL_INCLUDE)
 INCLUDES+=-include $(EXTERNAL_CONFIG)
 
 -include $(THIS)/get_external.mk
+
+include $(THIS)/utility/project.mk
 
 include $(THIS)/core/project.mk
 

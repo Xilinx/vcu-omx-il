@@ -78,11 +78,11 @@ extern "C"
 #include "CommandsSender.h"
 #include "EncCmdMngr.h"
 
-#include "base/omx_utils/locked_queue.h"
-#include "base/omx_utils/semaphore.h"
-#include "base/omx_utils/omx_log.h"
+#include <utility/logger.h>
+#include <utility/locked_queue.h>
+#include <utility/semaphore.h>
+#include <utility/round.h>
 #include "base/omx_utils/omx_translate.h"
-#include "base/omx_utils/round.h"
 
 #include "../common/helpers.h"
 #include "../common/setters.h"
@@ -272,7 +272,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
 
   setEnableLongTerm(app);
 
-  LOGV("Input picture: %ux%u\n", app.settings.width, app.settings.height);
+  LOG_VERBOSE(string { "Input picture: " } +to_string(app.settings.width) + string { "x" } +to_string(app.settings.height));
   return OMX_ErrorNone;
 }
 
@@ -397,10 +397,11 @@ static bool readOneYuvFrame(OMX_BUFFERHEADERTYPE* pBufferHdr, Application const&
   auto height = paramPort.format.video.nFrameHeight;
 
   static int input_frame_count;
-  LOGV("Reading input frame %i\n", input_frame_count);
+  LOG_VERBOSE(string { string { "Reading input frame: " } +to_string(input_frame_count) });
   auto stride = paramPort.format.video.nStride;
   auto sliceHeight = paramPort.format.video.nSliceHeight;
-  LOGV("%dx%d, stride %d, sliceHeight %d\n", (int)width, (int)height, (int)stride, (int)sliceHeight);
+  LOG_VERBOSE(string { std::to_string(width) + string { "x" } +to_string(height) + string { "(" } +to_string(stride) + string { "x" } +to_string(sliceHeight) + string { ")" }
+              });
   input_frame_count++;
 
   auto color = app.settings.format;
@@ -434,38 +435,36 @@ static bool readOneYuvFrame(OMX_BUFFERHEADERTYPE* pBufferHdr, Application const&
 }
 
 // Callbacks implementation of the video encoder component
-static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent, OMX_U32 Data1, OMX_U32 Data2, OMX_PTR /*pEventData*/)
+static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent, OMX_U32 Data1, OMX_U32 /*Data2*/, OMX_PTR /*pEventData*/)
 {
   auto app = static_cast<Application*>(pAppData);
+  LOG_IMPORTANT(string { "Event from encoder: " } +ToStringOMXEvent.at(eEvent));
   switch(eEvent)
   {
   case OMX_EventCmdComplete:
   {
     auto cmd = static_cast<OMX_COMMANDTYPE>(Data1);
+    LOG_IMPORTANT(string { "Command: " } +ToStringOMXCommand.at((OMX_COMMANDTYPE)cmd));
     switch(cmd)
     {
     case OMX_CommandStateSet:
     {
-      LOGI("Comp %p: %s: %s: %s\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), ToStringOMXState.at(static_cast<OMX_STATETYPE>(Data2)));
       app->encoderEventState.notify();
       break;
     }
     case OMX_CommandPortEnable:
     case OMX_CommandPortDisable:
     {
-      LOGI("Comp %p: %s: %s: %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
       app->encoderEventSem.notify();
       break;
     }
     case OMX_CommandMarkBuffer:
     {
-      LOGI("Comp %p: %s: %s: %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
       app->encoderEventSem.notify();
       break;
     }
     case OMX_CommandFlush:
     {
-      LOGI("Comp %p: %s: %s: %i\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXCommand.at(cmd), (int)Data2);
       app->encoderEventSem.notify();
       break;
     }
@@ -479,19 +478,19 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
   case OMX_EventError:
   {
     auto cmd = static_cast<OMX_ERRORTYPE>(Data1);
-    LOGE("Comp %p: %s (%s)\n", hComponent, ToStringOMXEvent.at(eEvent), ToStringOMXError.at(cmd));
+    LOG_ERROR(string { "Component (" } +ToStringAddr(hComponent) + string { "): " } +ToStringOMXEvent.at(eEvent) + string { "(" } +ToStringOMXError.at(cmd) + string { ")" });
     exit(1);
   }
   /* this event will be fired by the component but we have nothing special to do with them */
   case OMX_EventBufferFlag: // fallthrough
   case OMX_EventPortSettingsChanged:
   {
-    LOGI("Comp %p: Got %s\n", hComponent, ToStringOMXEvent.at(eEvent));
+    LOG_IMPORTANT(string { "Component " } +ToStringAddr(hComponent) + string { ": got " } +ToStringOMXEvent.at(eEvent));
     break;
   }
   default:
   {
-    LOGI("Comp %p: Unsupported %s\n", hComponent, ToStringOMXEvent.at(eEvent));
+    LOG_IMPORTANT(string { "Component " } +ToStringAddr(hComponent) + string { ": unsupported " } +ToStringOMXEvent.at(eEvent));
     return OMX_ErrorNotImplemented;
   }
   }
@@ -510,7 +509,7 @@ static void Read(OMX_BUFFERHEADERTYPE* pBuffer, Application& app)
   {
     pBuffer->nFlags |= OMX_BUFFERFLAG_EOS;
     app.input.isEOS = true;
-    LOGI("Waiting for EOS...  \n");
+    LOG_IMPORTANT("Waiting for EOS...");
     return;
   }
 
@@ -598,7 +597,7 @@ static void useBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Application& app)
 
       if(!hBuf)
       {
-        LOGE("Failed to allocate Buffer for dma\n");
+        LOG_ERROR(string { "Failed to allocate Buffer for dma" });
         assert(0);
       }
       auto fd = AL_LinuxDmaAllocator_GetFd((AL_TLinuxDmaAllocator*)(app.pAllocator), hBuf);
@@ -606,7 +605,7 @@ static void useBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Application& app)
 
       if(!pBufData)
       {
-        LOGE("Failed to ExportToFd %p\n", hBuf);
+        LOG_ERROR(string { "Failed to ExportToFd: " } +ToStringAddr(hBuf));
         assert(0);
       }
 
@@ -702,7 +701,7 @@ static OMX_ERRORTYPE showComponentVersion(Application& app)
 
   OMX_CALL(OMX_GetComponentVersion(app.hEncoder, (OMX_STRING)name, &compType, &ilType, nullptr));
 
-  LOGI("Component: %s (v.%u) made for OMX_IL client: %u.%u.%u\n", name, compType.nVersion, ilType.s.nVersionMajor, ilType.s.nVersionMinor, ilType.s.nRevision);
+  LOG_IMPORTANT(string { "Component: " } +string { name } +string { "(v." } +to_string(compType.nVersion) + string { ") made for OMX_IL client: " } +to_string(ilType.s.nVersionMajor) + string { "." } +to_string(ilType.s.nVersionMinor) + string { "." } +to_string(ilType.s.nRevision));
   return OMX_ErrorNone;
 }
 
@@ -736,7 +735,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
     outfile.close();
   });
 
-  LOGI("cmd file = %s\n", cmd_file.c_str());
+  LOG_IMPORTANT(string { "cmd file = " } +cmd_file);
   ifstream cmdfile(cmd_file != "" ? cmd_file.c_str() : "/dev/null");
   auto scopeCmdfile = scopeExit([&]() {
     cmdfile.close();
@@ -786,7 +785,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   if(!isFormatSupported(app.settings.format))
   {
-    LOGE("Unsupported color format : 0X%.8X\n", app.settings.format);
+    LOG_ERROR(string { "Unsupported color format: " } +to_string(app.settings.format));
     return OMX_ErrorUnsupportedSetting;
   }
 
@@ -858,7 +857,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   lock.unlock();
 
   app.eof.wait();
-  LOGV("EOS received\n");
+  LOG_VERBOSE("EOS received\n");
   delete[] seiPrefix.pBuffer;
   delete[] seiSuffix.pBuffer;
 

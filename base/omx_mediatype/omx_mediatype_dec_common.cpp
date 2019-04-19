@@ -36,11 +36,11 @@
 ******************************************************************************/
 
 #include <cassert>
+#include <utility/round.h>
 #include "omx_mediatype_dec_common.h"
 #include "omx_mediatype_checks.h"
 #include "omx_convert_module_soft.h"
 #include "omx_convert_module_soft_dec.h"
-#include "base/omx_utils/round.h"
 
 extern "C"
 {
@@ -122,7 +122,7 @@ bool UpdateFormat(AL_TDecSettings& settings, Format format, vector<ColorType> co
   stream.eChroma = ConvertModuleToSoftChroma(format.color);
   stream.iBitDepth = format.bitdepth;
 
-  int minStride = static_cast<int>(RoundUp(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode), strideAlignment.widthStride));
+  int minStride = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode)), strideAlignment.widthStride);
   stride = max(minStride, stride);
 
   return true;
@@ -197,11 +197,11 @@ bool UpdateResolution(AL_TDecSettings& settings, int& stride, int& sliceHeight, 
   auto& streamSettings = settings.tStream;
   streamSettings.tDim = { resolution.width, resolution.height };
 
-  int minStride = static_cast<int>(RoundUp(AL_Decoder_GetMinPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, settings.eFBStorageMode), strideAlignment.widthStride));
-  stride = max(minStride, static_cast<int>(RoundUp(resolution.stride.widthStride, strideAlignment.widthStride)));
+  int minStride = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, settings.eFBStorageMode)), strideAlignment.widthStride);
+  stride = max(minStride, RoundUp(resolution.stride.widthStride, strideAlignment.widthStride));
 
-  int minSliceHeight = static_cast<int>(RoundUp(AL_Decoder_GetMinStrideHeight(streamSettings.tDim.iHeight), strideAlignment.heightStride));
-  sliceHeight = max(minSliceHeight, static_cast<int>(RoundUp(resolution.stride.heightStride, strideAlignment.heightStride)));
+  int minSliceHeight = RoundUp(static_cast<int>(AL_Decoder_GetMinStrideHeight(streamSettings.tDim.iHeight)), strideAlignment.heightStride);
+  sliceHeight = max(minSliceHeight, RoundUp(resolution.stride.heightStride, strideAlignment.heightStride));
 
   return true;
 }

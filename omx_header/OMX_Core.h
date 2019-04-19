@@ -249,9 +249,6 @@ typedef enum OMX_ERRORTYPE
 
   OMX_ErrorKhronosExtensions = (OMX_S32) 0x8F000000, /**< Reserved region for introducing Khronos Standard Extensions */
   OMX_ErrorVendorStartUnused = (OMX_S32) 0x90000000, /**< Reserved region for introducing Vendor Extensions */
-  OMX_ALG_ErrorNoChannelLeft = (OMX_S32) OMX_ErrorVendorStartUnused + 0x1000,
-  OMX_ALG_ErrorChannelResourceUnavailable = (OMX_S32) OMX_ErrorVendorStartUnused + 0x1001,
-  OMX_ALG_ErrorChannelResourceFragmented = (OMX_S32) OMX_ErrorVendorStartUnused + 0x1002,
   OMX_ErrorMax = 0x7FFFFFFF
 }OMX_ERRORTYPE;
 

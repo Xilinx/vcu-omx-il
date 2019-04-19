@@ -39,11 +39,11 @@
 #include "omx_mediatype_enc_common.h"
 #include "omx_mediatype_common.h"
 #include "omx_mediatype_common_avc.h"
-#include "base/omx_utils/round.h"
 #include "omx_convert_module_soft_avc.h"
 #include "omx_convert_module_soft_enc.h"
 #include "omx_convert_module_soft.h"
 #include "omx_mediatype_checks.h"
+#include <utility/round.h>
 #include <cmath>
 #include <cstring> // memset
 
@@ -88,7 +88,7 @@ void EncMediatypeAVC::Reset()
   auto& rateControl = channel.tRCParam;
   rateControl.eRCMode = AL_RC_CBR;
   rateControl.iInitialQP = 30;
-  rateControl.eOptions = AL_RC_OPT_SCN_CHG_RES;
+  rateControl.eOptions = static_cast<AL_ERateCtrlOption>(rateControl.eOptions | AL_RC_OPT_SCN_CHG_RES);
   rateControl.uMaxBitRate = rateControl.uTargetBitRate = 64000;
   rateControl.uFrameRate = 15;
   auto& gopParam = channel.tGopParam;
@@ -100,7 +100,7 @@ void EncMediatypeAVC::Reset()
   settings.TwoPass = 0;
 
   stride = RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignment.widthStride);
-  sliceHeight = RoundUp(channel.uHeight, strideAlignment.heightStride);
+  sliceHeight = RoundUp(static_cast<int>(channel.uHeight), strideAlignment.heightStride);
 }
 
 static Mimes CreateMimes()

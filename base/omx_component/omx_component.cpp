@@ -38,13 +38,31 @@
 #include "omx_component.h"
 #include "base/omx_checker/omx_checker.h"
 #include "base/omx_utils/omx_translate.h"
-#include "base/omx_utils/omx_log.h"
 #include <cassert>
 #include <cstring>
+#include <string>
 
 #include <OMX_VideoExt.h>
+#include <utility/logger.h>
 
 using namespace std;
+
+#define OMX_CATCH_PARAMETER_OR_CONFIG() \
+  } \
+  catch(OMX_ERRORTYPE& e) \
+  { \
+    LOG_ERROR(ToStringOMXIndex.at(index) + string { ": " } +ToStringOMXError.at(e)); \
+    return e; \
+  } \
+  void FORCE_SEMICOLON()
+
+static void ClearPropagatedData(OMX_BUFFERHEADERTYPE* header)
+{
+  header->hMarkTargetComponent = nullptr;
+  header->pMarkData = nullptr;
+  header->nFilledLen = 0;
+  header->nFlags = 0;
+}
 
 void Component::ReturnEmptiedBuffer(OMX_BUFFERHEADERTYPE* emptied)
 {
@@ -84,7 +102,7 @@ void Component::AssociateCallBack(BufferHandleInterface* empty, BufferHandleInte
   auto fillHeader = (OMX_BUFFERHEADERTYPE*)((OMXBufferHandle*)(fill))->header;
   assert(fillHeader);
 
-  PropagateHeaderData(emptyHeader, fillHeader);
+  PropagateHeaderData(*emptyHeader, *fillHeader);
 
   if(IsEOSDetected(emptyHeader->nFlags))
     callbacks.EventHandler(component, app, OMX_EventBufferFlag, output.index, emptyHeader->nFlags, nullptr);
@@ -130,9 +148,9 @@ static OMX_ERRORTYPE ToOmxError(ModuleInterface::ErrorType error)
 {
   switch(error)
   {
-  case ModuleInterface::CHANNEL_CREATION_NO_CHANNEL_AVAILABLE: return OMX_ALG_ErrorNoChannelLeft;
-  case ModuleInterface::CHANNEL_CREATION_RESOURCE_UNAVAILABLE: return OMX_ALG_ErrorChannelResourceUnavailable;
-  case ModuleInterface::CHANNEL_CREATION_RESOURCE_FRAGMENTED: return OMX_ALG_ErrorChannelResourceFragmented;
+  case ModuleInterface::CHANNEL_CREATION_NO_CHANNEL_AVAILABLE: return static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorNoChannelLeft);
+  case ModuleInterface::CHANNEL_CREATION_RESOURCE_UNAVAILABLE: return static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelResourceUnavailable);
+  case ModuleInterface::CHANNEL_CREATION_RESOURCE_FRAGMENTED: return static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelResourceFragmented);
   case ModuleInterface::NO_MEMORY: return OMX_ErrorInsufficientResources;
   case ModuleInterface::BAD_PARAMETER: return OMX_ErrorBadParameter;
   default: return OMX_ErrorUndefined;
@@ -153,7 +171,7 @@ void Component::EventCallBack(Callbacks::Event type, void* data)
     break;
   }
   default:
-    LOGE("%s is unsupported\n", ToStringCallbackEvent.at(type));
+    LOG_ERROR(ToStringCallbackEvent.at(type) + string { " is unsupported" });
   }
 }
 
@@ -190,7 +208,13 @@ static BufferCounts MinBufferCounts(shared_ptr<MediatypeInterface> media)
   return bufferCounts;
 }
 
-Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, unique_ptr<ModuleInterface>&& module, std::unique_ptr<Expertise>&& expertise, OMX_STRING name, OMX_STRING role) :
+static void SetPortsParam(OMX_PORT_PARAM_TYPE& portParams)
+{
+  portParams.nPorts = VIDEO_PORTS_COUNT;
+  portParams.nStartPortNumber = VIDEO_START_PORT;
+}
+
+Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, unique_ptr<ModuleInterface>&& module, std::unique_ptr<ExpertiseInterface>&& expertise, OMX_STRING name, OMX_STRING role) :
   component{component},
   media{media},
   module{move(module)},
@@ -217,9 +241,9 @@ Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> me
   auto p = bind(&Component::_ProcessMain, this, placeholders::_1);
   auto p2 = bind(&Component::_ProcessFillBuffer, this, placeholders::_1);
   auto p3 = bind(&Component::_ProcessEmptyBuffer, this, placeholders::_1);
-  processorMain.reset(new ProcessorFifo(p, d));
-  processorFill.reset(new ProcessorFifo(p2, d2));
-  processorEmpty.reset(new ProcessorFifo(p3, d2));
+  processorMain.reset(new ProcessorFifo<void*> { p, d, "OMX - Sched" });
+  processorFill.reset(new ProcessorFifo<void*> { p2, d2, "OMX - Out" });
+  processorEmpty.reset(new ProcessorFifo<void*> { p3, d2, "OMX - In" });
   pauseFillPromise = nullptr;
   pauseEmptyPromise = nullptr;
   eosHandles.input = nullptr;
@@ -381,7 +405,7 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
 OMX_ERRORTYPE Component::SendCommand(OMX_IN OMX_COMMANDTYPE cmd, OMX_IN OMX_U32 param, OMX_IN OMX_PTR data)
 {
   OMX_TRY();
-  OMXChecker::CheckStateOperation(AL_SendCommand, state);
+  OMXChecker::CheckStateOperation(OMXChecker::AL_SendCommand, state);
 
   CreateCommand(cmd, param, data);
 
@@ -409,7 +433,7 @@ OMX_ERRORTYPE Component::SetCallbacks(OMX_IN OMX_CALLBACKTYPE* callbacks, OMX_IN
 {
   OMX_TRY();
   OMXChecker::CheckNotNull<OMX_CALLBACKTYPE*>(callbacks);
-  OMXChecker::CheckStateOperation(AL_SetCallbacks, state);
+  OMXChecker::CheckStateOperation(OMXChecker::AL_SetCallbacks, state);
 
   auto empty = bind(&Component::EmptyThisBufferCallBack, this, placeholders::_1);
   auto associate = bind(&Component::AssociateCallBack, this, placeholders::_1, placeholders::_2);
@@ -429,7 +453,7 @@ OMX_ERRORTYPE Component::SetCallbacks(OMX_IN OMX_CALLBACKTYPE* callbacks, OMX_IN
 
   this->callbacks = *callbacks;
 
-  if(this->callbacks.EventHandler == NULL)
+  if(this->callbacks.EventHandler == nullptr)
     this->callbacks.EventHandler = &StubEventHandler;
 
   this->app = app;
@@ -438,12 +462,29 @@ OMX_ERRORTYPE Component::SetCallbacks(OMX_IN OMX_CALLBACKTYPE* callbacks, OMX_IN
   OMX_CATCH();
 }
 
+static void CheckVersionExistance(OMX_PTR ptr)
+{
+  auto size = *static_cast<OMX_U32*>(ptr);
+
+  if(size < (sizeof(OMX_U32) + sizeof(OMX_VERSIONTYPE)))
+    throw OMX_ErrorBadParameter;
+}
+
+static OMX_VERSIONTYPE GetVersion(OMX_PTR ptr)
+{
+  CheckVersionExistance(ptr);
+  auto tmp = ptr;
+  tmp = static_cast<OMX_U32*>(tmp) + 1; // nVersion is always after nSize
+
+  return *static_cast<OMX_VERSIONTYPE*>(tmp);
+}
+
 OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR param)
 {
   OMX_TRY();
   OMXChecker::CheckNotNull(param);
   OMXChecker::CheckHeaderVersion(GetVersion(param));
-  OMXChecker::CheckStateOperation(AL_GetParameter, state);
+  OMXChecker::CheckStateOperation(OMXChecker::AL_GetParameter, state);
 
   auto getCurrentPort = [=](OMX_PTR param) -> Port*
                         {
@@ -674,14 +715,20 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto mode = static_cast<OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE*>(param);
     return ConstructCommonSequencePictureMode(*mode, *port, media);
   }
+  case OMX_ALG_IndexParamVideoInputParsed:
+  {
+    auto port = getCurrentPort(param);
+    auto ip = static_cast<OMX_ALG_VIDEO_PARAM_INPUT_PARSED*>(param);
+    return ConstructVideoInputParsed(*ip, *port, media);
+  }
   default:
-    LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
+    LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
   }
 
-  LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
+  LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
   return OMX_ErrorUnsupportedIndex;
-  OMX_CATCH_PARAMETER();
+  OMX_CATCH_PARAMETER_OR_CONFIG();
 }
 
 OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param)
@@ -704,13 +751,13 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     port = getCurrentPort(param);
 
     if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(AL_SetParameter, state);
+      OMXChecker::CheckStateOperation(OMXChecker::AL_SetParameter, state);
   }
   switch(static_cast<OMX_U32>(index)) // all indexes are 32u
   {
   case OMX_IndexParamStandardComponentRole:
   {
-    OMXChecker::CheckStateOperation(AL_SetParameter, state);
+    OMXChecker::CheckStateOperation(OMXChecker::AL_SetParameter, state);
     auto p = (OMX_PARAM_COMPONENTROLETYPE*)param;
 
     if(!strncmp((char*)role, (char*)p->cRole, strlen((char*)role)))
@@ -880,23 +927,26 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
   case OMX_ALG_IndexParamVideoInternalEntropyBuffers:
   {
     auto ieb = static_cast<OMX_ALG_VIDEO_PARAM_INTERNAL_ENTROPY_BUFFERS*>(param);
-
     return SetVideoInternalEntropyBuffers(*ieb, *port, media);
   }
   case OMX_ALG_IndexParamCommonSequencePictureModeCurrent:
   {
     auto spm = static_cast<OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE*>(param);
-
     return SetCommonSequencePictureMode(*spm, *port, media);
   }
+  case OMX_ALG_IndexParamVideoInputParsed:
+  {
+    auto ip = static_cast<OMX_ALG_VIDEO_PARAM_INPUT_PARSED*>(param);
+    return SetVideoInputParsed(*ip, *port, media);
+  }
   default:
-    LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
+    LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
   }
 
-  LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
+  LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
   return OMX_ErrorUnsupportedIndex;
-  OMX_CATCH_PARAMETER();
+  OMX_CATCH_PARAMETER_OR_CONFIG();
 }
 
 static OMX_BUFFERHEADERTYPE* AllocateHeader(OMX_PTR app, int size, OMX_U8* buffer, bool isBufferAllocatedByModule, int index)
@@ -1033,7 +1083,7 @@ OMX_ERRORTYPE Component::EmptyThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
 {
   OMX_TRY();
   OMXChecker::CheckNotNull(header);
-  OMXChecker::CheckStateOperation(AL_EmptyThisBuffer, state);
+  OMXChecker::CheckStateOperation(OMXChecker::AL_EmptyThisBuffer, state);
   CheckPortIndex(header->nInputPortIndex);
 
   processorMain->queue(CreateTask(Command::EmptyBuffer, static_cast<OMX_U32>(input.index), shared_ptr<void>(header, nullDeleter)));
@@ -1046,12 +1096,12 @@ OMX_ERRORTYPE Component::FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
 {
   OMX_TRY();
   OMXChecker::CheckNotNull(header);
-  OMXChecker::CheckStateOperation(AL_FillThisBuffer, state);
+  OMXChecker::CheckStateOperation(OMXChecker::AL_FillThisBuffer, state);
   CheckPortIndex(header->nOutputPortIndex);
 
   header->nTimeStamp = 0;
-  header->hMarkTargetComponent = NULL;
-  header->pMarkData = NULL;
+  header->hMarkTargetComponent = nullptr;
+  header->pMarkData = nullptr;
   header->nFlags = 0;
 
   processorMain->queue(CreateTask(Command::FillBuffer, static_cast<OMX_U32>(output.index), shared_ptr<void>(header, nullDeleter)));
@@ -1083,7 +1133,7 @@ OMX_ERRORTYPE Component::GetComponentVersion(OMX_OUT OMX_STRING name, OMX_OUT OM
   OMXChecker::CheckNotNull(name);
   OMXChecker::CheckNotNull(version);
   OMXChecker::CheckNotNull(spec);
-  OMXChecker::CheckStateOperation(AL_GetComponentVersion, state);
+  OMXChecker::CheckStateOperation(OMXChecker::AL_GetComponentVersion, state);
 
   strncpy(name, this->name, OMX_MAX_STRINGNAME_SIZE);
   *version = this->version;
@@ -1098,7 +1148,7 @@ OMX_ERRORTYPE Component::GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR
   OMX_TRY();
   OMXChecker::CheckNotNull(config);
   OMXChecker::CheckHeaderVersion(GetVersion(config));
-  OMXChecker::CheckStateOperation(AL_GetConfig, state);
+  OMXChecker::CheckStateOperation(OMXChecker::AL_GetConfig, state);
   switch(static_cast<OMX_U32>(index))
   {
   case OMX_IndexConfigVideoBitrate:
@@ -1125,14 +1175,13 @@ OMX_ERRORTYPE Component::GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR
     return OMX_ErrorNone;
   }
   default:
-    LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
+    LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
   }
 
-  LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
-
+  LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
   return OMX_ErrorUnsupportedIndex;
-  OMX_CATCH_CONFIG();
+  OMX_CATCH_PARAMETER_OR_CONFIG();
 }
 
 OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR config)
@@ -1140,7 +1189,7 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
   OMX_TRY();
   OMXChecker::CheckNotNull(config);
   OMXChecker::CheckHeaderVersion(GetVersion(config));
-  OMXChecker::CheckStateOperation(AL_SetConfig, state);
+  OMXChecker::CheckStateOperation(OMXChecker::AL_SetConfig, state);
   switch(static_cast<OMX_U32>(index))
   {
   case OMX_IndexConfigVideoBitrate:
@@ -1248,13 +1297,13 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
   }
 
   default:
-    LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
+    LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
   }
 
-  LOGE("%s is unsupported\n", ToStringOMXIndex.at(index));
+  LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
   return OMX_ErrorUnsupportedIndex;
-  OMX_CATCH_CONFIG();
+  OMX_CATCH_PARAMETER_OR_CONFIG();
 }
 
 OMX_ERRORTYPE Component::GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_INDEXTYPE* index)
@@ -1262,7 +1311,7 @@ OMX_ERRORTYPE Component::GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_I
   OMX_TRY();
   OMXChecker::CheckNotNull(name);
   OMXChecker::CheckNotNull(index);
-  OMXChecker::CheckStateOperation(AL_GetExtensionIndex, state);
+  OMXChecker::CheckStateOperation(OMXChecker::AL_GetExtensionIndex, state);
   return OMX_ErrorNoMore;
   OMX_CATCH();
 }
@@ -1283,7 +1332,7 @@ OMX_ERRORTYPE Component::ComponentRoleEnum(OMX_OUT OMX_U8* role, OMX_IN OMX_U32 
 {
   OMX_TRY();
   OMXChecker::CheckNotNull(role);
-  OMXChecker::CheckStateOperation(AL_ComponentRoleEnum, state);
+  OMXChecker::CheckStateOperation(OMXChecker::AL_ComponentRoleEnum, state);
 
   if(index != 0)
     return OMX_ErrorNoMore;
@@ -1394,10 +1443,10 @@ void Component::FlushFillEmptyBuffers(bool fill, bool empty)
   auto p2 = bind(&Component::_ProcessEmptyBuffer, this, placeholders::_1);
 
   if(fill)
-    processorFill.reset(new ProcessorFifo(p, d));
+    processorFill.reset(new ProcessorFifo<void*> { p, d, "OMX - Out" });
 
   if(empty)
-    processorEmpty.reset(new ProcessorFifo(p2, d));
+    processorEmpty.reset(new ProcessorFifo<void*> { p2, d, "OMX - In" });
 
   if(buffersFillBlocked || buffersEmptyBlocked)
     BlockFillEmptyBuffers(buffersFillBlocked, buffersEmptyBlocked);
@@ -1489,7 +1538,7 @@ void Component::TreatSetStateCommand(Task* task)
     assert(task);
     assert(task->cmd == Command::SetState);
     auto newState = (OMX_STATETYPE)((uintptr_t)task->data);
-    LOGI("Set State: %s\n", ToStringOMXState.at(newState));
+    LOG_IMPORTANT(string { "Set State: " } +ToStringOMXState.at(newState));
     OMXChecker::CheckStateTransition(state, newState);
 
     if(isTransitionToIdleFromLoadedOrWaitRessource(state, newState))
@@ -1539,7 +1588,7 @@ void Component::TreatSetStateCommand(Task* task)
     if(task->opt.get() != nullptr)
       e = (OMX_ERRORTYPE)((uintptr_t)task->opt.get());
 
-    LOGE("%s\n", ToStringOMXError.at(e));
+    LOG_ERROR(ToStringOMXError.at(e));
     callbacks.EventHandler(component, app, OMX_EventError, e, 0, nullptr);
   }
 }
@@ -1551,8 +1600,10 @@ void Component::TreatFlushCommand(Task* task)
   assert(task->opt.get() == nullptr);
   auto index = static_cast<OMX_U32>((uintptr_t)task->data);
 
-  LOGI("Flush port: %i\n", index);
-  module->Flush();
+  LOG_IMPORTANT(string { "Flush port: " } +to_string(index));
+
+  if(module->Stop())
+    module->Run(true);
 
   callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandFlush, index, nullptr);
 }
@@ -1573,7 +1624,8 @@ void Component::TreatDisablePortCommand(Task* task)
 
     if(shouldPrealloc && (state == OMX_StateExecuting || state == OMX_StatePause))
     {
-      module->Flush();
+      if(module->Stop())
+        module->Run(true);
       callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_EventPortSettingsChanged), 1, 0, nullptr);
     }
 
@@ -1608,7 +1660,8 @@ void Component::TreatEnablePortCommand(Task* task)
 
     if(shouldPrealloc && (state == OMX_StateExecuting || state == OMX_StatePause))
     {
-      module->Flush();
+      if(module->Stop())
+        module->Run(true);
       callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_EventPortSettingsChanged), 1, 0, nullptr);
     }
 

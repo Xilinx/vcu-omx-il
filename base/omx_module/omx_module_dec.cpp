@@ -40,25 +40,27 @@
 #include <cassert>
 #include <unistd.h> // close fd
 #include <algorithm>
+#include <utility/round.h>
+#include <utility/logger.h>
 
 extern "C"
 {
 #include <lib_common/BufferSrcMeta.h>
 #include <lib_fpga/DmaAllocLinux.h>
 #include <lib_common_dec/IpDecFourCC.h>
+#include <lib_common/BufferStreamMeta.h>
+#include <lib_common/BufferBufHandleMeta.h>
 }
 
 #include "base/omx_mediatype/omx_convert_module_soft.h"
 #include "base/omx_mediatype/omx_convert_module_soft_dec.h"
-#include "base/omx_utils/round.h"
 
 using namespace std;
 
-DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, shared_ptr<DecDevice> device, shared_ptr<AL_TAllocator> allocator, shared_ptr<MemoryInterface> memory) :
-  media(media),
-  device(device),
-  allocator(allocator),
-  memory(memory)
+DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, shared_ptr<DecDevice> device, shared_ptr<AL_TAllocator> allocator) :
+  media{media},
+  device{device},
+  allocator{allocator}
 {
   assert(this->media);
   assert(this->device);
@@ -79,7 +81,9 @@ static map<int, string> MapToStringDecodeError =
   { AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE, "decoder: hardware doesn't have enough resources" },
   { AL_ERR_CHAN_CREATION_NOT_ENOUGH_CORES, "decoder: hardware doesn't have enough resources (fragmentation)" },
   { AL_ERR_REQUEST_MALFORMED, "decoder: request to hardware was malformed" },
-  { AL_WARN_CONCEAL_DETECT, "decoder, concealment" },
+  { AL_WARN_CONCEAL_DETECT, "decoder: concealment" },
+  { AL_WARN_SPS_NOT_COMPATIBLE_WITH_CHANNEL_SETTINGS, "decoder: some SPS not compatible with the channel settings has been disacarded" },
+  { AL_WARN_SEI_OVERFLOW, "decoder: some SEI metadata buffer was too small" },
 };
 
 static string ToStringDecodeError(int error)
@@ -93,7 +97,13 @@ static string ToStringDecodeError(int error)
   {
     str_error = "unknown error";
   }
-  return str_error;
+  return string {
+           str_error + string {
+             " ("
+           } +to_string(error) + string {
+             ")"
+           }
+  };
 }
 
 static ModuleInterface::ErrorType ToModuleError(int errorCode)
@@ -120,7 +130,7 @@ void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
   {
     auto error = AL_Decoder_GetLastError(decoder);
 
-    fprintf(stderr, "/!\\ %s (%d)\n", ToStringDecodeError(error).c_str(), error);
+    LOG_ERROR(ToStringDecodeError(error));
 
     if(AL_IS_ERROR_CODE(error))
       callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(error));
@@ -128,17 +138,46 @@ void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
     return;
   }
 
-  auto rhandleOut = handles.Get(decodedFrame);
-  assert(rhandleOut);
+  auto handleOut = handles.Get(decodedFrame);
+  assert(handleOut);
 
-  callbacks.associate(nullptr, rhandleOut);
+  bool isInputParsed;
+  media->Get(SETTINGS_INDEX_INPUT_PARSED, &isInputParsed);
+
+  if(!isInputParsed)
+  {
+    callbacks.associate(nullptr, handleOut);
+    return;
+  }
+
+  auto handlesMeta = (AL_TBufHandleMetaData*)AL_Buffer_GetMetaData(decodedFrame, AL_META_TYPE_BUFHANDLE);
+
+  if(!handlesMeta)
+    assert(0 && "meta should be present");
+
+  vector<AL_TSeiMetaData*> seis;
+
+  for(int handle = 0; handle < handlesMeta->numHandles; handle++)
+  {
+    auto stream = handlesMeta->pHandles[handle];
+    assert(stream);
+    auto seiMeta = (AL_TSeiMetaData*)AL_Buffer_GetMetaData(stream, AL_META_TYPE_SEI);
+    assert(seiMeta);
+    AL_Buffer_RemoveMetaData(stream, (AL_TMetaData*)seiMeta);
+    seis.push_back(seiMeta);
+  }
+
+  displaySeis.Add(decodedFrame, seis);
+
+  auto handleIn = handles.Get(handlesMeta->pHandles[handlesMeta->numHandles - 1]);
+  callbacks.associate(handleIn, handleOut);
 }
 
 void DecModule::ReleaseBufs(AL_TBuffer* frame)
 {
-  auto rhandleOut = handles.Pop(frame);
-  dpb.Remove(rhandleOut->data);
-  callbacks.release(false, rhandleOut);
+  auto handleOut = handles.Pop(frame);
+  dpb.Remove(handleOut->data);
+  callbacks.release(false, handleOut);
   AL_Buffer_Unref(frame);
   return;
 }
@@ -166,16 +205,49 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
     return;
   }
 
+  auto seis = displaySeis.Pop(frameToDisplay);
+
+  if(!seis.empty())
+  {
+    for(auto const& sei: seis)
+    {
+      auto payload = sei->payload;
+
+      for(int i = 0; i < sei->numPayload; ++i, ++payload)
+      {
+        if(payload->bPrefix)
+          ParsedPrefixSei(payload->type, payload->pData, payload->size);
+      }
+    }
+  }
+
   BufferSizes bufferSizes {};
   media->Get(SETTINGS_INDEX_BUFFER_SIZES, &bufferSizes);
   auto size = bufferSizes.output;
   CopyIfRequired(frameToDisplay, size);
   currentDisplayPictureInfo.type = info->ePicStruct;
   currentDisplayPictureInfo.concealed = (AL_Decoder_GetFrameError(decoder, frameToDisplay) == AL_WARN_CONCEAL_DETECT);
-  auto rhandleOut = handles.Pop(frameToDisplay);
-  rhandleOut->offset = 0;
-  rhandleOut->payload = size;
-  callbacks.filled(rhandleOut);
+  auto handleOut = handles.Pop(frameToDisplay);
+  handleOut->offset = 0;
+  handleOut->payload = size;
+  callbacks.filled(handleOut);
+
+  if(!seis.empty())
+  {
+    for(auto const& sei: seis)
+    {
+      auto payload = sei->payload;
+
+      for(int i = 0; i < sei->numPayload; ++i, ++payload)
+      {
+        if(!payload->bPrefix)
+          ParsedSuffixSei(payload->type, payload->pData, payload->size);
+      }
+
+      AL_MetaData_Destroy((AL_TMetaData*)sei);
+    }
+  }
+
   currentDisplayPictureInfo.type = -1;
   currentDisplayPictureInfo.concealed = false;
 }
@@ -195,8 +267,8 @@ void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSett
   Stride strideAlignment;
   media->Get(SETTINGS_INDEX_STRIDE_ALIGNMENT, &strideAlignment);
 
-  media->stride = (int)RoundUp(AL_Decoder_GetMinPitch(settings.tDim.iWidth, settings.iBitDepth, media->settings.eFBStorageMode), strideAlignment.widthStride);
-  media->sliceHeight = (int)RoundUp(AL_Decoder_GetMinStrideHeight(settings.tDim.iHeight), strideAlignment.heightStride);
+  media->stride = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(settings.tDim.iWidth, settings.iBitDepth, media->settings.eFBStorageMode)), strideAlignment.widthStride);
+  media->sliceHeight = RoundUp(static_cast<int>(AL_Decoder_GetMinStrideHeight(settings.tDim.iHeight)), strideAlignment.heightStride);
 
   callbacks.event(Callbacks::Event::RESOLUTION_CHANGE, nullptr);
 }
@@ -221,7 +293,7 @@ ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
 {
   if(decoder)
   {
-    fprintf(stderr, "Decoder is ALREADY created\n");
+    LOG_ERROR("Decoder is ALREADY created");
     return UNDEFINED;
   }
 
@@ -232,11 +304,17 @@ ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
   decCallbacks.resolutionFoundCB = { RedirectionResolutionFound, this };
   decCallbacks.parsedSeiCB = { RedirectionParsedSei, this };
 
+  bool inputParsed;
+  media->Get(SETTINGS_INDEX_INPUT_PARSED, &inputParsed);
+
+  if(inputParsed)
+    decCallbacks.parsedSeiCB = { nullptr, nullptr };
+
   auto errorCode = AL_Decoder_Create(&decoder, channel, allocator.get(), &media->settings, &decCallbacks);
 
   if(AL_IS_ERROR_CODE(errorCode))
   {
-    fprintf(stderr, "Failed to create Decoder: %d\n", errorCode);
+    LOG_ERROR(string { "Failed to create Decoder: " } +ToStringDecodeError(errorCode));
     return ToModuleError(errorCode);
   }
 
@@ -257,7 +335,7 @@ bool DecModule::DestroyDecoder()
 {
   if(!decoder)
   {
-    fprintf(stderr, "Decoder isn't created\n");
+    LOG_ERROR("Decoder isn't created");
     return false;
   }
 
@@ -316,7 +394,7 @@ void* DecModule::Allocate(size_t size)
 
   if(!handle)
   {
-    fprintf(stderr, "No more memory\n");
+    LOG_ERROR("No more memory");
     return nullptr;
   }
 
@@ -332,7 +410,7 @@ int DecModule::AllocateDMA(int size)
 
   if(!handle)
   {
-    fprintf(stderr, "No more memory\n");
+    LOG_ERROR("No more memory");
     return -1;
   }
 
@@ -360,13 +438,13 @@ bool DecModule::SetCallbacks(Callbacks callbacks)
 
 void DecModule::InputBufferDestroy(AL_TBuffer* input)
 {
-  auto rhandleIn = handles.Pop(input);
+  auto hanleIn = handles.Pop(input);
 
   AL_Buffer_Destroy(input);
 
-  rhandleIn->offset = 0;
-  rhandleIn->payload = 0;
-  callbacks.emptied(rhandleIn);
+  hanleIn->offset = 0;
+  hanleIn->payload = 0;
+  callbacks.emptied(hanleIn);
 }
 
 static bool isFd(BufferHandleType type)
@@ -396,7 +474,7 @@ AL_TBuffer* DecModule::CreateInputBuffer(char* buffer, int size)
 
     if(!dmaHandle)
     {
-      fprintf(stderr, "Failed to import fd : %i\n", fd);
+      LOG_ERROR(string { "Failed to import fd: " } +to_string(fd));
       return nullptr;
     }
 
@@ -408,7 +486,18 @@ AL_TBuffer* DecModule::CreateInputBuffer(char* buffer, int size)
     if(allocated.Exist(buffer))
       input = AL_Buffer_Create(allocator.get(), allocated.Get(buffer), size, RedirectionInputBufferDestroy);
     else
-      input = AL_Buffer_WrapData((uint8_t*)buffer, size, RedirectionInputBufferDestroy);
+    {
+      bool isInputParsed;
+      media->Get(SETTINGS_INDEX_INPUT_PARSED, &isInputParsed);
+
+      if(isInputParsed)
+      {
+        input = AL_Buffer_Create_And_Allocate(allocator.get(), size, RedirectionInputBufferDestroy);
+        copy(buffer, buffer + size, AL_Buffer_GetData(input));
+      }
+      else
+        input = AL_Buffer_WrapData((uint8_t*)buffer, size, RedirectionInputBufferDestroy);
+    }
   }
 
   if(input == nullptr)
@@ -418,6 +507,34 @@ AL_TBuffer* DecModule::CreateInputBuffer(char* buffer, int size)
   AL_Buffer_Ref(input);
 
   return input;
+}
+
+bool DecModule::CreateAndAttachStreamMeta(AL_TBuffer& buf)
+{
+  auto meta = (AL_TMetaData*)(AL_StreamMetaData_Create(1));
+
+  if(!meta)
+    return false;
+
+  if(!AL_Buffer_AddMetaData(&buf, meta))
+  {
+    AL_MetaData_Destroy(meta);
+    return false;
+  }
+  return true;
+}
+
+uint32_t ConvertModuleToSoftFlags(Flags flags)
+{
+  uint32_t softFlags = 0;
+
+  if(flags.isSync)
+    softFlags |= AL_SECTION_SYNC_FLAG;
+
+  if(flags.isEndOfFrame)
+    softFlags |= AL_SECTION_END_FRAME_FLAG;
+
+  return softFlags;
 }
 
 bool DecModule::Empty(BufferHandleInterface* handle)
@@ -438,6 +555,31 @@ bool DecModule::Empty(BufferHandleInterface* handle)
 
   if(!input)
     return false;
+  bool inputParsed = false;
+  media->Get(SETTINGS_INDEX_INPUT_PARSED, &inputParsed);
+
+  if(inputParsed)
+  {
+    if(!AL_Buffer_GetMetaData(input, AL_META_TYPE_STREAM))
+    {
+      if(!CreateAndAttachStreamMeta(*input))
+        return false;
+    }
+    auto streamMeta = (AL_TStreamMetaData*)(AL_Buffer_GetMetaData(input, AL_META_TYPE_STREAM));
+    AL_StreamMetaData_ClearAllSections(streamMeta);
+    AL_StreamMetaData_AddSection(streamMeta, 0, handle->payload, ConvertModuleToSoftFlags(currentFlags));
+
+    if(!AL_Buffer_GetMetaData(input, AL_META_TYPE_SEI))
+    {
+      int maxSei = 32;
+      int maxSeiBuf = 2 * 1024;
+      auto pSeiMeta = AL_SeiMetaData_Create(maxSei, maxSeiBuf);
+
+      if(!pSeiMeta)
+        return false;
+      AL_Buffer_AddMetaData(input, (AL_TMetaData*)pSeiMeta);
+    }
+  }
 
   handles.Add(input, handle);
 
@@ -460,7 +602,7 @@ static AL_TMetaData* CreateSourceMeta(AL_TStreamSettings const& streamSettings, 
 
 void DecModule::OutputBufferDestroy(AL_TBuffer* output)
 {
-  output->hBuf = NULL;
+  output->hBuf = nullptr;
   AL_Buffer_Destroy(output);
 }
 
@@ -499,7 +641,7 @@ AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
 
     if(!dmaHandle)
     {
-      fprintf(stderr, "Failed to import fd : %i\n", fd);
+      LOG_ERROR(string { "Failed to import fd: " } +to_string(fd));
       AL_MetaData_Destroy((AL_TMetaData*)sourceMeta);
       return nullptr;
     }
@@ -558,33 +700,30 @@ ModuleInterface::ErrorType DecModule::Run(bool shouldPrealloc)
 {
   if(decoder)
   {
-    fprintf(stderr, "You can't call Run twice\n");
+    LOG_ERROR("You can't call Run twice");
     return UNDEFINED;
   }
 
   return CreateDecoder(shouldPrealloc);
 }
 
-bool DecModule::Flush()
+bool DecModule::Stop()
 {
   if(!decoder)
     return false;
 
-  Stop();
-  return Run(true) == SUCCESS;
-}
-
-void DecModule::Stop()
-{
-  if(!decoder)
-    return;
-
   DestroyDecoder();
+  return true;
 }
 
 ModuleInterface::ErrorType DecModule::SetDynamic(std::string index, void const* param)
 {
-  (void)index, (void)param;
+  if(index == "DYNAMIC_INDEX_STREAM_FLAGS")
+  {
+    currentFlags = *static_cast<Flags const*>(param);
+    return SUCCESS;
+  }
+
   return BAD_INDEX;
 }
 

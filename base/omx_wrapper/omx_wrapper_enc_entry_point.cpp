@@ -35,6 +35,7 @@
 *
 ******************************************************************************/
 
+#include <utility/logger.h>
 #include "base/omx_component/omx_component_interface.h"
 #include "base/omx_checker/omx_checker.h"
 #include "omx_wrapper_common_entry_point.cpp"
@@ -43,8 +44,9 @@
 #include <OMX_Core.h>
 #include <OMX_Component.h>
 
-static OMX_ERRORTYPE WrapComponentDeInit(OMX_IN OMX_HANDLETYPE hComponent)
+static OMX_ERRORTYPE ComponentDeInit(OMX_IN OMX_HANDLETYPE hComponent)
 {
+  LOG_IMPORTANT(string { "hComponent: " } +ToStringAddr(hComponent));
   auto pThis = GetThis(hComponent);
 
   if(!pThis)
@@ -77,24 +79,24 @@ OMX_API OMX_ERRORTYPE CreateComponent(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN O
   pComp->pComponentPrivate = pThis;
   pComp->pApplicationPrivate = pAppPrivate;
 
-  pComp->SetCallbacks = WrapSetCallbacks;
-  pComp->SendCommand = WrapSendCommand;
-  pComp->GetParameter = WrapGetParameter;
-  pComp->SetParameter = WrapSetParameter;
-  pComp->GetState = WrapGetState;
-  pComp->UseBuffer = WrapUseBuffer;
-  pComp->AllocateBuffer = WrapAllocateBuffer;
-  pComp->FreeBuffer = WrapFreeBuffer;
-  pComp->EmptyThisBuffer = WrapEmptyThisBuffer;
-  pComp->FillThisBuffer = WrapFillThisBuffer;
-  pComp->ComponentDeInit = WrapComponentDeInit;
-  pComp->GetComponentVersion = WrapGetComponentVersion;
-  pComp->GetConfig = WrapGetConfig;
-  pComp->SetConfig = WrapSetConfig;
-  pComp->GetExtensionIndex = WrapGetExtensionIndex;
-  pComp->ComponentTunnelRequest = WrapComponentTunnelRequest;
-  pComp->UseEGLImage = WrapUseEGLImage;
-  pComp->ComponentRoleEnum = WrapComponentRoleEnum;
+  pComp->SetCallbacks = SetCallbacks;
+  pComp->SendCommand = SendCommand;
+  pComp->GetParameter = GetParameter;
+  pComp->SetParameter = SetParameter;
+  pComp->GetState = GetState;
+  pComp->UseBuffer = UseBuffer;
+  pComp->AllocateBuffer = AllocateBuffer;
+  pComp->FreeBuffer = FreeBuffer;
+  pComp->EmptyThisBuffer = EmptyThisBuffer;
+  pComp->FillThisBuffer = FillThisBuffer;
+  pComp->ComponentDeInit = ComponentDeInit;
+  pComp->GetComponentVersion = GetComponentVersion;
+  pComp->GetConfig = GetConfig;
+  pComp->SetConfig = SetConfig;
+  pComp->GetExtensionIndex = GetExtensionIndex;
+  pComp->ComponentTunnelRequest = ComponentTunnelRequest;
+  pComp->UseEGLImage = UseEGLImage;
+  pComp->ComponentRoleEnum = ComponentRoleEnum;
 
   return pComp->SetCallbacks(pComp, pCallbacks, pAppPrivate);
 }

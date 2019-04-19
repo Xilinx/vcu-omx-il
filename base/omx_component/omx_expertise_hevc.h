@@ -37,17 +37,16 @@
 
 #pragma once
 
-#include "omx_expertise.h"
+#include "omx_expertise_interface.h"
 
-struct ExpertiseHEVC final : public Expertise
+struct ExpertiseHEVC final : ExpertiseInterface
 {
-  ~ExpertiseHEVC()
-  {
-  };
-  OMX_ERRORTYPE GetProfileLevelSupported(OMX_PTR param, std::shared_ptr<MediatypeInterface> media);
-  OMX_ERRORTYPE GetProfileLevel(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media);
-  OMX_ERRORTYPE SetProfileLevel(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media);
-  OMX_ERRORTYPE GetExpertise(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media);
-  OMX_ERRORTYPE SetExpertise(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media);
+  ~ExpertiseHEVC() override;
+
+  OMX_ERRORTYPE GetProfileLevelSupported(OMX_PTR param, std::shared_ptr<MediatypeInterface> media) override;
+  OMX_ERRORTYPE GetProfileLevel(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media) override;
+  OMX_ERRORTYPE SetProfileLevel(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media) override;
+  OMX_ERRORTYPE GetExpertise(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media) override;
+  OMX_ERRORTYPE SetExpertise(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media) override;
 };
 

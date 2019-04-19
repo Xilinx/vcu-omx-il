@@ -60,7 +60,7 @@ char* Buffer_MapData(char* data, size_t zSize, bool use_dmabuf)
 {
   if(use_dmabuf)
   {
-    int fd = (int)(uintptr_t)data;
+    int fd = (int)(intptr_t)data;
     auto zMapSize = AlignToPageSize(zSize);
 
     data = (char*)mmap(0, zMapSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);

@@ -56,6 +56,7 @@ typedef uint64_t u64;
 
 #include "lib_common/BufferSrcMeta.h"
 #include "lib_common/FourCC.h"
+#include "lib_rtos/lib_rtos.h"
 }
 
 #include "SyncLog.h"
@@ -221,6 +222,8 @@ void SyncIp::pollErrors(int timeout)
 
 void SyncIp::pollingRoutine()
 {
+  Rtos_SetCurrentThreadName("SyncIP - Poll");
+
   while(true)
   {
     {

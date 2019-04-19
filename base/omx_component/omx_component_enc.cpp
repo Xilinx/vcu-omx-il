@@ -44,7 +44,6 @@
 #include <cmath>
 
 #include "base/omx_checker/omx_checker.h"
-#include "base/omx_utils/omx_log.h"
 #include "base/omx_utils/omx_translate.h"
 
 #include "omx_component_getset.h"
@@ -64,7 +63,7 @@ static BufferHandleType GetBufferHandlePort(shared_ptr<MediatypeInterface> media
   return bufferHandlePort;
 }
 
-EncComponent::EncComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<Expertise>&& expertise, std::shared_ptr<SyncIpInterface> syncIp) :
+EncComponent::EncComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise, std::shared_ptr<SyncIpInterface> syncIp) :
   Component(component, media, std::move(module), std::move(expertise), name, role), syncIp(syncIp)
 {
 }
@@ -88,7 +87,9 @@ void EncComponent::EmptyThisBufferCallBack(BufferHandleInterface* handle)
 
 static void AddEncoderFlags(OMXBufferHandle* handle, EncModule& module)
 {
-  auto flags = module.GetFlags(handle);
+  Flags flags {};
+  auto success = module.GetDynamic(DYNAMIC_INDEX_STREAM_FLAGS, &flags);
+  assert(success == ModuleInterface::SUCCESS);
 
   if(flags.isSync)
     handle->header->nFlags |= OMX_BUFFERFLAG_SYNCFRAME;
@@ -107,7 +108,7 @@ void EncComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandle
   auto emptyHeader = empty->header;
   auto fillHeader = fill->header;
 
-  PropagateHeaderData(emptyHeader, fillHeader);
+  PropagateHeaderData(*emptyHeader, *fillHeader);
 
   if(seisMap.Exist(empty_))
   {

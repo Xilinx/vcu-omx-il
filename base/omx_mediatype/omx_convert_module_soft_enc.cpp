@@ -100,10 +100,9 @@ GdrType ConvertSoftToModuleGdr(AL_EGdrMode gdr)
 
 RateControlOptions ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption options)
 {
-	if(options & AL_RC_OPT_NONE)
-		return RateControlOptions {};
-
-	RateControlOptions moduleOptions {};
+  if(options & AL_RC_OPT_NONE)
+    return RateControlOptions {};
+  RateControlOptions moduleOptions {};
 
   if(options & AL_RC_OPT_SCN_CHG_RES)
     moduleOptions.isSceneChangeResilienceEnabled = true;
@@ -223,19 +222,19 @@ AL_EGdrMode ConvertModuleToSoftGdr(GdrType gdr)
 
 AL_ERateCtrlOption ConvertModuleToSoftRateControlOption(RateControlOptions options)
 {
-  AL_ERateCtrlOption softOptions{};
+  AL_ERateCtrlOption softOptions {};
 
   if(options.isSceneChangeResilienceEnabled)
-    softOptions = static_cast<AL_ERateCtrlOption>(softOptions|AL_RC_OPT_SCN_CHG_RES);
+    softOptions = static_cast<AL_ERateCtrlOption>(softOptions | AL_RC_OPT_SCN_CHG_RES);
 
   if(options.isDelayEnabled)
-    softOptions = static_cast<AL_ERateCtrlOption>(softOptions|AL_RC_OPT_DELAYED);
+    softOptions = static_cast<AL_ERateCtrlOption>(softOptions | AL_RC_OPT_DELAYED);
 
   if(options.isStaticSceneEnabled)
-    softOptions = static_cast<AL_ERateCtrlOption>(softOptions|AL_RC_OPT_STATIC_SCENE);
+    softOptions = static_cast<AL_ERateCtrlOption>(softOptions | AL_RC_OPT_STATIC_SCENE);
 
   if(options.isSkipEnabled)
-    softOptions = static_cast<AL_ERateCtrlOption>(softOptions|AL_RC_OPT_ENABLE_SKIP);
+    softOptions = static_cast<AL_ERateCtrlOption>(softOptions | AL_RC_OPT_ENABLE_SKIP);
 
   return softOptions;
 }

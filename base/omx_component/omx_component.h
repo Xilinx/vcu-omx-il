@@ -40,20 +40,23 @@
 #include "omx_component_structs.h"
 #include "omx_component_interface.h"
 #include "base/omx_module/omx_module_interface.h"
+#include "base/omx_module/omx_module_codec_structs.h"
 #include "base/omx_mediatype/omx_mediatype_interface.h"
-#include "base/omx_utils/processor_fifo.h"
+#include <utility/processor_fifo.h>
 #include "omx_buffer_handle.h"
 #include "omx_convert_omx_media.h"
 #include "omx_component_getset.h"
-#include "omx_expertise.h"
+#include "omx_expertise_interface.h"
 
 #include <algorithm>
 #include <condition_variable>
 #include <mutex>
 #include <memory>
 #include <future>
+#include <cassert>
+#include <utility/logger.h>
 
-#define ALLEGRODVT_OMX_VERSION 3
+static OMX_U32 constexpr ALLEGRODVT_OMX_VERSION = 3;
 
 #define OMX_TRY() \
   try \
@@ -64,7 +67,7 @@
   } \
   catch(OMX_ERRORTYPE& e) \
   { \
-    LOGE("%s\n", ToStringOMXError.at(e)); \
+    LOG_ERROR(ToStringOMXError.at(e)); \
     f(e); \
     return e; \
   } \
@@ -74,25 +77,7 @@
   } \
   catch(OMX_ERRORTYPE& e) \
   { \
-    LOGE("%s\n", ToStringOMXError.at(e)); \
-    return e; \
-  } \
-  void FORCE_SEMICOLON()
-
-#define OMX_CATCH_CONFIG() \
-  } \
-  catch(OMX_ERRORTYPE& e) \
-  { \
-    LOGE("%s: %s\n", ToStringOMXIndex.at(index), ToStringOMXError.at(e)); \
-    return e; \
-  } \
-  void FORCE_SEMICOLON()
-
-#define OMX_CATCH_PARAMETER() \
-  } \
-  catch(OMX_ERRORTYPE& e) \
-  { \
-    LOGE("%s: %s\n", ToStringOMXIndex.at(index), ToStringOMXError.at(e)); \
+    LOG_ERROR(ToStringOMXError.at(e)); \
     return e; \
   } \
   void FORCE_SEMICOLON()
@@ -105,7 +90,7 @@ struct OMXSei
 
 struct Component : public OMXComponentInterface
 {
-  Component(OMX_HANDLETYPE component, std::shared_ptr<MediatypeInterface> media, std::unique_ptr<ModuleInterface>&& module, std::unique_ptr<Expertise>&& expertise, OMX_STRING name, OMX_STRING role);
+  Component(OMX_HANDLETYPE component, std::shared_ptr<MediatypeInterface> media, std::unique_ptr<ModuleInterface>&& module, std::unique_ptr<ExpertiseInterface>&& expertise, OMX_STRING name, OMX_STRING role);
   ~Component() override;
   OMX_ERRORTYPE SendCommand(OMX_IN OMX_COMMANDTYPE cmd, OMX_IN OMX_U32 param, OMX_IN OMX_PTR data) override;
 
@@ -114,16 +99,20 @@ struct Component : public OMXComponentInterface
 
   OMX_ERRORTYPE GetState(OMX_OUT OMX_STATETYPE* state) override;
   OMX_ERRORTYPE SetCallbacks(OMX_IN OMX_CALLBACKTYPE* callbacks, OMX_IN OMX_PTR app) override;
+
   virtual OMX_ERRORTYPE UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size, OMX_IN OMX_U8* buffer) override;
   virtual OMX_ERRORTYPE AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size) override;
   virtual OMX_ERRORTYPE FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADERTYPE* header) override;
   void ComponentDeInit() override;
+
   OMX_ERRORTYPE GetComponentVersion(OMX_OUT OMX_STRING name, OMX_OUT OMX_VERSIONTYPE* version, OMX_OUT OMX_VERSIONTYPE* spec) override;
+
   OMX_ERRORTYPE GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR param) override;
   OMX_ERRORTYPE SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param) override;
   OMX_ERRORTYPE GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_INDEXTYPE* index) override;
   OMX_ERRORTYPE GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR config) override;
   OMX_ERRORTYPE SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR config) override;
+
   OMX_ERRORTYPE ComponentTunnelRequest(OMX_IN OMX_U32 index, OMX_IN OMX_HANDLETYPE comp, OMX_IN OMX_U32 tunneledIndex, OMX_INOUT OMX_TUNNELSETUPTYPE* setup) override;
   OMX_ERRORTYPE UseEGLImage(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN void* eglImage) override;
   OMX_ERRORTYPE ComponentRoleEnum(OMX_OUT OMX_U8* role, OMX_IN OMX_U32 index) override;
@@ -132,7 +121,7 @@ protected:
   OMX_HANDLETYPE const component;
   std::shared_ptr<MediatypeInterface> media;
   std::unique_ptr<ModuleInterface> module;
-  std::unique_ptr<Expertise> expertise;
+  std::unique_ptr<ExpertiseInterface> expertise;
   Port input;
   Port output;
   bool shouldPrealloc;
@@ -154,9 +143,9 @@ protected:
   std::queue<OMX_MARKTYPE*> marks;
   EOSHandles<BufferHandleInterface*> eosHandles;
 
-  std::unique_ptr<ProcessorFifo> processorMain;
-  std::unique_ptr<ProcessorFifo> processorEmpty;
-  std::unique_ptr<ProcessorFifo> processorFill;
+  std::unique_ptr<ProcessorFifo<void*>> processorMain;
+  std::unique_ptr<ProcessorFifo<void*>> processorEmpty;
+  std::unique_ptr<ProcessorFifo<void*>> processorFill;
   std::shared_ptr<std::promise<void>> pauseFillPromise;
   std::shared_ptr<std::promise<void>> pauseEmptyPromise;
   void _ProcessMain(void* data);
@@ -200,65 +189,32 @@ protected:
   void ReturnEmptiedBuffer(OMX_BUFFERHEADERTYPE* emptied);
 };
 
-inline bool IsEOSDetected(OMX_U32 flags)
+static inline bool IsEOSDetected(OMX_U32 flags)
 {
   return flags & OMX_BUFFERFLAG_EOS;
 }
 
-inline void ClearPropagatedData(OMX_BUFFERHEADERTYPE* header)
-{
-  header->hMarkTargetComponent = NULL;
-  header->pMarkData = NULL;
-  header->nFilledLen = 0;
-  header->nFlags = 0;
-}
-
-inline bool IsCompMarked(OMX_HANDLETYPE mark, OMX_HANDLETYPE component)
+static inline bool IsCompMarked(OMX_HANDLETYPE mark, OMX_HANDLETYPE component)
 {
   return mark == component;
 }
 
-inline void PropagateHeaderData(OMX_BUFFERHEADERTYPE const* src, OMX_BUFFERHEADERTYPE* dst)
+static inline void PropagateHeaderData(OMX_BUFFERHEADERTYPE const& src, OMX_BUFFERHEADERTYPE& dst)
 {
-  assert(src);
-  assert(dst);
-  assert(!dst->hMarkTargetComponent);
-  assert(!dst->pMarkData);
-  assert(!dst->nTimeStamp);
-  dst->hMarkTargetComponent = src->hMarkTargetComponent;
-  dst->pMarkData = src->pMarkData;
-  dst->nTimeStamp = src->nTimeStamp;
-  dst->nFlags = src->nFlags;
+  assert(!dst.hMarkTargetComponent);
+  assert(!dst.pMarkData);
+  assert(!dst.nTimeStamp);
+  dst.hMarkTargetComponent = src.hMarkTargetComponent;
+  dst.pMarkData = src.pMarkData;
+  dst.nTimeStamp = src.nTimeStamp;
+  dst.nFlags = src.nFlags;
 }
 
-#define VIDEO_START_PORT 0
-#define VIDEO_PORTS_COUNT 2
+static int constexpr VIDEO_START_PORT = 0;
+static int constexpr VIDEO_PORTS_COUNT = 2;
 
-inline void SetPortsParam(OMX_PORT_PARAM_TYPE& portParams)
-{
-  portParams.nPorts = VIDEO_PORTS_COUNT;
-  portParams.nStartPortNumber = VIDEO_START_PORT;
-}
-
-inline bool IsInputPort(int index)
+static inline bool IsInputPort(int index)
 {
   return index == VIDEO_START_PORT;
-}
-
-static inline void CheckVersionExistance(OMX_PTR ptr)
-{
-  auto size = *static_cast<OMX_U32*>(ptr);
-
-  if(size < (sizeof(OMX_U32) + sizeof(OMX_VERSIONTYPE)))
-    throw OMX_ErrorBadParameter;
-}
-
-inline OMX_VERSIONTYPE GetVersion(OMX_PTR ptr)
-{
-  CheckVersionExistance(ptr);
-  auto tmp = ptr;
-  tmp = static_cast<OMX_U32*>(tmp) + 1; // nVersion is always after nSize
-
-  return *static_cast<OMX_VERSIONTYPE*>(tmp);
 }
 

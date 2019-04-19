@@ -42,6 +42,8 @@
 #include <unistd.h> // close fd
 #include <algorithm>
 #include <future>
+#include <utility/logger.h>
+#include <string>
 
 extern "C"
 {
@@ -59,7 +61,7 @@ extern "C"
 #include "base/omx_checker/omx_checker.h"
 #include "base/omx_mediatype/omx_convert_module_soft_enc.h"
 #include "base/omx_mediatype/omx_convert_module_soft.h"
-#include "base/omx_utils/round.h"
+#include <utility/round.h>
 
 using namespace std;
 
@@ -82,10 +84,10 @@ static ModuleInterface::ErrorType ToModuleError(int errorCode)
 }
 
 EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, shared_ptr<EncDevice> device, shared_ptr<AL_TAllocator> allocator, shared_ptr<MemoryInterface> memory) :
-  media(media),
-  device(device),
-  allocator(allocator),
-  memory(memory)
+  media{media},
+  device{device},
+  allocator{allocator},
+  memory{memory}
 {
   assert(this->media);
   assert(this->device);
@@ -120,7 +122,13 @@ static string ToStringEncodeError(int error)
   {
     str_error = "unknown error";
   }
-  return str_error;
+  return string {
+           str_error + string {
+             " ("
+           } +to_string(error) + string {
+             ")"
+           }
+  };
 }
 
 void EncModule::InitEncoders(int numPass)
@@ -149,7 +157,7 @@ void EncModule::InitEncoders(int numPass)
 
       auto p = bind(&EncModule::_ProcessEmptyFifo, this, placeholders::_1);
       auto d = bind(&EncModule::_DeleteEmptyFifo, this, placeholders::_1);
-      encoderPass.threadFifo.reset(new ProcessorFifo(p, d));
+      encoderPass.threadFifo.reset(new ProcessorFifo<void*> { p, d, "Engine - Enc" });
     }
 
     encoders.push_back(encoderPass);
@@ -173,7 +181,7 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
 {
   if(encoders.size())
   {
-    fprintf(stderr, "Encoder is ALREADY created\n");
+    LOG_ERROR("Encoder is ALREADY created");
     return UNDEFINED;
   }
 
@@ -185,7 +193,7 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
 
   if(!roiCtx)
   {
-    fprintf(stderr, "Failed to create ROI manager:\n");
+    LOG_ERROR("Failed to create ROI manager");
     return BAD_PARAMETER;
   }
 
@@ -220,13 +228,12 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
 
     if(AL_IS_ERROR_CODE(errorCode))
     {
-      fprintf(stderr, "Failed to create Encoder:\n");
-      fprintf(stderr, "/!\\ ERROR:%s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
+      LOG_ERROR(string { "Failed to create Encoder: " } +ToStringEncodeError(errorCode));
       return ToModuleError(errorCode);
     }
 
     if(AL_IS_WARNING_CODE(errorCode))
-      fprintf(stderr, "/!\\ WARNING:%s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
+      LOG_WARNING(string { "Warining: " } +ToStringEncodeError(errorCode));
 
     for(int i = 0; i < (int)encoderPass.streamBuffers.size(); i++)
     {
@@ -245,7 +252,7 @@ bool EncModule::DestroyEncoder()
 {
   if(!encoders.size())
   {
-    fprintf(stderr, "Encoder isn't created\n");
+    LOG_ERROR("Encoder isn't created");
     return false;
   }
 
@@ -281,7 +288,7 @@ bool EncModule::DestroyEncoder()
 
   if(!roiCtx)
   {
-    fprintf(stderr, "ROI manager isn't created\n");
+    LOG_ERROR("ROI manager isn't created");
     return false;
   }
   AL_RoiMngr_Destroy(roiCtx);
@@ -293,19 +300,20 @@ ModuleInterface::ErrorType EncModule::Run(bool)
 {
   if(encoders.size())
   {
-    fprintf(stderr, "You can't call Run twice\n");
+    LOG_ERROR("You can't call Run twice");
     return UNDEFINED;
   }
 
   return CreateEncoder();
 }
 
-void EncModule::Stop()
+bool EncModule::Stop()
 {
   if(!encoders.size())
-    return;
+    return false;
 
   DestroyEncoder();
+  return true;
 }
 
 static void StubCallbackEvent(Callbacks::Event, void*)
@@ -323,15 +331,6 @@ bool EncModule::SetCallbacks(Callbacks callbacks)
   this->callbacks = callbacks;
 
   return true;
-}
-
-bool EncModule::Flush()
-{
-  if(!encoders.size())
-    return false;
-
-  Stop();
-  return Run(true) == SUCCESS;
 }
 
 void EncModule::Free(void* buffer)
@@ -359,7 +358,7 @@ void* EncModule::Allocate(size_t size)
 
   if(!handle)
   {
-    fprintf(stderr, "No more memory\n");
+    LOG_ERROR("No more memory");
     return nullptr;
   }
 
@@ -375,7 +374,7 @@ int EncModule::AllocateDMA(int size)
 
   if(!handle)
   {
-    fprintf(stderr, "No more memory\n");
+    LOG_ERROR("No more memory");
     return -1;
   }
 
@@ -386,7 +385,7 @@ int EncModule::AllocateDMA(int size)
 
 static void FreeWithoutDestroyingMemory(AL_TBuffer* buffer)
 {
-  buffer->hBuf = NULL;
+  buffer->hBuf = nullptr;
   AL_Buffer_Destroy(buffer);
 }
 
@@ -410,7 +409,7 @@ bool EncModule::Use(BufferHandleInterface* handle, unsigned char* buffer, int si
     shouldBeCopied.Add(encoderBuffer, buffer);
   }
   else
-    encoderBuffer = AL_Buffer_Create(allocator.get(), NULL, size, FreeWithoutDestroyingMemory);
+    encoderBuffer = AL_Buffer_Create(allocator.get(), nullptr, size, FreeWithoutDestroyingMemory);
 
   if(!encoderBuffer)
     return false;
@@ -435,7 +434,7 @@ bool EncModule::UseDMA(BufferHandleInterface* handle, int fd, int size)
 
   if(!dmaHandle)
   {
-    fprintf(stderr, "Failed to import fd : %i\n", fd);
+    LOG_ERROR(string { "Failed to import fd: " } +to_string(fd));
     return false;
   }
 
@@ -683,7 +682,7 @@ void EncModule::ReleaseBuf(AL_TBuffer const* buf, bool isDma, bool isSrc)
 
 bool EncModule::isEndOfFrame(AL_TBuffer* stream)
 {
-  auto flags = GetFlags(stream);
+  auto flags = GetCurrentFlags(stream);
   return flags.isEndOfFrame;
 }
 
@@ -695,12 +694,12 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 
   if(AL_IS_ERROR_CODE(errorCode))
   {
-    fprintf(stderr, "/!\\ ERROR:%s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
+    LOG_ERROR(ToStringEncodeError(errorCode));
     callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(errorCode));
   }
 
   if(AL_IS_WARNING_CODE(errorCode))
-    fprintf(stderr, "/!\\ WARNING:%s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
+    LOG_WARNING(ToStringEncodeError(errorCode));
 
   BufferHandles bufferHandles;
   media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
@@ -751,17 +750,17 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
   AL_TStreamMetaData* streamMeta = (AL_TStreamMetaData*)AL_Buffer_GetMetaData(stream, AL_META_TYPE_STREAM);
   assert(streamMeta);
   currentTemporalId = streamMeta->uTemporalID;
+  currentFlags = GetCurrentFlags(stream);
   callbacks.associate(rhandleIn, rhandleOut);
 
   auto async_stream_reconstruction = [&]() -> int
                                      {
                                        int size = ReconstructStream(memory, *stream);
 
-                                       if(shouldBeCopied.Exist(stream))
-                                       {
-                                         auto buffer = shouldBeCopied.Get(stream);
-                                         copy(AL_Buffer_GetData(stream), AL_Buffer_GetData(stream) + size, buffer);
-                                       }
+                                       if(!shouldBeCopied.Exist(stream))
+                                         return size;
+                                       auto buffer = shouldBeCopied.Get(stream);
+                                       copy(AL_Buffer_GetData(stream), AL_Buffer_GetData(stream) + size, buffer);
                                        return size;
                                      };
 
@@ -810,12 +809,12 @@ void EncModule::EndEncodingLookAhead(AL_TBuffer* stream, AL_TBuffer const* sourc
 
   if(AL_IS_ERROR_CODE(errorCode))
   {
-    fprintf(stderr, "/!\\ %s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
+    LOG_ERROR(ToStringEncodeError(errorCode));
     callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(errorCode));
   }
 
   if(AL_IS_WARNING_CODE(errorCode))
-    fprintf(stderr, "/!\\ WARNING:%s (%d)\n", ToStringEncodeError(errorCode).c_str(), errorCode);
+    LOG_WARNING(ToStringEncodeError(errorCode));
 
   if(isEOS)
   {
@@ -828,7 +827,7 @@ void EncModule::EndEncodingLookAhead(AL_TBuffer* stream, AL_TBuffer const* sourc
 
   if(isSrcRelease)
   {
-    ReleaseBuf(source, bufferHandles.input == BufferHandleType::BUFFER_HANDLE_FD, true);
+    ReleaseBuf(source, isFd(bufferHandles.input), true);
     return;
   }
 
@@ -894,7 +893,7 @@ void EncModule::EmptyFifo(GenericEncoder& encoder, bool isEOS)
     EmptyFifo(encoder, isEOS);
 }
 
-Flags EncModule::GetFlags(AL_TBuffer* stream)
+Flags EncModule::GetCurrentFlags(AL_TBuffer* stream)
 {
   auto meta = (AL_TStreamMetaData*)(AL_Buffer_GetMetaData(stream, AL_META_TYPE_STREAM));
   assert(meta);
@@ -903,30 +902,17 @@ Flags EncModule::GetFlags(AL_TBuffer* stream)
 
   for(int i = 0; i < meta->uNumSection; i++)
   {
-    if(meta->pSections[i].uFlags & SECTION_SYNC_FLAG)
+    if(meta->pSections[i].uFlags & AL_SECTION_SYNC_FLAG)
       flags.isSync = true;
 
-    if(!(meta->pSections[i].uFlags & SECTION_CONFIG_FLAG))
+    if(!(meta->pSections[i].uFlags & AL_SECTION_CONFIG_FLAG))
       flags.isEndOfSlice = true;
 
-    if(meta->pSections[i].uFlags & SECTION_END_FRAME_FLAG)
+    if(meta->pSections[i].uFlags & AL_SECTION_END_FRAME_FLAG)
       flags.isEndOfFrame = true;
   }
 
   return flags;
-}
-
-Flags EncModule::GetFlags(BufferHandleInterface* handle)
-{
-  AL_TBuffer* stream = nullptr;
-
-  if(pool.Exist(handle))
-    stream = pool.Get(handle);
-
-  if(!stream)
-    return Flags {};
-
-  return GetFlags(stream);
 }
 
 ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* param)
@@ -1134,6 +1120,12 @@ ModuleInterface::ErrorType EncModule::GetDynamic(std::string index, void* param)
       resolution.width, resolution.height
     };
     *static_cast<int*>(param) = AL_GetAllocSizeEP2(tDim, static_cast<AL_ECodec>(AL_GET_PROFILE_CODEC(media->settings.tChParam[0].eProfile)));
+    return SUCCESS;
+  }
+
+  if(index == "DYNAMIC_INDEX_STREAM_FLAGS")
+  {
+    *static_cast<Flags*>(param) = this->currentFlags;
     return SUCCESS;
   }
 

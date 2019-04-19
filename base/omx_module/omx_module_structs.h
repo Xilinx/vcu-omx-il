@@ -259,3 +259,13 @@ struct DisplayPictureInfo
   bool concealed;
 };
 
+struct Flags
+{
+  Flags() = default;
+  ~Flags() = default;
+  bool isConfig = false;
+  bool isSync = false;
+  bool isEndOfSlice = false;
+  bool isEndOfFrame = false;
+};
+

@@ -2,6 +2,9 @@ THIS.omx_module_enc:=$(call get-my-dir)
 
 OMX_MODULE_ENC_SRCS+=\
 	$(THIS.omx_module_enc)/omx_module_enc.cpp\
+	$(THIS.omx_module_enc)/omx_memory_interface.cpp\
+	$(THIS.omx_module_enc)/omx_dma_memory.cpp\
+	$(THIS.omx_module_enc)/omx_cpp_memory.cpp\
 	$(THIS.omx_module_enc)/omx_device_enc_interface.cpp\
 	$(THIS.omx_module_enc)/omx_device_enc_hardware_mcu.cpp\
 	$(THIS.omx_module_enc)/ROIMngr.cpp\

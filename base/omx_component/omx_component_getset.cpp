@@ -1324,3 +1324,37 @@ OMX_ERRORTYPE SetCommonSequencePictureMode(OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE
   return OMX_ErrorNone;
 }
 
+OMX_ERRORTYPE ConstructVideoInputParsed(OMX_ALG_VIDEO_PARAM_INPUT_PARSED& ip, Port const& port, shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(ip);
+  ip.nPortIndex = port.index;
+  bool isInputParsedEnabled;
+  auto ret = media->Get(SETTINGS_INDEX_INPUT_PARSED, &isInputParsedEnabled);
+  ip.bDisableInputParsed = ConvertMediaToOMXBool(!isInputParsedEnabled);
+  OMX_CHECK_MEDIA_GET(ret);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetInputParsed(OMX_BOOL bDisableInputParsed, shared_ptr<MediatypeInterface> media)
+{
+  auto isInputParsedEnabled = !ConvertOMXToMediaBool(bDisableInputParsed);
+  auto ret = media->Set(SETTINGS_INDEX_INPUT_PARSED, &isInputParsedEnabled);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoInputParsed(OMX_ALG_VIDEO_PARAM_INPUT_PARSED const& ip, Port const& port, shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_INPUT_PARSED rollback;
+  ConstructVideoInputParsed(rollback, port, media);
+  auto ret = SetInputParsed(ip.bDisableInputParsed, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoInputParsed(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+

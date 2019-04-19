@@ -38,10 +38,10 @@
 #include "omx_dma_memory.h"
 #include "dmaproxy.h"
 
-#include <algorithm>
-#include <cassert>
-#include <cstdio>
-#include <utility>
+#include <algorithm> // move
+#include <string>
+#include <cstring>
+#include <utility/logger.h>
 
 extern "C"
 {
@@ -52,34 +52,26 @@ extern "C"
 #include <sys/ioctl.h>
 }
 
-DMAMemory::DMAMemory()
+DMAMemory::DMAMemory(char const* device)
 {
-  fd = open("/dev/dmaproxy",O_RDWR);
-  if(fd == -1) {
-    perror("As DMA channel is not available, CPU move will be performed\n");
+  fd = ::open(device, O_RDWR);
+
+  if(fd < 0)
+  {
+    LOG_ERROR(::strerror(errno) + std::string { ": '" } +std::string { device } +std::string { "'. DMA channel is not available, CPU move will be performed" });
   }
 }
 
 DMAMemory::~DMAMemory()
 {
-  if(fd != -1)
-    close(fd);
-}
-
-void DMAMemory::copy(AL_TBuffer* destination, int destination_offset, AL_TBuffer const* source, int source_offset, size_t size)
-{
-  (void)destination;
-  (void)destination_offset;
-  (void)source;
-  (void)source_offset;
-  (void)size;
-  assert(0 && "not implemented yet");
+  if(fd >= 0)
+    ::close(fd);
 }
 
 void DMAMemory::move(AL_TBuffer* destination, int destination_offset, AL_TBuffer const* source, int source_offset, size_t size)
 {
-
-  if(fd == -1) {
+  if(fd < 0)
+  {
     std::move(AL_Buffer_GetData(source) + source_offset, AL_Buffer_GetData(source) + source_offset + size, AL_Buffer_GetData(destination) + destination_offset);
     return;
   }
@@ -97,8 +89,10 @@ void DMAMemory::move(AL_TBuffer* destination, int destination_offset, AL_TBuffer
   dmaproxy.src_fd = src_fd;
   dmaproxy.dst_fd = dst_fd;
 
-  if(ioctl(fd, DMAPROXY_COPY, &dmaproxy)) {
-    perror("DMA copy get failed, CPU move will be performed\n");
+  if(::ioctl(fd, DMAPROXY_COPY, &dmaproxy) < 0)
+  {
+    LOG_WARNING(::strerror(errno) + std::string { ": DMA channel is not available, CPU move will be performed" });
     std::move(AL_Buffer_GetData(source) + source_offset, AL_Buffer_GetData(source) + source_offset + size, AL_Buffer_GetData(destination) + destination_offset);
   }
 }
+

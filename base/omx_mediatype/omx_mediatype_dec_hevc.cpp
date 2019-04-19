@@ -37,13 +37,13 @@
 
 #include <cstring> // memset
 #include <cmath>
+#include <utility/round.h>
 #include "omx_mediatype_dec_hevc.h"
 #include "omx_mediatype_dec_common.h"
 #include "omx_mediatype_checks.h"
 #include "omx_mediatype_common_hevc.h"
 #include "omx_mediatype_common.h"
 #include "omx_convert_module_soft_hevc.h"
-#include "base/omx_utils/round.h"
 
 using namespace std;
 
@@ -66,16 +66,18 @@ void DecMediatypeHEVC::Reset()
   bufferHandles.input = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
   bufferHandles.output = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
 
-  memset(&settings, 0, sizeof(settings));
+  ::memset(&settings, 0, sizeof(settings));
   settings.iStackSize = 5;
   settings.uFrameRate = 60000;
   settings.uClkRatio = 1000;
   settings.uDDRWidth = 64;
   settings.eDecUnit = AL_AU_UNIT;
   settings.eDpbMode = AL_DPB_NORMAL;
+  settings.bLowLat = false;
   settings.eFBStorageMode = AL_FB_RASTER;
   settings.eCodec = AL_CODEC_HEVC;
   settings.bUseIFramesAsSyncPoint = true;
+  settings.bSplitInput = true;
 
   auto& stream = settings.tStream;
   stream.tDim = { 176, 144 };
@@ -86,8 +88,8 @@ void DecMediatypeHEVC::Reset()
   stream.eSequenceMode = AL_SM_PROGRESSIVE;
 
   tier = 0;
-  stride = RoundUp(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode), strideAlignment.widthStride);
-  sliceHeight = RoundUp(AL_Decoder_GetMinStrideHeight(stream.tDim.iHeight), strideAlignment.heightStride);
+  stride = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode)), strideAlignment.widthStride);
+  sliceHeight = RoundUp(static_cast<int>(AL_Decoder_GetMinStrideHeight(stream.tDim.iHeight)), strideAlignment.heightStride);
 }
 
 static bool IsHighTier(uint8_t tier)
@@ -271,6 +273,12 @@ MediatypeInterface::ErrorType DecMediatypeHEVC::Get(std::string index, void* set
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_INPUT_PARSED")
+  {
+    *(static_cast<bool*>(settings)) = this->settings.bSplitInput;
+    return SUCCESS;
+  }
+
   return BAD_INDEX;
 }
 
@@ -392,6 +400,12 @@ MediatypeInterface::ErrorType DecMediatypeHEVC::Set(std::string index, void cons
   if(index == "SETTINGS_INDEX_LLP2_EARLY_CB")
   {
     this->settings.bUseEarlyCallback = *(static_cast<bool const*>(settings));
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_INPUT_PARSED")
+  {
+    this->settings.bSplitInput = *(static_cast<bool const*>(settings));
     return SUCCESS;
   }
 

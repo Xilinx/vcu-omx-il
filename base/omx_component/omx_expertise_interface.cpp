@@ -35,12 +35,7 @@
 *
 ******************************************************************************/
 
-#pragma once
+#include "omx_expertise_interface.h"
 
-struct ProcessorInterface
-{
-  virtual ~ProcessorInterface() = default;
-
-  virtual void queue(void* process) = 0;
-};
+ExpertiseInterface::~ExpertiseInterface() = default;
 

@@ -40,8 +40,9 @@
 #include <OMX_CoreExt.h>
 #include <OMX_IndexExt.h>
 #include <map>
+#include <string>
 
-static std::map<OMX_ERRORTYPE, const char*> ToStringOMXError =
+static std::map<OMX_ERRORTYPE, std::string> ToStringOMXError =
 {
   { OMX_ErrorNone, "OMX_ErrorNone" },
   { OMX_ErrorInsufficientResources, "OMX_ErrorInsufficientResources" },
@@ -81,13 +82,15 @@ static std::map<OMX_ERRORTYPE, const char*> ToStringOMXError =
   { OMX_ErrorContentPipeCreationFailed, "OMX_ErrorContentPipeCreationFailed" },
   { OMX_ErrorSeperateTablesUsed, "OMX_ErrorSeperateTablesUsed" },
   { OMX_ErrorTunnelingUnsupported, "OMX_ErrorTunnelingUnsupported" },
-  { OMX_ALG_ErrorNoChannelLeft, "OMX_ALG_ErrorNoChannelLeft" },
-  { OMX_ALG_ErrorChannelResourceUnavailable, "OMX_ALG_ErrorChannelResourceUnavailable" },
-  { OMX_ALG_ErrorChannelResourceFragmented, "OMX_ALG_ErrorChannelResourceFragmented" },
+  { static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorNoChannelLeft), "OMX_ALG_ErrorNoChannelLeft" },
+  { static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelResourceUnavailable), "OMX_ALG_ErrorChannelResourceUnavailable" },
+  { static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelResourceFragmented), "OMX_ALG_ErrorChannelResourceFragmented" },
   { static_cast<OMX_ERRORTYPE>(OMX_ErrorInvalidMode), "OMX_ErrorInvalidMode" },
+
+  { OMX_ErrorMax, "OMX_ErrorMax" },
 };
 
-static std::map<OMX_STATETYPE, const char*> ToStringOMXState =
+static std::map<OMX_STATETYPE, std::string> ToStringOMXState =
 {
   { OMX_StateInvalid, "OMX_StateInvalid" },
   { OMX_StateLoaded, "OMX_StateLoaded" },
@@ -97,7 +100,7 @@ static std::map<OMX_STATETYPE, const char*> ToStringOMXState =
   { OMX_StateWaitForResources, "OMX_StateWaitForResources" },
 };
 
-static std::map<OMX_COMMANDTYPE, const char*> ToStringOMXCommand =
+static std::map<OMX_COMMANDTYPE, std::string> ToStringOMXCommand =
 {
   { OMX_CommandStateSet, "OMX_CommandStateSet" },
   { OMX_CommandFlush, "OMX_CommandFlush" },
@@ -106,7 +109,7 @@ static std::map<OMX_COMMANDTYPE, const char*> ToStringOMXCommand =
   { OMX_CommandMarkBuffer, "OMX_CommandMarkBuffer" },
 };
 
-static std::map<OMX_EVENTTYPE, const char*> ToStringOMXEvent =
+static std::map<OMX_EVENTTYPE, std::string> ToStringOMXEvent =
 {
   { OMX_EventCmdComplete, "OMX_EventCmdComplete" },
   { OMX_EventError, "OMX_EventError" },
@@ -120,7 +123,7 @@ static std::map<OMX_EVENTTYPE, const char*> ToStringOMXEvent =
   { static_cast<OMX_EVENTTYPE>(OMX_EventIndexSettingChanged), "OMX_EventIndexSettingChanged" },
 };
 
-static std::map<OMX_INDEXTYPE, const char*> ToStringOMXIndex =
+static std::map<OMX_INDEXTYPE, std::string> ToStringOMXIndex =
 {
   { OMX_IndexComponentStartUnused, "OMX_IndexComponentStartUnused" },
   { OMX_IndexParamPriorityMgmt, "OMX_IndexParamPriorityMgmt" },
@@ -337,6 +340,8 @@ static std::map<OMX_INDEXTYPE, const char*> ToStringOMXIndex =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLongTerm), "OMX_ALG_IndexParamVideoLongTerm" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLookAhead), "OMX_ALG_IndexParamVideoLookAhead" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoTwoPass), "OMX_ALG_IndexParamVideoTwoPass" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoColorPrimaries), "OMX_ALG_IndexParamVideoColorPrimaries" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInputParsed), "OMX_ALG_IndexParamVideoInputParsed" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVendorVideoStartUnused), "OMX_ALG_IndexConfigVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), "OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh" },
@@ -345,6 +350,10 @@ static std::map<OMX_INDEXTYPE, const char*> ToStringOMXIndex =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoNotifySceneChange), "OMX_ALG_IndexConfigVideoNotifySceneChange" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertLongTerm), "OMX_ALG_IndexConfigVideoInsertLongTerm" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoUseLongTerm), "OMX_ALG_IndexConfigVideoUseLongTerm" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoNotifyResolutionChange), "OMX_ALG_IndexConfigVideoNotifyResolutionChange" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertPrefixSEI), "OMX_ALG_IndexConfigVideoInsertPrefixSEI" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertSuffixSEI), "OMX_ALG_IndexConfigVideoInsertSuffixSEI" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoQuantizationParameterTable), "OMX_ALG_IndexConfigVideoQuantizationParameterTable" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexVendorCommonStartUnused), "OMX_ALG_IndexVendorCommonStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamCommonSequencePictureModeCurrent), "OMX_ALG_IndexParamCommonSequencePictureModeCurrent" },
