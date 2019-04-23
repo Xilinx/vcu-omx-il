@@ -50,11 +50,14 @@ struct LogCategories
 
   std::map<char const*, bool> categories;
 
+  LogCategories(const LogCategories &) = delete;
+  LogCategories & operator = (const LogCategories &) = delete;
+  LogCategories(const LogCategories &&) = delete;
+  LogCategories & operator = (const LogCategories &&) = delete;
+
 private:
   LogCategories();
   ~LogCategories();
-  LogCategories(const LogCategories &) = delete;
-  LogCategories & operator = (const LogCategories &) = delete;
 };
 
 #define Log(category, ...) \

@@ -53,13 +53,13 @@ struct Logger
   Logger & operator = (Logger const &) = delete;
   Logger(Logger &&) = delete;
   Logger & operator = (Logger &&) = delete;
-  ~Logger();
 
   void log(TraceType type, int severity, std::string const& msg, int64_t time, std::string const& function, std::string const& file, int line);
   void flush();
 
 private:
   Logger();
+  ~Logger();
 
   char* logFile {
     nullptr

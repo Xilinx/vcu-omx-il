@@ -258,6 +258,16 @@ ChannelStatus & SyncIp::getStatus(int chanId)
   return channelStatuses[chanId];
 }
 
+static char const* ToStringUser(int user)
+{
+  if(user == XVSFSYNC_PROD)
+    return "prod";
+
+  if(user == XVSFSYNC_CONS)
+    return "cons";
+  return "unknown";
+}
+
 static void printFrameBufferConfig(struct xvsfsync_chan_config const& config, int maxUsers, int maxCores)
 {
   Log("framebuffer", "********************************\n");
@@ -267,7 +277,7 @@ static void printFrameBufferConfig(struct xvsfsync_chan_config const& config, in
 
   for(int user = 0; user < maxUsers; ++user)
   {
-    Log("framebuffer", "%s[%d]:\n", (user == XVSFSYNC_PROD) ? "prod" : (user == XVSFSYNC_CONS) ? "cons" : "unknown", user);
+    Log("framebuffer", "%s[%d]:\n", ToStringUser(user), user);
     Log("framebuffer", "\t-fb_id:%d %s\n", config.fb_id[user], config.fb_id[user] == XVSFSYNC_AUTO_SEARCH ? "(auto_search)" : "");
     Log("framebuffer", "\t-ismono:%s\n", (config.ismono[user] == 0) ? "false" : "true");
     Log("framebuffer", "\t-luma_start_address:%" PRIx64 "\n", config.luma_start_address[user]);
