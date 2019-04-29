@@ -1201,6 +1201,41 @@ OMX_ERRORTYPE SetVideoColorPrimaries(OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES const& 
   return OMX_ErrorNone;
 }
 
+
+OMX_ERRORTYPE ConstructVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE& maxPictureSize, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(maxPictureSize);
+  maxPictureSize.nPortIndex = port.index;
+  int mps;
+  auto ret = media->Get(SETTINGS_INDEX_COLOR_PRIMARIES, &mps);
+  OMX_CHECK_MEDIA_GET(ret);
+  maxPictureSize.nMaxPictureSize = mps;
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetMaxPictureSize(OMX_S32 maxPictureSize, shared_ptr<MediatypeInterface>media)
+{
+  auto mps = static_cast<int>(maxPictureSize);
+  auto ret = media->Set(SETTINGS_INDEX_COLOR_PRIMARIES, &mps);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE const& maxPictureSize, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE rollback;
+  ConstructVideoMaxPictureSize(rollback, port, media);
+
+  auto ret = SetMaxPictureSize(maxPictureSize.nMaxPictureSize, media);
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoMaxPictureSize(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
 // Decoder
 
 OMX_ERRORTYPE ConstructPreallocation(OMX_ALG_PARAM_PREALLOCATION& prealloc, bool isPreallocationEnabled)

@@ -686,6 +686,12 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto c = static_cast<OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES*>(param);
     return ConstructVideoColorPrimaries(*c, *port, media);
   }
+  case OMX_ALG_IndexParamVideoMaxPictureSize:
+  {
+    auto port = getCurrentPort(param);
+    auto mps = static_cast<OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE*>(param);
+    return ConstructVideoMaxPictureSize(*mps, *port, media);
+  }
   // only decoder
   case OMX_ALG_IndexParamPreallocation:
   {
@@ -910,6 +916,11 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
   {
     auto c = static_cast<OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES*>(param);
     return SetVideoColorPrimaries(*c, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoMaxPictureSize:
+  {
+    auto mps = static_cast<OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE*>(param);
+    return SetVideoMaxPictureSize(*mps, *port, media);
   }
   // only decoder
   case OMX_ALG_IndexParamPreallocation:

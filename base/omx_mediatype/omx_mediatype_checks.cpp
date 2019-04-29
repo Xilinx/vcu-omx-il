@@ -212,3 +212,8 @@ bool CheckTwoPass(TwoPass tp)
   return true;
 }
 
+bool CheckMaxPictureSize(int maxPictureSize)
+{
+  return maxPictureSize >= 0;
+}
+

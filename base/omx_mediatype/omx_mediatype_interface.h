@@ -153,6 +153,9 @@ static std::string const SETTINGS_INDEX_TWOPASS {
 static std::string const SETTINGS_INDEX_LLP2_EARLY_CB {
   "SETTINGS_INDEX_LLP2_EARLY_CB"
 };
+static std::string const SETTINGS_INDEX_MAX_PICTURE_SIZE {
+  "SETTINGS_INDEX_MAX_PICTURE_SIZE"
+};
 
 struct MediatypeInterface
 {

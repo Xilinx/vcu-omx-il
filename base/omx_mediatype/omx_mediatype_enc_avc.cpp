@@ -394,6 +394,12 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Get(std::string index, void* sett
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_MAX_PICTURE_SIZE")
+  {
+   *static_cast<int*>(settings) = CreateMaxPictureSize(this->settings);
+    return SUCCESS;
+  }
+
   return BAD_INDEX;
 }
 
@@ -675,6 +681,16 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Set(std::string index, void const
     auto tp = *(static_cast<TwoPass const*>(settings));
 
     if(!UpdateTwoPass(this->settings, this->sTwoPassLogFile, tp))
+      return BAD_PARAMETER;
+
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_MAX_PICTURE_SIZE")
+  {
+    auto maxPictureSize = *(static_cast<int const*>(settings));
+
+    if(!UpdateMaxPictureSize(this->settings, maxPictureSize))
       return BAD_PARAMETER;
 
     return SUCCESS;

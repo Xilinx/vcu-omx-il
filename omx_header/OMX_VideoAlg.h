@@ -705,6 +705,24 @@ typedef struct OMX_ALG_VIDEO_PARAM_INPUT_PARSED
   OMX_BOOL bDisableInputParsed;
 }OMX_ALG_VIDEO_PARAM_INPUT_PARSED;
 
+/**
+ * Max picture size parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize           : Size of the structure in bytes
+ *  nVersion        : OMX specification version information
+ *  nPortIndex      : Port that this structure applies to
+ *  nMaxPictureSize : Max picture size
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_S32 nMaxPictureSize;
+}OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE;
+
+
 
 /** Extented enumeration of video formats */
 typedef enum OMX_ALG_COLOR_FORMATTYPE

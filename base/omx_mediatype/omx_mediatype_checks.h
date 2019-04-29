@@ -67,4 +67,5 @@ bool CheckBufferHandles(BufferHandles bufferHandles);
 bool CheckColorPrimaries(ColorPrimariesType colorPrimaries);
 bool CheckLookAhead(LookAhead la);
 bool CheckTwoPass(TwoPass tp);
+bool CheckMaxPictureSize(int maxPictureSize);
 
