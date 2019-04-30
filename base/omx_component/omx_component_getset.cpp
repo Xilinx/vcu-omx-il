@@ -1207,7 +1207,7 @@ OMX_ERRORTYPE ConstructVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE&
   OMXChecker::SetHeaderVersion(maxPictureSize);
   maxPictureSize.nPortIndex = port.index;
   int mps;
-  auto ret = media->Get(SETTINGS_INDEX_COLOR_PRIMARIES, &mps);
+  auto ret = media->Get(SETTINGS_INDEX_MAX_PICTURE_SIZE, &mps);
   OMX_CHECK_MEDIA_GET(ret);
   maxPictureSize.nMaxPictureSize = mps;
   return OMX_ErrorNone;
