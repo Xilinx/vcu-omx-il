@@ -1216,7 +1216,7 @@ OMX_ERRORTYPE ConstructVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE&
 static OMX_ERRORTYPE SetMaxPictureSize(OMX_S32 maxPictureSize, shared_ptr<MediatypeInterface>media)
 {
   auto mps = static_cast<int>(maxPictureSize);
-  auto ret = media->Set(SETTINGS_INDEX_COLOR_PRIMARIES, &mps);
+  auto ret = media->Set(SETTINGS_INDEX_MAX_PICTURE_SIZE, &mps);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
 }
