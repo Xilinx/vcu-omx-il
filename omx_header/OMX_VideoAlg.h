@@ -712,7 +712,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_INPUT_PARSED
  *  nSize           : Size of the structure in bytes
  *  nVersion        : OMX specification version information
  *  nPortIndex      : Port that this structure applies to
- *  nMaxPictureSize : Max picture size
+ *  nMaxPictureSize : Max picture size in kbits
  */
 typedef struct OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE
 {
