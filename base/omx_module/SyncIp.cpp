@@ -150,27 +150,14 @@ void SyncIp::resetStatus(int chanId)
 int SyncIp::getFreeChannel()
 {
   auto lock = Lock(mutex);
+  u8 chanId;
   getLatestChanStatus();
 
-  /* TODO(driver lowlat2 xilinx) give a non racy way to choose a free channel
-   * For now we look if all the framebuffer of a channel are available to
-   * decide if a channel is free or not
-   */
-  for(int channel = 0; channel < maxChannels; ++channel)
-  {
-    bool isAvailable = true;
 
-    for(int buffer = 0; buffer < maxBuffers; ++buffer)
-    {
-      for(int user = 0; user < maxUsers; ++user)
-        isAvailable = isAvailable && channelStatuses[channel].fbAvail[buffer][user];
-    }
+  if(AL_Driver_PostMessage(driver, fd, XVSFSYNC_RESERVE_GET_CHAN_ID, &chanId) != DRIVER_SUCCESS)
+    throw runtime_error("Couldn't get sync ip channel ID");
 
-    if(isAvailable)
-      return channel;
-  }
-
-  throw runtime_error("No channel available");
+    return chanId;
 }
 
 void SyncIp::enableChannel(int chanId)
@@ -184,7 +171,6 @@ void SyncIp::enableChannel(int chanId)
 void SyncIp::disableChannel(int chanId)
 {
   u8 chan = chanId;
-
   if(AL_Driver_PostMessage(driver, fd, XVSFSYNC_CHAN_DISABLE, (void*)(uintptr_t)chan) != DRIVER_SUCCESS)
     throw runtime_error("Couldn't disable channel");
 }
