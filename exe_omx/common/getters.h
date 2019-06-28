@@ -39,9 +39,8 @@
 
 #include <OMX_Core.h>
 
-class Getters
+struct Getters
 {
-public:
   Getters(OMX_HANDLETYPE* component);
   int GetLatency();
   int GetBuffersSize(int index);

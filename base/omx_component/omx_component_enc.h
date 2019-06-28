@@ -40,8 +40,8 @@
 #include <vector>
 
 #include "omx_component.h"
-#include "base/omx_module/omx_module_enc.h"
-#include "base/omx_module/omx_sync_ip_interface.h"
+#include "base/omx_module/module_enc.h"
+#include "base/omx_module/sync_ip_interface.h"
 
 struct EncComponent final : public Component
 {

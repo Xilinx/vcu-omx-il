@@ -59,10 +59,6 @@
 #include "HardwareAPI.h"
 #endif /* ANDROID */
 
-using namespace std;
-
-extern "C"
-{
 #include <OMX_Core.h>
 #include <OMX_Component.h>
 #include <OMX_Types.h>
@@ -73,7 +69,6 @@ extern "C"
 #include <OMX_IndexExt.h>
 #include <OMX_IndexAlg.h>
 #include <OMX_IVCommonAlg.h>
-}
 
 #include "CommandsSender.h"
 #include "EncCmdMngr.h"
@@ -95,6 +90,8 @@ extern "C"
 #include <lib_fpga/DmaAlloc.h>
 #include <lib_fpga/DmaAllocLinux.h>
 }
+
+using namespace std;
 
 struct Ports
 {
@@ -216,7 +213,9 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   OMX_CALL(OMX_SetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPort));
   OMX_CALL(OMX_GetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPort));
 
-  Setters setter(&app.hEncoder);
+  Setters setter {
+    &app.hEncoder
+  };
   auto isBufModeSetted = setter.SetBufferMode(app.input.index, GetBufferMode(app.input.isDMA));
   assert(isBufModeSetted);
   isBufModeSetted = setter.SetBufferMode(app.output.index, GetBufferMode(app.output.isDMA));
@@ -622,7 +621,9 @@ static void useBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Application& app)
 
 static void allocBuffers(OMX_U32 nPortIndex, Application& app)
 {
-  Getters get(&app.hEncoder);
+  Getters get {
+    &app.hEncoder
+  };
   auto size = get.GetBuffersSize(nPortIndex);
   auto minBuf = get.GetBuffersCount(nPortIndex);
   auto isInput = ((int)nPortIndex == app.input.index);
@@ -693,18 +694,6 @@ static bool isFormatSupported(OMX_COLOR_FORMATTYPE format)
   ;
 }
 
-static OMX_ERRORTYPE showComponentVersion(Application& app)
-{
-  char name[OMX_MAX_STRINGNAME_SIZE];
-  OMX_VERSIONTYPE compType;
-  OMX_VERSIONTYPE ilType;
-
-  OMX_CALL(OMX_GetComponentVersion(app.hEncoder, (OMX_STRING)name, &compType, &ilType, nullptr));
-
-  LOG_IMPORTANT(string { "Component: " } +string { name } +string { "(v." } +to_string(compType.nVersion) + string { ") made for OMX_IL client: " } +to_string(ilType.s.nVersionMajor) + string { "." } +to_string(ilType.s.nVersionMinor) + string { "." } +to_string(ilType.s.nRevision));
-  return OMX_ErrorNone;
-}
-
 static OMX_ERRORTYPE safeMain(int argc, char** argv)
 {
   Application app;
@@ -759,7 +748,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
     OMX_FreeHandle(app.hEncoder);
   });
 
-  OMX_CALL(showComponentVersion(app));
+  OMX_CALL(showComponentVersion(&app.hEncoder));
   auto ret = setPortParameters(app);
 
   if(ret != OMX_ErrorNone)

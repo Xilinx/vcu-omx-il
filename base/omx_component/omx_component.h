@@ -39,9 +39,9 @@
 
 #include "omx_component_structs.h"
 #include "omx_component_interface.h"
-#include "base/omx_module/omx_module_interface.h"
-#include "base/omx_module/omx_module_codec_structs.h"
-#include "base/omx_mediatype/omx_mediatype_interface.h"
+#include "base/omx_module/module_interface.h"
+#include "base/omx_module/module_codec_structs.h"
+#include "base/omx_module/mediatype_interface.h"
 #include <utility/processor_fifo.h>
 #include "omx_buffer_handle.h"
 #include "omx_convert_omx_media.h"
@@ -128,7 +128,6 @@ protected:
   bool shouldClearROI;
   bool shouldPushROI;
   bool shouldFireEventPortSettingsChanges;
-  bool isQuantizationParameterTableUsed;
   std::vector<OMXSei> tmpSeis;
 
   OMX_STRING name;
@@ -143,16 +142,15 @@ protected:
   std::queue<OMX_MARKTYPE*> marks;
   EOSHandles<BufferHandleInterface*> eosHandles;
 
-  std::unique_ptr<ProcessorFifo<void*>> processorMain;
-  std::unique_ptr<ProcessorFifo<void*>> processorEmpty;
-  std::unique_ptr<ProcessorFifo<void*>> processorFill;
+  std::unique_ptr<ProcessorFifo<Task>> processorMain;
+  std::unique_ptr<ProcessorFifo<Task>> processorEmpty;
+  std::unique_ptr<ProcessorFifo<Task>> processorFill;
   std::shared_ptr<std::promise<void>> pauseFillPromise;
   std::shared_ptr<std::promise<void>> pauseEmptyPromise;
-  void _ProcessMain(void* data);
-  void _ProcessFillBuffer(void* data);
-  void _ProcessEmptyBuffer(void* data);
-  void _Delete(void* data);
-  void _DeleteFillEmpty(void* data);
+  void _ProcessMain(Task task);
+  void _ProcessFillBuffer(Task task);
+  void _ProcessEmptyBuffer(Task task);
+  void _DeleteFillEmpty(Task task);
 
   void CreateName(OMX_STRING name);
   void CreateRole(OMX_STRING role);
@@ -169,14 +167,14 @@ protected:
   virtual void FlushComponent();
 
   void CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR data);
-  void TreatSetStateCommand(Task* task);
-  void TreatFlushCommand(Task* task);
-  void TreatDisablePortCommand(Task* task);
-  void TreatEnablePortCommand(Task* task);
-  void TreatMarkBufferCommand(Task* task);
+  void TreatSetStateCommand(Task task);
+  void TreatFlushCommand(Task task);
+  void TreatDisablePortCommand(Task task);
+  void TreatEnablePortCommand(Task task);
+  void TreatMarkBufferCommand(Task task);
   virtual void TreatEmptyBufferCommand(Task* task);
-  void TreatFillBufferCommand(Task* task);
-  void TreatDynamicCommand(Task* task);
+  void TreatFillBufferCommand(Task task);
+  void TreatDynamicCommand(Task task);
   void AttachMark(OMX_BUFFERHEADERTYPE* header);
 
   virtual void EmptyThisBufferCallBack(BufferHandleInterface* emptied);
@@ -206,6 +204,7 @@ static inline void PropagateHeaderData(OMX_BUFFERHEADERTYPE const& src, OMX_BUFF
   assert(!dst.nTimeStamp);
   dst.hMarkTargetComponent = src.hMarkTargetComponent;
   dst.pMarkData = src.pMarkData;
+  dst.nTickCount = src.nTickCount;
   dst.nTimeStamp = src.nTimeStamp;
   dst.nFlags = src.nFlags;
 }

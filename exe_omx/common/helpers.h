@@ -38,54 +38,75 @@
 #pragma once
 
 #include <cstring>
+#include <string>
 #include <OMX_IVCommon.h>
 #include <OMX_VideoExt.h>
+#include <OMX_Types.h>
+#include <OMX_Core.h>
+#include <OMX_Component.h>
+#include <sstream>
+#include <iostream>
+#include <utility/logger.h>
 
 #define OMX_CALL(a) \
   do { \
     auto const r = a; \
     if(r != OMX_ErrorNone) \
     { \
-      stringstream ss; \
+      std::stringstream ss; \
       ss << "OMX error 0x" << std::hex << (int)r << " while executing " # a << "(FILE " << __FILE__ << ":" << std::dec << __LINE__ << ")"; \
+      LOG_ERROR(ss.str()); \
       return r; \
     } \
   } while(false)
 
-inline bool is400(OMX_COLOR_FORMATTYPE format)
+static inline bool is400(OMX_COLOR_FORMATTYPE format)
 {
   OMX_U32 extendedFormat = format;
   return extendedFormat == OMX_COLOR_FormatL8 || extendedFormat == OMX_ALG_COLOR_FormatL10bitPacked;
 }
 
-inline bool is420(OMX_COLOR_FORMATTYPE format)
+static inline bool is420(OMX_COLOR_FORMATTYPE format)
 {
   OMX_U32 extendedFormat = format;
   return extendedFormat == OMX_COLOR_FormatYUV420SemiPlanar || extendedFormat == OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked;
 }
 
-inline bool is422(OMX_COLOR_FORMATTYPE format)
+static inline bool is422(OMX_COLOR_FORMATTYPE format)
 {
   OMX_U32 extendedFormat = format;
   return extendedFormat == OMX_COLOR_FormatYUV422SemiPlanar || extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
 }
 
-inline bool is8bits(OMX_COLOR_FORMATTYPE format)
+static inline bool is8bits(OMX_COLOR_FORMATTYPE format)
 {
   return format == OMX_COLOR_FormatL8 || format == OMX_COLOR_FormatYUV420SemiPlanar || format == OMX_COLOR_FormatYUV422SemiPlanar;
 }
 
-inline bool is10bits(OMX_COLOR_FORMATTYPE format)
+static inline bool is10bits(OMX_COLOR_FORMATTYPE format)
 {
   OMX_U32 extendedFormat = format;
   return extendedFormat == OMX_ALG_COLOR_FormatL10bitPacked || extendedFormat == OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked || extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
 }
 
+static inline OMX_ERRORTYPE showComponentVersion(OMX_HANDLETYPE* handle)
+{
+  char name[OMX_MAX_STRINGNAME_SIZE];
+  OMX_VERSIONTYPE compType;
+  OMX_VERSIONTYPE ilType;
+
+  OMX_CALL(OMX_GetComponentVersion(*handle, (OMX_STRING)name, &compType, &ilType, nullptr));
+
+  LOG_IMPORTANT(std::string { "Component: " } +std::string { name } +std::string { "(v." } +std::to_string(compType.nVersion) + std::string { ") made for OMX_IL client: " } +std::to_string(ilType.s.nVersionMajor) + std::string { "." } +std::to_string(ilType.s.nVersionMinor) + std::string { "." } +std::to_string(ilType.s.nRevision));
+  return OMX_ErrorNone;
+}
+
 template<typename T>
+static
 inline
 void initHeader(T& header)
 {
-  memset(&header, 0x0, sizeof(T));
+  memset(&header, 0, sizeof(T));
   header.nSize = sizeof(header);
 
   header.nVersion.s.nVersionMajor = OMX_VERSION_MAJOR;
@@ -94,28 +115,13 @@ void initHeader(T& header)
   header.nVersion.s.nStep = OMX_VERSION_STEP;
 }
 
-inline char const* toStringCompState(OMX_STATETYPE state)
-{
-  switch(state)
-  {
-  case OMX_StateInvalid: return "OMX_StateInvalid";
-  case OMX_StateLoaded: return "OMX_StateLoaded";
-  case OMX_StateIdle: return "OMX_StateIdle";
-  case OMX_StateExecuting: return "OMX_StateExecuting";
-  case OMX_StatePause: return "OMX_StatePause";
-  case OMX_StateWaitForResources: return "OMX_StateWaitForResources";
-  default: return "?";
-  }
-}
-
 void Buffer_FreeData(char* data, bool use_dmabuf);
 char* Buffer_MapData(char* data, size_t zSize, bool use_dmabuf);
 void Buffer_UnmapData(char* data, size_t zSize, bool use_dmabuf);
 
 template<typename Lambda>
-class ScopeExitClass
+struct ScopeExitClass
 {
-public:
   ScopeExitClass(Lambda fn) :
     m_fn(fn)
   {

@@ -55,7 +55,8 @@ static DecModule& ToDecModule(ModuleInterface& module)
 }
 
 DecComponent::DecComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise, shared_ptr<SyncIpInterface> syncIp) :
-  Component(component, media, std::move(module), std::move(expertise), name, role), syncIp(syncIp)
+  Component{component, media, std::move(module), std::move(expertise), name, role}, syncIp{syncIp},
+  shouldPropagateData{true}
 {
 }
 
@@ -73,6 +74,7 @@ void DecComponent::FlushComponent()
 {
   FlushFillEmptyBuffers(true, true);
   transmit.clear();
+  shouldPropagateData = true;
 }
 
 void DecComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandleInterface* fill_)
@@ -90,6 +92,7 @@ void DecComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandle
     assert(fillHeader);
     fillHeader->hMarkTargetComponent = emptyHeader.hMarkTargetComponent;
     fillHeader->pMarkData = emptyHeader.pMarkData;
+    fillHeader->nTickCount = emptyHeader.nTickCount;
     fillHeader->nTimeStamp = emptyHeader.nTimeStamp;
     transmit.pop_front();
 
@@ -97,6 +100,7 @@ void DecComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandle
     {
       callbacks.EventHandler(component, app, OMX_EventBufferFlag, output.index, emptyHeader.nFlags, nullptr);
       transmit.clear();
+      shouldPropagateData = true;
     }
 
     if(IsCompMarked(emptyHeader.hMarkTargetComponent, component))
@@ -352,10 +356,22 @@ void DecComponent::TreatEmptyBufferCommand(Task* task)
   bool bInputParsed;
   media->Get(SETTINGS_INDEX_INPUT_PARSED, &bInputParsed);
 
-  if(!bInputParsed)
+  bool bLL2EarlyCallbackUsed;
+  media->Get(SETTINGS_INDEX_LLP2_EARLY_CB, &bLL2EarlyCallbackUsed);
+
+  if(!bInputParsed || bLL2EarlyCallbackUsed)
   {
-    if(header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME)
-      transmit.push_back(PropagatedData(header->hMarkTargetComponent, header->pMarkData, header->nTimeStamp, header->nFlags));
+    bool isEndOfFrameFlagRaised = (header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME);
+
+    if(isEndOfFrameFlagRaised && !bLL2EarlyCallbackUsed)
+      transmit.push_back(PropagatedData { header->hMarkTargetComponent, header->pMarkData, header->nTickCount, header->nTimeStamp, header->nFlags });
+    else
+    {
+      if(shouldPropagateData)
+        transmit.push_back(PropagatedData { header->hMarkTargetComponent, header->pMarkData, header->nTickCount, header->nTimeStamp, header->nFlags });
+
+      shouldPropagateData = isEndOfFrameFlagRaised;
+    }
   }
 
   auto flags = CreateFlags(header->nFlags);

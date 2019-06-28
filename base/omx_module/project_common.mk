@@ -1,13 +1,23 @@
-THIS.omx_module_common:=$(call get-my-dir)
+THIS.module_common:=$(call get-my-dir)
 
-OMX_MODULE_COMMON_SRCS+=\
-                        $(THIS.omx_module_common)/omx_module_interface.cpp\
-                        $(THIS.omx_module_common)/omx_module_dummy.cpp\
-                        $(THIS.omx_module_common)/omx_buffer_handle_interface.cpp\
-                        $(THIS.omx_module_common)/omx_sync_ip_interface.cpp\
-                        $(THIS.omx_module_common)/SyncIp.cpp\
-                        $(THIS.omx_module_common)/SyncLog.cpp\
-                        $(THIS.omx_module_common)/DummySyncDriver.cpp\
+MODULE_COMMON_SRCS+=\
+                    $(THIS.module_common)/convert_module_soft.cpp\
+                    $(THIS.module_common)/convert_module_soft_avc.cpp\
+                    $(THIS.module_common)/convert_module_soft_hevc.cpp\
+                    $(THIS.module_common)/mediatype_interface.cpp\
+                    $(THIS.module_common)/mediatype_checks.cpp\
+                    $(THIS.module_common)/mediatype_common.cpp\
+                    $(THIS.module_common)/mediatype_common_avc.cpp\
+                    $(THIS.module_common)/mediatype_common_hevc.cpp\
+                    $(THIS.module_common)/mediatype_dummy.cpp\
+                    $(THIS.module_common)/module_interface.cpp\
+                    $(THIS.module_common)/module_dummy.cpp\
+                    $(THIS.module_common)/buffer_handle_interface.cpp\
+                    $(THIS.module_common)/sync_ip_interface.cpp\
+                    $(THIS.module_common)/SyncIp.cpp\
+                    $(THIS.module_common)/SyncLog.cpp\
+                    $(THIS.module_common)/DummySyncDriver.cpp\
 
-UNITTESTS+=$(shell find $(THIS.omx_module_common)/unittests -name "*.cpp")
-UNITTESTS+=$(OMX_MODULE_COMMON_SRCS)
+
+UNITTESTS+=$(shell find $(THIS.module_common)/unittests -name "*.cpp")
+UNITTESTS+=$(MODULE_COMMON_SRCS)

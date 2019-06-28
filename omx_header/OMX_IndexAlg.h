@@ -101,6 +101,8 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexConfigVideoInsertPrefixSEI,                    /**< reference: OMX_ALG_VIDEO_CONFIG_SEI */
   OMX_ALG_IndexConfigVideoInsertSuffixSEI,                    /**< reference: OMX_ALG_VIDEO_CONFIG_SEI */
   OMX_ALG_IndexConfigVideoQuantizationParameterTable,         /**< reference: OMX_ALG_VIDEO_CONFIG_DATA */
+  OMX_ALG_IndexConfigVideoLoopFilterBeta,                     /**< reference: OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_BETA */
+  OMX_ALG_IndexConfigVideoLoopFilterTc,                       /**< reference: OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC */
 
   /* Vender Image & Video common configurations */
   OMX_ALG_IndexVendorCommonStartUnused = OMX_IndexVendorStartUnused + 0x00700000,

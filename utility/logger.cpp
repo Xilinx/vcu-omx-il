@@ -76,20 +76,20 @@ void Logger::log(TraceType type, int severity, string const& msg, int64_t time, 
 
   if(!shouldBeLogged(severity, maxSeverityRequired))
     return;
-  auto logInfo = new LogInfo {};
-  logInfo->type = type;
-  logInfo->msg = msg;
-  logInfo->time = time;
-  logInfo->function = function;
-  logInfo->file = file;
-  logInfo->line = line;
-  processor->queue(logInfo);
+  LogInfo info;
+  info.type = type;
+  info.msg = msg;
+  info.time = time;
+  info.function = function;
+  info.file = file;
+  info.line = line;
+  processor->queue(info);
 }
 
 void Logger::flush()
 {
   auto log = bind(&Logger::Sink, this, placeholders::_1);
-  processor.reset(new ProcessorFifo<void*> { log, log, "logger" });
+  processor.reset(new ProcessorFifo<LogInfo> { log, log, "logger" });
 }
 
 static void dump(char const* file, stringstream& msg)
@@ -105,14 +105,13 @@ static void dump(char const* file, stringstream& msg)
   logfile << msg.str();
 }
 
-void Logger::Sink(void* event)
+void Logger::Sink(LogInfo info)
 {
-  auto logInfo = static_cast<LogInfo*>(event);
-  int64_t timeInNano = logInfo->time;
+  int64_t timeInNano = info.time;
 
   if(VCDFirstValue == 0)
     VCDFirstValue = timeInNano;
-  switch(logInfo->type)
+  switch(info.type)
   {
   case DEFAULT:
   {
@@ -126,16 +125,16 @@ void Logger::Sink(void* event)
     stringstream ss {};
     ss << '[' << ymd << ' ' << time << ']';
     ss << '\t';
-    auto pos = logInfo->file.find_last_of("/\\");
-    string file = (pos != string::npos) ? logInfo->file.substr(pos + 1) : logInfo->file;
-    ss << '[' << file << ':' << to_string(logInfo->line) << ']';
+    auto pos = info.file.find_last_of("/\\");
+    string file = (pos != string::npos) ? info.file.substr(pos + 1) : info.file;
+    ss << '[' << file << ':' << to_string(info.line) << ']';
     ss << '\t';
-    ss << '[' << logInfo->function << ']';
+    ss << '[' << info.function << ']';
 
-    if(!logInfo->msg.empty())
+    if(!info.msg.empty())
     {
       ss << '\t';
-      ss << logInfo->msg;
+      ss << info.msg;
     }
     ss << endl;
 
@@ -145,19 +144,19 @@ void Logger::Sink(void* event)
   }
   case VCD_WITHOUT_VALUE:
   {
-    int64_t t0 = logInfo->time - VCDFirstValue + 1000;
+    int64_t t0 = info.time - VCDFirstValue + 1000;
     stringstream ss {};
-    ss << logInfo->msg << " 1 " << t0 << endl;
-    ss << logInfo->msg << " 0 " << t0 + 1 << endl;
+    ss << info.msg << " 1 " << t0 << endl;
+    ss << info.msg << " 0 " << t0 + 1 << endl;
 
     dump(vcdFile, ss);
     break;
   }
   case VCD_WITH_VALUE:
   {
-    int64_t t0 = logInfo->time - VCDFirstValue + 1000;
+    int64_t t0 = info.time - VCDFirstValue + 1000;
     stringstream ss {};
-    ss << logInfo->msg << ' ' << t0 << endl;
+    ss << info.msg << ' ' << t0 << endl;
 
     dump(vcdFile, ss);
     break;
@@ -171,7 +170,5 @@ void Logger::Sink(void* event)
     break;
   }
   }
-
-  delete logInfo;
 }
 

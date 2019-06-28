@@ -85,20 +85,30 @@ void EncComponent::EmptyThisBufferCallBack(BufferHandleInterface* handle)
   ReturnEmptiedBuffer(header);
 }
 
-static void AddEncoderFlags(OMXBufferHandle* handle, EncModule& module)
+static void AddEncoderFlags(OMX_BUFFERHEADERTYPE* header, shared_ptr<MediatypeInterface> media, EncModule& module)
 {
-  Flags flags {};
+  Flags flags;
   auto success = module.GetDynamic(DYNAMIC_INDEX_STREAM_FLAGS, &flags);
   assert(success == ModuleInterface::SUCCESS);
 
-  if(flags.isSync)
-    handle->header->nFlags |= OMX_BUFFERFLAG_SYNCFRAME;
-
   if(flags.isEndOfFrame)
-    handle->header->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
+    header->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
 
   if(flags.isEndOfSlice)
-    handle->header->nFlags |= OMX_BUFFERFLAG_ENDOFSUBFRAME;
+    header->nFlags |= OMX_BUFFERFLAG_ENDOFSUBFRAME;
+
+  bool isSeparateConfigurationFromDataEnabled;
+  auto ret = media->Get(SETTINGS_INDEX_SEPARATE_CONFIGURATION_FROM_DATA, &isSeparateConfigurationFromDataEnabled);
+  assert(ret == MediatypeInterface::SUCCESS);
+
+  if(flags.isConfig && isSeparateConfigurationFromDataEnabled)
+  {
+    /* Remove previous added flags. They are not needed for codec config. Only sync may be used */
+    header->nFlags = OMX_BUFFERFLAG_CODECCONFIG;
+  }
+
+  if(flags.isSync)
+    header->nFlags |= OMX_BUFFERFLAG_SYNCFRAME;
 }
 
 void EncComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandleInterface* fill_)
@@ -110,7 +120,9 @@ void EncComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandle
 
   PropagateHeaderData(*emptyHeader, *fillHeader);
 
-  if(seisMap.Exist(empty_))
+  AddEncoderFlags(fillHeader, media, ToEncModule(*module));
+
+  if(seisMap.Exist(empty_) && ((fillHeader->nFlags & OMX_BUFFERFLAG_CODECCONFIG) == 0))
   {
     auto seis = seisMap.Pop(empty_);
 
@@ -124,7 +136,6 @@ void EncComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandle
       delete[]sei.configSei.pBuffer;
     }
   }
-  AddEncoderFlags(fill, ToEncModule(*module));
 
   if(IsEOSDetected(emptyHeader->nFlags))
     callbacks.EventHandler(component, app, OMX_EventBufferFlag, output.index, emptyHeader->nFlags, nullptr);
@@ -268,6 +279,11 @@ OMX_ERRORTYPE EncComponent::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** head
   assert(*header);
   port->Add(*header);
 
+  static OMX_BUFFERHEADERTYPE* firstBufferHeader = nullptr;
+
+  if(firstBufferHeader == nullptr)
+    firstBufferHeader = *header;
+
   if(IsInputPort(index))
   {
     auto roiBuffer = AllocateROIBuffer();
@@ -276,13 +292,26 @@ OMX_ERRORTYPE EncComponent::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** head
 
     if(dmaOnPort)
     {
-      auto handle = OMXBufferHandle(*header);
-      syncIp->addBuffer(&handle);
+      static bool isFirstBuffer = true;
+
+      if(!isFirstBuffer)
+      {
+        auto handle = OMXBufferHandle(*header);
+        syncIp->addBuffer(&handle);
+      }
+      isFirstBuffer = false;
     }
   }
 
   if(port->playable && IsInputPort(index))
+  {
+    if(firstBufferHeader != nullptr)
+    {
+      auto handle = OMXBufferHandle(firstBufferHeader);
+      syncIp->addBuffer(&handle);
+    }
     syncIp->enable();
+  }
 
   return OMX_ErrorNone;
   OMX_CATCH_L([&](OMX_ERRORTYPE& e)

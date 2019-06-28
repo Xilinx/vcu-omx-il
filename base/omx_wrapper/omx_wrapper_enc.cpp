@@ -37,23 +37,23 @@
 
 #include "base/omx_component/omx_component_enc.h"
 #include "base/omx_component/omx_expertise_hevc.h"
-#include "base/omx_mediatype/omx_mediatype_enc_hevc.h"
-#include "base/omx_module/omx_module_enc.h"
-#include "base/omx_module/omx_cpp_memory.h"
+#include "base/omx_module/mediatype_enc_hevc.h"
+#include "base/omx_module/module_enc.h"
+#include "base/omx_module/cpp_memory.h"
 
 #if AL_ENABLE_DMA_COPY_ENC
-#include "base/omx_module/omx_dma_memory.h"
+#include "base/omx_module/dma_memory.h"
 #endif
 
 #if AL_ENABLE_SYNCIP_ENC
-#include "base/omx_module/omx_sync_ip_enc.h"
+#include "base/omx_module/sync_ip_enc.h"
 #else
 #include "base/omx_module/null_sync_ip.h"
 #endif
 
 
 
-#include "base/omx_module/omx_device_enc_hardware_mcu.h"
+#include "base/omx_module/device_enc_hardware_mcu.h"
 
 #include <cstring>
 #include <memory>
@@ -62,20 +62,39 @@
 
 using namespace std;
 
-extern "C" {
+extern "C"
+{
 #include <lib_fpga/DmaAlloc.h>
 }
 
-static int constexpr HARDWARE_HORIZONTAL_STRIDE_ALIGNMENT = 64;
+static int constexpr HORIZONTAL_STRIDE_ALIGNMENTS = 64;
+static int constexpr VERCTICAL_STRIDE_ALIGNMENTS_HEVC = 32;
 
-static SyncIpInterface* createSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator, int hardwareHorizontalStrideAlignment, int hardwareVerticalStrideAlignment)
+static StrideAlignments constexpr STRIDE_ALIGNMENTS_HEVC {
+  HORIZONTAL_STRIDE_ALIGNMENTS, VERCTICAL_STRIDE_ALIGNMENTS_HEVC
+};
+
+static int constexpr VERCTICAL_STRIDE_ALIGNMENTS_AVC = 16;
+
+static StrideAlignments constexpr STRIDE_ALIGNMENTS_AVC {
+  HORIZONTAL_STRIDE_ALIGNMENTS, VERCTICAL_STRIDE_ALIGNMENTS_AVC
+};
+
+
+#if defined(ANDROID) || defined(__ANDROID_API__)
+static bool constexpr IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED = true;
+#else
+static bool constexpr IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED = false;
+#endif
+
+static SyncIpInterface* createSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator, StrideAlignments strideAlignments)
 {
 #if AL_ENABLE_SYNCIP_ENC
-  return new OMXEncSyncIp {
-           media, allocator, hardwareHorizontalStrideAlignment, hardwareVerticalStrideAlignment
+  return new EncSyncIp {
+           media, allocator, strideAlignments.horizontal, strideAlignments.vertical
   };
 #else
-  (void)media, (void)allocator, (void)hardwareHorizontalStrideAlignment, (void)hardwareVerticalStrideAlignment;
+  (void)media, (void)allocator, (void)strideAlignments;
   return new NullSyncIp {};
 #endif
 }
@@ -109,27 +128,25 @@ static AL_TAllocator* createDmaAlloc(string deviceName)
   return alloc;
 }
 
-static BufferContiguities constexpr bufferContiguitiesHardware {
+static BufferContiguities constexpr BUFFER_CONTIGUITIES_HARDWARE {
   true, true
 };
-static BufferBytesAlignments constexpr bufferBytesAlignmentsHardware {
-  32, 32
+
+static BufferBytesAlignments constexpr BUFFER_BYTES_ALIGNMENTS_HARDWARE {
+  HORIZONTAL_STRIDE_ALIGNMENTS, HORIZONTAL_STRIDE_ALIGNMENTS
 };
 
 
 
-static int constexpr HARDWARE_HEVC_VERTICAL_STRIDE_ALIGNMENT = 32;
 #include "base/omx_component/omx_expertise_avc.h"
-#include "base/omx_mediatype/omx_mediatype_enc_avc.h"
-
-static int constexpr HARDWARE_AVC_VERTICAL_STRIDE_ALIGNMENT = 16;
+#include "base/omx_module/mediatype_enc_avc.h"
 
 
 static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
   shared_ptr<EncMediatypeAVC> media {
     new EncMediatypeAVC {
-      bufferContiguitiesHardware, bufferBytesAlignmentsHardware
+      BUFFER_CONTIGUITIES_HARDWARE, BUFFER_BYTES_ALIGNMENTS_HARDWARE, STRIDE_ALIGNMENTS_AVC, IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED
     }
   };
   shared_ptr<AL_TAllocator> allocator {
@@ -139,7 +156,7 @@ static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
   };
   shared_ptr<EncDeviceHardwareMcu> device {
     new EncDeviceHardwareMcu {
-      *allocator.get()
+      allocator
     }
   };
   shared_ptr<MemoryInterface> memory {
@@ -154,7 +171,7 @@ static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
     new ExpertiseAVC {}
   };
   shared_ptr<SyncIpInterface> syncIp {
-    createSyncIp(media, allocator, HARDWARE_HORIZONTAL_STRIDE_ALIGNMENT, HARDWARE_AVC_VERTICAL_STRIDE_ALIGNMENT)
+    createSyncIp(media, allocator, STRIDE_ALIGNMENTS_AVC)
   };
   return new EncComponent {
            hComponent, media, move(module), cComponentName, cRole, move(expertise), syncIp
@@ -166,7 +183,7 @@ static EncComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
 {
   shared_ptr<EncMediatypeHEVC> media {
     new EncMediatypeHEVC {
-      bufferContiguitiesHardware, bufferBytesAlignmentsHardware
+      BUFFER_CONTIGUITIES_HARDWARE, BUFFER_BYTES_ALIGNMENTS_HARDWARE, STRIDE_ALIGNMENTS_HEVC, IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED
     }
   };
   shared_ptr<AL_TAllocator> allocator {
@@ -176,7 +193,7 @@ static EncComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
   };
   shared_ptr<EncDeviceHardwareMcu> device {
     new EncDeviceHardwareMcu {
-      *allocator.get()
+      allocator
     }
   };
   shared_ptr<MemoryInterface> memory {
@@ -191,7 +208,7 @@ static EncComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
     new ExpertiseHEVC {}
   };
   shared_ptr<SyncIpInterface> syncIp {
-    createSyncIp(media, allocator, HARDWARE_HORIZONTAL_STRIDE_ALIGNMENT, HARDWARE_HEVC_VERTICAL_STRIDE_ALIGNMENT)
+    createSyncIp(media, allocator, STRIDE_ALIGNMENTS_HEVC)
   };
   return new EncComponent {
            hComponent, media, move(module), cComponentName, cRole, move(expertise), syncIp

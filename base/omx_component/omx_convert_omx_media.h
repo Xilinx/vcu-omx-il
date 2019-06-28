@@ -41,8 +41,8 @@
 #include <OMX_ComponentAlg.h>
 #include <OMX_IVCommonAlg.h>
 
-#include "base/omx_module/omx_module_enums.h"
-#include "base/omx_module/omx_module_structs.h"
+#include "base/omx_module/module_enums.h"
+#include "base/omx_module/module_structs.h"
 
 ColorType ConvertOMXToMediaColor(OMX_COLOR_FORMATTYPE format);
 OMX_COLOR_FORMATTYPE ConvertMediaToOMXColor(ColorType color, int bitdepth);

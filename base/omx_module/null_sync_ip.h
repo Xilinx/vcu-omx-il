@@ -36,7 +36,7 @@
 ******************************************************************************/
 
 #pragma once
-#include "omx_sync_ip_interface.h"
+#include "sync_ip_interface.h"
 
 struct NullSyncIp : SyncIpInterface
 {

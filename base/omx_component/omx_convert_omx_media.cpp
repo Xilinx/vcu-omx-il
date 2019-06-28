@@ -250,6 +250,14 @@ static inline AVCProfileType ConvertOMXToMediaAVCProfile(OMX_VIDEO_AVCPROFILETYP
   case OMX_ALG_VIDEO_AVCProfileHigh422_Intra: return AVCProfileType::AVC_PROFILE_HIGH_422_INTRA;
   case OMX_ALG_VIDEO_AVCProfileHigh444_Intra: return AVCProfileType::AVC_PROFILE_HIGH_444_INTRA;
   case OMX_ALG_VIDEO_AVCProfileCAVLC444_Intra: return AVCProfileType::AVC_PROFILE_CAVLC_444_INTRA;
+  case OMX_ALG_VIDEO_XAVCProfileHigh10_Intra_CBG: return AVCProfileType::XAVC_PROFILE_HIGH10_INTRA_CBG;
+  case OMX_ALG_VIDEO_XAVCProfileHigh10_Intra_VBR: return AVCProfileType::XAVC_PROFILE_HIGH10_INTRA_VBR;
+  case OMX_ALG_VIDEO_XAVCProfileHigh422_Intra_CBG: return AVCProfileType::XAVC_PROFILE_HIGH_422_INTRA_CBG;
+  case OMX_ALG_VIDEO_XAVCProfileHigh422_Intra_VBR: return AVCProfileType::XAVC_PROFILE_HIGH_422_INTRA_VBR;
+  case OMX_ALG_VIDEO_XAVCProfileLongGopMain_MP4: return AVCProfileType::XAVC_PROFILE_LONG_GOP_MAIN_MP4;
+  case OMX_ALG_VIDEO_XAVCProfileLongGopHigh_MP4: return AVCProfileType::XAVC_PROFILE_LONG_GOP_HIGH_MP4;
+  case OMX_ALG_VIDEO_XAVCProfileLongGopHigh_MXF: return AVCProfileType::XAVC_PROFILE_LONG_GOP_HIGH_MXF;
+  case OMX_ALG_VIDEO_XAVCProfileLongGopHigh422_MXF: return AVCProfileType::XAVC_PROFILE_LONG_GOP_HIGH_422_MXF;
   case OMX_VIDEO_AVCProfileMax: return AVCProfileType::AVC_PROFILE_MAX_ENUM;
   default: return AVCProfileType::AVC_PROFILE_MAX_ENUM;
   }
@@ -314,6 +322,14 @@ OMX_VIDEO_AVCPROFILETYPE ConvertMediaToOMXAVCProfile(ProfileLevel profileLevel)
   case AVCProfileType::AVC_PROFILE_HIGH_422_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileHigh422_Intra);
   case AVCProfileType::AVC_PROFILE_HIGH_444_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileHigh444_Intra);
   case AVCProfileType::AVC_PROFILE_CAVLC_444_INTRA: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_AVCProfileCAVLC444_Intra);
+  case AVCProfileType::XAVC_PROFILE_HIGH10_INTRA_CBG: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_XAVCProfileHigh10_Intra_CBG);
+  case AVCProfileType::XAVC_PROFILE_HIGH10_INTRA_VBR: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_XAVCProfileHigh10_Intra_VBR);
+  case AVCProfileType::XAVC_PROFILE_HIGH_422_INTRA_CBG: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_XAVCProfileHigh422_Intra_CBG);
+  case AVCProfileType::XAVC_PROFILE_HIGH_422_INTRA_VBR: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_XAVCProfileHigh422_Intra_VBR);
+  case AVCProfileType::XAVC_PROFILE_LONG_GOP_MAIN_MP4: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_XAVCProfileLongGopMain_MP4);
+  case AVCProfileType::XAVC_PROFILE_LONG_GOP_HIGH_MP4: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_XAVCProfileLongGopHigh_MP4);
+  case AVCProfileType::XAVC_PROFILE_LONG_GOP_HIGH_MXF: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_XAVCProfileLongGopHigh_MXF);
+  case AVCProfileType::XAVC_PROFILE_LONG_GOP_HIGH_422_MXF: return static_cast<OMX_VIDEO_AVCPROFILETYPE>(OMX_ALG_VIDEO_XAVCProfileLongGopHigh422_MXF);
   default: return OMX_VIDEO_AVCProfileMax;
   }
 
@@ -432,6 +448,7 @@ QPControlType ConvertOMXToMediaQPControl(OMX_ALG_EQpCtrlMode mode)
   case OMX_ALG_UNIFORM_QP: return QPControlType::QP_UNIFORM;
   case OMX_ALG_ROI_QP: return QPControlType::QP_ROI;
   case OMX_ALG_AUTO_QP: return QPControlType::QP_AUTO;
+  case OMX_ALG_ROI_AUTO_QP: return QPControlType::QP_ROI_AUTO;
   case OMX_ALG_MAX_ENUM_QP: return QPControlType::QP_MAX_ENUM;
   default: return QPControlType::QP_MAX_ENUM;
   }
@@ -475,7 +492,9 @@ GopControlType ConvertOMXToMediaGopControl(OMX_ALG_EGopCtrlMode mode)
   switch(mode)
   {
   case OMX_ALG_GOP_MODE_DEFAULT: return GopControlType::GOP_CONTROL_DEFAULT;
+  case OMX_ALG_GOP_MODE_DEFAULT_B: return GopControlType::GOP_CONTROL_DEFAULT_B;
   case OMX_ALG_GOP_MODE_PYRAMIDAL: return GopControlType::GOP_CONTROL_PYRAMIDAL;
+  case OMX_ALG_GOP_MODE_PYRAMIDAL_B: return GopControlType::GOP_CONTROL_PYRAMIDAL_B;
   case OMX_ALG_GOP_MODE_ADAPTIVE: return GopControlType::GOP_CONTROL_ADAPTIVE;
   case OMX_ALG_GOP_MODE_LOW_DELAY_P: return GopControlType::GOP_CONTROL_LOW_DELAY_P;
   case OMX_ALG_GOP_MODE_LOW_DELAY_B: return GopControlType::GOP_CONTROL_LOW_DELAY_B;
@@ -566,7 +585,9 @@ OMX_ALG_EQpCtrlMode ConvertMediaToOMXQpControl(QPs qps)
   switch(qps.mode)
   {
   case QPControlType::QP_UNIFORM: return OMX_ALG_UNIFORM_QP;
+  case QPControlType::QP_ROI: return OMX_ALG_ROI_QP;
   case QPControlType::QP_AUTO: return OMX_ALG_AUTO_QP;
+  case QPControlType::QP_ROI_AUTO: return OMX_ALG_ROI_AUTO_QP;
   case QPControlType::QP_MAX_ENUM: return OMX_ALG_MAX_ENUM_QP;
   default: return OMX_ALG_MAX_ENUM_QP;
   }
@@ -610,7 +631,9 @@ OMX_ALG_EGopCtrlMode ConvertMediaToOMXGopControl(GopControlType mode)
   switch(mode)
   {
   case GopControlType::GOP_CONTROL_DEFAULT: return OMX_ALG_GOP_MODE_DEFAULT;
+  case GopControlType::GOP_CONTROL_DEFAULT_B: return OMX_ALG_GOP_MODE_DEFAULT_B;
   case GopControlType::GOP_CONTROL_PYRAMIDAL: return OMX_ALG_GOP_MODE_PYRAMIDAL;
+  case GopControlType::GOP_CONTROL_PYRAMIDAL_B: return OMX_ALG_GOP_MODE_PYRAMIDAL_B;
   case GopControlType::GOP_CONTROL_ADAPTIVE: return OMX_ALG_GOP_MODE_ADAPTIVE;
   case GopControlType::GOP_CONTROL_LOW_DELAY_P: return OMX_ALG_GOP_MODE_LOW_DELAY_P;
   case GopControlType::GOP_CONTROL_LOW_DELAY_B: return OMX_ALG_GOP_MODE_LOW_DELAY_B;

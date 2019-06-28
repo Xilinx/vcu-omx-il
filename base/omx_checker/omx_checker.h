@@ -44,26 +44,26 @@
 /*****************************************************************************/
 struct OMXChecker
 {
-  enum AL_ComponentMethods
+  enum class ComponentMethods
   {
-    AL_GetComponentVersion,
-    AL_SendCommand,
-    AL_GetParameter,
-    AL_SetParameter,
-    AL_GetConfig,
-    AL_SetConfig,
-    AL_GetExtensionIndex,
-    AL_GetState,
-    AL_ComponentTunnelRequest,
-    AL_UseBuffer,
-    AL_AllocateBuffer,
-    AL_FreeBuffer,
-    AL_EmptyThisBuffer,
-    AL_FillThisBuffer,
-    AL_SetCallbacks,
-    AL_ComponentDeinit,
-    AL_UseEGLImage,
-    AL_ComponentRoleEnum,
+    GetComponentVersion,
+    SendCommand,
+    GetParameter,
+    SetParameter,
+    GetConfig,
+    SetConfig,
+    GetExtensionIndex,
+    GetState,
+    ComponentTunnelRequest,
+    UseBuffer,
+    AllocateBuffer,
+    FreeBuffer,
+    EmptyThisBuffer,
+    FillThisBuffer,
+    SetCallbacks,
+    ComponentDeinit,
+    UseEGLImage,
+    ComponentRoleEnum,
   };
 
   /*************************************************************************//*!
@@ -74,7 +74,7 @@ struct OMXChecker
      \throw  OMX_ErrorInvalidState if the current state is invalid
              OMX_ErrorIncorrectStateOperation otherwise
   *****************************************************************************/
-  static void CheckStateOperation(AL_ComponentMethods methodName, OMX_STATETYPE curState);
+  static void CheckStateOperation(ComponentMethods methodName, OMX_STATETYPE curState);
 
   /*************************************************************************//*!
      \brief  The CheckStateExistance method test if the state exist

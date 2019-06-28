@@ -61,6 +61,7 @@ static void ClearPropagatedData(OMX_BUFFERHEADERTYPE* header)
   header->hMarkTargetComponent = nullptr;
   header->pMarkData = nullptr;
   header->nFilledLen = 0;
+  header->nTickCount = 0;
   header->nFlags = 0;
 }
 
@@ -79,12 +80,12 @@ void nullDeleter(void*)
 {
 }
 
-static Task* CreateTask(Command cmd, OMX_U32 data, shared_ptr<void> opt)
+static Task CreateTask(Command cmd, OMX_U32 data, shared_ptr<void> opt)
 {
-  auto task = new Task();
-  task->cmd = cmd;
-  task->data = reinterpret_cast<uintptr_t*>(data);
-  task->opt = opt;
+  Task task {};
+  task.cmd = cmd;
+  task.data = reinterpret_cast<uintptr_t*>(data);
+  task.opt = opt;
   return task;
 }
 
@@ -230,20 +231,18 @@ Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> me
   shouldClearROI = false;
   shouldPushROI = false;
   shouldFireEventPortSettingsChanges = true;
-  isQuantizationParameterTableUsed = false;
   version.nVersion = ALLEGRODVT_OMX_VERSION;
   AssociateSpecVersion(spec);
 
   OMXChecker::SetHeaderVersion(videoPortParams);
   SetPortsParam(videoPortParams);
-  auto d = bind(&Component::_Delete, this, placeholders::_1);
   auto d2 = bind(&Component::_DeleteFillEmpty, this, placeholders::_1);
   auto p = bind(&Component::_ProcessMain, this, placeholders::_1);
   auto p2 = bind(&Component::_ProcessFillBuffer, this, placeholders::_1);
   auto p3 = bind(&Component::_ProcessEmptyBuffer, this, placeholders::_1);
-  processorMain.reset(new ProcessorFifo<void*> { p, d, "OMX - Sched" });
-  processorFill.reset(new ProcessorFifo<void*> { p2, d2, "OMX - Out" });
-  processorEmpty.reset(new ProcessorFifo<void*> { p3, d2, "OMX - In" });
+  processorMain.reset(new ProcessorFifo<Task> { p, nullptr, "OMX - Sched" });
+  processorFill.reset(new ProcessorFifo<Task> { p2, d2, "OMX - Out" });
+  processorEmpty.reset(new ProcessorFifo<Task> { p3, d2, "OMX - In" });
   pauseFillPromise = nullptr;
   pauseEmptyPromise = nullptr;
   eosHandles.input = nullptr;
@@ -405,7 +404,7 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
 OMX_ERRORTYPE Component::SendCommand(OMX_IN OMX_COMMANDTYPE cmd, OMX_IN OMX_U32 param, OMX_IN OMX_PTR data)
 {
   OMX_TRY();
-  OMXChecker::CheckStateOperation(OMXChecker::AL_SendCommand, state);
+  OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::SendCommand, state);
 
   CreateCommand(cmd, param, data);
 
@@ -433,7 +432,7 @@ OMX_ERRORTYPE Component::SetCallbacks(OMX_IN OMX_CALLBACKTYPE* callbacks, OMX_IN
 {
   OMX_TRY();
   OMXChecker::CheckNotNull<OMX_CALLBACKTYPE*>(callbacks);
-  OMXChecker::CheckStateOperation(OMXChecker::AL_SetCallbacks, state);
+  OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::SetCallbacks, state);
 
   auto empty = bind(&Component::EmptyThisBufferCallBack, this, placeholders::_1);
   auto associate = bind(&Component::AssociateCallBack, this, placeholders::_1, placeholders::_2);
@@ -484,7 +483,7 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
   OMX_TRY();
   OMXChecker::CheckNotNull(param);
   OMXChecker::CheckHeaderVersion(GetVersion(param));
-  OMXChecker::CheckStateOperation(OMXChecker::AL_GetParameter, state);
+  OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::GetParameter, state);
 
   auto getCurrentPort = [=](OMX_PTR param) -> Port*
                         {
@@ -757,13 +756,13 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     port = getCurrentPort(param);
 
     if(!port->isTransientToDisable && port->enable)
-      OMXChecker::CheckStateOperation(OMXChecker::AL_SetParameter, state);
+      OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::SetParameter, state);
   }
   switch(static_cast<OMX_U32>(index)) // all indexes are 32u
   {
   case OMX_IndexParamStandardComponentRole:
   {
-    OMXChecker::CheckStateOperation(OMXChecker::AL_SetParameter, state);
+    OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::SetParameter, state);
     auto p = (OMX_PARAM_COMPONENTROLETYPE*)param;
 
     if(!strncmp((char*)role, (char*)p->cRole, strlen((char*)role)))
@@ -1094,7 +1093,7 @@ OMX_ERRORTYPE Component::EmptyThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
 {
   OMX_TRY();
   OMXChecker::CheckNotNull(header);
-  OMXChecker::CheckStateOperation(OMXChecker::AL_EmptyThisBuffer, state);
+  OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::EmptyThisBuffer, state);
   CheckPortIndex(header->nInputPortIndex);
 
   processorMain->queue(CreateTask(Command::EmptyBuffer, static_cast<OMX_U32>(input.index), shared_ptr<void>(header, nullDeleter)));
@@ -1107,7 +1106,7 @@ OMX_ERRORTYPE Component::FillThisBuffer(OMX_IN OMX_BUFFERHEADERTYPE* header)
 {
   OMX_TRY();
   OMXChecker::CheckNotNull(header);
-  OMXChecker::CheckStateOperation(OMXChecker::AL_FillThisBuffer, state);
+  OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::FillThisBuffer, state);
   CheckPortIndex(header->nOutputPortIndex);
 
   header->nTimeStamp = 0;
@@ -1144,7 +1143,7 @@ OMX_ERRORTYPE Component::GetComponentVersion(OMX_OUT OMX_STRING name, OMX_OUT OM
   OMXChecker::CheckNotNull(name);
   OMXChecker::CheckNotNull(version);
   OMXChecker::CheckNotNull(spec);
-  OMXChecker::CheckStateOperation(OMXChecker::AL_GetComponentVersion, state);
+  OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::GetComponentVersion, state);
 
   strncpy(name, this->name, OMX_MAX_STRINGNAME_SIZE);
   *version = this->version;
@@ -1159,7 +1158,7 @@ OMX_ERRORTYPE Component::GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR
   OMX_TRY();
   OMXChecker::CheckNotNull(config);
   OMXChecker::CheckHeaderVersion(GetVersion(config));
-  OMXChecker::CheckStateOperation(OMXChecker::AL_GetConfig, state);
+  OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::GetConfig, state);
   switch(static_cast<OMX_U32>(index))
   {
   case OMX_IndexConfigVideoBitrate:
@@ -1200,7 +1199,7 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
   OMX_TRY();
   OMXChecker::CheckNotNull(config);
   OMXChecker::CheckHeaderVersion(GetVersion(config));
-  OMXChecker::CheckStateOperation(OMXChecker::AL_SetConfig, state);
+  OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::SetConfig, state);
   switch(static_cast<OMX_U32>(index))
   {
   case OMX_IndexConfigVideoBitrate:
@@ -1295,18 +1294,33 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
   }
   case OMX_ALG_IndexConfigVideoQuantizationParameterTable:
   {
-    if(shouldPushROI)
+    QPs qps;
+    media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &qps);
+
+    if(qps.mode == QPControlType::QP_ROI)
       return OMX_ErrorUnsupportedIndex;
     OMX_ALG_VIDEO_CONFIG_DATA* userData = static_cast<OMX_ALG_VIDEO_CONFIG_DATA*>(config);
     OMX_ALG_VIDEO_CONFIG_DATA* data = new OMX_ALG_VIDEO_CONFIG_DATA {};
     memcpy(data, userData, sizeof(OMX_ALG_VIDEO_CONFIG_DATA));
     data->pBuffer = new OMX_U8[userData->nAllocLen] {};
     memcpy(data->pBuffer, userData->pBuffer, userData->nAllocLen);
-    isQuantizationParameterTableUsed = true;
     processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoQuantizationParameterTable, shared_ptr<void>(data)));
     return OMX_ErrorNone;
   }
-
+  case OMX_ALG_IndexConfigVideoLoopFilterBeta:
+  {
+    OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_BETA* lfb = new OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_BETA;
+    memcpy(lfb, static_cast<OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_BETA*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_BETA));
+    processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoLoopFilterBeta, shared_ptr<void>(lfb)));
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexConfigVideoLoopFilterTc:
+  {
+    OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC* lftc = new OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC;
+    memcpy(lftc, static_cast<OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC));
+    processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoLoopFilterTc, shared_ptr<void>(lftc)));
+    return OMX_ErrorNone;
+  }
   default:
     LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
@@ -1322,7 +1336,7 @@ OMX_ERRORTYPE Component::GetExtensionIndex(OMX_IN OMX_STRING name, OMX_OUT OMX_I
   OMX_TRY();
   OMXChecker::CheckNotNull(name);
   OMXChecker::CheckNotNull(index);
-  OMXChecker::CheckStateOperation(OMXChecker::AL_GetExtensionIndex, state);
+  OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::GetExtensionIndex, state);
   return OMX_ErrorNoMore;
   OMX_CATCH();
 }
@@ -1343,7 +1357,7 @@ OMX_ERRORTYPE Component::ComponentRoleEnum(OMX_OUT OMX_U8* role, OMX_IN OMX_U32 
 {
   OMX_TRY();
   OMXChecker::CheckNotNull(role);
-  OMXChecker::CheckStateOperation(OMXChecker::AL_ComponentRoleEnum, state);
+  OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::ComponentRoleEnum, state);
 
   if(index != 0)
     return OMX_ErrorNoMore;
@@ -1454,10 +1468,10 @@ void Component::FlushFillEmptyBuffers(bool fill, bool empty)
   auto p2 = bind(&Component::_ProcessEmptyBuffer, this, placeholders::_1);
 
   if(fill)
-    processorFill.reset(new ProcessorFifo<void*> { p, d, "OMX - Out" });
+    processorFill.reset(new ProcessorFifo<Task> { p, d, "OMX - Out" });
 
   if(empty)
-    processorEmpty.reset(new ProcessorFifo<void*> { p2, d, "OMX - In" });
+    processorEmpty.reset(new ProcessorFifo<Task> { p2, d, "OMX - In" });
 
   if(buffersFillBlocked || buffersEmptyBlocked)
     BlockFillEmptyBuffers(buffersFillBlocked, buffersEmptyBlocked);
@@ -1542,13 +1556,12 @@ static bool isFlushingRequired(OMX_STATETYPE prevState, OMX_STATETYPE newState)
   }
 }
 
-void Component::TreatSetStateCommand(Task* task)
+void Component::TreatSetStateCommand(Task task)
 {
   try
   {
-    assert(task);
-    assert(task->cmd == Command::SetState);
-    auto newState = (OMX_STATETYPE)((uintptr_t)task->data);
+    assert(task.cmd == Command::SetState);
+    auto newState = (OMX_STATETYPE)((uintptr_t)task.data);
     LOG_IMPORTANT(string { "Set State: " } +ToStringOMXState.at(newState));
     OMXChecker::CheckStateTransition(state, newState);
 
@@ -1563,7 +1576,7 @@ void Component::TreatSetStateCommand(Task* task)
 
     if(isTransitionToExecutingOrPause(state, newState))
     {
-      auto error = module->Run(shouldPrealloc);
+      auto error = module->Start(shouldPrealloc);
 
       if(error)
         throw ToOmxError(error);
@@ -1596,35 +1609,33 @@ void Component::TreatSetStateCommand(Task* task)
       state = OMX_StateInvalid;
     }
 
-    if(task->opt.get() != nullptr)
-      e = (OMX_ERRORTYPE)((uintptr_t)task->opt.get());
+    if(task.opt.get() != nullptr)
+      e = (OMX_ERRORTYPE)((uintptr_t)task.opt.get());
 
     LOG_ERROR(ToStringOMXError.at(e));
     callbacks.EventHandler(component, app, OMX_EventError, e, 0, nullptr);
   }
 }
 
-void Component::TreatFlushCommand(Task* task)
+void Component::TreatFlushCommand(Task task)
 {
-  assert(task);
-  assert(task->cmd == Command::Flush);
-  assert(task->opt.get() == nullptr);
-  auto index = static_cast<OMX_U32>((uintptr_t)task->data);
+  assert(task.cmd == Command::Flush);
+  assert(task.opt.get() == nullptr);
+  auto index = static_cast<OMX_U32>((uintptr_t)task.data);
 
   LOG_IMPORTANT(string { "Flush port: " } +to_string(index));
 
   if(module->Stop())
-    module->Run(true);
+    module->Start(true);
 
   callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandFlush, index, nullptr);
 }
 
-void Component::TreatDisablePortCommand(Task* task)
+void Component::TreatDisablePortCommand(Task task)
 {
-  assert(task);
-  assert(task->cmd == Command::DisablePort);
-  assert(task->opt.get() == nullptr);
-  auto index = static_cast<OMX_U32>((uintptr_t)task->data);
+  assert(task.cmd == Command::DisablePort);
+  assert(task.opt.get() == nullptr);
+  auto index = static_cast<OMX_U32>((uintptr_t)task.data);
   auto port = GetPort(index);
 
   if(port->isTransientToDisable)
@@ -1636,7 +1647,7 @@ void Component::TreatDisablePortCommand(Task* task)
     if(shouldPrealloc && (state == OMX_StateExecuting || state == OMX_StatePause))
     {
       if(module->Stop())
-        module->Run(true);
+        module->Start(true);
       callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_EventPortSettingsChanged), 1, 0, nullptr);
     }
 
@@ -1651,12 +1662,11 @@ void Component::TreatDisablePortCommand(Task* task)
   callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandPortDisable, index, nullptr);
 }
 
-void Component::TreatEnablePortCommand(Task* task)
+void Component::TreatEnablePortCommand(Task task)
 {
-  assert(task);
-  assert(task->cmd == Command::EnablePort);
-  assert(task->opt.get() == nullptr);
-  auto index = static_cast<OMX_U32>((uintptr_t)task->data);
+  assert(task.cmd == Command::EnablePort);
+  assert(task.opt.get() == nullptr);
+  auto index = static_cast<OMX_U32>((uintptr_t)task.data);
   auto port = GetPort(index);
 
   if(port->isTransientToEnable)
@@ -1672,7 +1682,7 @@ void Component::TreatEnablePortCommand(Task* task)
     if(shouldPrealloc && (state == OMX_StateExecuting || state == OMX_StatePause))
     {
       if(module->Stop())
-        module->Run(true);
+        module->Start(true);
       callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_EventPortSettingsChanged), 1, 0, nullptr);
     }
 
@@ -1683,12 +1693,11 @@ void Component::TreatEnablePortCommand(Task* task)
   callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandPortEnable, index, nullptr);
 }
 
-void Component::TreatMarkBufferCommand(Task* task)
+void Component::TreatMarkBufferCommand(Task task)
 {
-  assert(task);
-  assert(task->cmd == Command::MarkBuffer);
-  assert(static_cast<int>((uintptr_t)task->data) == input.index);
-  auto mark = static_cast<OMX_MARKTYPE*>(task->opt.get());
+  assert(task.cmd == Command::MarkBuffer);
+  assert(static_cast<int>((uintptr_t)task.data) == input.index);
+  auto mark = static_cast<OMX_MARKTYPE*>(task.opt.get());
   assert(mark);
 
   marks.push(mark);
@@ -1737,12 +1746,11 @@ void Component::TreatEmptyBufferCommand(Task* task)
   }
 }
 
-void Component::TreatFillBufferCommand(Task* task)
+void Component::TreatFillBufferCommand(Task task)
 {
-  assert(task);
-  assert(task->cmd == Command::FillBuffer);
-  assert(static_cast<int>((uintptr_t)task->data) == output.index);
-  auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
+  assert(task.cmd == Command::FillBuffer);
+  assert(static_cast<int>((uintptr_t)task.data) == output.index);
+  auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task.opt.get());
   assert(header);
 
   if(state == OMX_StateInvalid)
@@ -1773,13 +1781,15 @@ RegionQuality CreateRegionQuality(OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST const&
   return rq;
 }
 
-void Component::TreatDynamicCommand(Task* task)
+void Component::TreatDynamicCommand(Task task)
 {
-  assert(task);
-  assert(task->cmd == Command::SetDynamic);
-  auto index = static_cast<OMX_U32>((uintptr_t)task->data);
-  void* opt = task->opt.get();
+  assert(task.cmd == Command::SetDynamic);
+  auto index = static_cast<OMX_U32>((uintptr_t)task.data);
+  void* opt = task.opt.get();
   assert(opt);
+
+  if(state == OMX_StateInvalid)
+    return;
   switch(index)
   {
   case OMX_IndexConfigVideoBitrate:
@@ -1877,11 +1887,21 @@ void Component::TreatDynamicCommand(Task* task)
   {
     auto data = static_cast<OMX_ALG_VIDEO_CONFIG_DATA*>(opt);
     module->SetDynamic(DYNAMIC_INDEX_INSERT_QUANTIZATION_PARAMETER_BUFFER, data->pBuffer + data->nOffset);
-    isQuantizationParameterTableUsed = false;
     delete[] data->pBuffer;
     return;
   }
-
+  case OMX_ALG_IndexConfigVideoLoopFilterBeta:
+  {
+    auto beta = static_cast<OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_BETA*>(opt);
+    module->SetDynamic(DYNAMIC_INDEX_LOOP_FILTER_BETA, (void*)(static_cast<intptr_t>(beta->nLoopFilterBeta)));
+    return;
+  }
+  case OMX_ALG_IndexConfigVideoLoopFilterTc:
+  {
+    auto beta = static_cast<OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC*>(opt);
+    module->SetDynamic(DYNAMIC_INDEX_LOOP_FILTER_TC, (void*)(static_cast<intptr_t>(beta->nLoopFilterTc)));
+    return;
+  }
   default:
     return;
   }
@@ -1899,15 +1919,13 @@ static void TreatSignalCommand(Task* task)
   p->set_value();
 }
 
-void Component::_ProcessMain(void* data)
+void Component::_ProcessMain(Task task)
 {
-  auto task = static_cast<Task*>(data);
-  assert(task);
-  switch(task->cmd)
+  switch(task.cmd)
   {
   case Command::SetState:
   {
-    auto newState = (OMX_STATETYPE)((uintptr_t)task->data);
+    auto newState = (OMX_STATETYPE)((uintptr_t)task.data);
 
     if(isFlushingRequired(state, newState))
       FlushFillEmptyBuffers(true, true);
@@ -1939,90 +1957,69 @@ void Component::_ProcessMain(void* data)
   }
   case Command::EmptyBuffer:
   {
-    auto index = static_cast<int>((uintptr_t)task->data);
+    auto index = static_cast<int>((uintptr_t)task.data);
     assert(IsInputPort(index));
     processorEmpty->queue(task);
-    task = nullptr;
     break;
   }
   case Command::FillBuffer:
   {
-    auto index = static_cast<int>((uintptr_t)task->data);
+    auto index = static_cast<int>((uintptr_t)task.data);
     assert(!IsInputPort(index));
     processorFill->queue(task);
-    task = nullptr;
     break;
   }
   case Command::SetDynamic:
   {
     processorEmpty->queue(task);
-    task = nullptr;
     break;
   }
   default:
     assert(0 == "bad command");
   }
-
-  delete task;
 }
 
-void Component::_Delete(void* data)
+void Component::_DeleteFillEmpty(Task task)
 {
-  auto task = static_cast<Task*>(data);
-  delete task;
-}
-
-void Component::_DeleteFillEmpty(void* data)
-{
-  auto task = static_cast<Task*>(data);
-  assert(task);
-
-  if(task->cmd == Command::FillBuffer)
+  if(task.cmd == Command::FillBuffer)
   {
-    assert(static_cast<int>((uintptr_t)task->data) == output.index);
-    auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
+    assert(static_cast<int>((uintptr_t)task.data) == output.index);
+    auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task.opt.get());
     assert(header);
     callbacks.FillBufferDone(component, app, header);
   }
-  else if(task->cmd == Command::EmptyBuffer)
+  else if(task.cmd == Command::EmptyBuffer)
   {
-    assert(static_cast<int>((uintptr_t)task->data) == input.index);
-    auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task->opt.get());
+    assert(static_cast<int>((uintptr_t)task.data) == input.index);
+    auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task.opt.get());
     assert(header);
     callbacks.EmptyBufferDone(component, app, header);
   }
-  delete task;
 }
 
-void Component::_ProcessFillBuffer(void* data)
+void Component::_ProcessFillBuffer(Task task)
 {
-  auto task = static_cast<Task*>(data);
-
-  if(task->cmd == Command::FillBuffer)
+  if(task.cmd == Command::FillBuffer)
     TreatFillBufferCommand(task);
-  else if(task->cmd == Command::SharedFence)
-    TreatSharedFenceCommand(task);
-  else if(task->cmd == Command::Signal)
-    TreatSignalCommand(task);
+  else if(task.cmd == Command::SharedFence)
+    TreatSharedFenceCommand(&task);
+  else if(task.cmd == Command::Signal)
+    TreatSignalCommand(&task);
   else
     assert(0 == "bad command");
-  delete task;
 }
 
-void Component::_ProcessEmptyBuffer(void* data)
+void Component::_ProcessEmptyBuffer(Task task)
 {
-  auto task = static_cast<Task*>(data);
-
-  if(task->cmd == Command::EmptyBuffer)
-    TreatEmptyBufferCommand(task);
-  else if(task->cmd == Command::SharedFence)
-    TreatSharedFenceCommand(task);
-  else if(task->cmd == Command::Signal)
-    TreatSignalCommand(task);
-  else if(task->cmd == Command::SetDynamic)
+  if(task.cmd == Command::EmptyBuffer)
+    TreatEmptyBufferCommand(&task);
+  else if(task.cmd == Command::SharedFence)
+    TreatSharedFenceCommand(&task);
+  else if(task.cmd == Command::Signal)
+    TreatSignalCommand(&task);
+  else if(task.cmd == Command::SetDynamic)
     TreatDynamicCommand(task);
   else
     assert(0 == "bad command");
-  delete task;
 }
 

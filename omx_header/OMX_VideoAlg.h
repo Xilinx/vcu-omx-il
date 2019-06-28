@@ -185,6 +185,14 @@ typedef enum OMX_ALG_VIDEO_AVCPROFILETYPE
   OMX_ALG_VIDEO_AVCProfileHigh422_Intra,
   OMX_ALG_VIDEO_AVCProfileHigh444_Intra,
   OMX_ALG_VIDEO_AVCProfileCAVLC444_Intra,
+  OMX_ALG_VIDEO_XAVCProfileHigh10_Intra_CBG,
+  OMX_ALG_VIDEO_XAVCProfileHigh10_Intra_VBR,
+  OMX_ALG_VIDEO_XAVCProfileHigh422_Intra_CBG,
+  OMX_ALG_VIDEO_XAVCProfileHigh422_Intra_VBR,
+  OMX_ALG_VIDEO_XAVCProfileLongGopMain_MP4,
+  OMX_ALG_VIDEO_XAVCProfileLongGopHigh_MP4,
+  OMX_ALG_VIDEO_XAVCProfileLongGopHigh_MXF,
+  OMX_ALG_VIDEO_XAVCProfileLongGopHigh422_MXF,
   OMX_ALG_VIDEO_AVCProfileMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_AVCPROFILETYPE;
 
@@ -205,7 +213,9 @@ typedef enum OMX_ALG_VIDEO_AVCLEVELTYPE
 typedef enum OMX_ALG_EGopCtrlMode
 {
   OMX_ALG_GOP_MODE_DEFAULT,
+  OMX_ALG_GOP_MODE_DEFAULT_B,
   OMX_ALG_GOP_MODE_PYRAMIDAL,
+  OMX_ALG_GOP_MODE_PYRAMIDAL_B,
   OMX_ALG_GOP_MODE_ADAPTIVE,
   OMX_ALG_GOP_MODE_LOW_DELAY_P,
   OMX_ALG_GOP_MODE_LOW_DELAY_B,
@@ -361,6 +371,7 @@ typedef enum
   OMX_ALG_UNIFORM_QP, /*!< default behaviour */
   OMX_ALG_ROI_QP, /*!< must be set for dynamic roi */
   OMX_ALG_AUTO_QP, /*!< compute Qp by MB on the fly */
+  OMX_ALG_ROI_AUTO_QP, /*!< ROI and on the fly QP offsets summed */
   OMX_ALG_MAX_ENUM_QP = 0x7FFFFFFF,
 }OMX_ALG_EQpCtrlMode;
 
@@ -705,24 +716,27 @@ typedef struct OMX_ALG_VIDEO_PARAM_INPUT_PARSED
   OMX_BOOL bDisableInputParsed;
 }OMX_ALG_VIDEO_PARAM_INPUT_PARSED;
 
+
 /**
  * Max picture size parameters
  *
  * STRUCT MEMBERS:
- *  nSize           : Size of the structure in bytes
- *  nVersion        : OMX specification version information
- *  nPortIndex      : Port that this structure applies to
- *  nMaxPictureSize : Max picture size in kbits
+ *  nSize            : Size of the structure in bytes
+ *  nVersion         : OMX specification version information
+ *  nPortIndex       : Port that this structure applies to
+ *  nMaxPictureSizeI : Max picture size for I frames in kbits
+ *  nMaxPictureSizeP : Max picture size for P frames in kbits
+ *  nMaxPictureSizeB : Max picture size for B frames in kbits
  */
 typedef struct OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE
 {
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
-  OMX_S32 nMaxPictureSize;
+  OMX_S32 nMaxPictureSizeI;
+  OMX_S32 nMaxPictureSizeP;
+  OMX_S32 nMaxPictureSizeB;
 }OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE;
-
-
 
 /** Extented enumeration of video formats */
 typedef enum OMX_ALG_COLOR_FORMATTYPE
@@ -892,6 +906,37 @@ typedef struct OMX_ALG_VIDEO_CONFIG_DATA
   OMX_U32 nFilledLen;
   OMX_U32 nOffset;
 }OMX_ALG_VIDEO_CONFIG_DATA;
+
+/**
+ * Struct for dynamically change loop filter beta
+ *
+ * STRUCT MEMBERS:
+ *  nSize           : Size of the structure in bytes
+ *  nVersion        : OMX specification version information
+ *  nLoopFilterBeta : Loop filter beta offset value
+ */
+typedef struct OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_BETA
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U8 nLoopFilterBeta;
+}OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_BETA;
+
+/**
+ * Struct for dynamically change loop filter tc
+ *
+ * STRUCT MEMBERS:
+ *  nSize         : Size of the structure in bytes
+ *  nVersion      : OMX specification version information
+ *  nLoopFilterTc : Loop filter tc offset value
+ */
+typedef struct OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U8 nLoopFilterTc;
+}OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC;
+
 
 #ifdef __cplusplus
 }

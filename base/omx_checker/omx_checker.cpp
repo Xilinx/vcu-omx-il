@@ -67,29 +67,29 @@ static inline bool isStateInvalid(OMX_STATETYPE curState)
   return curState == OMX_StateInvalid;
 }
 
-void OMXChecker::CheckStateOperation(AL_ComponentMethods methodName, OMX_STATETYPE curState)
+void OMXChecker::CheckStateOperation(ComponentMethods methodName, OMX_STATETYPE curState)
 {
   switch(methodName)
   {
-  case AL_GetComponentVersion:
+  case ComponentMethods::GetComponentVersion:
   {
     if(isStateInvalid(curState))
       throw OMX_ErrorInvalidState;
     break;
   }
-  case AL_SendCommand:
+  case ComponentMethods::SendCommand:
   {
     if(isStateInvalid(curState))
       throw OMX_ErrorInvalidState;
     break;
   }
-  case AL_GetParameter:
+  case ComponentMethods::GetParameter:
   {
     if(isStateInvalid(curState))
       throw OMX_ErrorInvalidState;
     break;
   }
-  case AL_SetParameter:
+  case ComponentMethods::SetParameter:
   {
     if(isStateIdle(curState))
       throw OMX_ErrorIncorrectStateOperation;
@@ -104,29 +104,29 @@ void OMXChecker::CheckStateOperation(AL_ComponentMethods methodName, OMX_STATETY
       throw OMX_ErrorInvalidState;
     break;
   }
-  case AL_GetConfig:
+  case ComponentMethods::GetConfig:
   {
     if(isStateInvalid(curState))
       throw OMX_ErrorInvalidState;
     break;
   }
-  case AL_SetConfig:
+  case ComponentMethods::SetConfig:
   {
     if(isStateInvalid(curState))
       throw OMX_ErrorInvalidState;
     break;
   }
-  case AL_GetExtensionIndex:
+  case ComponentMethods::GetExtensionIndex:
   {
     if(isStateInvalid(curState))
       throw OMX_ErrorInvalidState;
     break;
   }
-  case AL_GetState:
+  case ComponentMethods::GetState:
   {
     break;
   }
-  case AL_ComponentTunnelRequest:
+  case ComponentMethods::ComponentTunnelRequest:
   {
     if(isStateIdle(curState))
       throw OMX_ErrorIncorrectStateOperation;
@@ -144,7 +144,7 @@ void OMXChecker::CheckStateOperation(AL_ComponentMethods methodName, OMX_STATETY
       throw OMX_ErrorInvalidState;
     break;
   }
-  case AL_UseBuffer:
+  case ComponentMethods::UseBuffer:
   {
     // if(isStateIdle(curState))
     // throw OMX_ErrorIncorrectStateOperation;
@@ -159,7 +159,7 @@ void OMXChecker::CheckStateOperation(AL_ComponentMethods methodName, OMX_STATETY
       throw OMX_ErrorInvalidState;
     break;
   }
-  case AL_AllocateBuffer:
+  case ComponentMethods::AllocateBuffer:
   {
     // if(isStateIdle(curState))
     // throw OMX_ErrorIncorrectStateOperation;
@@ -174,23 +174,11 @@ void OMXChecker::CheckStateOperation(AL_ComponentMethods methodName, OMX_STATETY
       throw OMX_ErrorInvalidState;
     break;
   }
-  case AL_FreeBuffer:
+  case ComponentMethods::FreeBuffer:
   {
     break;
   }
-  case AL_EmptyThisBuffer:
-  {
-    if(isStateLoaded(curState))
-      throw OMX_ErrorIncorrectStateOperation;
-
-    if(isStateWaitForResources(curState))
-      throw OMX_ErrorIncorrectStateOperation;
-
-    if(isStateInvalid(curState))
-      throw OMX_ErrorInvalidState;
-    break;
-  }
-  case AL_FillThisBuffer:
+  case ComponentMethods::EmptyThisBuffer:
   {
     if(isStateLoaded(curState))
       throw OMX_ErrorIncorrectStateOperation;
@@ -202,7 +190,19 @@ void OMXChecker::CheckStateOperation(AL_ComponentMethods methodName, OMX_STATETY
       throw OMX_ErrorInvalidState;
     break;
   }
-  case AL_SetCallbacks:
+  case ComponentMethods::FillThisBuffer:
+  {
+    if(isStateLoaded(curState))
+      throw OMX_ErrorIncorrectStateOperation;
+
+    if(isStateWaitForResources(curState))
+      throw OMX_ErrorIncorrectStateOperation;
+
+    if(isStateInvalid(curState))
+      throw OMX_ErrorInvalidState;
+    break;
+  }
+  case ComponentMethods::SetCallbacks:
   {
     if(isStateIdle(curState))
       throw OMX_ErrorIncorrectStateOperation;
@@ -220,15 +220,15 @@ void OMXChecker::CheckStateOperation(AL_ComponentMethods methodName, OMX_STATETY
       throw OMX_ErrorInvalidState;
     break;
   }
-  case AL_ComponentDeinit:
+  case ComponentMethods::ComponentDeinit:
   {
     break;
   }
-  case AL_UseEGLImage:
+  case ComponentMethods::UseEGLImage:
   {
     break;
   }
-  case AL_ComponentRoleEnum:
+  case ComponentMethods::ComponentRoleEnum:
   {
     break;
   }

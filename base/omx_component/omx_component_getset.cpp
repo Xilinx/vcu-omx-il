@@ -245,8 +245,8 @@ static OMX_ERRORTYPE SetResolution(OMX_VIDEO_PORTDEFINITIONTYPE const& definitio
   OMX_CHECK_MEDIA_GET(ret);
   resolution.width = definition.nFrameWidth;
   resolution.height = definition.nFrameHeight;
-  resolution.stride.widthStride = definition.nStride;
-  resolution.stride.heightStride = definition.nSliceHeight;
+  resolution.stride.horizontal = definition.nStride;
+  resolution.stride.vertical = definition.nSliceHeight;
   ret = media->Set(SETTINGS_INDEX_RESOLUTION, &resolution);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
@@ -317,8 +317,8 @@ OMX_ERRORTYPE ConstructPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE& def, Port& p
   v.pNativeRender = 0; // XXX
   v.nFrameWidth = resolution.width;
   v.nFrameHeight = resolution.height;
-  v.nStride = resolution.stride.widthStride;
-  v.nSliceHeight = resolution.stride.heightStride;
+  v.nStride = resolution.stride.horizontal;
+  v.nSliceHeight = resolution.stride.vertical;
   v.nBitrate = bitrate.target;
   v.xFramerate = ConvertMediaToOMXFramerate(clock);
   v.bFlagErrorConcealment = ConvertMediaToOMXBool(false); // XXX
@@ -395,8 +395,8 @@ OMX_ERRORTYPE ConstructVideoLookAhead(OMX_ALG_VIDEO_PARAM_LOOKAHEAD& la, Port co
   LookAhead lookAhead;
   auto ret = media->Get(SETTINGS_INDEX_LOOKAHEAD, &lookAhead);
   OMX_CHECK_MEDIA_GET(ret);
-  la.nLookAhead = lookAhead.nLookAhead;
-  la.bEnableFirstPassSceneChangeDetection = ConvertMediaToOMXBool(lookAhead.bEnableFirstPassSceneChangeDetection);
+  la.nLookAhead = lookAhead.lookAhead;
+  la.bEnableFirstPassSceneChangeDetection = ConvertMediaToOMXBool(lookAhead.isFirstPassSceneChangeDetectionEnabled);
   return OMX_ErrorNone;
 }
 
@@ -405,8 +405,8 @@ static OMX_ERRORTYPE SetLookAhead(OMX_U32 nLookAhead, OMX_BOOL enableFirstPassSc
   LookAhead lookAhead;
   auto ret = media->Get(SETTINGS_INDEX_LOOKAHEAD, &lookAhead);
   OMX_CHECK_MEDIA_GET(ret);
-  lookAhead.nLookAhead = nLookAhead;
-  lookAhead.bEnableFirstPassSceneChangeDetection = ConvertOMXToMediaBool(enableFirstPassSceneChangeDetection);
+  lookAhead.lookAhead = nLookAhead;
+  lookAhead.isFirstPassSceneChangeDetectionEnabled = ConvertOMXToMediaBool(enableFirstPassSceneChangeDetection);
   ret = media->Set(SETTINGS_INDEX_LOOKAHEAD, &lookAhead);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
@@ -1201,21 +1201,25 @@ OMX_ERRORTYPE SetVideoColorPrimaries(OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES const& 
   return OMX_ErrorNone;
 }
 
-
 OMX_ERRORTYPE ConstructVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE& maxPictureSize, Port const& port, std::shared_ptr<MediatypeInterface> media)
 {
   OMXChecker::SetHeaderVersion(maxPictureSize);
   maxPictureSize.nPortIndex = port.index;
-  int mps;
+  MaxPicturesSize mps;
   auto ret = media->Get(SETTINGS_INDEX_MAX_PICTURE_SIZE, &mps);
   OMX_CHECK_MEDIA_GET(ret);
-  maxPictureSize.nMaxPictureSize = mps;
+  maxPictureSize.nMaxPictureSizeI = mps.i;
+  maxPictureSize.nMaxPictureSizeP = mps.p;
+  maxPictureSize.nMaxPictureSizeB = mps.b;
   return OMX_ErrorNone;
 }
 
-static OMX_ERRORTYPE SetMaxPictureSize(OMX_S32 maxPictureSize, shared_ptr<MediatypeInterface>media)
+static OMX_ERRORTYPE SetMaxPictureSize(OMX_S32 mpsI, OMX_S32 mpsP, OMX_S32 mpsB, shared_ptr<MediatypeInterface> media)
 {
-  auto mps = static_cast<int>(maxPictureSize);
+  MaxPicturesSize mps;
+  mps.i = static_cast<int>(mpsI);
+  mps.p = static_cast<int>(mpsP);
+  mps.b = static_cast<int>(mpsB);
   auto ret = media->Set(SETTINGS_INDEX_MAX_PICTURE_SIZE, &mps);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
@@ -1226,7 +1230,8 @@ OMX_ERRORTYPE SetVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE const&
   OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE rollback;
   ConstructVideoMaxPictureSize(rollback, port, media);
 
-  auto ret = SetMaxPictureSize(maxPictureSize.nMaxPictureSize, media);
+  auto ret = SetMaxPictureSize(maxPictureSize.nMaxPictureSizeI, maxPictureSize.nMaxPictureSizeP, maxPictureSize.nMaxPictureSizeB, media);
+
   if(ret != OMX_ErrorNone)
   {
     SetVideoMaxPictureSize(rollback, port, media);

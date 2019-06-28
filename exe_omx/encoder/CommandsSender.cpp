@@ -152,11 +152,25 @@ void CommandsSender::setBitRate(int bitRate)
 void CommandsSender::setQP(int qp)
 {
   (void)qp;
+  assert(0 && "setQP is not supported");
 }
 
 void CommandsSender::setDynamicInput(int iInputIdx)
 {
   (void)iInputIdx;
+  assert(0 && "setDynamicInput is not supported");
+}
+
+void CommandsSender::setLFBetaOffset(int iBetaOffset)
+{
+  (void)iBetaOffset;
+  assert(0 && "setLFBetaOffset is not supported");
+}
+
+void CommandsSender::setLFTcOffset(int iTcOffset)
+{
+  (void)iTcOffset;
+  assert(0 && "setLFTcOffset is not supported");
 }
 
 

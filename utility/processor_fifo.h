@@ -6,13 +6,13 @@
 
 #if defined __linux__
 #include <sys/prctl.h>
-static void SetCurrentThreadName(char const* name)
+static inline void SetCurrentThreadName(char const* name)
 {
   prctl(PR_SET_NAME, (unsigned long)name, 0, 0, 0);
 }
 
 #else
-static void SetCurrentThreadName(char const*)
+static inline void SetCurrentThreadName(char const*)
 {
 }
 

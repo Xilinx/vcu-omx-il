@@ -7,14 +7,12 @@ LIBS_DECODE:=
 
 include $(THIS.base_dec)/decoder_version.mk
 include $(THIS.base_dec)/omx_component/project_dec.mk
-include $(THIS.base_dec)/omx_mediatype/project_dec.mk
 include $(THIS.base_dec)/omx_module/project_dec.mk
 include $(THIS.base_dec)/omx_wrapper/project_dec.mk
 
 OMX_DEC_OBJ:=$(OMX_COMMON_OBJ)
 OMX_DEC_OBJ+=$(OMX_COMPONENT_DEC_SRCS:%=$(BIN)/%.o)
-OMX_DEC_OBJ+=$(OMX_MEDIATYPE_DEC_SRCS:%=$(BIN)/%.o)
-OMX_DEC_OBJ+=$(OMX_MODULE_DEC_SRCS:%=$(BIN)/%.o)
+OMX_DEC_OBJ+=$(MODULE_DEC_SRCS:%=$(BIN)/%.o)
 OMX_DEC_OBJ+=$(OMX_WRAPPER_DEC_SRCS:%=$(BIN)/%.o)
 
 OMX_DEC_CFLAGS:=$(DEFAULT_CFLAGS)

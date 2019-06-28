@@ -40,9 +40,8 @@
 #include <OMX_Core.h>
 #include <OMX_ComponentExt.h>
 
-class Setters
+struct Setters
 {
-public:
   Setters(OMX_HANDLETYPE* component);
   bool SetBufferMode(OMX_U32 const port, OMX_ALG_BUFFER_MODE const mode);
 

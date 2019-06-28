@@ -50,11 +50,15 @@
 #include <iomanip>
 #include <fstream>
 #include <unistd.h>
+#include <vector>
+#include <map>
+#include <deque>
+#include <memory>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <functional>
 
-using namespace std;
-
-extern "C"
-{
 #include <OMX_Core.h>
 #include <OMX_Component.h>
 #include <OMX_Types.h>
@@ -63,7 +67,6 @@ extern "C"
 #include <OMX_ComponentExt.h>
 #include <OMX_IndexAlg.h>
 #include <OMX_IVCommonAlg.h>
-}
 
 #include <utility/logger.h>
 #include <utility/locked_queue.h>
@@ -80,20 +83,6 @@ extern "C"
 #include "lib_fpga/DmaAlloc.h"
 #include "lib_fpga/DmaAllocLinux.h"
 }
-
-#include <vector>
-#include <map>
-#include <deque>
-#include <memory>
-
-#include <string>
-#include <iostream>
-
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-
-#include <functional>
 
 using namespace std;
 
@@ -667,7 +656,9 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
 
   OMX_CALL(OMX_SetParameter(app.hDecoder, OMX_IndexParamVideoPortFormat, &outParamFormat));
 
-  Setters setter(&app.hDecoder);
+  Setters setter {
+    &app.hDecoder
+  };
   auto isBufModeSetted = setter.SetBufferMode(inportIndex, app.settings.eDMAIn);
   assert(isBufModeSetted);
   isBufModeSetted = setter.SetBufferMode(outportIndex, app.settings.eDMAOut);
@@ -1048,18 +1039,6 @@ static void omxWorker(Application* app)
   }
 }
 
-static OMX_ERRORTYPE showComponentVersion(Application& app)
-{
-  char name[OMX_MAX_STRINGNAME_SIZE];
-  OMX_VERSIONTYPE compType;
-  OMX_VERSIONTYPE ilType;
-
-  OMX_CALL(OMX_GetComponentVersion(app.hDecoder, (OMX_STRING)name, &compType, &ilType, nullptr));
-
-  LOG_IMPORTANT(string { "Component: " } +string { name } +string { "(v." } +to_string(compType.nVersion) + string { ") made for OMX_IL client: " } +to_string(ilType.s.nVersionMajor) + string { "." } +to_string(ilType.s.nVersionMinor) + string { "." } +to_string(ilType.s.nRevision));
-  return OMX_ErrorNone;
-}
-
 static void deletePipeline(Application* app)
 {
   LOG_VERBOSE("Stopping the pipeline");
@@ -1160,7 +1139,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
     OMX_FreeHandle(app.hDecoder);
   });
 
-  OMX_CALL(showComponentVersion(app));
+  OMX_CALL(showComponentVersion(&app.hDecoder));
   auto ret = setPortParameters(app);
 
   if(ret != OMX_ErrorNone)

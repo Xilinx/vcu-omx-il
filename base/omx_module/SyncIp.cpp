@@ -296,6 +296,11 @@ static void printFrameBufferConfig(struct xvsfsync_chan_config const& config, in
   Log("framebuffer", "********************************\n");
 }
 
+static int widthToRow(int width, TFourCC fourCC)
+{
+  return AL_Is10bitPacked(fourCC) ? ((width + 2) / 3 * 4) : width* AL_GetPixelSize(fourCC);
+}
+
 static struct xvsfsync_chan_config setEncFrameBufferConfig(int channelId, AL_TBuffer* buf, int hardwareHorizontalStrideAlignment, int hardwareVerticalStrideAlignment)
 {
   AL_TSrcMetaData* srcMeta = (AL_TSrcMetaData*)AL_Buffer_GetMetaData(buf, AL_META_TYPE_SOURCE);
@@ -307,34 +312,35 @@ static struct xvsfsync_chan_config setEncFrameBufferConfig(int channelId, AL_TBu
   struct xvsfsync_chan_config config {};
 
   config.luma_start_address[XVSFSYNC_PROD] = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
-  config.luma_end_address[XVSFSYNC_PROD] = config.luma_start_address[XVSFSYNC_PROD] + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcMeta->tDim.iWidth - 1;
+  int srcRow = widthToRow(srcMeta->tDim.iWidth, srcMeta->tFourCC);
+  config.luma_end_address[XVSFSYNC_PROD] = config.luma_start_address[XVSFSYNC_PROD] + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcRow - 1;
 
   config.luma_start_address[XVSFSYNC_CONS] = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
   /*           <------------> stride
-   *           <--------> width
+   *           <--------> row
    * height   ^
    *          |
    *          |
    *          v         x last pixel of the image
-   * end = (height - 1) * stride + width - 1 (to get the last pixel of the image)
+   * end = (height - 1) * stride + row - 1 (to get the last pixel of the image)
    * total_size = height * stride
-   * end = total_size - stride + width - 1
+   * end = total_size - stride + row - 1
    */
   int iHardwarePitch = RoundUp(srcMeta->tPlanes[AL_PLANE_Y].iPitch, hardwareHorizontalStrideAlignment);
   int iHardwareLumaVerticalPitch = RoundUp(srcMeta->tDim.iHeight, hardwareVerticalStrideAlignment);
-  config.luma_end_address[XVSFSYNC_CONS] = config.luma_start_address[XVSFSYNC_CONS] + (iHardwarePitch * (iHardwareLumaVerticalPitch - 1)) + RoundUp(srcMeta->tDim.iWidth, hardwareHorizontalStrideAlignment) - 1;
+  config.luma_end_address[XVSFSYNC_CONS] = config.luma_start_address[XVSFSYNC_CONS] + (iHardwarePitch * (iHardwareLumaVerticalPitch - 1)) + RoundUp(srcRow, hardwareHorizontalStrideAlignment) - 1;
 
-  /* chroma is the same, but the width depends on the format of the yuv
+  /* chroma is the same, but the row depends on the format of the yuv
    * here we make the assumption that the fourcc is semi planar */
   if(!AL_IsMonochrome(srcMeta->tFourCC))
   {
     assert(AL_IsSemiPlanar(srcMeta->tFourCC));
     config.chroma_start_address[XVSFSYNC_PROD] = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
-    config.chroma_end_address[XVSFSYNC_PROD] = config.chroma_start_address[XVSFSYNC_PROD] + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
+    config.chroma_end_address[XVSFSYNC_PROD] = config.chroma_start_address[XVSFSYNC_PROD] + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcRow - 1;
     config.chroma_start_address[XVSFSYNC_CONS] = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
     int iVerticalFactor = (AL_GetChromaMode(srcMeta->tFourCC) == AL_CHROMA_4_2_0) ? 2 : 1;
     int iHardwareChromaVerticalPitch = RoundUp((srcMeta->tDim.iHeight / iVerticalFactor), (hardwareVerticalStrideAlignment / iVerticalFactor));
-    config.chroma_end_address[XVSFSYNC_CONS] = config.chroma_start_address[XVSFSYNC_CONS] + (iHardwarePitch * (iHardwareChromaVerticalPitch - 1)) + RoundUp(srcMeta->tDim.iWidth, hardwareHorizontalStrideAlignment) - 1;
+    config.chroma_end_address[XVSFSYNC_CONS] = config.chroma_start_address[XVSFSYNC_CONS] + (iHardwarePitch * (iHardwareChromaVerticalPitch - 1)) + RoundUp(srcRow, hardwareHorizontalStrideAlignment) - 1;
   }
   else
   {
@@ -376,30 +382,31 @@ static struct xvsfsync_chan_config setDecFrameBufferConfig(int channelId, AL_TBu
   config.luma_start_address[XVSFSYNC_PROD] = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
 
   /*           <------------> stride
-   *           <--------> width
+   *           <--------> row
    * height   ^
    *          |
    *          |
    *          v         x last pixel of the image
-   * end = (height - 1) * stride + width - 1 (to get the last pixel of the image)
+   * end = (height - 1) * stride + row - 1 (to get the last pixel of the image)
    * total_size = height * stride
-   * end = total_size - stride + width - 1
+   * end = total_size - stride + row - 1
    */
   // TODO : This should be LCU and 64 aligned
-  config.luma_end_address[XVSFSYNC_PROD] = config.luma_start_address[XVSFSYNC_PROD] + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcMeta->tDim.iWidth - 1;
+  int srcRow = widthToRow(srcMeta->tDim.iWidth, srcMeta->tFourCC);
+  config.luma_end_address[XVSFSYNC_PROD] = config.luma_start_address[XVSFSYNC_PROD] + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcRow - 1;
   config.luma_start_address[XVSFSYNC_CONS] = physical + srcMeta->tPlanes[AL_PLANE_Y].iOffset;
-  config.luma_end_address[XVSFSYNC_CONS] = config.luma_start_address[XVSFSYNC_CONS] + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcMeta->tDim.iWidth - 1;
+  config.luma_end_address[XVSFSYNC_CONS] = config.luma_start_address[XVSFSYNC_CONS] + AL_SrcMetaData_GetLumaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_Y].iPitch + srcRow - 1;
 
-  /* chroma is the same, but the width depends on the format of the yuv
+  /* chroma is the same, but the row depends on the format of the yuv
    * here we make the assumption that the fourcc is semi planar */
   if(!AL_IsMonochrome(srcMeta->tFourCC))
   {
     assert(AL_IsSemiPlanar(srcMeta->tFourCC));
     config.chroma_start_address[XVSFSYNC_PROD] = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
     // TODO : This should be LCU and 64 aligned
-    config.chroma_end_address[XVSFSYNC_PROD] = config.chroma_start_address[XVSFSYNC_PROD] + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
+    config.chroma_end_address[XVSFSYNC_PROD] = config.chroma_start_address[XVSFSYNC_PROD] + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcRow - 1;
     config.chroma_start_address[XVSFSYNC_CONS] = physical + AL_SrcMetaData_GetOffsetUV(srcMeta);
-    config.chroma_end_address[XVSFSYNC_CONS] = config.chroma_start_address[XVSFSYNC_CONS] + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcMeta->tDim.iWidth - 1;
+    config.chroma_end_address[XVSFSYNC_CONS] = config.chroma_start_address[XVSFSYNC_CONS] + AL_SrcMetaData_GetChromaSize(srcMeta) - srcMeta->tPlanes[AL_PLANE_UV].iPitch + srcRow - 1;
   }
   else
   {

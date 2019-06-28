@@ -37,12 +37,9 @@
 
 #pragma once
 
-#include "base/omx_module/omx_buffer_handle_interface.h"
+#include "base/omx_module/buffer_handle_interface.h"
 
-extern "C"
-{
 #include <OMX_Core.h>
-}
 
 struct OMXBufferHandle : BufferHandleInterface
 {

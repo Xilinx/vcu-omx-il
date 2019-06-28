@@ -3,49 +3,42 @@
 #include <condition_variable>
 #include <mutex>
 
-template<typename L>
-std::unique_lock<L> Lock(L& lockMe)
-{
-  return std::unique_lock<L>(lockMe);
-}
-
 struct semaphore
 {
   semaphore() :
-    m_Count{0},
-    m_cancelWait{false}
+    m_Mutex{},
+    m_Condition{},
+    m_Count{0}
   {
   }
 
-  ~semaphore()
+  semaphore(unsigned long long count) :
+    m_Mutex{},
+    m_Condition{},
+    m_Count{count}
   {
-    auto lock = Lock(m_Mutex);
-
-    if(m_cancelWait)
-      m_Condition.notify_all();
   }
+
+  semaphore(semaphore const &&) = delete;
+  semaphore(semaphore &&) = delete;
+  semaphore & operator = (semaphore const &) = delete;
+  semaphore & operator = (semaphore &&) = delete;
+
+  ~semaphore() = default;
 
   void notify()
   {
-    auto lock = Lock(m_Mutex);
+    std::unique_lock<std::mutex> lock(m_Mutex);
     ++m_Count;
     m_Condition.notify_one();
   }
 
-  bool wait()
+  void wait()
   {
-    auto lock = Lock(m_Mutex);
-
-    while(!m_Count && !m_cancelWait)
-      m_Condition.wait(lock);
-
-    if(m_cancelWait)
-    {
-      m_cancelWait = false;
-      return false;
-    }
+    std::unique_lock<std::mutex> lock(m_Mutex);
+    m_Condition.wait(lock, [&] { return m_Count > 0;
+                     });
     --m_Count;
-    return true;
   }
 
   void reset()
@@ -56,7 +49,6 @@ struct semaphore
 private:
   std::mutex m_Mutex;
   std::condition_variable m_Condition;
-  unsigned long m_Count;
-  bool m_cancelWait;
+  unsigned long long m_Count;
 };
 

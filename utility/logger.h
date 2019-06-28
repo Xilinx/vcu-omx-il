@@ -73,9 +73,9 @@ private:
   int vcdSeverity {
     0
   };
-  std::unique_ptr<ProcessorFifo<void*>> processor {};
+  std::unique_ptr<ProcessorFifo<LogInfo>> processor {};
   int64_t VCDFirstValue {};
-  void Sink(void* event);
+  void Sink(LogInfo info);
 };
 
 #define LOG_ERROR(msg) \

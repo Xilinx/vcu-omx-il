@@ -40,11 +40,11 @@
 #include <OMX_ComponentAlg.h> // buffer mode
 
 #include "omx_component.h"
-#include "base/omx_module/omx_module_dec.h"
-#include "base/omx_module/omx_sync_ip_interface.h"
+#include "base/omx_module/module_dec.h"
+#include "base/omx_module/sync_ip_interface.h"
 #include <list>
 
-struct DecComponent final : public Component
+struct DecComponent final : Component
 {
   DecComponent(OMX_HANDLETYPE component, std::shared_ptr<MediatypeInterface>, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise, std::shared_ptr<SyncIpInterface> syncIp);
   ~DecComponent() override;
@@ -54,14 +54,19 @@ struct DecComponent final : public Component
 private:
   struct PropagatedData
   {
-    PropagatedData(OMX_HANDLETYPE hMarkTargetComponent, OMX_PTR pMarkData, OMX_TICKS nTimeStamp, OMX_U32 nFlags) :
-      hMarkTargetComponent(hMarkTargetComponent), pMarkData(pMarkData), nTimeStamp(nTimeStamp), nFlags(nFlags)
+    PropagatedData(OMX_HANDLETYPE hMarkTargetComponent, OMX_PTR pMarkData, OMX_U32 nTickCount, OMX_TICKS nTimeStamp, OMX_U32 nFlags) :
+      hMarkTargetComponent{hMarkTargetComponent},
+      pMarkData{pMarkData},
+      nTickCount{nTickCount},
+      nTimeStamp{nTimeStamp},
+      nFlags{nFlags}
     {
     };
-    OMX_HANDLETYPE hMarkTargetComponent;
-    OMX_PTR pMarkData;
-    OMX_TICKS nTimeStamp;
-    OMX_U32 nFlags;
+    OMX_HANDLETYPE const hMarkTargetComponent;
+    OMX_PTR const pMarkData;
+    OMX_U32 const nTickCount;
+    OMX_TICKS const nTimeStamp;
+    OMX_U32 const nFlags;
   };
   void EmptyThisBufferCallBack(BufferHandleInterface* handle) override;
   void AssociateCallBack(BufferHandleInterface* empty, BufferHandleInterface* fill) override;
@@ -73,5 +78,6 @@ private:
   std::list<PropagatedData> transmit;
   std::mutex mutex;
   std::shared_ptr<SyncIpInterface> syncIp;
+  bool shouldPropagateData;
 };
 

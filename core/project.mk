@@ -4,7 +4,8 @@ include $(THIS.core)/core_version.mk
 LIB_OMX_CORE_NAME:=libOMX.allegro.core.so
 LIB_OMX_CORE:=$(BIN)/$(LIB_OMX_CORE_NAME)
 
-include $(THIS.core)/omx_core/project.mk
+OMX_CORE_SRCS:=\
+               $(THIS.core)/omx_core.cpp\
 
 OMX_CORE_OBJ:=$(OMX_CORE_SRCS:%=$(BIN)/%.o)
 OMX_CORE_OBJ+=$(UTILITY_SRCS:%=$(BIN)/%.o)
@@ -27,6 +28,8 @@ core: $(LIB_OMX_CORE)
 .PHONY:core
 TARGETS+=core
 
+UNITTESTS+=$(OMX_CORE_SRCS)
+UNITTESTS+=$(shell find $(THIS.core)/unittests -name "*.cpp")
 
 
 

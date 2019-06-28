@@ -37,18 +37,18 @@
 
 #include "base/omx_component/omx_component_dec.h"
 #include "base/omx_component/omx_expertise_hevc.h"
-#include "base/omx_mediatype/omx_mediatype_dec_hevc.h"
-#include "base/omx_module/omx_module_dec.h"
+#include "base/omx_module/mediatype_dec_hevc.h"
+#include "base/omx_module/module_dec.h"
 
 #if AL_ENABLE_SYNCIP_DEC
-#include "base/omx_module/omx_sync_ip_dec.h"
+#include "base/omx_module/sync_ip_dec.h"
 #else
 #include "base/omx_module/null_sync_ip.h"
 #endif
 
 
 
-#include "base/omx_module/omx_device_dec_hardware_mcu.h"
+#include "base/omx_module/device_dec_hardware_mcu.h"
 
 #include <cstring>
 #include <memory>
@@ -57,14 +57,15 @@
 
 using namespace std;
 
-extern "C" {
+extern "C"
+{
 #include <lib_fpga/DmaAlloc.h>
 }
 
 static SyncIpInterface* createSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator)
 {
 #if AL_ENABLE_SYNCIP_DEC
-  return new OMXDecSyncIp {
+  return new DecSyncIp {
            media, allocator
   };
 #else
@@ -89,24 +90,30 @@ static AL_TAllocator* createDmaAlloc(string deviceName)
   return alloc;
 }
 
-static BufferContiguities constexpr bufferContiguitiesHardware {
+static BufferContiguities constexpr BUFFER_CONTIGUITIES_HARDWARE {
   false, true
 };
-static BufferBytesAlignments constexpr bufferBytesAlignmentsHardware {
+
+static BufferBytesAlignments constexpr BUFFER_BYTES_ALIGNMENTS_HARDWARE {
   0, 32
+};
+
+static StrideAlignments constexpr STRIDE_ALIGNMENTS_HARDWARE
+{
+  64, 64
 };
 
 
 
 #include "base/omx_component/omx_expertise_avc.h"
-#include "base/omx_mediatype/omx_mediatype_dec_avc.h"
+#include "base/omx_module/mediatype_dec_avc.h"
 
 
 static DecComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
   shared_ptr<DecMediatypeAVC> media {
     new DecMediatypeAVC {
-      bufferContiguitiesHardware, bufferBytesAlignmentsHardware
+      BUFFER_CONTIGUITIES_HARDWARE, BUFFER_BYTES_ALIGNMENTS_HARDWARE, STRIDE_ALIGNMENTS_HARDWARE
     }
   };
   shared_ptr<DecDeviceHardwareMcu> device {
@@ -138,7 +145,7 @@ static DecComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
 {
   shared_ptr<DecMediatypeHEVC> media {
     new DecMediatypeHEVC {
-      bufferContiguitiesHardware, bufferBytesAlignmentsHardware
+      BUFFER_CONTIGUITIES_HARDWARE, BUFFER_BYTES_ALIGNMENTS_HARDWARE, STRIDE_ALIGNMENTS_HARDWARE
     }
   };
   shared_ptr<DecDeviceHardwareMcu> device {

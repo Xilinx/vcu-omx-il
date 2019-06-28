@@ -82,10 +82,14 @@ static std::map<OMX_ERRORTYPE, std::string> ToStringOMXError =
   { OMX_ErrorContentPipeCreationFailed, "OMX_ErrorContentPipeCreationFailed" },
   { OMX_ErrorSeperateTablesUsed, "OMX_ErrorSeperateTablesUsed" },
   { OMX_ErrorTunnelingUnsupported, "OMX_ErrorTunnelingUnsupported" },
+
+  { OMX_ErrorKhronosExtensions, "OMX_ErrorKhronosExtensions" },
+  { static_cast<OMX_ERRORTYPE>(OMX_ErrorInvalidMode), "OMX_ErrorInvalidMode" },
+
+  { OMX_ErrorVendorStartUnused, "OMX_ErrorVendorStartUnused" },
   { static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorNoChannelLeft), "OMX_ALG_ErrorNoChannelLeft" },
   { static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelResourceUnavailable), "OMX_ALG_ErrorChannelResourceUnavailable" },
   { static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelResourceFragmented), "OMX_ALG_ErrorChannelResourceFragmented" },
-  { static_cast<OMX_ERRORTYPE>(OMX_ErrorInvalidMode), "OMX_ErrorInvalidMode" },
 
   { OMX_ErrorMax, "OMX_ErrorMax" },
 };
@@ -120,7 +124,15 @@ static std::map<OMX_EVENTTYPE, std::string> ToStringOMXEvent =
   { OMX_EventComponentResumed, "OMX_EventComponentResumed" },
   { OMX_EventDynamicResourcesAvailable, "OMX_EventDynamicResourcesAvailable" },
   { OMX_EventPortFormatDetected, "OMX_EventPortFormatDetected" },
+
+  { OMX_EventKhronosExtensions, "OMX_EventKhronosExtensions" },
   { static_cast<OMX_EVENTTYPE>(OMX_EventIndexSettingChanged), "OMX_EventIndexSettingChanged" },
+
+  { OMX_EventVendorStartUnused, "OMX_EventVendorStartUnused" },
+  { static_cast<OMX_EVENTTYPE>(OMX_ALG_EventSEIPrefixParsed), "OMX_ALG_EventSEIPrefixParsed" },
+  { static_cast<OMX_EVENTTYPE>(OMX_ALG_EventSEISuffixParsed), "OMX_ALG_EventSEISuffixParsed" },
+
+  { OMX_EventMax, "OMX_EventMax" },
 };
 
 static std::map<OMX_INDEXTYPE, std::string> ToStringOMXIndex =
@@ -342,6 +354,7 @@ static std::map<OMX_INDEXTYPE, std::string> ToStringOMXIndex =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoTwoPass), "OMX_ALG_IndexParamVideoTwoPass" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoColorPrimaries), "OMX_ALG_IndexParamVideoColorPrimaries" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInputParsed), "OMX_ALG_IndexParamVideoInputParsed" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoMaxPictureSize), "OMX_ALG_IndexParamVideoMaxPictureSize" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVendorVideoStartUnused), "OMX_ALG_IndexConfigVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), "OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh" },

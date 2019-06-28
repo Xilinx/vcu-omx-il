@@ -2,6 +2,7 @@
 
 #include <queue>
 #include <utility/semaphore.h>
+#include <mutex>
 
 /**
  * @brief A generic thread-safe FIFO queue. Does not copy its elements (they
@@ -13,6 +14,14 @@
 template<typename T>
 struct locked_queue
 {
+  locked_queue() = default;
+  locked_queue(locked_queue const &&) = delete;
+  locked_queue(locked_queue &&) = delete;
+  locked_queue & operator = (locked_queue const &) = delete;
+  locked_queue & operator = (locked_queue &&) = delete;
+
+  ~locked_queue() = default;
+
   /**
    * @brief Adds a new element at the end of the queue
    *
@@ -20,24 +29,24 @@ struct locked_queue
    */
   void push(T val)
   {
-    auto lock = Lock(m_Mutex);
+    std::unique_lock<std::mutex> lock(m_Mutex);
     m_Queue.push(val);
+    lock.unlock();
     m_Semaphore.notify();
   }
 
   /**
    * @brief Gets the next element from the head of the queue. Waits infinitely
-   * until one element is available, or "cancel" is called.
+   * until one element is available
    *
    * @param val a reference to a variable which will be filled with the element
    *
-   * @return true if a new element has been retrieved, false if "cancel" was
-   * called.
+   * @return The next element
    */
   T pop()
   {
     m_Semaphore.wait();
-    auto lock = Lock(m_Mutex);
+    std::unique_lock<std::mutex> lock(m_Mutex);
     auto val = std::move(m_Queue.front());
     m_Queue.pop();
     return val;

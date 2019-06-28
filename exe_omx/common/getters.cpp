@@ -36,8 +36,8 @@
 ******************************************************************************/
 
 #include "getters.h"
-#include "helpers.h"
 
+#include "helpers.h"
 #include <cassert>
 #include <OMX_Component.h>
 #include <OMX_ComponentExt.h>
