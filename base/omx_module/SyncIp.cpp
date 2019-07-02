@@ -514,8 +514,8 @@ void EncSyncChannel::enable()
   auto lock = Lock(mutex);
   isRunning = true;
   auto numFbToEnable = std::min((int)buffers.size(), sync->maxBuffers);
-  addBuffer_(nullptr, numFbToEnable);
   sync->enableChannel(id);
+  addBuffer_(nullptr, numFbToEnable);
   enabled = true;
   Log("channel", "Enable channel %d\n", id);
 }
