@@ -367,6 +367,8 @@ static std::map<OMX_INDEXTYPE, std::string> ToStringOMXIndex =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertPrefixSEI), "OMX_ALG_IndexConfigVideoInsertPrefixSEI" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertSuffixSEI), "OMX_ALG_IndexConfigVideoInsertSuffixSEI" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoQuantizationParameterTable), "OMX_ALG_IndexConfigVideoQuantizationParameterTable" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoLoopFilterBeta), "OMX_ALG_IndexConfigVideoLoopFilterBeta" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoLoopFilterTc), "OMX_ALG_IndexConfigVideoLoopFilterTc" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexVendorCommonStartUnused), "OMX_ALG_IndexVendorCommonStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamCommonSequencePictureModeCurrent), "OMX_ALG_IndexParamCommonSequencePictureModeCurrent" },

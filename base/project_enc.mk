@@ -53,5 +53,3 @@ encode: $(LIB_OMX_ENC)
 
 .PHONY: encode
 TARGETS+=encode
-
-UNITTESTS+=$(LIBS_ENCODE)

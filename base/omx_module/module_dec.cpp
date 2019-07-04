@@ -159,9 +159,12 @@ void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
     auto stream = handlesMeta->pHandles[handle];
     assert(stream);
     auto seiMeta = (AL_TSeiMetaData*)AL_Buffer_GetMetaData(stream, AL_META_TYPE_SEI);
-    assert(seiMeta);
-    AL_Buffer_RemoveMetaData(stream, (AL_TMetaData*)seiMeta);
-    seis.push_back(seiMeta);
+
+    if(seiMeta != nullptr)
+    {
+      AL_Buffer_RemoveMetaData(stream, (AL_TMetaData*)seiMeta);
+      seis.push_back(seiMeta);
+    }
   }
 
   displaySeis.Add(decodedFrame, seis);

@@ -38,7 +38,6 @@
 #pragma once
 #include "module_interface.h"
 #include "module_structs.h"
-#include "module_codec_structs.h"
 #include "device_enc_interface.h"
 #include "memory_interface.h"
 #include "mediatype_enc_interface.h"

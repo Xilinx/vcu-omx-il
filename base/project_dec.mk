@@ -53,5 +53,3 @@ decode: $(LIB_OMX_DEC)
 
 .PHONY: decode
 TARGETS+=decode
-
-UNITTESTS+=$(LIBS_DECODE)

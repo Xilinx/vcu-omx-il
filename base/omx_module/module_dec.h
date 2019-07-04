@@ -39,7 +39,6 @@
 #include "module_interface.h"
 #include "device_dec_interface.h"
 #include "module_enums.h"
-#include "module_codec_structs.h"
 #include "mediatype_dec_interface.h"
 
 #include <vector>

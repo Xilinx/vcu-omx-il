@@ -40,7 +40,6 @@
 #include "omx_component_structs.h"
 #include "omx_component_interface.h"
 #include "base/omx_module/module_interface.h"
-#include "base/omx_module/module_codec_structs.h"
 #include "base/omx_module/mediatype_interface.h"
 #include <utility/processor_fifo.h>
 #include "omx_buffer_handle.h"
@@ -140,7 +139,14 @@ protected:
   OMX_VERSIONTYPE spec;
   OMX_PORT_PARAM_TYPE videoPortParams;
   std::queue<OMX_MARKTYPE*> marks;
-  EOSHandles<BufferHandleInterface*> eosHandles;
+
+  struct EOSHandles
+  {
+    BufferHandleInterface* input {};
+    BufferHandleInterface* output {};
+  };
+
+  EOSHandles eosHandles;
 
   std::unique_ptr<ProcessorFifo<Task>> processorMain;
   std::unique_ptr<ProcessorFifo<Task>> processorEmpty;
