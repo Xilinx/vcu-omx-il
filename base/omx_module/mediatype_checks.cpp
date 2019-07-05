@@ -212,7 +212,7 @@ bool CheckTwoPass(TwoPass tp)
   return true;
 }
 
-bool CheckMaxPictureSize(MaxPicturesSize sizes)
+bool CheckMaxPictureSizes(MaxPicturesSizes sizes)
 {
   if(sizes.i < 0 || sizes.p < 0 || sizes.b < 0)
     return false;

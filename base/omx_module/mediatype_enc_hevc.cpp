@@ -391,9 +391,9 @@ MediatypeInterface::ErrorType EncMediatypeHEVC::Get(std::string index, void* set
     return SUCCESS;
   }
 
-  if(index == "SETTINGS_INDEX_MAX_PICTURE_SIZE")
+  if(index == "SETTINGS_INDEX_MAX_PICTURE_SIZES")
   {
-    *static_cast<MaxPicturesSize*>(settings) = CreateMaxPictureSize(this->settings);
+    *static_cast<MaxPicturesSizes*>(settings) = CreateMaxPictureSizes(this->settings);
     return SUCCESS;
   }
 
@@ -654,11 +654,11 @@ MediatypeInterface::ErrorType EncMediatypeHEVC::Set(std::string index, void cons
     return SUCCESS;
   }
 
-  if(index == "SETTINGS_INDEX_MAX_PICTURE_SIZE")
+  if(index == "SETTINGS_INDEX_MAX_PICTURE_SIZES")
   {
-    auto sizes = *(static_cast<MaxPicturesSize const*>(settings));
+    auto sizes = *(static_cast<MaxPicturesSizes const*>(settings));
 
-    if(!UpdateMaxPictureSize(this->settings, sizes))
+    if(!UpdateMaxPictureSizes(this->settings, sizes))
       return BAD_PARAMETER;
 
     return SUCCESS;

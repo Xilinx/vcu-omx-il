@@ -435,19 +435,19 @@ bool UpdateTwoPass(AL_TEncSettings& settings, string& sTwoPassLogFile, TwoPass t
 }
 
 
-MaxPicturesSize CreateMaxPictureSize(AL_TEncSettings settings)
+MaxPicturesSizes CreateMaxPictureSizes(AL_TEncSettings settings)
 {
   auto rateControl = settings.tChParam[0].tRCParam;
-  MaxPicturesSize sizes;
+  MaxPicturesSizes sizes;
   sizes.i = static_cast<int>(rateControl.pMaxPictureSize[AL_SLICE_I] / 1000);
   sizes.p = static_cast<int>(rateControl.pMaxPictureSize[AL_SLICE_P] / 1000);
   sizes.b = static_cast<int>(rateControl.pMaxPictureSize[AL_SLICE_B] / 1000);
   return sizes;
 }
 
-bool UpdateMaxPictureSize(AL_TEncSettings& settings, MaxPicturesSize sizes)
+bool UpdateMaxPictureSizes(AL_TEncSettings& settings, MaxPicturesSizes sizes)
 {
-  if(!CheckMaxPictureSize(sizes))
+  if(!CheckMaxPictureSizes(sizes))
     return false;
 
   auto& rateControl = settings.tChParam[0].tRCParam;

@@ -100,6 +100,6 @@ bool UpdateTwoPass(AL_TEncSettings& settings, std::string& sTwoPassLogFile, TwoP
 ColorPrimariesType CreateColorPrimaries(AL_TEncSettings settings);
 bool UpdateColorPrimaries(AL_TEncSettings& settings, ColorPrimariesType colorPrimaries);
 
-MaxPicturesSize CreateMaxPictureSize(AL_TEncSettings settings);
-bool UpdateMaxPictureSize(AL_TEncSettings& settings, MaxPicturesSize sizes);
+MaxPicturesSizes CreateMaxPictureSizes(AL_TEncSettings settings);
+bool UpdateMaxPictureSizes(AL_TEncSettings& settings, MaxPicturesSizes sizes);
 

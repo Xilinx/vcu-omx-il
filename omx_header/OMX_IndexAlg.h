@@ -88,6 +88,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamVideoColorPrimaries,              /**< reference: OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES */
   OMX_ALG_IndexParamVideoInputParsed,                 /**< reference: OMX_ALG_VIDEO_PARAM_INPUT_PARSED */
   OMX_ALG_IndexParamVideoMaxPictureSize,              /**< reference: OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE */
+  OMX_ALG_IndexParamVideoMaxPictureSizes,              /**< reference: OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES */
 
   /* Vendor Video configrations */
   OMX_ALG_IndexConfigVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00380000,

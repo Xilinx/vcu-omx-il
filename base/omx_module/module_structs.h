@@ -203,7 +203,7 @@ struct RateControlOptions
   bool isSkipEnabled;
 };
 
-struct MaxPicturesSize
+struct MaxPicturesSizes
 {
   int i;
   int p;
@@ -214,7 +214,7 @@ struct RateControl
 {
   RateControlType mode;
   RateControlOptions options;
-  MaxPicturesSize sizes;
+  MaxPicturesSizes sizes;
 };
 
 struct Bitrate

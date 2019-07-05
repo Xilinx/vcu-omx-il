@@ -355,6 +355,7 @@ static std::map<OMX_INDEXTYPE, std::string> ToStringOMXIndex =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoColorPrimaries), "OMX_ALG_IndexParamVideoColorPrimaries" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInputParsed), "OMX_ALG_IndexParamVideoInputParsed" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoMaxPictureSize), "OMX_ALG_IndexParamVideoMaxPictureSize" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoMaxPictureSizes), "OMX_ALG_IndexParamVideoMaxPictureSizes" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVendorVideoStartUnused), "OMX_ALG_IndexConfigVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), "OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh" },

@@ -37,6 +37,7 @@
 
 #include "omx_component_getset.h"
 #include "base/omx_checker/omx_checker.h"
+#include <algorithm> // max
 
 using namespace std;
 
@@ -1201,12 +1202,12 @@ OMX_ERRORTYPE SetVideoColorPrimaries(OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES const& 
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE ConstructVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE& maxPictureSize, Port const& port, std::shared_ptr<MediatypeInterface> media)
+OMX_ERRORTYPE ConstructVideoMaxPictureSizes(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES& maxPictureSize, Port const& port, std::shared_ptr<MediatypeInterface> media)
 {
   OMXChecker::SetHeaderVersion(maxPictureSize);
   maxPictureSize.nPortIndex = port.index;
-  MaxPicturesSize mps;
-  auto ret = media->Get(SETTINGS_INDEX_MAX_PICTURE_SIZE, &mps);
+  MaxPicturesSizes mps;
+  auto ret = media->Get(SETTINGS_INDEX_MAX_PICTURE_SIZES, &mps);
   OMX_CHECK_MEDIA_GET(ret);
   maxPictureSize.nMaxPictureSizeI = mps.i;
   maxPictureSize.nMaxPictureSizeP = mps.p;
@@ -1214,27 +1215,54 @@ OMX_ERRORTYPE ConstructVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE&
   return OMX_ErrorNone;
 }
 
-static OMX_ERRORTYPE SetMaxPictureSize(OMX_S32 mpsI, OMX_S32 mpsP, OMX_S32 mpsB, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetMaxPictureSizes(OMX_S32 mpsI, OMX_S32 mpsP, OMX_S32 mpsB, shared_ptr<MediatypeInterface> media)
 {
-  MaxPicturesSize mps;
+  MaxPicturesSizes mps;
   mps.i = static_cast<int>(mpsI);
   mps.p = static_cast<int>(mpsP);
   mps.b = static_cast<int>(mpsB);
-  auto ret = media->Set(SETTINGS_INDEX_MAX_PICTURE_SIZE, &mps);
+  auto ret = media->Set(SETTINGS_INDEX_MAX_PICTURE_SIZES, &mps);
   OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoMaxPictureSizes(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES const& maxPictureSize, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES rollback;
+  ConstructVideoMaxPictureSizes(rollback, port, media);
+
+  auto ret = SetMaxPictureSizes(maxPictureSize.nMaxPictureSizeI, maxPictureSize.nMaxPictureSizeP, maxPictureSize.nMaxPictureSizeB, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoMaxPictureSizes(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE& maxPictureSize, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(maxPictureSize);
+  maxPictureSize.nPortIndex = port.index;
+  MaxPicturesSizes mps;
+  auto ret = media->Get(SETTINGS_INDEX_MAX_PICTURE_SIZES, &mps);
+  OMX_CHECK_MEDIA_GET(ret);
+  maxPictureSize.nMaxPictureSize = max(max(mps.i, mps.p), mps.b);
   return OMX_ErrorNone;
 }
 
 OMX_ERRORTYPE SetVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE const& maxPictureSize, Port const& port, std::shared_ptr<MediatypeInterface> media)
 {
-  OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE rollback;
-  ConstructVideoMaxPictureSize(rollback, port, media);
+  OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES rollback;
+  ConstructVideoMaxPictureSizes(rollback, port, media);
 
-  auto ret = SetMaxPictureSize(maxPictureSize.nMaxPictureSizeI, maxPictureSize.nMaxPictureSizeP, maxPictureSize.nMaxPictureSizeB, media);
+  auto ret = SetMaxPictureSizes(maxPictureSize.nMaxPictureSize, maxPictureSize.nMaxPictureSize, maxPictureSize.nMaxPictureSize, media);
 
   if(ret != OMX_ErrorNone)
   {
-    SetVideoMaxPictureSize(rollback, port, media);
+    SetVideoMaxPictureSizes(rollback, port, media);
     throw ret;
   }
 
