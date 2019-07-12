@@ -141,7 +141,7 @@ static int CreateLatency(AL_TDecSettings settings)
 static BufferCounts CreateBufferCounts(AL_TDecSettings settings)
 {
   BufferCounts bufferCounts;
-  bufferCounts.input = 2;
+  bufferCounts.input = settings.bSplitInput ? 1 + settings.iStackSize : 2;
   auto stream = settings.tStream;
   bufferCounts.output = AL_HEVC_GetMinOutputBuffersNeeded(stream, settings.iStackSize);
   return bufferCounts;
