@@ -137,6 +137,13 @@ private:
   void ParsedPrefixSei(int type, uint8_t* payload, int size);
   void ParsedSuffixSei(int type, uint8_t* payload, int size);
 
+  static void RedirectionFreeInputBufferWithoutDestroyMemory(AL_TBuffer* input)
+  {
+    auto pThis = static_cast<DecModule*>(AL_Buffer_GetUserData(input));
+    pThis->FreeInputBufferWithoutDestroyingMemory(input);
+  }
+  void FreeInputBufferWithoutDestroyingMemory(AL_TBuffer* input);
+
   static void RedirectionInputBufferDestroy(AL_TBuffer* input)
   {
     auto pThis = static_cast<DecModule*>(AL_Buffer_GetUserData(input));

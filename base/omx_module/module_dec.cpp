@@ -447,6 +447,18 @@ void DecModule::InputBufferDestroy(AL_TBuffer* input)
   callbacks.emptied(hanleIn);
 }
 
+void DecModule::FreeInputBufferWithoutDestroyingMemory(AL_TBuffer* input)
+{
+  auto hanleIn = handles.Pop(input);
+
+  input->hBuf = nullptr;
+  AL_Buffer_Destroy(input);
+
+  hanleIn->offset = 0;
+  hanleIn->payload = 0;
+  callbacks.emptied(hanleIn);
+}
+
 static bool isFd(BufferHandleType type)
 {
   return type == BufferHandleType::BUFFER_HANDLE_FD;
@@ -484,7 +496,7 @@ AL_TBuffer* DecModule::CreateInputBuffer(char* buffer, int size)
   if(isCharPtr(bufferHandles.input))
   {
     if(allocated.Exist(buffer))
-      input = AL_Buffer_Create(allocator.get(), allocated.Get(buffer), size, RedirectionInputBufferDestroy);
+      input = AL_Buffer_Create(allocator.get(), allocated.Get(buffer), size, RedirectionFreeInputBufferWithoutDestroyMemory);
     else
     {
       bool isInputParsed;
