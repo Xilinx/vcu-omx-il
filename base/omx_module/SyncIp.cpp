@@ -150,14 +150,13 @@ void SyncIp::resetStatus(int chanId)
 int SyncIp::getFreeChannel()
 {
   auto lock = Lock(mutex);
-  u8 chanId;
   getLatestChanStatus();
 
-
+  u8 chanId;
   if(AL_Driver_PostMessage(driver, fd, XVSFSYNC_RESERVE_GET_CHAN_ID, &chanId) != DRIVER_SUCCESS)
     throw runtime_error("Couldn't get sync ip channel ID");
 
-    return chanId;
+  return chanId;
 }
 
 void SyncIp::enableChannel(int chanId)
