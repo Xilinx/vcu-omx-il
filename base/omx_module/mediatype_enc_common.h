@@ -103,3 +103,9 @@ bool UpdateColorPrimaries(AL_TEncSettings& settings, ColorPrimariesType colorPri
 MaxPicturesSizes CreateMaxPictureSizes(AL_TEncSettings settings);
 bool UpdateMaxPictureSizes(AL_TEncSettings& settings, MaxPicturesSizes sizes);
 
+int CreateLoopFilterBeta(AL_TEncSettings settings);
+bool UpdateLoopFilterBeta(AL_TEncSettings& settings, int beta);
+
+int CreateLoopFilterTc(AL_TEncSettings settings);
+bool UpdateLoopFilterTc(AL_TEncSettings& settings, int tc);
+

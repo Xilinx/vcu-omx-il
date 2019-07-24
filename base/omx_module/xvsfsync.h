@@ -170,7 +170,7 @@ struct xvsfsync_stat
 #define XVSFSYNC_CLR_CHAN_FBDONE_STAT _IOW(XVSFSYNC_MAGIC, 8, \
                                            struct xvsfsync_fbdone*)
 /* Get channel ID.*/
-#define XVSFSYNC_RESERVE_GET_CHAN_ID           _IOR(XVSFSYNC_MAGIC, 9, u8 *)
+#define XVSFSYNC_RESERVE_GET_CHAN_ID _IOR(XVSFSYNC_MAGIC, 9, u8*)
 
 #endif
 

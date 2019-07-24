@@ -77,7 +77,7 @@
 #include <utility/locked_queue.h>
 #include <utility/semaphore.h>
 #include <utility/round.h>
-#include "base/omx_utils/omx_translate.h"
+#include <utility/omx_translate.h>
 
 #include "../common/helpers.h"
 #include "../common/setters.h"
@@ -437,13 +437,13 @@ static bool readOneYuvFrame(OMX_BUFFERHEADERTYPE* pBufferHdr, Application const&
 static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent, OMX_U32 Data1, OMX_U32 /*Data2*/, OMX_PTR /*pEventData*/)
 {
   auto app = static_cast<Application*>(pAppData);
-  LOG_IMPORTANT(string { "Event from encoder: " } +ToStringOMXEvent.at(eEvent));
+  LOG_IMPORTANT(string { "Event from encoder: " } +ToStringOMXEvent(eEvent));
   switch(eEvent)
   {
   case OMX_EventCmdComplete:
   {
     auto cmd = static_cast<OMX_COMMANDTYPE>(Data1);
-    LOG_IMPORTANT(string { "Command: " } +ToStringOMXCommand.at((OMX_COMMANDTYPE)cmd));
+    LOG_IMPORTANT(string { "Command: " } +ToStringOMXCommand((OMX_COMMANDTYPE)cmd));
     switch(cmd)
     {
     case OMX_CommandStateSet:
@@ -477,19 +477,19 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
   case OMX_EventError:
   {
     auto cmd = static_cast<OMX_ERRORTYPE>(Data1);
-    LOG_ERROR(string { "Component (" } +ToStringAddr(hComponent) + string { "): " } +ToStringOMXEvent.at(eEvent) + string { "(" } +ToStringOMXError.at(cmd) + string { ")" });
+    LOG_ERROR(string { "Component (" } +ToStringAddr(hComponent) + string { "): " } +ToStringOMXEvent(eEvent) + string { "(" } +ToStringOMXError(cmd) + string { ")" });
     exit(1);
   }
   /* this event will be fired by the component but we have nothing special to do with them */
   case OMX_EventBufferFlag: // fallthrough
   case OMX_EventPortSettingsChanged:
   {
-    LOG_IMPORTANT(string { "Component " } +ToStringAddr(hComponent) + string { ": got " } +ToStringOMXEvent.at(eEvent));
+    LOG_IMPORTANT(string { "Component " } +ToStringAddr(hComponent) + string { ": got " } +ToStringOMXEvent(eEvent));
     break;
   }
   default:
   {
-    LOG_IMPORTANT(string { "Component " } +ToStringAddr(hComponent) + string { ": unsupported " } +ToStringOMXEvent.at(eEvent));
+    LOG_IMPORTANT(string { "Component " } +ToStringAddr(hComponent) + string { ": unsupported " } +ToStringOMXEvent(eEvent));
     return OMX_ErrorNotImplemented;
   }
   }

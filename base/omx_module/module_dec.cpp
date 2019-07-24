@@ -447,7 +447,7 @@ void DecModule::InputBufferDestroy(AL_TBuffer* input)
   callbacks.emptied(hanleIn);
 }
 
-void DecModule::FreeInputBufferWithoutDestroyingMemory(AL_TBuffer* input)
+void DecModule::InputBufferFreeWithoutDestroyingMemory(AL_TBuffer* input)
 {
   auto hanleIn = handles.Pop(input);
 
@@ -496,7 +496,7 @@ AL_TBuffer* DecModule::CreateInputBuffer(char* buffer, int size)
   if(isCharPtr(bufferHandles.input))
   {
     if(allocated.Exist(buffer))
-      input = AL_Buffer_Create(allocator.get(), allocated.Get(buffer), size, RedirectionFreeInputBufferWithoutDestroyMemory);
+      input = AL_Buffer_Create(allocator.get(), allocated.Get(buffer), size, RedirectionInputBufferFreeWithoutDestroyingMemory);
     else
     {
       bool isInputParsed;

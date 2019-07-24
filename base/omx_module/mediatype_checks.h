@@ -68,4 +68,6 @@ bool CheckColorPrimaries(ColorPrimariesType colorPrimaries);
 bool CheckLookAhead(LookAhead la);
 bool CheckTwoPass(TwoPass tp);
 bool CheckMaxPictureSizes(MaxPicturesSizes sizes);
+bool CheckLoopFilterBeta(int beta);
+bool CheckLoopFilterTc(int tc);
 

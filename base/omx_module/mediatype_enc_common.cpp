@@ -458,3 +458,37 @@ bool UpdateMaxPictureSizes(AL_TEncSettings& settings, MaxPicturesSizes sizes)
   return true;
 }
 
+int CreateLoopFilterBeta(AL_TEncSettings settings)
+{
+  auto channel = settings.tChParam[0];
+  return channel.iBetaOffset;
+}
+
+bool UpdateLoopFilterBeta(AL_TEncSettings& settings, int beta)
+{
+  if(!CheckLoopFilterBeta(beta))
+    return false;
+
+  auto& channel = settings.tChParam[0];
+  channel.iBetaOffset = beta;
+
+  return true;
+}
+
+int CreateLoopFilterTc(AL_TEncSettings settings)
+{
+  auto channel = settings.tChParam[0];
+  return channel.iTcOffset;
+}
+
+bool UpdateLoopFilterTc(AL_TEncSettings& settings, int tc)
+{
+  if(!CheckLoopFilterTc(tc))
+    return false;
+
+  auto& channel = settings.tChParam[0];
+  channel.iTcOffset = tc;
+
+  return true;
+}
+

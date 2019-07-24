@@ -1269,6 +1269,74 @@ OMX_ERRORTYPE SetVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE const&
   return OMX_ErrorNone;
 }
 
+OMX_ERRORTYPE ConstructVideoLoopFilterBeta(OMX_ALG_VIDEO_PARAM_LOOP_FILTER_BETA& loopFilterBeta, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(loopFilterBeta);
+  loopFilterBeta.nPortIndex = port.index;
+  int beta;
+  auto ret = media->Get(SETTINGS_INDEX_LOOP_FILTER_BETA, &beta);
+  OMX_CHECK_MEDIA_GET(ret);
+  loopFilterBeta.nLoopFilterBeta = beta;
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetLoopFilterBeta(OMX_S8 beta, shared_ptr<MediatypeInterface> media)
+{
+  auto ret = media->Set(SETTINGS_INDEX_LOOP_FILTER_BETA, &beta);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoLoopFilterBeta(OMX_ALG_VIDEO_PARAM_LOOP_FILTER_BETA const& loopFilterBeta, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_LOOP_FILTER_BETA rollback;
+  ConstructVideoLoopFilterBeta(rollback, port, media);
+
+  auto ret = SetLoopFilterBeta(loopFilterBeta.nLoopFilterBeta, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoLoopFilterBeta(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoLoopFilterTc(OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC& loopFilterTc, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(loopFilterTc);
+  loopFilterTc.nPortIndex = port.index;
+  int tc;
+  auto ret = media->Get(SETTINGS_INDEX_LOOP_FILTER_TC, &tc);
+  OMX_CHECK_MEDIA_GET(ret);
+  loopFilterTc.nLoopFilterTc = tc;
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetLoopFilterTc(OMX_S8 tc, shared_ptr<MediatypeInterface> media)
+{
+  auto ret = media->Set(SETTINGS_INDEX_LOOP_FILTER_TC, &tc);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoLoopFilterTc(OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC const& loopFilterTc, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC rollback;
+  ConstructVideoLoopFilterTc(rollback, port, media);
+
+  auto ret = SetLoopFilterTc(loopFilterTc.nLoopFilterTc, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoLoopFilterTc(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
 // Decoder
 
 OMX_ERRORTYPE ConstructPreallocation(OMX_ALG_PARAM_PREALLOCATION& prealloc, bool isPreallocationEnabled)

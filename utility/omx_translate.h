@@ -1,48 +1,12 @@
-/******************************************************************************
-*
-* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* Use of the Software is limited solely to applications:
-* (a) running on a Xilinx device, or
-* (b) that interact with a Xilinx device through a bus or interconnect.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
-* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-* Except as contained in this notice, the name of  Xilinx shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Xilinx.
-*
-*
-* Except as contained in this notice, the name of Allegro DVT2 shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Allegro DVT2.
-*
-******************************************************************************/
-
 #pragma once
 
 #include <OMX_CoreExt.h>
 #include <OMX_IndexExt.h>
 #include <map>
 #include <string>
+#include <stdexcept>
 
-static std::map<OMX_ERRORTYPE, std::string> ToStringOMXError =
+static std::map<OMX_ERRORTYPE, std::string> OMXErrorInStringMap =
 {
   { OMX_ErrorNone, "OMX_ErrorNone" },
   { OMX_ErrorInsufficientResources, "OMX_ErrorInsufficientResources" },
@@ -94,7 +58,21 @@ static std::map<OMX_ERRORTYPE, std::string> ToStringOMXError =
   { OMX_ErrorMax, "OMX_ErrorMax" },
 };
 
-static std::map<OMX_STATETYPE, std::string> ToStringOMXState =
+static inline std::string ToStringOMXError(OMX_ERRORTYPE error)
+{
+  try
+  {
+    return OMXErrorInStringMap.at(error);
+  }
+  catch(std::out_of_range const &)
+  {
+    return std::string {
+             "Out-of-bound error"
+    };
+  }
+}
+
+static std::map<OMX_STATETYPE, std::string> OMXStateInStringMap =
 {
   { OMX_StateInvalid, "OMX_StateInvalid" },
   { OMX_StateLoaded, "OMX_StateLoaded" },
@@ -104,16 +82,47 @@ static std::map<OMX_STATETYPE, std::string> ToStringOMXState =
   { OMX_StateWaitForResources, "OMX_StateWaitForResources" },
 };
 
-static std::map<OMX_COMMANDTYPE, std::string> ToStringOMXCommand =
+static inline std::string ToStringOMXState(OMX_STATETYPE state)
+{
+  try
+  {
+    return OMXStateInStringMap.at(state);
+  }
+  catch(std::out_of_range const &)
+  {
+    return std::string {
+             "Out-of-bound state"
+    };
+  }
+}
+
+static std::map<OMX_COMMANDTYPE, std::string> OMXCommandInStringMap =
 {
   { OMX_CommandStateSet, "OMX_CommandStateSet" },
   { OMX_CommandFlush, "OMX_CommandFlush" },
   { OMX_CommandPortDisable, "OMX_CommandPortDisable" },
   { OMX_CommandPortEnable, "OMX_CommandPortEnable" },
   { OMX_CommandMarkBuffer, "OMX_CommandMarkBuffer" },
+  { OMX_CommandKhronosExtensions, "OMX_CommandKhronosExtensions" },
+  { OMX_CommandVendorStartUnused, "OMX_CommandVendorStartUnused" },
+  { OMX_CommandMax, "OMX_CommandMax" },
 };
 
-static std::map<OMX_EVENTTYPE, std::string> ToStringOMXEvent =
+static inline std::string ToStringOMXCommand(OMX_COMMANDTYPE command)
+{
+  try
+  {
+    return OMXCommandInStringMap.at(command);
+  }
+  catch(std::out_of_range const &)
+  {
+    return std::string {
+             "Out-of-bound command"
+    };
+  }
+}
+
+static std::map<OMX_EVENTTYPE, std::string> OMXEventInStringMap =
 {
   { OMX_EventCmdComplete, "OMX_EventCmdComplete" },
   { OMX_EventError, "OMX_EventError" },
@@ -135,7 +144,21 @@ static std::map<OMX_EVENTTYPE, std::string> ToStringOMXEvent =
   { OMX_EventMax, "OMX_EventMax" },
 };
 
-static std::map<OMX_INDEXTYPE, std::string> ToStringOMXIndex =
+static inline std::string ToStringOMXEvent(OMX_EVENTTYPE event)
+{
+  try
+  {
+    return OMXEventInStringMap.at(event);
+  }
+  catch(std::out_of_range const &)
+  {
+    return std::string {
+             "Out-of-bound event"
+    };
+  }
+}
+
+static std::map<OMX_INDEXTYPE, std::string> OMXIndexInStringMap =
 {
   { OMX_IndexComponentStartUnused, "OMX_IndexComponentStartUnused" },
   { OMX_IndexParamPriorityMgmt, "OMX_IndexParamPriorityMgmt" },
@@ -356,6 +379,8 @@ static std::map<OMX_INDEXTYPE, std::string> ToStringOMXIndex =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInputParsed), "OMX_ALG_IndexParamVideoInputParsed" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoMaxPictureSize), "OMX_ALG_IndexParamVideoMaxPictureSize" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoMaxPictureSizes), "OMX_ALG_IndexParamVideoMaxPictureSizes" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLoopFilterBeta), "OMX_ALG_IndexParamVideoLoopFilterBeta" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLoopFilterTc), "OMX_ALG_IndexParamVideoLoopFilterTc" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVendorVideoStartUnused), "OMX_ALG_IndexConfigVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), "OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh" },
@@ -377,4 +402,18 @@ static std::map<OMX_INDEXTYPE, std::string> ToStringOMXIndex =
 
   { OMX_IndexMax, "OMX_IndexMax" },
 };
+
+static inline std::string ToStringOMXIndex(OMX_INDEXTYPE index)
+{
+  try
+  {
+    return OMXIndexInStringMap.at(index);
+  }
+  catch(std::out_of_range const &)
+  {
+    return std::string {
+             "Out-of-bound index"
+    };
+  }
+}
 

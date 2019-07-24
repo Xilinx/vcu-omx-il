@@ -54,6 +54,7 @@
 #include <future>
 #include <cassert>
 #include <utility/logger.h>
+#include <utility/omx_translate.h>
 
 static OMX_U32 constexpr ALLEGRODVT_OMX_VERSION = 3;
 
@@ -66,7 +67,7 @@ static OMX_U32 constexpr ALLEGRODVT_OMX_VERSION = 3;
   } \
   catch(OMX_ERRORTYPE& e) \
   { \
-    LOG_ERROR(ToStringOMXError.at(e)); \
+    LOG_ERROR(ToStringOMXError(e)); \
     f(e); \
     return e; \
   } \
@@ -76,7 +77,7 @@ static OMX_U32 constexpr ALLEGRODVT_OMX_VERSION = 3;
   } \
   catch(OMX_ERRORTYPE& e) \
   { \
-    LOG_ERROR(ToStringOMXError.at(e)); \
+    LOG_ERROR(ToStringOMXError(e)); \
     return e; \
   } \
   void FORCE_SEMICOLON()

@@ -754,6 +754,40 @@ typedef struct OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES
   OMX_S32 nMaxPictureSizeB;
 }OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES;
 
+/**
+ * Loop filter beta parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize           : Size of the structure in bytes
+ *  nVersion        : OMX specification version information
+ *  nPortIndex      : Port that this structure applies to
+ *  nLoopFilterBeta : Loop filter beta offset value
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_LOOP_FILTER_BETA
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_S8 nLoopFilterBeta;
+}OMX_ALG_VIDEO_PARAM_LOOP_FILTER_BETA;
+
+/**
+ * Loop filter tc parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize         : Size of the structure in bytes
+ *  nVersion      : OMX specification version information
+ *  nPortIndex    : Port that this structure applies to
+ *  nLoopFilterTc : Loop filter tc offset value
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_S8 nLoopFilterTc;
+}OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC;
+
 /** Extented enumeration of video formats */
 typedef enum OMX_ALG_COLOR_FORMATTYPE
 {
@@ -929,14 +963,10 @@ typedef struct OMX_ALG_VIDEO_CONFIG_DATA
  * STRUCT MEMBERS:
  *  nSize           : Size of the structure in bytes
  *  nVersion        : OMX specification version information
+ *  nPortIndex      : Port that this structure applies to
  *  nLoopFilterBeta : Loop filter beta offset value
  */
-typedef struct OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_BETA
-{
-  OMX_U32 nSize;
-  OMX_VERSIONTYPE nVersion;
-  OMX_U8 nLoopFilterBeta;
-}OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_BETA;
+typedef OMX_ALG_VIDEO_PARAM_LOOP_FILTER_BETA OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_BETA;
 
 /**
  * Struct for dynamically change loop filter tc
@@ -944,15 +974,10 @@ typedef struct OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_BETA
  * STRUCT MEMBERS:
  *  nSize         : Size of the structure in bytes
  *  nVersion      : OMX specification version information
+ *  nPortIndex    : Port that this structure applies to
  *  nLoopFilterTc : Loop filter tc offset value
  */
-typedef struct OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC
-{
-  OMX_U32 nSize;
-  OMX_VERSIONTYPE nVersion;
-  OMX_U8 nLoopFilterTc;
-}OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC;
-
+typedef OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC;
 
 #ifdef __cplusplus
 }

@@ -37,13 +37,13 @@
 
 #include "omx_component.h"
 #include "base/omx_checker/omx_checker.h"
-#include "base/omx_utils/omx_translate.h"
 #include <cassert>
 #include <cstring>
 #include <string>
 
 #include <OMX_VideoExt.h>
 #include <utility/logger.h>
+#include <utility/omx_translate.h>
 
 using namespace std;
 
@@ -51,7 +51,7 @@ using namespace std;
   } \
   catch(OMX_ERRORTYPE& e) \
   { \
-    LOG_ERROR(ToStringOMXIndex.at(index) + string { ": " } +ToStringOMXError.at(e)); \
+    LOG_ERROR(ToStringOMXIndex(index) + string { ": " } +ToStringOMXError(e)); \
     return e; \
   } \
   void FORCE_SEMICOLON()
@@ -732,12 +732,24 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto ip = static_cast<OMX_ALG_VIDEO_PARAM_INPUT_PARSED*>(param);
     return ConstructVideoInputParsed(*ip, *port, media);
   }
+  case OMX_ALG_IndexParamVideoLoopFilterBeta:
+  {
+    auto port = getCurrentPort(param);
+    auto beta = static_cast<OMX_ALG_VIDEO_PARAM_LOOP_FILTER_BETA*>(param);
+    return ConstructVideoLoopFilterBeta(*beta, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoLoopFilterTc:
+  {
+    auto port = getCurrentPort(param);
+    auto tc = static_cast<OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC*>(param);
+    return ConstructVideoLoopFilterTc(*tc, *port, media);
+  }
   default:
-    LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
+    LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
   }
 
-  LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
+  LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
   return OMX_ErrorUnsupportedIndex;
   OMX_CATCH_PARAMETER_OR_CONFIG();
 }
@@ -932,6 +944,16 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     auto mps = static_cast<OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES*>(param);
     return SetVideoMaxPictureSizes(*mps, *port, media);
   }
+  case OMX_ALG_IndexParamVideoLoopFilterBeta:
+  {
+    auto lfb = static_cast<OMX_ALG_VIDEO_PARAM_LOOP_FILTER_BETA*>(param);
+    return SetVideoLoopFilterBeta(*lfb, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoLoopFilterTc:
+  {
+    auto lftc = static_cast<OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC*>(param);
+    return SetVideoLoopFilterTc(*lftc, *port, media);
+  }
   // only decoder
   case OMX_ALG_IndexParamPreallocation:
   {
@@ -961,11 +983,11 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     return SetVideoInputParsed(*ip, *port, media);
   }
   default:
-    LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
+    LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
   }
 
-  LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
+  LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
   return OMX_ErrorUnsupportedIndex;
   OMX_CATCH_PARAMETER_OR_CONFIG();
 }
@@ -1196,11 +1218,11 @@ OMX_ERRORTYPE Component::GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR
     return OMX_ErrorNone;
   }
   default:
-    LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
+    LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
   }
 
-  LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
+  LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
   return OMX_ErrorUnsupportedIndex;
   OMX_CATCH_PARAMETER_OR_CONFIG();
 }
@@ -1333,11 +1355,11 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
     return OMX_ErrorNone;
   }
   default:
-    LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
+    LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
   }
 
-  LOG_ERROR(ToStringOMXIndex.at(index) + string { " is unsupported" });
+  LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
   return OMX_ErrorUnsupportedIndex;
   OMX_CATCH_PARAMETER_OR_CONFIG();
 }
@@ -1573,7 +1595,7 @@ void Component::TreatSetStateCommand(Task task)
   {
     assert(task.cmd == Command::SetState);
     auto newState = (OMX_STATETYPE)((uintptr_t)task.data);
-    LOG_IMPORTANT(string { "Set State: " } +ToStringOMXState.at(newState));
+    LOG_IMPORTANT(string { "Set State: " } +ToStringOMXState(newState));
     OMXChecker::CheckStateTransition(state, newState);
 
     if(isTransitionToIdleFromLoadedOrWaitRessource(state, newState))
@@ -1623,7 +1645,7 @@ void Component::TreatSetStateCommand(Task task)
     if(task.opt.get() != nullptr)
       e = (OMX_ERRORTYPE)((uintptr_t)task.opt.get());
 
-    LOG_ERROR(ToStringOMXError.at(e));
+    LOG_ERROR(ToStringOMXError(e));
     callbacks.EventHandler(component, app, OMX_EventError, e, 0, nullptr);
   }
 }
@@ -1909,8 +1931,8 @@ void Component::TreatDynamicCommand(Task task)
   }
   case OMX_ALG_IndexConfigVideoLoopFilterTc:
   {
-    auto beta = static_cast<OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC*>(opt);
-    module->SetDynamic(DYNAMIC_INDEX_LOOP_FILTER_TC, (void*)(static_cast<intptr_t>(beta->nLoopFilterTc)));
+    auto tc = static_cast<OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC*>(opt);
+    module->SetDynamic(DYNAMIC_INDEX_LOOP_FILTER_TC, (void*)(static_cast<intptr_t>(tc->nLoopFilterTc)));
     return;
   }
   default:

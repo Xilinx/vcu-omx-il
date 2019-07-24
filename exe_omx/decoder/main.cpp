@@ -71,7 +71,7 @@
 #include <utility/logger.h>
 #include <utility/locked_queue.h>
 #include <utility/semaphore.h>
-#include "base/omx_utils/omx_translate.h"
+#include <utility/omx_translate.h>
 
 #include "../common/helpers.h"
 #include "../common/setters.h"
@@ -564,11 +564,11 @@ OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENT
   (void)pEventData;
   auto app = static_cast<Application*>(pAppData);
   assert(hComponent == app->hDecoder);
-  LOG_IMPORTANT(string { "Event from decoder: " } +ToStringOMXEvent.at(eEvent));
+  LOG_IMPORTANT(string { "Event from decoder: " } +ToStringOMXEvent(eEvent));
 
   if(eEvent == OMX_EventCmdComplete)
   {
-    LOG_IMPORTANT(string { "Command: " } +ToStringOMXCommand.at((OMX_COMMANDTYPE)Data1));
+    LOG_IMPORTANT(string { "Command: " } +ToStringOMXCommand((OMX_COMMANDTYPE)Data1));
 
     if(Data1 == OMX_CommandStateSet)
     {
@@ -606,7 +606,7 @@ OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENT
   else if(eEvent == OMX_EventError)
   {
     auto cmd = static_cast<OMX_ERRORTYPE>(Data1);
-    LOG_ERROR(string { "Component (" } +ToStringAddr(hComponent) + string { "): " } +ToStringOMXEvent.at(eEvent) + string { "(" } +ToStringOMXError.at(cmd) + string { ")" });
+    LOG_ERROR(string { "Component (" } +ToStringAddr(hComponent) + string { "): " } +ToStringOMXEvent(eEvent) + string { "(" } +ToStringOMXError(cmd) + string { ")" });
     exit(1);
   }
   return OMX_ErrorNone;

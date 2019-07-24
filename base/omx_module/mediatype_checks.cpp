@@ -220,3 +220,15 @@ bool CheckMaxPictureSizes(MaxPicturesSizes sizes)
   return true;
 }
 
+bool CheckLoopFilterBeta(int beta)
+{
+  (void)beta;
+  return true;
+}
+
+bool CheckLoopFilterTc(int tc)
+{
+  (void)tc;
+  return true;
+}
+

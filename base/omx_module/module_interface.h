@@ -40,6 +40,7 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <stdexcept>
 
 #include "module_structs.h"
 #include "buffer_handle_interface.h"
@@ -177,7 +178,7 @@ struct ModuleInterface
   virtual ErrorType GetDynamic(std::string index, void* param) = 0;
 };
 
-static std::map<ModuleInterface::ErrorType, char const*> ToStringError
+static std::map<ModuleInterface::ErrorType, std::string> ModuleInterfaceErrorInStringMap
 {
   {
     ModuleInterface::SUCCESS, "SUCCESS"

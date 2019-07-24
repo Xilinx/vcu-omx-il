@@ -159,6 +159,12 @@ static std::string const SETTINGS_INDEX_SEPARATE_CONFIGURATION_FROM_DATA {
 static std::string const SETTINGS_INDEX_MAX_PICTURE_SIZES {
   "SETTINGS_INDEX_MAX_PICTURE_SIZES"
 };
+static std::string const SETTINGS_INDEX_LOOP_FILTER_BETA {
+  "SETTINGS_INDEX_LOOP_FILTER_BETA"
+};
+static std::string const SETTINGS_INDEX_LOOP_FILTER_TC {
+  "SETTINGS_INDEX_LOOP_FILTER_TC"
+};
 
 struct MediatypeInterface
 {

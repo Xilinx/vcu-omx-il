@@ -40,11 +40,11 @@
 #include <OMX_VideoExt.h>
 #include <OMX_ComponentAlg.h>
 #include <OMX_IVCommonAlg.h>
+#include <OMX_CoreAlg.h>
 
 #include <cmath>
 
 #include "base/omx_checker/omx_checker.h"
-#include "base/omx_utils/omx_translate.h"
 
 #include "omx_component_getset.h"
 

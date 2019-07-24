@@ -41,11 +41,13 @@
 #include <OMX_VideoExt.h>
 #include <OMX_ComponentAlg.h>
 #include <OMX_IVCommonAlg.h>
+#include <OMX_CoreAlg.h>
 
 #include <cmath>
 
+#include <utility/omx_translate.h>
+
 #include "base/omx_checker/omx_checker.h"
-#include "base/omx_utils/omx_translate.h"
 
 using namespace std;
 

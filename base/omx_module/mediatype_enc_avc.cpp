@@ -410,6 +410,18 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Get(std::string index, void* sett
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_LOOP_FILTER_BETA")
+  {
+    *static_cast<int*>(settings) = CreateLoopFilterBeta(this->settings);
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_LOOP_FILTER_TC")
+  {
+    *static_cast<int*>(settings) = CreateLoopFilterTc(this->settings);
+    return SUCCESS;
+  }
+
   return BAD_INDEX;
 }
 
@@ -701,6 +713,26 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Set(std::string index, void const
     auto sizes = *(static_cast<MaxPicturesSizes const*>(settings));
 
     if(!UpdateMaxPictureSizes(this->settings, sizes))
+      return BAD_PARAMETER;
+
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_LOOP_FILTER_BETA")
+  {
+    auto beta = *(static_cast<int const*>(settings));
+
+    if(!UpdateLoopFilterBeta(this->settings, beta))
+      return BAD_PARAMETER;
+
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_LOOP_FILTER_TC")
+  {
+    auto tc = *(static_cast<int const*>(settings));
+
+    if(!UpdateLoopFilterTc(this->settings, tc))
       return BAD_PARAMETER;
 
     return SUCCESS;

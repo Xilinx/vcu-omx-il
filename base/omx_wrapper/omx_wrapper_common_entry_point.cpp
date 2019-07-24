@@ -36,9 +36,9 @@
 ******************************************************************************/
 
 #include "omx_wrapper_common_entry_point.h"
-#include "base/omx_utils/omx_translate.h"
-#include <utility/logger.h>
 #include <string>
+#include <utility/logger.h>
+#include <utility/omx_translate.h>
 
 using namespace std;
 
@@ -51,7 +51,7 @@ OMXComponentInterface* GetThis(OMX_IN OMX_HANDLETYPE hComponent)
 
 OMX_ERRORTYPE SendCommand(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_COMMANDTYPE Cmd, OMX_IN OMX_U32 nParam1, OMX_IN OMX_PTR pCmdData)
 {
-  LOG_IMPORTANT(string { "hComponent: " } +ToStringAddr(hComponent) + string { ", Cmd: " } +ToStringOMXCommand.at(Cmd) + string { ", nParam1: " } +to_string(nParam1) + string { ", pCmdData: " } +ToStringAddr(pCmdData));
+  LOG_IMPORTANT(string { "hComponent: " } +ToStringAddr(hComponent) + string { ", Cmd: " } +ToStringOMXCommand(Cmd) + string { ", nParam1: " } +to_string(nParam1) + string { ", pCmdData: " } +ToStringAddr(pCmdData));
   auto pThis = GetThis(hComponent);
 
   if(!pThis)
@@ -81,7 +81,7 @@ OMX_ERRORTYPE SetCallbacks(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_CALLBACK
 
 OMX_ERRORTYPE GetParameter(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE nParamIndex, OMX_INOUT OMX_PTR pParam)
 {
-  LOG_IMPORTANT(string { "hComponent: " } +ToStringAddr(hComponent) + string { ", nParamIndex: " } +ToStringOMXIndex.at(nParamIndex) + string { ", pParam: " } +ToStringAddr(pParam));
+  LOG_IMPORTANT(string { "hComponent: " } +ToStringAddr(hComponent) + string { ", nParamIndex: " } +ToStringOMXIndex(nParamIndex) + string { ", pParam: " } +ToStringAddr(pParam));
   auto pThis = GetThis(hComponent);
 
   if(!pThis)
@@ -91,7 +91,7 @@ OMX_ERRORTYPE GetParameter(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYP
 
 OMX_ERRORTYPE SetParameter(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE nParamIndex, OMX_IN OMX_PTR pParam)
 {
-  LOG_IMPORTANT(string { "hComponent: " } +ToStringAddr(hComponent) + string { ", nParamIndex: " } +ToStringOMXIndex.at(nParamIndex) + string { ", pParam: " } +ToStringAddr(pParam));
+  LOG_IMPORTANT(string { "hComponent: " } +ToStringAddr(hComponent) + string { ", nParamIndex: " } +ToStringOMXIndex(nParamIndex) + string { ", pParam: " } +ToStringAddr(pParam));
   auto pThis = GetThis(hComponent);
 
   if(!pThis)
@@ -161,7 +161,7 @@ OMX_ERRORTYPE GetComponentVersion(OMX_IN OMX_HANDLETYPE hComponent, OMX_OUT OMX_
 
 OMX_ERRORTYPE GetConfig(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE nConfigIndex, OMX_INOUT OMX_PTR pComponentConfigStructure)
 {
-  LOG_IMPORTANT(string { "hComponent: " } +ToStringAddr(hComponent) + string { ", nConfigIndex: " } +ToStringOMXIndex.at(nConfigIndex) + string { ", pComponentConfigStructure: " } +ToStringAddr(pComponentConfigStructure));
+  LOG_IMPORTANT(string { "hComponent: " } +ToStringAddr(hComponent) + string { ", nConfigIndex: " } +ToStringOMXIndex(nConfigIndex) + string { ", pComponentConfigStructure: " } +ToStringAddr(pComponentConfigStructure));
   auto pThis = GetThis(hComponent);
 
   if(!pThis)
@@ -171,7 +171,7 @@ OMX_ERRORTYPE GetConfig(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE n
 
 OMX_ERRORTYPE SetConfig(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_INDEXTYPE nConfigIndex, OMX_IN OMX_PTR pComponentConfigStructure)
 {
-  LOG_IMPORTANT(string { "hComponent: " } +ToStringAddr(hComponent) + string { ", nConfigIndex: " } +ToStringOMXIndex.at(nConfigIndex) + string { ", pComponentConfigStructure: " } +ToStringAddr(pComponentConfigStructure));
+  LOG_IMPORTANT(string { "hComponent: " } +ToStringAddr(hComponent) + string { ", nConfigIndex: " } +ToStringOMXIndex(nConfigIndex) + string { ", pComponentConfigStructure: " } +ToStringAddr(pComponentConfigStructure));
   auto pThis = GetThis(hComponent);
 
   if(!pThis)

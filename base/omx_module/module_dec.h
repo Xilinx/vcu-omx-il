@@ -132,17 +132,9 @@ private:
   {
     auto pThis = static_cast<DecModule*>(userParam);
     isPrefix ? pThis->ParsedPrefixSei(payloadType, payload, payloadSize) : pThis->ParsedSuffixSei(payloadType, payload, payloadSize);
-  }
-
+  };
   void ParsedPrefixSei(int type, uint8_t* payload, int size);
   void ParsedSuffixSei(int type, uint8_t* payload, int size);
-
-  static void RedirectionFreeInputBufferWithoutDestroyMemory(AL_TBuffer* input)
-  {
-    auto pThis = static_cast<DecModule*>(AL_Buffer_GetUserData(input));
-    pThis->FreeInputBufferWithoutDestroyingMemory(input);
-  }
-  void FreeInputBufferWithoutDestroyingMemory(AL_TBuffer* input);
 
   static void RedirectionInputBufferDestroy(AL_TBuffer* input)
   {
@@ -150,6 +142,13 @@ private:
     pThis->InputBufferDestroy(input);
   };
   void InputBufferDestroy(AL_TBuffer* input);
+
+  static void RedirectionInputBufferFreeWithoutDestroyingMemory(AL_TBuffer* input)
+  {
+    auto pThis = static_cast<DecModule*>(AL_Buffer_GetUserData(input));
+    pThis->InputBufferFreeWithoutDestroyingMemory(input);
+  };
+  void InputBufferFreeWithoutDestroyingMemory(AL_TBuffer* input);
 
   static void RedirectionOutputBufferDestroy(AL_TBuffer* output)
   {
