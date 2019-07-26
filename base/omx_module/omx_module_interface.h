@@ -171,3 +171,4 @@ static std::map<ModuleInterface::ErrorType, const char*> ToStringError
     ModuleInterface::MAX, "MAX"
   },
 };
+

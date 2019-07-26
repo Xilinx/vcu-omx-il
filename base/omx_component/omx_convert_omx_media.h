@@ -132,3 +132,4 @@ OMX_ALG_SEQUENCE_PICTURE_MODE ConvertMediaToOMXSequencePictureMode(SequencePictu
 
 OMX_ALG_VIDEO_COLOR_PRIMARIESTYPE ConvertMediaToOMXColorPrimaries(ColorPrimariesType colorPrimaries);
 ColorPrimariesType ConvertOMXToMediaColorPrimaries(OMX_ALG_VIDEO_COLOR_PRIMARIESTYPE colorPrimaries);
+

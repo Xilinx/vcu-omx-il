@@ -61,3 +61,4 @@ void DMAMemory::move(AL_TBuffer* destination, int destination_offset, AL_TBuffer
   (void)size;
   assert(0 && "not implemented yet");
 }
+

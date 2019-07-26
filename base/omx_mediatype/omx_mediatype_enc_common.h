@@ -99,3 +99,4 @@ bool UpdateTwoPass(AL_TEncSettings& settings, std::string& sTwoPassLogFile, TwoP
 
 ColorPrimariesType CreateColorPrimaries(AL_TEncSettings settings);
 bool UpdateColorPrimaries(AL_TEncSettings& settings, ColorPrimariesType colorPrimaries);
+

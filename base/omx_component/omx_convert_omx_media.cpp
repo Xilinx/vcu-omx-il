@@ -1124,3 +1124,4 @@ ColorPrimariesType ConvertOMXToMediaColorPrimaries(OMX_ALG_VIDEO_COLOR_PRIMARIES
 
   return ColorPrimariesType::COLOR_PRIMARIES_MAX_ENUM;
 }
+

@@ -304,3 +304,4 @@ enum class ColorPrimariesType
   COLOR_PRIMARIES_GENERIC_FILM,
   COLOR_PRIMARIES_MAX_ENUM,
 };
+
