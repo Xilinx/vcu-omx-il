@@ -52,6 +52,7 @@ GopControlType ConvertSoftToModuleGopControl(AL_EGopCtrlMode mode);
 GdrType ConvertSoftToModuleGdr(AL_EGdrMode gdr);
 RateControlOptions ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption options);
 QPControlType ConvertSoftToModuleQPControl(AL_EQpCtrlMode mode);
+QPTableType ConvertSoftToModuleQPTable(AL_EQpTableMode mode);
 ScalingListType ConvertSoftToModuleScalingList(AL_EScalingList scalingList);
 LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncTool tools);
 ColorPrimariesType ConvertSoftToModuleColorPrimaries(AL_EColourDescription colourDescription);
@@ -63,6 +64,7 @@ AL_EScalingList ConvertModuleToSoftScalingList(ScalingListType scalingList);
 AL_EGdrMode ConvertModuleToSoftGdr(GdrType gdr);
 AL_ERateCtrlOption ConvertModuleToSoftRateControlOption(RateControlOptions options);
 AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType mode);
+AL_EQpTableMode ConvertModuleToSoftQPTable(QPTableType mode);
 AL_EChEncTool ConvertModuleToSoftLoopFilter(LoopFilterType loopFilter);
 AL_EColourDescription ConvertModuleToSoftColorPrimaries(ColorPrimariesType colorPrimaries);
 

@@ -42,12 +42,15 @@
 #include <algorithm>
 #include <utility/round.h>
 #include <utility/logger.h>
+#include <utility/scope_exit.h>
+#include "convert_module_soft.h"
 
 extern "C"
 {
 #include <lib_common/BufferSrcMeta.h>
 #include <lib_common/BufferStreamMeta.h>
 #include <lib_common/BufferBufHandleMeta.h>
+#include <lib_common_dec/HDRMeta.h>
 #include <lib_fpga/DmaAllocLinux.h>
 #include <lib_common_dec/IpDecFourCC.h>
 }
@@ -66,7 +69,16 @@ DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, shared_ptr<DecDevi
   assert(this->allocator);
   currentDisplayPictureInfo.type = -1;
   currentDisplayPictureInfo.concealed = false;
+  ResetHDR();
   media->Reset();
+}
+
+void DecModule::ResetHDR()
+{
+  currentTransferCharacteristics = TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_UNSPECIFIED;
+  currentColourMatrix = ColourMatrixType::COLOUR_MATRIX_UNSPECIFIED;
+  currentHDRSEIs.hasMDCV = false;
+  currentHDRSEIs.hasCLL = false;
 }
 
 DecModule::~DecModule() = default;
@@ -219,6 +231,16 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
           ParsedPrefixSei(payload->type, payload->pData, payload->size);
       }
     }
+  }
+
+  ResetHDR();
+  auto pHDR = (AL_THDRMetaData*)AL_Buffer_GetMetaData(frameToDisplay, AL_META_TYPE_HDR);
+
+  if(pHDR)
+  {
+    currentTransferCharacteristics = ConvertSoftToModuleTransferCharacteristics(pHDR->eTransferCharacteristics);
+    currentColourMatrix = ConvertSoftToModuleColourMatrix(pHDR->eColourMatrixCoeffs);
+    currentHDRSEIs = ConvertSoftToModuleHDRSEIs(pHDR->tHDRSEIs);
   }
 
   BufferSizes bufferSizes {};
@@ -612,6 +634,11 @@ static AL_TMetaData* CreateSourceMeta(AL_TStreamSettings const& streamSettings, 
   return (AL_TMetaData*)(AL_SrcMetaData_Create({ resolution.width, resolution.height }, planeY, planeUV, fourCC));
 }
 
+static AL_TMetaData* CreateHDRMeta()
+{
+  return (AL_TMetaData*)AL_HDRMetaData_Create();
+}
+
 void DecModule::OutputBufferDestroy(AL_TBuffer* output)
 {
   output->hBuf = nullptr;
@@ -633,9 +660,18 @@ AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
 {
   Resolution resolution {};
   media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
-  auto sourceMeta = CreateSourceMeta(media->settings.tStream, resolution);
 
-  if(!sourceMeta)
+  std::vector<AL_TMetaData*> pendingMetas;
+  auto scopeFunc = scopeExit([&pendingMetas]() {
+    for(const auto& meta : pendingMetas)
+      if(meta)
+        AL_MetaData_Destroy(meta);
+  });
+
+  pendingMetas.push_back(CreateSourceMeta(media->settings.tStream, resolution));
+  pendingMetas.push_back(CreateHDRMeta());
+
+  if(!pendingMetas[0] || !pendingMetas[1])
     return nullptr;
 
   AL_TBuffer* output {};
@@ -654,7 +690,6 @@ AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
     if(!dmaHandle)
     {
       LOG_ERROR(string { "Failed to import fd: " } +to_string(fd));
-      AL_MetaData_Destroy((AL_TMetaData*)sourceMeta);
       return nullptr;
     }
 
@@ -675,13 +710,15 @@ AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
   }
 
   if(output == nullptr)
-  {
-    AL_MetaData_Destroy((AL_TMetaData*)sourceMeta);
     return nullptr;
+
+  for(const auto& meta : pendingMetas)
+  {
+    auto attachedSourceMeta = AL_Buffer_AddMetaData(output, meta);
+    assert(attachedSourceMeta);
   }
 
-  auto attachedSourceMeta = AL_Buffer_AddMetaData(output, (AL_TMetaData*)sourceMeta);
-  assert(attachedSourceMeta);
+  pendingMetas.clear();
 
   AL_Buffer_SetUserData(output, this);
   dpb.Add(buffer, output);
@@ -747,6 +784,28 @@ ModuleInterface::ErrorType DecModule::GetDynamic(std::string index, void* param)
     displayPictureInfo->type = currentDisplayPictureInfo.type;
     return SUCCESS;
   }
+
+  if(index == "DYNAMIC_INDEX_TRANSFER_CHARACTERISTICS")
+  {
+    auto tc = static_cast<TransferCharacteristicsType*>(param);
+    *tc = currentTransferCharacteristics;
+    return SUCCESS;
+  }
+
+  if(index == "DYNAMIC_INDEX_COLOUR_MATRIX")
+  {
+    auto cm = static_cast<ColourMatrixType*>(param);
+    *cm = currentColourMatrix;
+    return SUCCESS;
+  }
+
+  if(index == "DYNAMIC_INDEX_HIGH_DYNAMIC_RANGE_SEIS")
+  {
+    auto hdrSEIs = static_cast<HighDynamicRangeSeis*>(param);
+    *hdrSEIs = currentHDRSEIs;
+    return SUCCESS;
+  }
+
   return BAD_INDEX;
 }
 

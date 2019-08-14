@@ -149,3 +149,113 @@ AL_ESequenceMode ConvertModuleToSoftSequenceMode(SequencePictureModeType sequenc
   return AL_SM_MAX_ENUM;
 }
 
+TransferCharacteristicsType ConvertSoftToModuleTransferCharacteristics(AL_ETransferCharacteristics transferCharac)
+{
+  switch(transferCharac)
+  {
+  case AL_TRANSFER_CHARAC_UNSPECIFIED: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_UNSPECIFIED;
+  case AL_TRANSFER_CHARAC_BT_2100_PQ: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2100_PQ;
+  default: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_MAX_ENUM;
+  }
+
+  return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_MAX_ENUM;
+}
+
+AL_ETransferCharacteristics ConvertModuleToSoftTransferCharacteristics(TransferCharacteristicsType transferCharac)
+{
+  switch(transferCharac)
+  {
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_UNSPECIFIED: return AL_TRANSFER_CHARAC_UNSPECIFIED;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2100_PQ: return AL_TRANSFER_CHARAC_BT_2100_PQ;
+  default: return AL_TRANSFER_CHARAC_MAX_ENUM;
+  }
+
+  return AL_TRANSFER_CHARAC_MAX_ENUM;
+}
+
+ColourMatrixType ConvertSoftToModuleColourMatrix(AL_EColourMatrixCoefficients colourMatrix)
+{
+  switch(colourMatrix)
+  {
+  case AL_COLOUR_MAT_COEFF_UNSPECIFIED: return ColourMatrixType::COLOUR_MATRIX_UNSPECIFIED;
+  case AL_COLOUR_MAT_COEFF_BT_2100_YCBCR: return ColourMatrixType::COLOUR_MATRIX_BT_2100_YCBCR;
+  default: return ColourMatrixType::COLOUR_MATRIX_MAX_ENUM;
+  }
+
+  return ColourMatrixType::COLOUR_MATRIX_MAX_ENUM;
+}
+
+AL_EColourMatrixCoefficients ConvertModuleToSoftColourMatrix(ColourMatrixType colourMatrix)
+{
+  switch(colourMatrix)
+  {
+  case ColourMatrixType::COLOUR_MATRIX_UNSPECIFIED: return AL_COLOUR_MAT_COEFF_UNSPECIFIED;
+  case ColourMatrixType::COLOUR_MATRIX_BT_2100_YCBCR: return AL_COLOUR_MAT_COEFF_BT_2100_YCBCR;
+  default: return AL_COLOUR_MAT_COEFF_MAX_ENUM;
+  }
+
+  return AL_COLOUR_MAT_COEFF_MAX_ENUM;
+}
+
+HighDynamicRangeSeis ConvertSoftToModuleHDRSEIs(const AL_THDRSEIs& hdrSEIs)
+{
+  HighDynamicRangeSeis modHDRSEIs;
+
+  modHDRSEIs.hasMDCV = hdrSEIs.bHasMDCV;
+
+  if(modHDRSEIs.hasMDCV)
+  {
+    for(int i = 0; i < 3; i++)
+    {
+      modHDRSEIs.masteringDisplayColourVolume.displayPrimaries[i].x = hdrSEIs.tMDCV.display_primaries[i].x;
+      modHDRSEIs.masteringDisplayColourVolume.displayPrimaries[i].y = hdrSEIs.tMDCV.display_primaries[i].y;
+    }
+
+    modHDRSEIs.masteringDisplayColourVolume.whitePoint.x = hdrSEIs.tMDCV.white_point.x;
+    modHDRSEIs.masteringDisplayColourVolume.whitePoint.y = hdrSEIs.tMDCV.white_point.y;
+    modHDRSEIs.masteringDisplayColourVolume.maxDisplayMasteringLuminance = hdrSEIs.tMDCV.max_display_mastering_luminance;
+    modHDRSEIs.masteringDisplayColourVolume.minDisplayMasteringLuminance = hdrSEIs.tMDCV.min_display_mastering_luminance;
+  }
+
+  modHDRSEIs.hasCLL = hdrSEIs.bHasCLL;
+
+  if(modHDRSEIs.hasCLL)
+  {
+    modHDRSEIs.contentLightLevel.maxContentLightLevel = hdrSEIs.tCLL.max_content_light_level;
+    modHDRSEIs.contentLightLevel.maxPicAverageLightLevel = hdrSEIs.tCLL.max_pic_average_light_level;
+  }
+
+  return modHDRSEIs;
+}
+
+AL_THDRSEIs ConvertModuleToSoftHDRSEIs(const HighDynamicRangeSeis& hdrSEIs)
+{
+  AL_THDRSEIs alHDRSEIs;
+
+  alHDRSEIs.bHasMDCV = hdrSEIs.hasMDCV;
+
+  if(hdrSEIs.hasMDCV)
+  {
+    for(int i = 0; i < 3; i++)
+    {
+      alHDRSEIs.tMDCV.display_primaries[i].x = hdrSEIs.masteringDisplayColourVolume.displayPrimaries[i].x;
+      alHDRSEIs.tMDCV.display_primaries[i].y = hdrSEIs.masteringDisplayColourVolume.displayPrimaries[i].y;
+    }
+
+    alHDRSEIs.tMDCV.white_point.x = hdrSEIs.masteringDisplayColourVolume.whitePoint.x;
+    alHDRSEIs.tMDCV.white_point.y = hdrSEIs.masteringDisplayColourVolume.whitePoint.y;
+    alHDRSEIs.tMDCV.max_display_mastering_luminance = hdrSEIs.masteringDisplayColourVolume.maxDisplayMasteringLuminance;
+    alHDRSEIs.tMDCV.min_display_mastering_luminance = hdrSEIs.masteringDisplayColourVolume.minDisplayMasteringLuminance;
+  }
+
+  alHDRSEIs.bHasCLL = hdrSEIs.hasCLL;
+
+  if(hdrSEIs.hasCLL)
+  {
+    alHDRSEIs.tCLL.max_content_light_level = hdrSEIs.contentLightLevel.maxContentLightLevel;
+    alHDRSEIs.tCLL.max_pic_average_light_level = hdrSEIs.contentLightLevel.maxPicAverageLightLevel;
+  }
+
+  return alHDRSEIs;
+}
+

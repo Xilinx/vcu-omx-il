@@ -74,7 +74,6 @@
 #include <utility/omx_translate.h>
 
 #include "../common/helpers.h"
-#include "../common/setters.h"
 #include "../common/CommandLineParser.h"
 #include "../common/codec.h"
 
@@ -393,7 +392,7 @@ void parseCommandLine(int argc, char** argv, Application& app)
 static bool isSupplier(OMX_U32 nPortIndex, Application& app)
 {
   OMX_PARAM_BUFFERSUPPLIERTYPE sSupply;
-  initHeader(sSupply);
+  InitHeader(sSupply);
   sSupply.nPortIndex = nPortIndex;
 
   OMX_CALL(OMX_GetParameter(app.hDecoder, OMX_IndexParamCompBufferSupplier, &sSupply));
@@ -412,7 +411,7 @@ static bool isSupplier(OMX_U32 nPortIndex, Application& app)
 static OMX_U32 getSizeBuffer(OMX_U32 nPortIndex, Application& app)
 {
   OMX_PARAM_PORTDEFINITIONTYPE sPortParam;
-  initHeader(sPortParam);
+  InitHeader(sPortParam);
   sPortParam.nPortIndex = nPortIndex;
 
   OMX_CALL(OMX_GetParameter(app.hDecoder, OMX_IndexParamPortDefinition, &sPortParam));
@@ -423,7 +422,7 @@ static OMX_U32 getSizeBuffer(OMX_U32 nPortIndex, Application& app)
 static OMX_U32 getMinBufferAlloc(OMX_U32 nPortIndex, Application& app)
 {
   OMX_PARAM_PORTDEFINITIONTYPE sPortParam;
-  initHeader(sPortParam);
+  InitHeader(sPortParam);
   sPortParam.nPortIndex = nPortIndex;
 
   OMX_CALL(OMX_GetParameter(app.hDecoder, OMX_IndexParamPortDefinition, &sPortParam));
@@ -593,12 +592,11 @@ OMX_ERRORTYPE handleEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENT
     if(!app->settings.hasPrealloc)
     {
       LOG_IMPORTANT("Port settings change");
-      initHeader(paramPort);
-      paramPort.nPortIndex = 1;
-      OMX_CALL(OMX_GetParameter(hComponent, OMX_IndexParamPortDefinition, &paramPort));
-      paramPort.nBufferCountActual++;
-      OMX_CALL(OMX_SetParameter(hComponent, OMX_IndexParamPortDefinition, &paramPort));
-
+      auto increaseActual = [](OMX_PARAM_PORTDEFINITIONTYPE& param)
+                            {
+                              param.nBufferCountActual++;
+                            };
+      OMX_CALL(PortSetup<OMX_PARAM_PORTDEFINITIONTYPE>(hComponent, OMX_IndexParamPortDefinition, increaseActual, 1));
       OMX_SendCommand(app->hDecoder, OMX_CommandPortEnable, 1, nullptr);
       allocBuffers(outportIndex, app->settings.bDMAOut, *app);
     }
@@ -647,23 +645,18 @@ OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_
 static OMX_ERRORTYPE setPortParameters(Application& app)
 {
   // This should always be done at the beginning
-  OMX_VIDEO_PARAM_PORTFORMATTYPE outParamFormat;
-  initHeader(outParamFormat);
-  outParamFormat.nPortIndex = 1;
-  OMX_CALL(OMX_GetParameter(app.hDecoder, OMX_IndexParamVideoPortFormat, &outParamFormat));
+  auto updateColorFormat = [&](OMX_VIDEO_PARAM_PORTFORMATTYPE& format)
+                           {
+                             format.eColorFormat = app.settings.chroma;
+                           };
+  OMX_CALL(PortSetup<OMX_VIDEO_PARAM_PORTFORMATTYPE>(app.hDecoder, OMX_IndexParamVideoPortFormat, updateColorFormat, 1));
 
-  outParamFormat.eColorFormat = app.settings.chroma;
-
-  OMX_CALL(OMX_SetParameter(app.hDecoder, OMX_IndexParamVideoPortFormat, &outParamFormat));
-
-  Setters setter {
-    &app.hDecoder
-  };
-  auto isBufModeSetted = setter.SetBufferMode(inportIndex, app.settings.eDMAIn);
-  assert(isBufModeSetted);
-  isBufModeSetted = setter.SetBufferMode(outportIndex, app.settings.eDMAOut);
-  assert(isBufModeSetted);
-
+  auto updateBufferMode = [&](OMX_ALG_PORT_PARAM_BUFFER_MODE& mode)
+                          {
+                            mode.eMode = (mode.nPortIndex == inportIndex) ? app.settings.eDMAIn : app.settings.eDMAOut;
+                          };
+  OMX_CALL(PortSetup<OMX_ALG_PORT_PARAM_BUFFER_MODE>(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexPortParamBufferMode), updateBufferMode, 0));
+  OMX_CALL(PortSetup<OMX_ALG_PORT_PARAM_BUFFER_MODE>(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexPortParamBufferMode), updateBufferMode, 1));
   return OMX_ErrorNone;
 }
 
@@ -691,13 +684,13 @@ OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
 
   if(pBuffer->nFilledLen)
   {
-    auto data = Buffer_MapData((char*)(pBuffer->pBuffer + pBuffer->nOffset), pBuffer->nAllocLen, app->settings.bDMAOut);
+    auto data = Buffer_MapData((char*)(pBuffer->pBuffer), pBuffer->nOffset, pBuffer->nAllocLen, app->settings.bDMAOut);
 
     if(data)
     {
       OMX_PARAM_PORTDEFINITIONTYPE param;
 
-      initHeader(param);
+      InitHeader(param);
       param.nPortIndex = 1;
       OMX_CALL(OMX_GetParameter(app->hDecoder, OMX_IndexParamPortDefinition, &param));
       auto videoDef = param.format.video;
@@ -744,7 +737,7 @@ static bool readFrame(OMX_BUFFERHEADERTYPE* pInputBuf, Application& app)
 
   infile.read((char*)frame.data(), frame.size());
   size_t zMapSize = pInputBuf->nAllocLen;
-  auto data = Buffer_MapData((char*)(pInputBuf->pBuffer + pInputBuf->nOffset), zMapSize, app.settings.bDMAIn);
+  auto data = Buffer_MapData((char*)(pInputBuf->pBuffer), pInputBuf->nOffset, zMapSize, app.settings.bDMAIn);
   memcpy(data, frame.data(), frame.size());
   Buffer_UnmapData(data, pInputBuf->nAllocLen, app.settings.bDMAIn);
 
@@ -775,59 +768,46 @@ string chooseComponent(Codec codecImplem)
 
 OMX_ERRORTYPE setProfileAndLevel(Application& app)
 {
-  OMX_VIDEO_PARAM_PROFILELEVELTYPE param;
-
-  initHeader(param);
-  param.nPortIndex = 0;
-  OMX_CALL(OMX_GetParameter(app.hDecoder, OMX_IndexParamVideoProfileLevelCurrent, &param));
-
-  param.eProfile = app.settings.profile;
-  param.eLevel = app.settings.level;
-  OMX_CALL(OMX_SetParameter(app.hDecoder, OMX_IndexParamVideoProfileLevelCurrent, &param));
-
+  auto updateProfileLevel = [&](OMX_VIDEO_PARAM_PROFILELEVELTYPE& pf)
+                            {
+                              pf.eProfile = app.settings.profile;
+                              pf.eLevel = app.settings.level;
+                            };
+  OMX_CALL(PortSetup<OMX_VIDEO_PARAM_PROFILELEVELTYPE>(app.hDecoder, OMX_IndexParamVideoProfileLevelCurrent, updateProfileLevel, 0));
   return OMX_ErrorNone;
 }
 
 OMX_ERRORTYPE setDimensions(Application& app)
 {
-  OMX_PARAM_PORTDEFINITIONTYPE param;
-
-  initHeader(param);
-  param.nPortIndex = 0;
-  OMX_CALL(OMX_GetParameter(app.hDecoder, OMX_IndexParamPortDefinition, &param));
-
-  param.format.video.nFrameWidth = app.settings.width;
-  param.format.video.nFrameHeight = app.settings.height;
-  param.format.video.nStride = app.settings.width;
-  param.format.video.nSliceHeight = app.settings.height;
-  OMX_CALL(OMX_SetParameter(app.hDecoder, OMX_IndexParamPortDefinition, &param));
-
+  auto updateDimension = [&](OMX_PARAM_PORTDEFINITIONTYPE& dimension)
+                         {
+                           dimension.format.video.nFrameWidth = app.settings.width;
+                           dimension.format.video.nFrameHeight = app.settings.height;
+                           dimension.format.video.nStride = app.settings.width;
+                           dimension.format.video.nSliceHeight = app.settings.height;
+                         };
+  OMX_CALL(PortSetup<OMX_PARAM_PORTDEFINITIONTYPE>(app.hDecoder, OMX_IndexParamPortDefinition, updateDimension, 0));
   return OMX_ErrorNone;
 }
 
 OMX_ERRORTYPE setFormat(Application& app)
 {
-  OMX_VIDEO_PARAM_PORTFORMATTYPE param;
-
-  initHeader(param);
-  param.nPortIndex = 0;
-  OMX_CALL(OMX_GetParameter(app.hDecoder, OMX_IndexParamVideoPortFormat, &param));
-
-  param.eColorFormat = app.settings.chroma;
-  param.xFramerate = app.settings.framerate;
-  OMX_CALL(OMX_SetParameter(app.hDecoder, OMX_IndexParamVideoPortFormat, &param));
-
+  auto updateFormat = [&](OMX_VIDEO_PARAM_PORTFORMATTYPE& format)
+                      {
+                        format.eColorFormat = app.settings.chroma;
+                        format.xFramerate = app.settings.framerate;
+                      };
+  OMX_CALL(PortSetup<OMX_VIDEO_PARAM_PORTFORMATTYPE>(app.hDecoder, OMX_IndexParamVideoPortFormat, updateFormat, 0));
   return OMX_ErrorNone;
 }
 
 OMX_ERRORTYPE setSequencePicture(Application& app)
 {
-  OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE param;
-  initHeader(param);
-  param.nPortIndex = 0;
-  OMX_CALL(OMX_GetParameter(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamCommonSequencePictureModeCurrent), &param));
-  param.eMode = app.settings.sequencePicture;
-  OMX_CALL(OMX_SetParameter(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamCommonSequencePictureModeCurrent), &param));
+  auto updateSequencePicture = [&](OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE& spm)
+                               {
+                                 spm.eMode = app.settings.sequencePicture;
+                               };
+  OMX_CALL(PortSetup<OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE>(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamCommonSequencePictureModeCurrent), updateSequencePicture, 0));
   return OMX_ErrorNone;
 }
 
@@ -897,7 +877,7 @@ OMX_ERRORTYPE stopPipeline(Application& app)
 static OMX_ERRORTYPE disablePrealloc(Application& app)
 {
   OMX_ALG_PARAM_PREALLOCATION param;
-  initHeader(param);
+  InitHeader(param);
   param.bDisablePreallocation = OMX_TRUE;
   return OMX_SetParameter(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamPreallocation), &param);
 }
@@ -905,7 +885,7 @@ static OMX_ERRORTYPE disablePrealloc(Application& app)
 static OMX_ERRORTYPE disableInputParsed(Application& app)
 {
   OMX_ALG_VIDEO_PARAM_INPUT_PARSED param {};
-  initHeader(param);
+  InitHeader(param);
   param.bDisableInputParsed = OMX_TRUE;
   return OMX_SetParameter(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInputParsed), &param);
 }
@@ -922,7 +902,7 @@ static OMX_ERRORTYPE configureComponent(Application& app)
   if(app.settings.enableSubframe)
   {
     OMX_ALG_VIDEO_PARAM_SUBFRAME param;
-    initHeader(param);
+    InitHeader(param);
     param.nPortIndex = 1;
     param.bEnableSubframe = OMX_TRUE;
     OMX_SetParameter(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSubframe), &param);
@@ -952,7 +932,7 @@ static OMX_ERRORTYPE configureComponent(Application& app)
     outputPortDisabled = true;
   }
 
-  initHeader(paramPort);
+  InitHeader(paramPort);
   paramPort.nPortIndex = 1;
   OMX_CALL(OMX_GetParameter(app.hDecoder, OMX_IndexParamPortDefinition, &paramPort));
   paramPort.nBufferCountActual = paramPort.nBufferCountMin + 1;

@@ -40,10 +40,10 @@
 #include <cassert>
 #include <utility/round.h>
 #include "mediatype_dec_avc.h"
-#include "mediatype_dec_common.h"
+#include "mediatype_dec_itu.h"
+#include "mediatype_codec_avc.h"
+#include "mediatype_codec_itu.h"
 #include "mediatype_checks.h"
-#include "mediatype_common_avc.h"
-#include "mediatype_common.h"
 #include "convert_module_soft_avc.h"
 
 using namespace std;

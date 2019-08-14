@@ -84,6 +84,9 @@ private:
 
   DisplayPictureInfo currentDisplayPictureInfo;
   Flags currentFlags;
+  TransferCharacteristicsType currentTransferCharacteristics;
+  ColourMatrixType currentColourMatrix;
+  HighDynamicRangeSeis currentHDRSEIs;
 
   Callbacks callbacks;
   ThreadSafeMap<AL_TBuffer*, BufferHandleInterface*> handles;
@@ -170,5 +173,7 @@ private:
     pThis->OutputBufferDestroyAndFree(output);
   };
   void OutputBufferDestroyAndFree(AL_TBuffer* output);
+
+  void ResetHDR();
 };
 

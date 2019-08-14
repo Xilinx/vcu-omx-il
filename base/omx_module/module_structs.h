@@ -41,47 +41,54 @@
 #include <string>
 #include <vector>
 
-struct BufferHandles
+template<typename T>
+struct InputOutput
 {
-  BufferHandleType input;
-  BufferHandleType output;
+  T input;
+  T output;
 };
 
-struct BufferCounts
+typedef InputOutput<BufferHandleType> BufferHandles;
+typedef InputOutput<int> BufferCounts;
+typedef InputOutput<int> BufferSizes;
+typedef InputOutput<int> BufferBytesAlignments;
+typedef InputOutput<bool> BufferContiguities;
+
+struct Mime
 {
-  int input;
-  int output;
+  std::string mime;
+  CompressionType compression;
 };
 
-struct BufferSizes
+typedef InputOutput<Mime> Mimes;
+
+struct Format
 {
-  int input;
-  int output;
+  ColorType color;
+  int bitdepth;
+
+  bool operator == (const Format& o) const
+  {
+    return color == o.color && bitdepth == o.bitdepth;
+  }
+
+  bool operator < (const Format& o) const
+  {
+    return color < o.color || (color == o.color && bitdepth < o.bitdepth);
+  }
 };
 
-struct BufferBytesAlignments
+typedef InputOutput<std::vector<Format>> SupportedFormats;
+
+template<typename T>
+struct Dimension
 {
-  int input;
-  int output;
+  T horizontal;
+  T vertical;
 };
 
-struct BufferContiguities
-{
-  bool input;
-  bool output;
-};
-
-struct Stride
-{
-  int horizontal;
-  int vertical;
-};
-
-struct StrideAlignments
-{
-  int horizontal;
-  int vertical;
-};
+typedef Dimension<int> Stride;
+typedef Dimension<int> StrideAlignments;
 
 struct Resolution
 {
@@ -134,40 +141,6 @@ struct Clock
   }
 };
 
-struct Mime
-{
-  std::string mime;
-  CompressionType compression;
-};
-
-struct Mimes
-{
-  Mime input;
-  Mime output;
-};
-
-struct Format
-{
-  ColorType color;
-  int bitdepth;
-
-  bool operator == (const Format& o) const
-  {
-    return color == o.color && bitdepth == o.bitdepth;
-  }
-
-  bool operator < (const Format& o) const
-  {
-    return color < o.color || (color == o.color && bitdepth < o.bitdepth);
-  }
-};
-
-struct SupportedFormats
-{
-  std::vector<Format> input;
-  std::vector<Format> output;
-};
-
 struct ProfileLevel
 {
   ProfileType profile;
@@ -185,6 +158,12 @@ struct Gop
   int ltFrequency;
 };
 
+struct QPMode
+{
+  QPControlType ctrl;
+  QPTableType table;
+};
+
 struct QPs
 {
   int initial;
@@ -192,7 +171,7 @@ struct QPs
   int deltaPB;
   int min;
   int max;
-  QPControlType mode;
+  QPMode mode;
 };
 
 struct RateControlOptions
@@ -234,10 +213,16 @@ struct Slices
   bool dependent;
 };
 
+template<typename T>
+struct Point
+{
+  T x;
+  T y;
+};
+
 struct Region
 {
-  int x;
-  int y;
+  Point<int> point;
   int width;
   int height;
 };
@@ -279,5 +264,29 @@ struct Flags
   bool isSync = false;
   bool isEndOfSlice = false;
   bool isEndOfFrame = false;
+};
+
+typedef Point<uint16_t> ChromaCoord;
+
+struct MasteringDisplayColourVolume
+{
+  ChromaCoord displayPrimaries[3];
+  ChromaCoord whitePoint;
+  uint32_t maxDisplayMasteringLuminance;
+  uint32_t minDisplayMasteringLuminance;
+};
+
+struct ContentLightLevel
+{
+  uint16_t maxContentLightLevel;
+  uint16_t maxPicAverageLightLevel;
+};
+
+struct HighDynamicRangeSeis
+{
+  bool hasMDCV;
+  MasteringDisplayColourVolume masteringDisplayColourVolume;
+  bool hasCLL;
+  ContentLightLevel contentLightLevel;
 };
 

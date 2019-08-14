@@ -215,11 +215,12 @@ static void SetPortsParam(OMX_PORT_PARAM_TYPE& portParams)
   portParams.nStartPortNumber = VIDEO_START_PORT;
 }
 
-Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, unique_ptr<ModuleInterface>&& module, std::unique_ptr<ExpertiseInterface>&& expertise, OMX_STRING name, OMX_STRING role) :
+Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, unique_ptr<ModuleInterface>&& module, std::unique_ptr<ExpertiseInterface>&& expertise, std::shared_ptr<SyncIpInterface> syncIp, OMX_STRING name, OMX_STRING role) :
   component{component},
   media{media},
   module{move(module)},
   expertise{move(expertise)},
+  syncIp{syncIp},
   input{0, MinBufferCounts(media).input},
   output{1, MinBufferCounts(media).output}
 {
@@ -231,6 +232,7 @@ Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> me
   shouldClearROI = false;
   shouldPushROI = false;
   shouldFireEventPortSettingsChanges = true;
+  isSyncIpCreated = false;
   version.nVersion = ALLEGRODVT_OMX_VERSION;
   AssociateSpecVersion(spec);
 
@@ -540,6 +542,13 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto lat = static_cast<OMX_ALG_PARAM_REPORTED_LATENCY*>(param);
     return ConstructReportedLatency(*lat, media);
   }
+  case OMX_ALG_IndexParamSyncIp:
+  {
+    auto sync = static_cast<OMX_ALG_PARAM_SYNC_IP*>(param);
+    OMXChecker::SetHeaderVersion(*sync);
+    sync->bEnableSyncIp = ConvertMediaToOMXBool(isSyncIpCreated);
+    return OMX_ErrorNone;
+  }
   case OMX_ALG_IndexPortParamBufferMode:
   {
     auto port = getCurrentPort(param);
@@ -685,6 +694,18 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto c = static_cast<OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES*>(param);
     return ConstructVideoColorPrimaries(*c, *port, media);
   }
+  case OMX_ALG_IndexParamVideoTransferCharacteristics:
+  {
+    auto port = getCurrentPort(param);
+    auto tc = static_cast<OMX_ALG_VIDEO_PARAM_TRANSFER_CHARACTERISTICS*>(param);
+    return ConstructVideoTransferCharacteristics(*tc, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoColorMatrix:
+  {
+    auto port = getCurrentPort(param);
+    auto cm = static_cast<OMX_ALG_VIDEO_PARAM_COLOR_MATRIX*>(param);
+    return ConstructVideoColorMatrix(*cm, *port, media);
+  }
   case OMX_ALG_IndexParamVideoMaxPictureSize:
   {
     auto port = getCurrentPort(param);
@@ -803,6 +824,26 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
   {
     // Do nothing
     return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamSyncIp:
+  {
+    auto sync = static_cast<OMX_ALG_PARAM_SYNC_IP*>(param);
+    OMX_ERRORTYPE error = OMX_ErrorNone;
+
+    if(ConvertOMXToMediaBool(sync->bEnableSyncIp))
+    {
+      isSyncIpCreated = syncIp->create();
+
+      if(!isSyncIpCreated)
+        error = OMX_ErrorBadParameter;
+    }
+    else
+    {
+      syncIp->destroy();
+      isSyncIpCreated = false;
+    }
+    media->Set(SETTINGS_INDEX_LLP2_EARLY_CB, &isSyncIpCreated);
+    return error;
   }
   case OMX_IndexParamVideoPortFormat:
   {
@@ -933,6 +974,16 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
   {
     auto c = static_cast<OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES*>(param);
     return SetVideoColorPrimaries(*c, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoTransferCharacteristics:
+  {
+    auto c = static_cast<OMX_ALG_VIDEO_PARAM_TRANSFER_CHARACTERISTICS*>(param);
+    return SetVideoTransferCharacteristics(*c, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoColorMatrix:
+  {
+    auto c = static_cast<OMX_ALG_VIDEO_PARAM_COLOR_MATRIX*>(param);
+    return SetVideoColorMatrix(*c, *port, media);
   }
   case OMX_ALG_IndexParamVideoMaxPictureSize:
   {
@@ -1217,6 +1268,30 @@ OMX_ERRORTYPE Component::GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR
     gop.nPFrames = ConvertMediaToOMXPFrames(moduleGop);
     return OMX_ErrorNone;
   }
+  case OMX_ALG_IndexConfigVideoTransferCharacteristics:
+  {
+    TransferCharacteristicsType modTC;
+    module->GetDynamic(DYNAMIC_INDEX_TRANSFER_CHARACTERISTICS, &modTC);
+    auto& tc = *(static_cast<OMX_ALG_VIDEO_CONFIG_TRANSFER_CHARACTERISTICS*>(config));
+    tc.eTransferCharac = ConvertMediaToOMXTransferCharacteristics(modTC);
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexConfigVideoColorMatrix:
+  {
+    ColourMatrixType modCM;
+    module->GetDynamic(DYNAMIC_INDEX_COLOUR_MATRIX, &modCM);
+    auto& cm = *(static_cast<OMX_ALG_VIDEO_CONFIG_COLOR_MATRIX*>(config));
+    cm.eColorMatrix = ConvertMediaToOMXColourMatrix(modCM);
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexConfigVideoHighDynamicRangeSEIs:
+  {
+    HighDynamicRangeSeis modHDRSEIs;
+    module->GetDynamic(DYNAMIC_INDEX_HIGH_DYNAMIC_RANGE_SEIS, &modHDRSEIs);
+    auto& hdrSEIs = *(static_cast<OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS*>(config));
+    hdrSEIs = ConvertMediaToOMXHDRSEIs(modHDRSEIs);
+    return OMX_ErrorNone;
+  }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
@@ -1318,6 +1393,13 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
     processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoInsertSuffixSEI, shared_ptr<void>(seiSuffix)));
     return OMX_ErrorNone;
   }
+  case OMX_ALG_IndexConfigVideoHighDynamicRangeSEIs:
+  {
+    OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS* hdrSEIS = new OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS {};
+    memcpy(hdrSEIS, static_cast<OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS*>(config), sizeof(OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS));
+    processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoHighDynamicRangeSEIs, shared_ptr<void>(hdrSEIS)));
+    return OMX_ErrorNone;
+  }
   case OMX_ALG_IndexConfigVideoNotifyResolutionChange:
   {
     OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE* drc = new OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE;
@@ -1329,9 +1411,6 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
   {
     QPs qps;
     media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &qps);
-
-    if(qps.mode == QPControlType::QP_ROI)
-      return OMX_ErrorUnsupportedIndex;
     OMX_ALG_VIDEO_CONFIG_DATA* userData = static_cast<OMX_ALG_VIDEO_CONFIG_DATA*>(config);
     OMX_ALG_VIDEO_CONFIG_DATA* data = new OMX_ALG_VIDEO_CONFIG_DATA {};
     memcpy(data, userData, sizeof(OMX_ALG_VIDEO_CONFIG_DATA));
@@ -1677,11 +1756,12 @@ void Component::TreatDisablePortCommand(Task task)
     FlushFillEmptyBuffers(!isInput, isInput);
     BlockFillEmptyBuffers(true, shouldPrealloc);
 
-    if(shouldPrealloc && (state == OMX_StateExecuting || state == OMX_StatePause))
+    if(shouldPrealloc && shouldFireEventPortSettingsChanges && (state == OMX_StateExecuting || state == OMX_StatePause))
     {
       if(module->Stop())
         module->Start(true);
       callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_EventPortSettingsChanged), 1, 0, nullptr);
+      shouldFireEventPortSettingsChanges = false;
     }
 
     port->WaitEmpty();
@@ -1712,11 +1792,12 @@ void Component::TreatEnablePortCommand(Task task)
 
     port->isTransientToEnable = false;
 
-    if(shouldPrealloc && (state == OMX_StateExecuting || state == OMX_StatePause))
+    if(shouldPrealloc && shouldFireEventPortSettingsChanges && (state == OMX_StateExecuting || state == OMX_StatePause))
     {
       if(module->Stop())
         module->Start(true);
       callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_EventPortSettingsChanged), 1, 0, nullptr);
+      shouldFireEventPortSettingsChanges = false;
     }
 
     if(input.enable && output.enable && !input.isTransientToEnable && !output.isTransientToEnable && state != OMX_StatePause)
@@ -1806,8 +1887,8 @@ void Component::TreatFillBufferCommand(Task task)
 RegionQuality CreateRegionQuality(OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST const& roi)
 {
   RegionQuality rq {};
-  rq.region.x = roi.nLeft;
-  rq.region.y = roi.nTop;
+  rq.region.point.x = roi.nLeft;
+  rq.region.point.y = roi.nTop;
   rq.region.width = roi.nWidth;
   rq.region.height = roi.nHeight;
   rq.quality = ConvertOMXToMediaQuality(roi.eQuality);
@@ -1878,7 +1959,6 @@ void Component::TreatDynamicCommand(Task task)
     module->SetDynamic(DYNAMIC_INDEX_NOTIFY_SCENE_CHANGE, (void*)(static_cast<intptr_t>(notifySceneChange->nLookAhead)));
     return;
   }
-
   case OMX_ALG_IndexConfigVideoInsertLongTerm:
   {
     module->SetDynamic(DYNAMIC_INDEX_IS_LONG_TERM, nullptr);
@@ -1903,6 +1983,12 @@ void Component::TreatDynamicCommand(Task task)
       *static_cast<OMX_ALG_VIDEO_CONFIG_SEI*>(opt), false
     };
     tmpSeis.push_back(suffix);
+    return;
+  }
+  case OMX_ALG_IndexConfigVideoHighDynamicRangeSEIs:
+  {
+    auto hdrSEIs = ConvertOMXToMediaHDRSEIs(*static_cast<OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS*>(opt));
+    module->SetDynamic(DYNAMIC_INDEX_HIGH_DYNAMIC_RANGE_SEIS, &hdrSEIs);
     return;
   }
   case OMX_ALG_IndexConfigVideoNotifyResolutionChange:

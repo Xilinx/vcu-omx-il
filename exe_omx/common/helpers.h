@@ -47,6 +47,7 @@
 #include <sstream>
 #include <iostream>
 #include <utility/logger.h>
+#include <utility/scope_exit.h>
 
 #define OMX_CALL(a) \
   do { \
@@ -104,7 +105,7 @@ static inline OMX_ERRORTYPE showComponentVersion(OMX_HANDLETYPE* handle)
 template<typename T>
 static
 inline
-void initHeader(T& header)
+void InitHeader(T& header)
 {
   memset(&header, 0, sizeof(T));
   header.nSize = sizeof(header);
@@ -116,29 +117,49 @@ void initHeader(T& header)
 }
 
 void Buffer_FreeData(char* data, bool use_dmabuf);
-char* Buffer_MapData(char* data, size_t zSize, bool use_dmabuf);
-void Buffer_UnmapData(char* data, size_t zSize, bool use_dmabuf);
+char* Buffer_MapData(char* data, size_t offset, size_t size, bool use_dmabuf);
+void Buffer_UnmapData(char* data, size_t size, bool use_dmabuf);
 
-template<typename Lambda>
-struct ScopeExitClass
+template<typename T>
+static OMX_ERRORTYPE PortSetup(OMX_HANDLETYPE handle, OMX_INDEXTYPE index, std::function<void(T &)> modification, int port)
 {
-  ScopeExitClass(Lambda fn) :
-    m_fn(fn)
-  {
-  }
+  T setup;
+  InitHeader(setup);
+  setup.nPortIndex = port;
 
-  ~ScopeExitClass()
-  {
-    m_fn();
-  }
+  auto error = OMX_GetParameter(handle, index, &setup);
 
-private:
-  Lambda m_fn;
-};
+  if(error != OMX_ErrorNone)
+    return error;
 
-template<typename Lambda>
-ScopeExitClass<Lambda> scopeExit(Lambda fn)
+  T rollback = setup;
+
+  modification(setup);
+  error = OMX_SetParameter(handle, index, &setup);
+
+  if(error != OMX_ErrorNone)
+    OMX_SetParameter(handle, index, &rollback);
+  return error;
+}
+
+template<typename T>
+static OMX_ERRORTYPE Setup(OMX_HANDLETYPE handle, OMX_INDEXTYPE index, std::function<void(T &)> modification)
 {
-  return ScopeExitClass<Lambda>(fn);
+  T setup;
+  InitHeader(setup);
+
+  auto error = OMX_GetParameter(handle, index, &setup);
+
+  if(error != OMX_ErrorNone)
+    return error;
+
+  T rollback = setup;
+
+  modification(setup);
+  error = OMX_SetParameter(handle, index, &setup);
+
+  if(error != OMX_ErrorNone)
+    OMX_SetParameter(handle, index, &rollback);
+  return error;
 }
 

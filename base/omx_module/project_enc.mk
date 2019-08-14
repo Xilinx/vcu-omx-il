@@ -3,7 +3,7 @@ THIS.module_enc:=$(call get-my-dir)
 MODULE_ENC_SRCS+=\
                  $(THIS.module_enc)/mediatype_enc_avc.cpp\
                  $(THIS.module_enc)/mediatype_enc_hevc.cpp\
-                 $(THIS.module_enc)/mediatype_enc_common.cpp\
+                 $(THIS.module_enc)/mediatype_enc_itu.cpp\
                  $(THIS.module_enc)/convert_module_soft_enc.cpp\
                  $(THIS.module_enc)/module_enc.cpp\
                  $(THIS.module_enc)/memory_interface.cpp\
@@ -14,7 +14,6 @@ MODULE_ENC_SRCS+=\
                  $(THIS.module_enc)/ROIMngr.cpp\
                  $(THIS.module_enc)/TwoPassMngr.cpp\
                  $(THIS.module_enc)/convert_module_soft_roi.cpp\
-                 $(THIS.module_enc)/sync_ip_enc.cpp\
 
 ifeq ($(ENABLE_VCU),0)
   MODULE_ENC_SRCS+=\

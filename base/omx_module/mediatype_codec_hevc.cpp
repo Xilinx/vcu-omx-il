@@ -35,7 +35,7 @@
 *
 ******************************************************************************/
 
-#include "mediatype_common_hevc.h"
+#include "mediatype_codec_hevc.h"
 #include "convert_module_soft_hevc.h"
 
 using namespace std;

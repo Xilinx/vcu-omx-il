@@ -80,7 +80,6 @@
 #include <utility/omx_translate.h>
 
 #include "../common/helpers.h"
-#include "../common/setters.h"
 #include "../common/getters.h"
 #include "../common/CommandLineParser.h"
 #include "../common/codec.h"
@@ -182,7 +181,7 @@ static OMX_PARAM_PORTDEFINITIONTYPE paramPort;
 static OMX_ERRORTYPE setEnableLongTerm(Application& app)
 {
   OMX_ALG_VIDEO_PARAM_LONG_TERM lt;
-  initHeader(lt);
+  InitHeader(lt);
   lt.nPortIndex = 0;
   OMX_CALL(OMX_GetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLongTerm), &lt));
   lt.bEnableLongTerm = OMX_TRUE;
@@ -193,7 +192,7 @@ static OMX_ERRORTYPE setEnableLongTerm(Application& app)
 static OMX_ERRORTYPE setPortParameters(Application& app)
 {
   OMX_VIDEO_PARAM_PORTFORMATTYPE inParamFormat;
-  initHeader(inParamFormat);
+  InitHeader(inParamFormat);
   inParamFormat.nPortIndex = 0;
   OMX_CALL(OMX_GetParameter(app.hEncoder, OMX_IndexParamVideoPortFormat, &inParamFormat));
 
@@ -202,7 +201,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
 
   OMX_CALL(OMX_SetParameter(app.hEncoder, OMX_IndexParamVideoPortFormat, &inParamFormat));
 
-  initHeader(paramPort);
+  InitHeader(paramPort);
   paramPort.nPortIndex = 0;
   OMX_CALL(OMX_GetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPort));
   paramPort.format.video.nFrameWidth = app.settings.width;
@@ -213,24 +212,23 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   OMX_CALL(OMX_SetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPort));
   OMX_CALL(OMX_GetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPort));
 
-  Setters setter {
-    &app.hEncoder
-  };
-  auto isBufModeSetted = setter.SetBufferMode(app.input.index, GetBufferMode(app.input.isDMA));
-  assert(isBufModeSetted);
-  isBufModeSetted = setter.SetBufferMode(app.output.index, GetBufferMode(app.output.isDMA));
-  assert(isBufModeSetted);
+  auto updateBufferMode = [&](OMX_ALG_PORT_PARAM_BUFFER_MODE& mode)
+                          {
+                            mode.eMode = (static_cast<int>(mode.nPortIndex) == app.input.index) ? GetBufferMode(app.input.isDMA) : GetBufferMode(app.output.isDMA);
+                          };
+  OMX_CALL(PortSetup<OMX_ALG_PORT_PARAM_BUFFER_MODE>(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexPortParamBufferMode), updateBufferMode, 0));
+  OMX_CALL(PortSetup<OMX_ALG_PORT_PARAM_BUFFER_MODE>(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexPortParamBufferMode), updateBufferMode, 1));
 
   if(user_slice)
   {
     OMX_ALG_VIDEO_PARAM_SLICES slices;
-    initHeader(slices);
+    InitHeader(slices);
     slices.nPortIndex = 1;
     slices.nNumSlices = user_slice;
     OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSlices), &slices);
 
     OMX_ALG_VIDEO_PARAM_SUBFRAME sub;
-    initHeader(sub);
+    InitHeader(sub);
     sub.nPortIndex = 1;
     sub.bEnableSubframe = OMX_TRUE;
     OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSubframe), &sub);
@@ -240,7 +238,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   if(app.settings.lookahead)
   {
     OMX_ALG_VIDEO_PARAM_LOOKAHEAD la;
-    initHeader(la);
+    InitHeader(la);
     la.nPortIndex = 1;
     la.nLookAhead = app.settings.lookahead;
     la.bEnableFirstPassSceneChangeDetection = OMX_FALSE;
@@ -250,7 +248,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   if(app.settings.pass)
   {
     OMX_ALG_VIDEO_PARAM_TWOPASS tp;
-    initHeader(tp);
+    InitHeader(tp);
     tp.nPortIndex = 1;
     tp.nPass = app.settings.pass;
     strncpy((char*)tp.cLogFile, app.settings.twoPassLogFile.c_str(), OMX_MAX_STRINGNAME_SIZE);
@@ -258,7 +256,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   }
 
   OMX_PARAM_PORTDEFINITIONTYPE paramPortForActual;
-  initHeader(paramPortForActual);
+  InitHeader(paramPortForActual);
   paramPortForActual.nPortIndex = 0;
   OMX_CALL(OMX_GetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPortForActual));
   paramPortForActual.nBufferCountActual = paramPortForActual.nBufferCountMin + 4; // alloc max for b frames
@@ -295,7 +293,7 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   bool help = false;
   string fourcc = "nv12";
 
-  auto opt = CommandLineParser();
+  CommandLineParser opt {};
   opt.addString("input_file", &input_file, "Input file");
   opt.addFlag("--help", &help, "Show this help");
   opt.addInt("--width", &settings.width, "Input width ('176')");
@@ -412,7 +410,7 @@ static bool readOneYuvFrame(OMX_BUFFERHEADERTYPE* pBufferHdr, Application const&
 
   infile.read((char*)frame.data(), frame.size());
 
-  auto dst = Buffer_MapData((char*)(pBufferHdr->pBuffer + pBufferHdr->nOffset), pBufferHdr->nAllocLen, app.input.isDMA);
+  auto dst = Buffer_MapData((char*)(pBufferHdr->pBuffer), pBufferHdr->nOffset, pBufferHdr->nAllocLen, app.input.isDMA);
 
   /* luma */
   for(auto h = 0; h < (int)height; h++)
@@ -556,7 +554,7 @@ static OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR 
 
   if(zMapSize)
   {
-    auto data = Buffer_MapData((char*)(pBufferHdr->pBuffer + pBufferHdr->nOffset), zMapSize, app->output.isDMA);
+    auto data = Buffer_MapData((char*)(pBufferHdr->pBuffer), pBufferHdr->nOffset, zMapSize, app->output.isDMA);
 
     if(data)
     {
@@ -805,15 +803,17 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   OMX_ALG_VIDEO_CONFIG_SEI seiPrefix;
   OMX_ALG_VIDEO_CONFIG_SEI seiSuffix;
-  initHeader(seiPrefix);
-  initHeader(seiSuffix);
+  InitHeader(seiPrefix);
+  InitHeader(seiSuffix);
   seiPrefix.nType = 15;
   seiPrefix.pBuffer = new OMX_U8[128];
+  auto scopeSeiPrefix = scopeExit([&]() { delete[] seiPrefix.pBuffer; });
   seiPrefix.nOffset = 0;
   seiPrefix.nFilledLen = 128;
   seiPrefix.nAllocLen = 128;
   seiSuffix.nType = 18;
   seiSuffix.pBuffer = new OMX_U8[128];
+  auto scopeSeiSuffix = scopeExit([&]() { delete[] seiSuffix.pBuffer; });
   seiSuffix.nOffset = 0;
   seiSuffix.nFilledLen = 128;
   seiSuffix.nAllocLen = 128;
@@ -847,8 +847,6 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   app.eof.wait();
   LOG_VERBOSE("EOS received\n");
-  delete[] seiPrefix.pBuffer;
-  delete[] seiSuffix.pBuffer;
 
   /** send flush in input port */
   app.input.isFlushing = true;

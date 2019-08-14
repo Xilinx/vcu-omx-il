@@ -416,44 +416,56 @@ EntropyCodingType ConvertOMXToMediaEntropyCoding(OMX_BOOL isCabac)
   return EntropyCodingType::ENTROPY_CODING_CABAC;
 }
 
-int ConvertOMXToMediaQPInitial(OMX_U32 qpI)
+int ConvertOMXToMediaQpInitial(OMX_U32 qpI)
 {
   return qpI;
 }
 
-int ConvertOMXToMediaQPDeltaIP(OMX_U32 qpI, OMX_U32 qpP)
+int ConvertOMXToMediaQpDeltaIP(OMX_U32 qpI, OMX_U32 qpP)
 {
   return qpP - qpI;
 }
 
-int ConvertOMXToMediaQPDeltaPB(OMX_U32 qpP, OMX_U32 qpB)
+int ConvertOMXToMediaQpDeltaPB(OMX_U32 qpP, OMX_U32 qpB)
 {
   return qpB - qpP;
 }
 
-int ConvertOMXToMediaQPMin(OMX_S32 qpMin)
+int ConvertOMXToMediaQpMin(OMX_S32 qpMin)
 {
   return qpMin;
 }
 
-int ConvertOMXToMediaQPMax(OMX_S32 qpMax)
+int ConvertOMXToMediaQpMax(OMX_S32 qpMax)
 {
   return qpMax;
 }
 
-QPControlType ConvertOMXToMediaQPControl(OMX_ALG_EQpCtrlMode mode)
+QPMode ConvertOMXToMediaQpMode(OMX_ALG_EQpCtrlMode mode)
 {
-  switch(mode)
-  {
-  case OMX_ALG_UNIFORM_QP: return QPControlType::QP_UNIFORM;
-  case OMX_ALG_ROI_QP: return QPControlType::QP_ROI;
-  case OMX_ALG_AUTO_QP: return QPControlType::QP_AUTO;
-  case OMX_ALG_ROI_AUTO_QP: return QPControlType::QP_ROI_AUTO;
-  case OMX_ALG_MAX_ENUM_QP: return QPControlType::QP_MAX_ENUM;
-  default: return QPControlType::QP_MAX_ENUM;
-  }
+  if(mode == OMX_ALG_UNIFORM_QP)
+    return QPMode {
+             QPControlType::QP_CONTROL_NONE, QPTableType::QP_TABLE_NONE
+    };
 
-  return QPControlType::QP_MAX_ENUM;
+  if(mode == OMX_ALG_ROI_QP)
+    return QPMode {
+             QPControlType::QP_CONTROL_NONE, QPTableType::QP_TABLE_RELATIVE
+    };
+
+  if(mode == OMX_ALG_AUTO_QP)
+    return QPMode {
+             QPControlType::QP_CONTROL_AUTO, QPTableType::QP_TABLE_NONE
+    };
+
+  if(mode == OMX_ALG_AUTO_QP)
+    return QPMode {
+             QPControlType::QP_CONTROL_AUTO, QPTableType::QP_TABLE_RELATIVE
+    };
+
+  return QPMode {
+           QPControlType::QP_CONTROL_MAX_ENUM, QPTableType::QP_TABLE_MAX_ENUM
+  };
 }
 
 RateControlType ConvertOMXToMediaControlRate(OMX_VIDEO_CONTROLRATETYPE mode)
@@ -465,6 +477,7 @@ RateControlType ConvertOMXToMediaControlRate(OMX_VIDEO_CONTROLRATETYPE mode)
   case OMX_Video_ControlRateVariable: return RateControlType::RATE_CONTROL_VARIABLE_BITRATE;
   case OMX_ALG_Video_ControlRateVariableCapped: return RateControlType::RATE_CONTROL_VARIABLE_CAPPED_BITRATE;
   case OMX_ALG_Video_ControlRateLowLatency: return RateControlType::RATE_CONTROL_LOW_LATENCY;
+  case OMX_ALG_Video_ControlRatePlugin: return RateControlType::RATE_CONTROL_PLUGIN;
   case OMX_ALG_Video_ControlRateMaxEnum: return RateControlType::RATE_CONTROL_MAX_ENUM;
   default: return RateControlType::RATE_CONTROL_MAX_ENUM;
   }
@@ -580,17 +593,19 @@ OMX_S32 ConvertMediaToOMXQpMax(QPs qps)
   return qps.max;
 }
 
-OMX_ALG_EQpCtrlMode ConvertMediaToOMXQpControl(QPs qps)
+OMX_ALG_EQpCtrlMode ConvertMediaToOMXQpMode(QPMode mode)
 {
-  switch(qps.mode)
-  {
-  case QPControlType::QP_UNIFORM: return OMX_ALG_UNIFORM_QP;
-  case QPControlType::QP_ROI: return OMX_ALG_ROI_QP;
-  case QPControlType::QP_AUTO: return OMX_ALG_AUTO_QP;
-  case QPControlType::QP_ROI_AUTO: return OMX_ALG_ROI_AUTO_QP;
-  case QPControlType::QP_MAX_ENUM: return OMX_ALG_MAX_ENUM_QP;
-  default: return OMX_ALG_MAX_ENUM_QP;
-  }
+  if((mode.ctrl == QPControlType::QP_CONTROL_NONE) && (mode.table == QPTableType::QP_TABLE_NONE))
+    return OMX_ALG_UNIFORM_QP;
+
+  if((mode.ctrl == QPControlType::QP_CONTROL_NONE) && (mode.table == QPTableType::QP_TABLE_RELATIVE))
+    return OMX_ALG_ROI_QP;
+
+  if((mode.ctrl == QPControlType::QP_CONTROL_AUTO) && (mode.table == QPTableType::QP_TABLE_NONE))
+    return OMX_ALG_AUTO_QP;
+
+  if((mode.ctrl == QPControlType::QP_CONTROL_AUTO) && (mode.table == QPTableType::QP_TABLE_RELATIVE))
+    return OMX_ALG_ROI_AUTO_QP;
 
   return OMX_ALG_MAX_ENUM_QP;
 }
@@ -604,6 +619,7 @@ OMX_VIDEO_CONTROLRATETYPE ConvertMediaToOMXControlRate(RateControlType mode)
   case RateControlType::RATE_CONTROL_VARIABLE_BITRATE: return OMX_Video_ControlRateVariable;
   case RateControlType::RATE_CONTROL_VARIABLE_CAPPED_BITRATE: return static_cast<OMX_VIDEO_CONTROLRATETYPE>(OMX_ALG_Video_ControlRateVariableCapped);
   case RateControlType::RATE_CONTROL_LOW_LATENCY: return static_cast<OMX_VIDEO_CONTROLRATETYPE>(OMX_ALG_Video_ControlRateLowLatency);
+  case RateControlType::RATE_CONTROL_PLUGIN: return static_cast<OMX_VIDEO_CONTROLRATETYPE>(OMX_ALG_Video_ControlRatePlugin);
   case RateControlType::RATE_CONTROL_MAX_ENUM: return OMX_Video_ControlRateMax;
   default: return OMX_Video_ControlRateMax;
   }
@@ -1146,5 +1162,115 @@ ColorPrimariesType ConvertOMXToMediaColorPrimaries(OMX_ALG_VIDEO_COLOR_PRIMARIES
   }
 
   return ColorPrimariesType::COLOR_PRIMARIES_MAX_ENUM;
+}
+
+OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS ConvertMediaToOMXTransferCharacteristics(TransferCharacteristicsType transferCharac)
+{
+  switch(transferCharac)
+  {
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_UNSPECIFIED: return OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_UNSPECIFIED;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2100_PQ: return OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_BT_2100_PQ;
+  default: return OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_MAX_ENUM;
+  }
+
+  return OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_MAX_ENUM;
+}
+
+TransferCharacteristicsType ConvertOMXToMediaTransferCharacteristics(OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS transferCharac)
+{
+  switch(transferCharac)
+  {
+  case OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_UNSPECIFIED: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_UNSPECIFIED;
+  case OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_BT_2100_PQ: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2100_PQ;
+  default: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_MAX_ENUM;
+  }
+
+  return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_MAX_ENUM;
+}
+
+OMX_ALG_VIDEO_COLOR_MATRIX ConvertMediaToOMXColourMatrix(ColourMatrixType colourMatrix)
+{
+  switch(colourMatrix)
+  {
+  case ColourMatrixType::COLOUR_MATRIX_UNSPECIFIED: return OMX_ALG_VIDEO_COLOR_MATRIX_UNSPECIFIED;
+  case ColourMatrixType::COLOUR_MATRIX_BT_2100_YCBCR: return OMX_ALG_VIDEO_COLOR_MATRIX_BT_2100_YCBCR;
+  default: return OMX_ALG_VIDEO_COLOR_MATRIX_MAX_ENUM;
+  }
+
+  return OMX_ALG_VIDEO_COLOR_MATRIX_MAX_ENUM;
+}
+
+ColourMatrixType ConvertOMXToMediaColourMatrix(OMX_ALG_VIDEO_COLOR_MATRIX colourMatrix)
+{
+  switch(colourMatrix)
+  {
+  case OMX_ALG_VIDEO_COLOR_MATRIX_UNSPECIFIED: return ColourMatrixType::COLOUR_MATRIX_UNSPECIFIED;
+  case OMX_ALG_VIDEO_COLOR_MATRIX_BT_2100_YCBCR: return ColourMatrixType::COLOUR_MATRIX_BT_2100_YCBCR;
+  default: return ColourMatrixType::COLOUR_MATRIX_MAX_ENUM;
+  }
+
+  return ColourMatrixType::COLOUR_MATRIX_MAX_ENUM;
+}
+
+OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS ConvertMediaToOMXHDRSEIs(const HighDynamicRangeSeis& hdrSEIs)
+{
+  OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS omxHDRSEIs;
+
+  omxHDRSEIs.bHasMDCV = ConvertMediaToOMXBool(hdrSEIs.hasMDCV);
+
+  if(hdrSEIs.hasMDCV)
+  {
+    for(int i = 0; i < 3; i++)
+    {
+      omxHDRSEIs.masteringDisplayColourVolume.displayPrimaries[i].nX = hdrSEIs.masteringDisplayColourVolume.displayPrimaries[i].x;
+      omxHDRSEIs.masteringDisplayColourVolume.displayPrimaries[i].nY = hdrSEIs.masteringDisplayColourVolume.displayPrimaries[i].y;
+    }
+
+    omxHDRSEIs.masteringDisplayColourVolume.whitePoint.nX = hdrSEIs.masteringDisplayColourVolume.whitePoint.x;
+    omxHDRSEIs.masteringDisplayColourVolume.whitePoint.nY = hdrSEIs.masteringDisplayColourVolume.whitePoint.y;
+    omxHDRSEIs.masteringDisplayColourVolume.nMaxDisplayMasteringLuminance = hdrSEIs.masteringDisplayColourVolume.maxDisplayMasteringLuminance;
+    omxHDRSEIs.masteringDisplayColourVolume.nMinDisplayMasteringLuminance = hdrSEIs.masteringDisplayColourVolume.minDisplayMasteringLuminance;
+  }
+
+  omxHDRSEIs.bHasCLL = ConvertMediaToOMXBool(hdrSEIs.hasCLL);
+
+  if(hdrSEIs.hasCLL)
+  {
+    omxHDRSEIs.contentLightLevel.nMaxContentLightLevel = hdrSEIs.contentLightLevel.maxContentLightLevel;
+    omxHDRSEIs.contentLightLevel.nMaxPicAverageLightLevel = hdrSEIs.contentLightLevel.maxPicAverageLightLevel;
+  }
+
+  return omxHDRSEIs;
+}
+
+HighDynamicRangeSeis ConvertOMXToMediaHDRSEIs(const OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS& hdrSEIs)
+{
+  HighDynamicRangeSeis modHDRSEIs;
+
+  modHDRSEIs.hasMDCV = ConvertOMXToMediaBool(hdrSEIs.bHasMDCV);
+
+  if(modHDRSEIs.hasMDCV)
+  {
+    for(int i = 0; i < 3; i++)
+    {
+      modHDRSEIs.masteringDisplayColourVolume.displayPrimaries[i].x = hdrSEIs.masteringDisplayColourVolume.displayPrimaries[i].nX;
+      modHDRSEIs.masteringDisplayColourVolume.displayPrimaries[i].y = hdrSEIs.masteringDisplayColourVolume.displayPrimaries[i].nY;
+    }
+
+    modHDRSEIs.masteringDisplayColourVolume.whitePoint.x = hdrSEIs.masteringDisplayColourVolume.whitePoint.nX;
+    modHDRSEIs.masteringDisplayColourVolume.whitePoint.y = hdrSEIs.masteringDisplayColourVolume.whitePoint.nY;
+    modHDRSEIs.masteringDisplayColourVolume.maxDisplayMasteringLuminance = hdrSEIs.masteringDisplayColourVolume.nMaxDisplayMasteringLuminance;
+    modHDRSEIs.masteringDisplayColourVolume.minDisplayMasteringLuminance = hdrSEIs.masteringDisplayColourVolume.nMinDisplayMasteringLuminance;
+  }
+
+  modHDRSEIs.hasCLL = ConvertOMXToMediaBool(hdrSEIs.bHasCLL);
+
+  if(modHDRSEIs.hasCLL)
+  {
+    modHDRSEIs.contentLightLevel.maxContentLightLevel = hdrSEIs.contentLightLevel.nMaxContentLightLevel;
+    modHDRSEIs.contentLightLevel.maxPicAverageLightLevel = hdrSEIs.contentLightLevel.nMaxPicAverageLightLevel;
+  }
+
+  return modHDRSEIs;
 }
 

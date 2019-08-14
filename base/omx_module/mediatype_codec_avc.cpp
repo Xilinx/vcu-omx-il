@@ -35,31 +35,34 @@
 *
 ******************************************************************************/
 
-#pragma once
+#include "mediatype_codec_avc.h"
+#include "convert_module_soft_avc.h"
 
-#include "sync_ip_interface.h"
-#include "SyncIp.h"
-#include "mediatype_interface.h"
-#include <memory>
+using namespace std;
 
-extern "C"
+vector<ProfileLevel> CreateAVCProfileLevelSupported(vector<AVCProfileType> profiles, vector<int> levels)
 {
-#include <lib_common/IDriver.h>
-#include <lib_common/Allocator.h>
+  vector<ProfileLevel> plSupported;
+
+  for(auto profile : profiles)
+  {
+    for(auto level : levels)
+    {
+      ProfileLevel pl;
+      pl.profile.avc = profile;
+      pl.level = level;
+      plSupported.push_back(pl);
+    }
+  }
+
+  return plSupported;
 }
 
-struct EncSyncIp : SyncIpInterface
+ProfileLevel CreateAVCProfileLevel(AL_EProfile profile, int level)
 {
-  EncSyncIp(std::shared_ptr<MediatypeInterface> media, std::shared_ptr<AL_TAllocator> allocator, int hardwareHorizontalStrideAlignment, int hardwareVerticalStrideAlignment);
-  ~EncSyncIp() = default;
-
-  void addBuffer(BufferHandleInterface*) override;
-  void enable() override;
-
-private:
-  std::shared_ptr<MediatypeInterface> media;
-  std::shared_ptr<AL_TAllocator> allocator;
-  SyncIp syncIp;
-  EncSyncChannel sync;
-};
+  ProfileLevel pl;
+  pl.profile.avc = ConvertSoftToModuleAVCProfile(profile);
+  pl.level = level;
+  return pl;
+}
 

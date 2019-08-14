@@ -135,6 +135,12 @@ OMX_ERRORTYPE SetVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS const& tp, Port const&
 OMX_ERRORTYPE ConstructVideoColorPrimaries(OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES& colorPrimaries, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoColorPrimaries(OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES const& colorPrimaries, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
+OMX_ERRORTYPE ConstructVideoTransferCharacteristics(OMX_ALG_VIDEO_PARAM_TRANSFER_CHARACTERISTICS& transferCharac, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoTransferCharacteristics(OMX_ALG_VIDEO_PARAM_TRANSFER_CHARACTERISTICS const& transferCharac, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
+OMX_ERRORTYPE ConstructVideoColorMatrix(OMX_ALG_VIDEO_PARAM_COLOR_MATRIX& colorMatrix, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoColorMatrix(OMX_ALG_VIDEO_PARAM_COLOR_MATRIX const& colorMatrix, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
 OMX_ERRORTYPE ConstructVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE& maxPictureSizes, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE const& maxPictureSizes, Port const& port, std::shared_ptr<MediatypeInterface> media);
 

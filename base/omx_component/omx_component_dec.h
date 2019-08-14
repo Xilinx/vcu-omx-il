@@ -41,7 +41,6 @@
 
 #include "omx_component.h"
 #include "base/omx_module/module_dec.h"
-#include "base/omx_module/sync_ip_interface.h"
 #include <list>
 
 struct DecComponent final : Component
@@ -77,7 +76,6 @@ private:
   void TreatEmptyBufferCommand(Task* task) override;
   std::list<PropagatedData> transmit;
   std::mutex mutex;
-  std::shared_ptr<SyncIpInterface> syncIp;
   bool shouldPropagateData;
 };
 

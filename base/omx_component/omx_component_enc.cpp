@@ -45,6 +45,7 @@
 #include <cmath>
 
 #include "base/omx_checker/omx_checker.h"
+#include "base/omx_module/sync_ip_null.h"
 
 #include "omx_component_getset.h"
 
@@ -63,8 +64,8 @@ static BufferHandleType GetBufferHandlePort(shared_ptr<MediatypeInterface> media
   return bufferHandlePort;
 }
 
-EncComponent::EncComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise, std::shared_ptr<SyncIpInterface> syncIp) :
-  Component(component, media, std::move(module), std::move(expertise), name, role), syncIp(syncIp)
+EncComponent::EncComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise) :
+  Component{component, media, std::move(module), std::move(expertise), std::shared_ptr<SyncIpInterface>(new NullSyncIp {}), name, role}
 {
 }
 
@@ -167,9 +168,6 @@ void EncComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
   auto payload = ((OMXBufferHandle*)filled)->payload;
   delete filled;
 
-  if(header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME)
-    syncIp->addBuffer(nullptr);
-
   ReturnFilledBuffer(header, offset, payload);
 }
 
@@ -234,19 +232,7 @@ OMX_ERRORTYPE EncComponent::UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX
     auto roiBuffer = AllocateROIBuffer();
     roiFreeBuffers.push(roiBuffer);
     roiDestroyMap.Add(*header, roiBuffer);
-
-    auto bufferHandlePort = GetBufferHandlePort(media, index);
-    bool dmaOnPort = (bufferHandlePort == BufferHandleType::BUFFER_HANDLE_FD);
-
-    if(dmaOnPort)
-    {
-      auto handle = OMXBufferHandle(*header);
-      syncIp->addBuffer(&handle);
-    }
   }
-
-  if(port->playable && IsInputPort(index))
-    syncIp->enable();
 
   return OMX_ErrorNone;
   OMX_CATCH_L([&](OMX_ERRORTYPE& e)
@@ -279,38 +265,11 @@ OMX_ERRORTYPE EncComponent::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** head
   assert(*header);
   port->Add(*header);
 
-  static OMX_BUFFERHEADERTYPE* firstBufferHeader = nullptr;
-
-  if(firstBufferHeader == nullptr)
-    firstBufferHeader = *header;
-
   if(IsInputPort(index))
   {
     auto roiBuffer = AllocateROIBuffer();
     roiFreeBuffers.push(roiBuffer);
     roiDestroyMap.Add(*header, roiBuffer);
-
-    if(dmaOnPort)
-    {
-      static bool isFirstBuffer = true;
-
-      if(!isFirstBuffer)
-      {
-        auto handle = OMXBufferHandle(*header);
-        syncIp->addBuffer(&handle);
-      }
-      isFirstBuffer = false;
-    }
-  }
-
-  if(port->playable && IsInputPort(index))
-  {
-    if(firstBufferHeader != nullptr)
-    {
-      auto handle = OMXBufferHandle(firstBufferHeader);
-      syncIp->addBuffer(&handle);
-    }
-    syncIp->enable();
   }
 
   return OMX_ErrorNone;

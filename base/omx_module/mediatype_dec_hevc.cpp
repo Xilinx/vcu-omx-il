@@ -40,10 +40,10 @@
 #include <cassert>
 #include <utility/round.h>
 #include "mediatype_dec_hevc.h"
-#include "mediatype_dec_common.h"
+#include "mediatype_dec_itu.h"
+#include "mediatype_codec_hevc.h"
+#include "mediatype_codec_itu.h"
 #include "mediatype_checks.h"
-#include "mediatype_common_hevc.h"
-#include "mediatype_common.h"
 #include "convert_module_soft_hevc.h"
 
 using namespace std;

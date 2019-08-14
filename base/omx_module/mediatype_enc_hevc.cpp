@@ -36,9 +36,9 @@
 ******************************************************************************/
 
 #include "mediatype_enc_hevc.h"
-#include "mediatype_enc_common.h"
-#include "mediatype_common_hevc.h"
-#include "mediatype_common.h"
+#include "mediatype_enc_itu.h"
+#include "mediatype_codec_hevc.h"
+#include "mediatype_codec_itu.h"
 #include "mediatype_checks.h"
 #include "convert_module_soft_hevc.h"
 #include "convert_module_soft_enc.h"
@@ -92,11 +92,12 @@ void EncMediatypeHEVC::Reset()
   rateControl.uFrameRate = 15;
   auto& gopParam = channel.tGopParam;
   gopParam.bEnableLT = false;
-  settings.bEnableFillerData = true;
+  settings.eEnableFillerData = AL_FILLER_APP;
   settings.bEnableAUD = false;
   settings.iPrefetchLevel2 = 0;
   settings.LookAhead = 0;
   settings.TwoPass = 0;
+  settings.uEnableSEI |= AL_SEI_MDCV | AL_SEI_CLL;
 
   stride = RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignments.horizontal);
   sliceHeight = RoundUp(static_cast<int>(channel.uHeight), strideAlignments.vertical);
@@ -372,6 +373,18 @@ MediatypeInterface::ErrorType EncMediatypeHEVC::Get(std::string index, void* set
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_TRANSFER_CHARACTERISTICS")
+  {
+    *(static_cast<TransferCharacteristicsType*>(settings)) = CreateTransferCharacteristics(this->settings);
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_COLOUR_MATRIX")
+  {
+    *(static_cast<ColourMatrixType*>(settings)) = CreateColourMatrix(this->settings);
+    return SUCCESS;
+  }
+
 
   if(index == "SETTINGS_INDEX_LOOKAHEAD")
   {
@@ -400,6 +413,12 @@ MediatypeInterface::ErrorType EncMediatypeHEVC::Get(std::string index, void* set
   if(index == "SETTINGS_INDEX_LOOP_FILTER_BETA")
   {
     *static_cast<int*>(settings) = CreateLoopFilterBeta(this->settings);
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_LOOP_FILTER_TC")
+  {
+    *static_cast<int*>(settings) = CreateLoopFilterTc(this->settings);
     return SUCCESS;
   }
 
@@ -641,6 +660,24 @@ MediatypeInterface::ErrorType EncMediatypeHEVC::Set(std::string index, void cons
     auto colorimerty = *(static_cast<ColorPrimariesType const*>(settings));
 
     if(!UpdateColorPrimaries(this->settings, colorimerty))
+      return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_TRANSFER_CHARACTERISTICS")
+  {
+    auto transferCharac = *(static_cast<TransferCharacteristicsType const*>(settings));
+
+    if(!UpdateTransferCharacteristics(this->settings, transferCharac))
+      return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_COLOUR_MATRIX")
+  {
+    auto colourMatrix = *(static_cast<ColourMatrixType const*>(settings));
+
+    if(!UpdateColourMatrix(this->settings, colourMatrix))
       return BAD_PARAMETER;
     return SUCCESS;
   }

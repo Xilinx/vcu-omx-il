@@ -35,34 +35,30 @@
 *
 ******************************************************************************/
 
-#include "mediatype_common_avc.h"
-#include "convert_module_soft_avc.h"
+#pragma once
 
-using namespace std;
-
-vector<ProfileLevel> CreateAVCProfileLevelSupported(vector<AVCProfileType> profiles, vector<int> levels)
+template<typename Lambda>
+struct ScopeExitClass
 {
-  vector<ProfileLevel> plSupported;
-
-  for(auto profile : profiles)
+  ScopeExitClass(Lambda fn) :
+    m_fn{fn}
   {
-    for(auto level : levels)
-    {
-      ProfileLevel pl;
-      pl.profile.avc = profile;
-      pl.level = level;
-      plSupported.push_back(pl);
-    }
   }
 
-  return plSupported;
-}
+  ~ScopeExitClass()
+  {
+    m_fn();
+  }
 
-ProfileLevel CreateAVCProfileLevel(AL_EProfile profile, int level)
+private:
+  Lambda m_fn;
+};
+
+template<typename Lambda>
+ScopeExitClass<Lambda> scopeExit(Lambda fn)
 {
-  ProfileLevel pl;
-  pl.profile.avc = ConvertSoftToModuleAVCProfile(profile);
-  pl.level = level;
-  return pl;
+  return ScopeExitClass<Lambda> {
+           fn
+  };
 }
 

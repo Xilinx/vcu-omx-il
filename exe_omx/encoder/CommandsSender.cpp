@@ -60,7 +60,7 @@ CommandsSender::~CommandsSender() = default;
 void CommandsSender::notifySceneChange(int lookAhead)
 {
   OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE notifySceneChange;
-  initHeader(notifySceneChange);
+  InitHeader(notifySceneChange);
   notifySceneChange.nPortIndex = 1;
   notifySceneChange.nLookAhead = lookAhead;
   auto error = OMX_SetConfig(hEnc, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoNotifySceneChange), &notifySceneChange);
@@ -70,7 +70,7 @@ void CommandsSender::notifySceneChange(int lookAhead)
 void CommandsSender::notifyIsLongTerm()
 {
   OMX_ALG_VIDEO_CONFIG_INSERT config;
-  initHeader(config);
+  InitHeader(config);
   config.nPortIndex = 1;
   auto error = OMX_SetConfig(hEnc, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertLongTerm), &config);
   assert(error == OMX_ErrorNone);
@@ -79,7 +79,7 @@ void CommandsSender::notifyIsLongTerm()
 void CommandsSender::notifyUseLongTerm()
 {
   OMX_ALG_VIDEO_CONFIG_INSERT config;
-  initHeader(config);
+  InitHeader(config);
   config.nPortIndex = 1;
   auto error = OMX_SetConfig(hEnc, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoUseLongTerm), &config);
   assert(error == OMX_ErrorNone);
@@ -89,7 +89,7 @@ void CommandsSender::notifyUseLongTerm()
 void CommandsSender::restartGop()
 {
   OMX_ALG_VIDEO_CONFIG_INSERT config;
-  initHeader(config);
+  InitHeader(config);
   config.nPortIndex = 1;
   auto error = OMX_SetConfig(hEnc, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), &config);
   assert(error == OMX_ErrorNone);
@@ -98,7 +98,7 @@ void CommandsSender::restartGop()
 void CommandsSender::setGopLength(int gopLength)
 {
   OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES gop;
-  initHeader(gop);
+  InitHeader(gop);
   gop.nPortIndex = 1;
   OMX_GetConfig(hEnc, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoGroupOfPictures), &gop);
   int numB = gop.nBFrames / (gop.nPFrames + 1);
@@ -116,7 +116,7 @@ void CommandsSender::setGopLength(int gopLength)
 void CommandsSender::setNumB(int numB)
 {
   OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES gop;
-  initHeader(gop);
+  InitHeader(gop);
   gop.nPortIndex = 1;
   OMX_GetConfig(hEnc, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoGroupOfPictures), &gop);
   int omxGopLength = gop.nPFrames + gop.nBFrames + 1;
@@ -129,7 +129,7 @@ void CommandsSender::setNumB(int numB)
 void CommandsSender::setFrameRate(int frameRate, int clockRatio)
 {
   OMX_CONFIG_FRAMERATETYPE xFramerate;
-  initHeader(xFramerate);
+  InitHeader(xFramerate);
   xFramerate.nPortIndex = 1;
   OMX_GetConfig(hEnc, OMX_IndexConfigVideoFramerate, &xFramerate);
   auto const framerateInQ16 = ((frameRate * 1000.0) / clockRatio) * 65536.0;
@@ -141,7 +141,7 @@ void CommandsSender::setFrameRate(int frameRate, int clockRatio)
 void CommandsSender::setBitRate(int bitRate)
 {
   OMX_VIDEO_CONFIG_BITRATETYPE bitrate;
-  initHeader(bitrate);
+  InitHeader(bitrate);
   bitrate.nPortIndex = 1;
   OMX_GetConfig(hEnc, OMX_IndexConfigVideoBitrate, &bitrate);
   bitrate.nEncodeBitrate = bitRate / 1000;

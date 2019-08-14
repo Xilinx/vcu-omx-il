@@ -54,6 +54,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexVendorComponentStartUnused = OMX_IndexVendorStartUnused + 0x00100000,
   OMX_ALG_IndexParamReportedLatency,                  /**< reference: OMX_ALG_PARAM_REPORTED_LATENCY */
   OMX_ALG_IndexParamPreallocation,                    /**< reference: OMX_ALG_PARAM_PREALLOCATION */
+  OMX_ALG_IndexParamSyncIp,                           /**< reference: OMX_ALG_PARAM_SYNC_IP */
 
   /* Port parameters and configurations */
   OMX_ALG_IndexVendorPortStartUnused = OMX_IndexVendorStartUnused + 0x00200000,
@@ -86,6 +87,8 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamVideoTwoPass,                     /**< reference: OMX_ALG_VIDEO_PARAM_TWOPASS */
   OMX_ALG_IndexParamVideoSkipFrame,                   /**< reference: OMX_ALG_VIDEO_PARAM_SKIP_FRAME */
   OMX_ALG_IndexParamVideoColorPrimaries,              /**< reference: OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES */
+  OMX_ALG_IndexParamVideoTransferCharacteristics,     /**< reference: OMX_ALG_VIDEO_PARAM_TRANSFER_CHARACTERISTICS */
+  OMX_ALG_IndexParamVideoColorMatrix,                 /**< reference: OMX_ALG_VIDEO_PARAM_COLOR_MATRIX */
   OMX_ALG_IndexParamVideoInputParsed,                 /**< reference: OMX_ALG_VIDEO_PARAM_INPUT_PARSED */
   OMX_ALG_IndexParamVideoMaxPictureSize,              /**< reference: OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE */
   OMX_ALG_IndexParamVideoMaxPictureSizes,             /**< reference: OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES */
@@ -104,8 +107,11 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexConfigVideoInsertPrefixSEI,                    /**< reference: OMX_ALG_VIDEO_CONFIG_SEI */
   OMX_ALG_IndexConfigVideoInsertSuffixSEI,                    /**< reference: OMX_ALG_VIDEO_CONFIG_SEI */
   OMX_ALG_IndexConfigVideoQuantizationParameterTable,         /**< reference: OMX_ALG_VIDEO_CONFIG_DATA */
+  OMX_ALG_IndexConfigVideoTransferCharacteristics,            /**< reference: OMX_ALG_VIDEO_CONFIG_TRANSFER_CHARACTERISTICS */
+  OMX_ALG_IndexConfigVideoColorMatrix,                        /**< reference: OMX_ALG_VIDEO_CONFIG_COLOR_MATRIX */
   OMX_ALG_IndexConfigVideoLoopFilterBeta,                     /**< reference: OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_BETA */
   OMX_ALG_IndexConfigVideoLoopFilterTc,                       /**< reference: OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC */
+  OMX_ALG_IndexConfigVideoHighDynamicRangeSEIs,               /**< reference: OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIs */
 
   /* Vender Image & Video common configurations */
   OMX_ALG_IndexVendorCommonStartUnused = OMX_IndexVendorStartUnused + 0x00700000,

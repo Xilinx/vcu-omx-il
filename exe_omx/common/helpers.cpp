@@ -39,13 +39,13 @@
 #include <unistd.h>
 #include <iostream>
 
-inline static size_t AlignToPageSize(size_t zSize)
+static inline size_t AlignToPageSize(size_t size)
 {
   unsigned long pagesize = sysconf(_SC_PAGESIZE);
 
-  if((zSize % pagesize) == 0)
-    return zSize;
-  return zSize + pagesize - (zSize % pagesize);
+  if((size % pagesize) == 0)
+    return size;
+  return size + pagesize - (size % pagesize);
 }
 
 void Buffer_FreeData(char* data, bool use_dmabuf)
@@ -56,27 +56,28 @@ void Buffer_FreeData(char* data, bool use_dmabuf)
     free(data);
 }
 
-char* Buffer_MapData(char* data, size_t zSize, bool use_dmabuf)
+char* Buffer_MapData(char* data, size_t offset, size_t size, bool use_dmabuf)
 {
-  if(use_dmabuf)
+  if(!use_dmabuf)
+    return data + offset;
+
+  int fd = (int)(intptr_t)data;
+  auto mapSize = AlignToPageSize(size);
+
+  data = (char*)mmap(0, mapSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+  if(data == MAP_FAILED)
   {
-    int fd = (int)(intptr_t)data;
-    auto zMapSize = AlignToPageSize(zSize);
-
-    data = (char*)mmap(0, zMapSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-
-    if(data == MAP_FAILED)
-    {
-      std::cerr << "MAP_FAILED!" << std::endl;
-      return nullptr;
-    }
+    std::cerr << "MAP_FAILED!" << std::endl;
+    return nullptr;
   }
-  return data;
+  return data + offset;
 }
 
 void Buffer_UnmapData(char* data, size_t zSize, bool use_dmabuf)
 {
-  if(use_dmabuf)
-    munmap(data, zSize);
+  if(!use_dmabuf)
+    return;
+  munmap(data, zSize);
 }
 

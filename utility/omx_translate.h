@@ -1,3 +1,40 @@
+/******************************************************************************
+*
+* Copyright (C) 2019 Allegro DVT2.  All rights reserved.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+*
+* Use of the Software is limited solely to applications:
+* (a) running on a Xilinx device, or
+* (b) that interact with a Xilinx device through a bus or interconnect.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
+* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+* Except as contained in this notice, the name of  Xilinx shall not be used
+* in advertising or otherwise to promote the sale, use or other dealings in
+* this Software without prior written authorization from Xilinx.
+*
+*
+* Except as contained in this notice, the name of Allegro DVT2 shall not be used
+* in advertising or otherwise to promote the sale, use or other dealings in
+* this Software without prior written authorization from Allegro DVT2.
+*
+******************************************************************************/
+
 #pragma once
 
 #include <OMX_CoreExt.h>
@@ -346,6 +383,7 @@ static std::map<OMX_INDEXTYPE, std::string> OMXIndexInStringMap =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexVendorComponentStartUnused), "OMX_ALG_IndexVendorComponentStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamReportedLatency), "OMX_ALG_IndexParamReportedLatency" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamPreallocation), "OMX_ALG_IndexParamPreallocation" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamSyncIp), "OMX_ALG_IndexParamSyncIp" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexVendorPortStartUnused), "OMX_ALG_IndexVendorPortStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexPortParamBufferMode), "OMX_ALG_IndexPortParamBufferMode" },
@@ -376,6 +414,8 @@ static std::map<OMX_INDEXTYPE, std::string> OMXIndexInStringMap =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLookAhead), "OMX_ALG_IndexParamVideoLookAhead" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoTwoPass), "OMX_ALG_IndexParamVideoTwoPass" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoColorPrimaries), "OMX_ALG_IndexParamVideoColorPrimaries" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoTransferCharacteristics), "OMX_ALG_IndexParamVideoTransferCharacteristics" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoColorMatrix), "OMX_ALG_IndexParamVideoColorMatrix" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoInputParsed), "OMX_ALG_IndexParamVideoInputParsed" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoMaxPictureSize), "OMX_ALG_IndexParamVideoMaxPictureSize" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoMaxPictureSizes), "OMX_ALG_IndexParamVideoMaxPictureSizes" },
@@ -395,7 +435,9 @@ static std::map<OMX_INDEXTYPE, std::string> OMXIndexInStringMap =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoQuantizationParameterTable), "OMX_ALG_IndexConfigVideoQuantizationParameterTable" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoLoopFilterBeta), "OMX_ALG_IndexConfigVideoLoopFilterBeta" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoLoopFilterTc), "OMX_ALG_IndexConfigVideoLoopFilterTc" },
-
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoTransferCharacteristics), "OMX_ALG_IndexConfigVideoTransferCharacteristics" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoColorMatrix), "OMX_ALG_IndexConfigVideoColorMatrix" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoHighDynamicRangeSEIs), "OMX_ALG_IndexConfigVideoHighDynamicRangeSEIs" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexVendorCommonStartUnused), "OMX_ALG_IndexVendorCommonStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamCommonSequencePictureModeCurrent), "OMX_ALG_IndexParamCommonSequencePictureModeCurrent" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamCommonSequencePictureModeQuerySupported), "OMX_ALG_IndexParamCommonSequencePictureModeQuerySupported" },

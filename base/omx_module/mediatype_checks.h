@@ -65,6 +65,8 @@ bool CheckSlicesParameter(Slices slices);
 bool CheckFormat(Format format, std::vector<ColorType> colors, std::vector<int> bitdepths);
 bool CheckBufferHandles(BufferHandles bufferHandles);
 bool CheckColorPrimaries(ColorPrimariesType colorPrimaries);
+bool CheckTransferCharacteristics(TransferCharacteristicsType transferCharacteristics);
+bool CheckColourMatrix(ColourMatrixType colourMatrix);
 bool CheckLookAhead(LookAhead la);
 bool CheckTwoPass(TwoPass tp);
 bool CheckMaxPictureSizes(MaxPicturesSizes sizes);

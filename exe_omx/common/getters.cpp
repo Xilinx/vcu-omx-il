@@ -52,7 +52,7 @@ Getters::Getters(OMX_HANDLETYPE* component) :
 int Getters::GetLatency()
 {
   OMX_ALG_PARAM_REPORTED_LATENCY lat;
-  initHeader(lat);
+  InitHeader(lat);
 
   auto err = OMX_GetParameter(*component, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamReportedLatency), &lat);
 
@@ -65,7 +65,7 @@ int Getters::GetLatency()
 int Getters::GetBuffersSize(int index)
 {
   OMX_PARAM_PORTDEFINITIONTYPE p;
-  initHeader(p);
+  InitHeader(p);
   p.nPortIndex = index;
   OMX_GetParameter(*component, OMX_IndexParamPortDefinition, &p);
   return p.nBufferSize;
@@ -74,7 +74,7 @@ int Getters::GetBuffersSize(int index)
 int Getters::GetBuffersCount(int index)
 {
   OMX_PARAM_PORTDEFINITIONTYPE p;
-  initHeader(p);
+  InitHeader(p);
   p.nPortIndex = index;
   OMX_GetParameter(*component, OMX_IndexParamPortDefinition, &p);
   return p.nBufferCountActual;
@@ -93,12 +93,12 @@ static inline bool IsOutputSupplier(OMX_DIRTYPE const& dir, OMX_BUFFERSUPPLIERTY
 bool Getters::IsComponentSupplier(int index)
 {
   OMX_PARAM_PORTDEFINITIONTYPE p;
-  initHeader(p);
+  InitHeader(p);
   p.nPortIndex = index;
   OMX_GetParameter(*component, OMX_IndexParamPortDefinition, &p);
   auto dir = p.eDir;
   OMX_PARAM_BUFFERSUPPLIERTYPE s;
-  initHeader(s);
+  InitHeader(s);
   s.nPortIndex = index;
   OMX_GetParameter(*component, OMX_IndexParamCompBufferSupplier, &s);
 

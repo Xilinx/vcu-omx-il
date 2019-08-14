@@ -96,3 +96,9 @@ void DMAMemory::move(AL_TBuffer* destination, int destination_offset, AL_TBuffer
   }
 }
 
+void DMAMemory::set(AL_TBuffer* destination, int destination_offset, int val, size_t size)
+{
+  // To be optimized later if such DMA capability exists
+  std::memset(AL_Buffer_GetData(destination) + destination_offset, val, size);
+}
+

@@ -37,7 +37,7 @@
 
 #include <cassert>
 #include <utility/round.h>
-#include "mediatype_dec_common.h"
+#include "mediatype_dec_itu.h"
 #include "mediatype_checks.h"
 #include "convert_module_soft.h"
 #include "convert_module_soft_dec.h"

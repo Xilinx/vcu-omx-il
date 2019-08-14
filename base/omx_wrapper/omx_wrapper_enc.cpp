@@ -45,12 +45,6 @@
 #include "base/omx_module/dma_memory.h"
 #endif
 
-#if AL_ENABLE_SYNCIP_ENC
-#include "base/omx_module/sync_ip_enc.h"
-#else
-#include "base/omx_module/null_sync_ip.h"
-#endif
-
 
 
 #include "base/omx_module/device_enc_hardware_mcu.h"
@@ -86,18 +80,6 @@ static bool constexpr IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED = true;
 #else
 static bool constexpr IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED = false;
 #endif
-
-static SyncIpInterface* createSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator, StrideAlignments strideAlignments)
-{
-#if AL_ENABLE_SYNCIP_ENC
-  return new EncSyncIp {
-           media, allocator, strideAlignments.horizontal, strideAlignments.vertical
-  };
-#else
-  (void)media, (void)allocator, (void)strideAlignments;
-  return new NullSyncIp {};
-#endif
-}
 
 static MemoryInterface* createMemory()
 {
@@ -170,11 +152,8 @@ static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
   unique_ptr<ExpertiseAVC> expertise {
     new ExpertiseAVC {}
   };
-  shared_ptr<SyncIpInterface> syncIp {
-    createSyncIp(media, allocator, STRIDE_ALIGNMENTS_AVC)
-  };
   return new EncComponent {
-           hComponent, media, move(module), cComponentName, cRole, move(expertise), syncIp
+           hComponent, media, move(module), cComponentName, cRole, move(expertise)
   };
 }
 
@@ -207,11 +186,8 @@ static EncComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
   unique_ptr<ExpertiseHEVC> expertise {
     new ExpertiseHEVC {}
   };
-  shared_ptr<SyncIpInterface> syncIp {
-    createSyncIp(media, allocator, STRIDE_ALIGNMENTS_HEVC)
-  };
   return new EncComponent {
-           hComponent, media, move(module), cComponentName, cRole, move(expertise), syncIp
+           hComponent, media, move(module), cComponentName, cRole, move(expertise)
   };
 }
 

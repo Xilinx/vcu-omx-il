@@ -532,9 +532,9 @@ static OMX_ERRORTYPE SetQuantization(OMX_U32 qpI, OMX_U32 qpP, OMX_U32 qpB, shar
   QPs curQPs;
   auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
   OMX_CHECK_MEDIA_GET(ret);
-  curQPs.initial = ConvertOMXToMediaQPInitial(qpI);
-  curQPs.deltaIP = ConvertOMXToMediaQPDeltaIP(qpI, qpP);
-  curQPs.deltaPB = ConvertOMXToMediaQPDeltaPB(qpP, qpB);
+  curQPs.initial = ConvertOMXToMediaQpInitial(qpI);
+  curQPs.deltaIP = ConvertOMXToMediaQpDeltaIP(qpI, qpP);
+  curQPs.deltaPB = ConvertOMXToMediaQpDeltaPB(qpP, qpB);
   ret = media->Set(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
@@ -563,7 +563,7 @@ OMX_ERRORTYPE ConstructVideoQuantizationControl(OMX_ALG_VIDEO_PARAM_QUANTIZATION
   QPs qps;
   auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &qps);
   OMX_CHECK_MEDIA_GET(ret);
-  q.eQpControlMode = ConvertMediaToOMXQpControl(qps);
+  q.eQpControlMode = ConvertMediaToOMXQpMode(qps.mode);
   return OMX_ErrorNone;
 }
 
@@ -572,7 +572,7 @@ static OMX_ERRORTYPE SetQuantizationControl(OMX_ALG_EQpCtrlMode const& mode, sha
   QPs curQPs;
   auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
   OMX_CHECK_MEDIA_GET(ret);
-  curQPs.mode = ConvertOMXToMediaQPControl(mode);
+  curQPs.mode = ConvertOMXToMediaQpMode(mode);
   ret = media->Set(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
@@ -611,8 +611,8 @@ static OMX_ERRORTYPE SetQuantizationExtension(OMX_S32 qpMin, OMX_S32 qpMax, shar
   QPs curQPs;
   auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
   OMX_CHECK_MEDIA_GET(ret);
-  curQPs.min = ConvertOMXToMediaQPMin(qpMin);
-  curQPs.max = ConvertOMXToMediaQPMax(qpMax);
+  curQPs.min = ConvertOMXToMediaQpMin(qpMin);
+  curQPs.max = ConvertOMXToMediaQpMax(qpMax);
   ret = media->Set(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
@@ -1197,6 +1197,81 @@ OMX_ERRORTYPE SetVideoColorPrimaries(OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES const& 
   if(ret != OMX_ErrorNone)
   {
     SetVideoColorPrimaries(rollback, port, media);
+    throw ret;
+  }
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoTransferCharacteristics(OMX_ALG_VIDEO_PARAM_TRANSFER_CHARACTERISTICS& transferCharac, Port const& port, shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(transferCharac);
+  transferCharac.nPortIndex = port.index;
+  TransferCharacteristicsType transferCharacType {};
+  auto ret = media->Get(SETTINGS_INDEX_TRANSFER_CHARACTERISTICS, &transferCharacType);
+  OMX_CHECK_MEDIA_GET(ret);
+  transferCharac.eTransferCharac = ConvertMediaToOMXTransferCharacteristics(transferCharacType);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetTransferCharacteristics(OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS transferCharac, shared_ptr<MediatypeInterface> media)
+{
+  TransferCharacteristicsType transferCharacteristicsType {};
+
+  auto ret = media->Get(SETTINGS_INDEX_TRANSFER_CHARACTERISTICS, &transferCharacteristicsType);
+  OMX_CHECK_MEDIA_GET(ret);
+  transferCharacteristicsType = ConvertOMXToMediaTransferCharacteristics(transferCharac);
+  ret = media->Set(SETTINGS_INDEX_TRANSFER_CHARACTERISTICS, &transferCharacteristicsType);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoTransferCharacteristics(OMX_ALG_VIDEO_PARAM_TRANSFER_CHARACTERISTICS const& transferCharac, Port const& port, shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_TRANSFER_CHARACTERISTICS rollback;
+  ConstructVideoTransferCharacteristics(rollback, port, media);
+
+  auto ret = SetTransferCharacteristics(transferCharac.eTransferCharac, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoTransferCharacteristics(rollback, port, media);
+    throw ret;
+  }
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoColorMatrix(OMX_ALG_VIDEO_PARAM_COLOR_MATRIX& colorMatrix, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(colorMatrix);
+  colorMatrix.nPortIndex = port.index;
+  ColourMatrixType colourMatrixType {};
+  auto ret = media->Get(SETTINGS_INDEX_COLOUR_MATRIX, &colourMatrixType);
+  OMX_CHECK_MEDIA_GET(ret);
+  colorMatrix.eColorMatrix = ConvertMediaToOMXColourMatrix(colourMatrixType);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetColorMatrix(OMX_ALG_VIDEO_COLOR_MATRIX colorMatrix, shared_ptr<MediatypeInterface> media)
+{
+  ColourMatrixType colourMatrixType {};
+  auto ret = media->Get(SETTINGS_INDEX_COLOUR_MATRIX, &colourMatrixType);
+  OMX_CHECK_MEDIA_GET(ret);
+  colourMatrixType = ConvertOMXToMediaColourMatrix(colorMatrix);
+  ret = media->Set(SETTINGS_INDEX_COLOUR_MATRIX, &colourMatrixType);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoColorMatrix(OMX_ALG_VIDEO_PARAM_COLOR_MATRIX const& colorMatrix, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_COLOR_MATRIX rollback;
+  ConstructVideoColorMatrix(rollback, port, media);
+
+  auto ret = SetColorMatrix(colorMatrix.eColorMatrix, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoColorMatrix(rollback, port, media);
     throw ret;
   }
   return OMX_ErrorNone;

@@ -137,7 +137,10 @@ bool CheckScalingList(ScalingListType scalingList)
 
 bool CheckQuantizationParameter(QPs qps)
 {
-  if(qps.mode == QPControlType::QP_MAX_ENUM)
+  if(qps.mode.ctrl == QPControlType::QP_CONTROL_MAX_ENUM)
+    return false;
+
+  if(qps.mode.table == QPTableType::QP_TABLE_MAX_ENUM)
     return false;
 
   if(qps.max < qps.min)
@@ -194,6 +197,16 @@ bool CheckColorPrimaries(ColorPrimariesType colorPrimaries)
     return false;
 
   return true;
+}
+
+bool CheckTransferCharacteristics(TransferCharacteristicsType transferCharacteristics)
+{
+  return transferCharacteristics != TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_MAX_ENUM;
+}
+
+bool CheckColourMatrix(ColourMatrixType colourMatrix)
+{
+  return colourMatrix != ColourMatrixType::COLOUR_MATRIX_MAX_ENUM;
 }
 
 bool CheckLookAhead(LookAhead la)

@@ -660,24 +660,50 @@ bool EncModule::Fill(BufferHandleInterface* handle)
   return AL_Encoder_PutStreamBuffer(encoder, output);
 }
 
+static int WriteFillerDataSection(shared_ptr<MemoryInterface> memory, AL_TBuffer* source, AL_TBuffer* destination, int offset, int numSection)
+{
+  auto meta = reinterpret_cast<AL_TStreamMetaData*>(AL_Buffer_GetMetaData(source, AL_META_TYPE_STREAM));
+  auto& section = meta->pSections[numSection];
+
+  auto src = AL_Buffer_GetData(source);
+  auto dst = AL_Buffer_GetData(destination);
+  auto srcOffset = section.uOffset;
+  auto dstOffset = offset;
+  auto length = section.uLength;
+
+  while(--length && (src[srcOffset] != 0xFF))
+  {
+    dst[dstOffset++] = src[srcOffset++];
+  }
+
+  if(length > 0)
+    memory->set(destination, dstOffset, 0xFF, length);
+
+  assert(src[srcOffset + length] == 0x80);
+  dst[dstOffset + length] = src[srcOffset + length];
+
+  return section.uLength;
+}
+
 static int WriteOneSection(shared_ptr<MemoryInterface> memory, AL_TBuffer* source, AL_TBuffer* destination, int offset, int numSection)
 {
-  auto meta = (AL_TStreamMetaData*)AL_Buffer_GetMetaData(source, AL_META_TYPE_STREAM);
+  auto meta = reinterpret_cast<AL_TStreamMetaData*>(AL_Buffer_GetMetaData(source, AL_META_TYPE_STREAM));
+  auto& section = meta->pSections[numSection];
 
-  if(!meta->pSections[numSection].uLength)
+  if(!section.uLength)
     return 0;
 
-  auto size = source->zSize - meta->pSections[numSection].uOffset;
+  auto size = source->zSize - section.uOffset;
 
-  if(size < (meta->pSections[numSection]).uLength)
+  if(size < section.uLength)
   {
-    memory->move(destination, offset, source, meta->pSections[numSection].uOffset, size);
-    memory->move(destination, offset, source, 0, (meta->pSections[numSection]).uLength - size);
+    memory->move(destination, offset, source, section.uOffset, size);
+    memory->move(destination, offset, source, 0, section.uLength - size);
   }
   else
-    memory->move(destination, offset, source, meta->pSections[numSection].uOffset, meta->pSections[numSection].uLength);
+    memory->move(destination, offset, source, section.uOffset, section.uLength);
 
-  return meta->pSections[numSection].uLength;
+  return section.uLength;
 }
 
 static int ConstructConfigStream(shared_ptr<MemoryInterface> memory, AL_TBuffer* config, AL_TBuffer* stream, int& firstSection)
@@ -690,7 +716,10 @@ static int ConstructConfigStream(shared_ptr<MemoryInterface> memory, AL_TBuffer*
 
   while(((meta->pSections[firstSection].uFlags & AL_SECTION_CONFIG_FLAG) != 0) && (firstSection < meta->uNumSection))
   {
-    size += WriteOneSection(memory, stream, config, size, firstSection);
+    if(meta->pSections[firstSection].uFlags & AL_SECTION_APP_FILLER_FLAG)
+      size += WriteFillerDataSection(memory, stream, config, size, firstSection);
+    else
+      size += WriteOneSection(memory, stream, config, size, firstSection);
     firstSection++;
   }
 
@@ -706,7 +735,12 @@ static int ReconstructStream(shared_ptr<MemoryInterface> memory, AL_TBuffer* str
   assert(firstSection <= meta->uNumSection);
 
   for(int i = firstSection; i < meta->uNumSection; i++)
-    size += WriteOneSection(memory, stream, stream, size, i);
+  {
+    if(meta->pSections[i].uFlags & AL_SECTION_APP_FILLER_FLAG)
+      size += WriteFillerDataSection(memory, stream, stream, size, i);
+    else
+      size += WriteOneSection(memory, stream, stream, size, i);
+  }
 
   return size;
 }
@@ -1068,7 +1102,7 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
   {
     assert(roiCtx);
     auto roi = static_cast<RegionQuality const*>(param);
-    auto ret = AL_RoiMngr_AddROI(roiCtx, roi->region.x, roi->region.y, roi->region.width, roi->region.height, ConvertModuleToSoftQuality(roi->quality));
+    auto ret = AL_RoiMngr_AddROI(roiCtx, roi->region.point.x, roi->region.point.y, roi->region.width, roi->region.height, ConvertModuleToSoftQuality(roi->quality));
     assert(ret);
     return SUCCESS;
   }
@@ -1152,6 +1186,18 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
     auto sei = static_cast<Sei const*>(param);
 
     if(AL_Encoder_AddSei(encoder, currentOutputedStreamForSei, false, sei->type, sei->data, sei->payload, currentTemporalId) < 0)
+    {
+      assert(0);
+      return BAD_PARAMETER;
+    }
+    return SUCCESS;
+  }
+
+  if(index == "DYNAMIC_INDEX_HIGH_DYNAMIC_RANGE_SEIS")
+  {
+    auto hdrSEIS = ConvertModuleToSoftHDRSEIs(*static_cast<HighDynamicRangeSeis const*>(param));
+
+    if(!AL_Encoder_SetHDRSEIs(encoder, &hdrSEIS))
     {
       assert(0);
       return BAD_PARAMETER;

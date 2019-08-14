@@ -57,7 +57,7 @@ static DecModule& ToDecModule(ModuleInterface& module)
 }
 
 DecComponent::DecComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise, shared_ptr<SyncIpInterface> syncIp) :
-  Component{component, media, std::move(module), std::move(expertise), name, role}, syncIp{syncIp},
+  Component{component, media, std::move(module), std::move(expertise), syncIp, name, role},
   shouldPropagateData{true}
 {
 }
@@ -180,8 +180,12 @@ void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
    * As we are starting to decode a new frame, we should be able to add the buffer
    * to the sync ip without a problem (the slot should be there)
    */
-  syncIp->addBuffer((OMXBufferHandle*)filled);
-  syncIp->enable();
+
+  if(isSyncIpCreated)
+  {
+    syncIp->addBuffer((OMXBufferHandle*)filled);
+    syncIp->enable();
+  }
 
   delete filled;
 
@@ -355,17 +359,17 @@ void DecComponent::TreatEmptyBufferCommand(Task* task)
     return;
   }
 
-  bool bInputParsed;
-  media->Get(SETTINGS_INDEX_INPUT_PARSED, &bInputParsed);
+  bool isInputParsed;
+  media->Get(SETTINGS_INDEX_INPUT_PARSED, &isInputParsed);
 
-  bool bLL2EarlyCallbackUsed;
-  media->Get(SETTINGS_INDEX_LLP2_EARLY_CB, &bLL2EarlyCallbackUsed);
+  bool isEarlyCallbackUsed;
+  media->Get(SETTINGS_INDEX_LLP2_EARLY_CB, &isEarlyCallbackUsed);
 
-  if(!bInputParsed || bLL2EarlyCallbackUsed)
+  if(!isInputParsed || isEarlyCallbackUsed)
   {
     bool isEndOfFrameFlagRaised = (header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME);
 
-    if(isEndOfFrameFlagRaised && !bLL2EarlyCallbackUsed)
+    if(isEndOfFrameFlagRaised && !isEarlyCallbackUsed)
       transmit.push_back(PropagatedData { header->hMarkTargetComponent, header->pMarkData, header->nTickCount, header->nTimeStamp, header->nFlags });
     else
     {

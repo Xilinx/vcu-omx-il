@@ -97,6 +97,21 @@ typedef struct OMX_ALG_PARAM_PREALLOCATION
   OMX_BOOL bDisablePreallocation;
 }OMX_ALG_PARAM_PREALLOCATION;
 
+/**
+ * Sync IP parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize         : Size of the structure in bytes
+ *  nVersion      : OMX specification version information
+ *  bEnableSyncIp : Indicate if sync IP should be enabled
+ */
+typedef struct OMX_ALG_PARAM_SYNC_IP
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_BOOL bEnableSyncIp;
+}OMX_ALG_PARAM_SYNC_IP;
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

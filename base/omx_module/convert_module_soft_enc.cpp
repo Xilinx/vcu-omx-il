@@ -46,6 +46,7 @@ RateControlType ConvertSoftToModuleRateControl(AL_ERateCtrlMode mode)
   case AL_RC_VBR: return RateControlType::RATE_CONTROL_VARIABLE_BITRATE;
   case AL_RC_CAPPED_VBR: return RateControlType::RATE_CONTROL_VARIABLE_CAPPED_BITRATE;
   case AL_RC_LOW_LATENCY: return RateControlType::RATE_CONTROL_LOW_LATENCY;
+  case AL_RC_PLUGIN: return RateControlType::RATE_CONTROL_PLUGIN;
   case AL_RC_MAX_ENUM: return RateControlType::RATE_CONTROL_MAX_ENUM;
   default: return RateControlType::RATE_CONTROL_MAX_ENUM;
   }
@@ -123,18 +124,30 @@ RateControlOptions ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption optio
 
 QPControlType ConvertSoftToModuleQPControl(AL_EQpCtrlMode mode)
 {
-  if(mode == (AL_ROI_QP | AL_AUTO_QP))
-    return QPControlType::QP_ROI_AUTO;
   switch(mode)
   {
-  case AL_UNIFORM_QP: return QPControlType::QP_UNIFORM;
-  case AL_ROI_QP: return QPControlType::QP_ROI;
-  case AL_AUTO_QP: return QPControlType::QP_AUTO;
-  case AL_QP_MAX_ENUM: return QPControlType::QP_MAX_ENUM;
-  default: return QPControlType::QP_MAX_ENUM;
+  case AL_QP_CTRL_NONE: return QPControlType::QP_CONTROL_NONE;
+  case AL_QP_CTRL_AUTO: return QPControlType::QP_CONTROL_AUTO;
+  case AL_QP_CTRL_ADAPTIVE_AUTO: return QPControlType::QP_CONTROL_ADAPTIVE_AUTO;
+  case AL_QP_CTRL_MAX_ENUM: return QPControlType::QP_CONTROL_MAX_ENUM;
+  default: return QPControlType::QP_CONTROL_MAX_ENUM;
   }
 
-  return QPControlType::QP_MAX_ENUM;
+  return QPControlType::QP_CONTROL_MAX_ENUM;
+}
+
+QPTableType ConvertSoftToModuleQPTable(AL_EQpTableMode mode)
+{
+  switch(mode)
+  {
+  case AL_QP_TABLE_NONE: return QPTableType::QP_TABLE_NONE;
+  case AL_QP_TABLE_ABSOLUTE: return QPTableType::QP_TABLE_ABSOLUTE;
+  case AL_QP_TABLE_RELATIVE: return QPTableType::QP_TABLE_RELATIVE;
+  case AL_QP_TABLE_MAX_ENUM: return QPTableType::QP_TABLE_MAX_ENUM;
+  default: return QPTableType::QP_TABLE_MAX_ENUM;
+  }
+
+  return QPTableType::QP_TABLE_MAX_ENUM;
 }
 
 ScalingListType ConvertSoftToModuleScalingList(AL_EScalingList scalingList)
@@ -159,6 +172,7 @@ AL_ERateCtrlMode ConvertModuleToSoftRateControl(RateControlType mode)
   case RateControlType::RATE_CONTROL_VARIABLE_BITRATE: return AL_RC_VBR;
   case RateControlType::RATE_CONTROL_VARIABLE_CAPPED_BITRATE: return AL_RC_CAPPED_VBR;
   case RateControlType::RATE_CONTROL_LOW_LATENCY: return AL_RC_LOW_LATENCY;
+  case RateControlType::RATE_CONTROL_PLUGIN: return AL_RC_PLUGIN;
   case RateControlType::RATE_CONTROL_MAX_ENUM: return AL_RC_MAX_ENUM;
   default: return AL_RC_MAX_ENUM;
   }
@@ -249,15 +263,28 @@ AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType mode)
 {
   switch(mode)
   {
-  case QPControlType::QP_UNIFORM: return AL_UNIFORM_QP;
-  case QPControlType::QP_ROI: return AL_ROI_QP;
-  case QPControlType::QP_AUTO: return AL_AUTO_QP;
-  case QPControlType::QP_ROI_AUTO: return static_cast<AL_EQpCtrlMode>(AL_AUTO_QP | AL_ROI_QP);
-  case QPControlType::QP_MAX_ENUM: return AL_QP_MAX_ENUM;
-  default: return AL_QP_MAX_ENUM;
+  case QPControlType::QP_CONTROL_NONE: return AL_QP_CTRL_NONE;
+  case QPControlType::QP_CONTROL_AUTO: return AL_QP_CTRL_AUTO;
+  case QPControlType::QP_CONTROL_ADAPTIVE_AUTO: return AL_QP_CTRL_ADAPTIVE_AUTO;
+  case QPControlType::QP_CONTROL_MAX_ENUM: return AL_QP_CTRL_MAX_ENUM;
+  default: return AL_QP_CTRL_MAX_ENUM;
   }
 
-  return AL_QP_MAX_ENUM;
+  return AL_QP_CTRL_MAX_ENUM;
+}
+
+AL_EQpTableMode ConvertModuleToSoftQPTable(QPTableType mode)
+{
+  switch(mode)
+  {
+  case QPTableType::QP_TABLE_NONE: return AL_QP_TABLE_NONE;
+  case QPTableType::QP_TABLE_ABSOLUTE: return AL_QP_TABLE_ABSOLUTE;
+  case QPTableType::QP_TABLE_RELATIVE: return AL_QP_TABLE_RELATIVE;
+  case QPTableType::QP_TABLE_MAX_ENUM: return AL_QP_TABLE_MAX_ENUM;
+  default: return AL_QP_TABLE_MAX_ENUM;
+  }
+
+  return AL_QP_TABLE_MAX_ENUM;
 }
 
 LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncTool tools)

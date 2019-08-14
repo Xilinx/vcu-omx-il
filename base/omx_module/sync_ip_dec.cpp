@@ -43,8 +43,14 @@
 #include <cassert>
 #include <chrono>
 #include <thread>
-#include <utility/logger.h>
 #include <string>
+#include <cstdlib>
+#include <ctime>
+#include <csignal>
+#include <unistd.h>
+#include <fcntl.h>
+
+#include <utility/logger.h>
 
 extern "C"
 {
@@ -62,15 +68,6 @@ extern "C"
 using namespace std;
 
 static char const* syncDeviceNameDec = "/dev/xvsfsync1";
-static constexpr bool usingDummy = false;
-
-static AL_TDriver* getDriver()
-{
-  if(usingDummy)
-    return AL_InitDummyDriver(true, 4);
-
-  return AL_GetHardwareDriver();
-}
 
 template<typename Func>
 static bool CreateAndAttachSourceMeta(AL_TBuffer* buf, shared_ptr<MediatypeInterface> media, Func CreateSourceMeta)
@@ -104,25 +101,45 @@ static AL_TBuffer* CreateBuffer(AL_TLinuxDmaAllocator* allocator, int fd, int si
   return AL_Buffer_Create((AL_TAllocator*)allocator, dmaHandle, size, AL_Buffer_Destroy);
 }
 
-DecSyncIp::DecSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator) : media(media), allocator(allocator), syncIp(getDriver(), syncDeviceNameDec), sync{&syncIp, syncIp.getFreeChannel()}
+DecSyncIp::DecSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator) :
+  displayNotified{false},
+  media{media},
+  syncIp{nullptr},
+  syncChannel{nullptr},
+  allocator{allocator}
 {
   assert(media);
   assert(allocator);
-  bool enableEarlyCB = true;
-  media->Set(SETTINGS_INDEX_LLP2_EARLY_CB, &enableEarlyCB);
 }
 
-#if AL_ENABLE_SYNCIP_DEC
+DecSyncIp::~DecSyncIp() = default;
 
-#include <cstdlib>
-#include <ctime>
-#include <csignal>
-#include <unistd.h>
-#include <fcntl.h>
+bool DecSyncIp::create()
+{
+  try
+  {
+    /* ensure channel is freed vbia dtor before construct anything */
+    destroy();
+    syncIp.reset(new SyncIp { AL_GetHardwareDriver(), syncDeviceNameDec });
+    syncChannel.reset(new DecSyncChannel { syncIp.get(), syncIp->getFreeChannel() });
+    return true;
+  }
+  catch(runtime_error& e)
+  {
+    LOG_ERROR(e.what());
+    return false;
+  }
+}
+
+void DecSyncIp::destroy()
+{
+  syncIp.reset();
+  syncChannel.reset();
+}
 
 static void TxStreamUp()
 {
-  int fd = open("/sys/kernel/debug/xlnx-hdmi/hdmitx_57", O_RDWR);
+  int fd = open("/sys/kernel/debug/xlnx-hdmi/hdmitx_56", O_RDWR);
 
   if(fd < 0)
   {
@@ -162,21 +179,6 @@ static void call_after(Func callback, void* user_param, int64_t sec, int64_t nse
 
   timer_settime(timer, 0, &its, nullptr);
 }
-
-#else
-
-static void wTxStreamUp(void*)
-{
-  throw runtime_error("TxStreamUp isn't implemented (needs debug-fs file support)");
-}
-
-template<typename Func>
-static void call_after(Func, void*, int64_t, int64_t)
-{
-  throw runtime_error("call_after isn't implemented (needs -lrt)");
-}
-
-#endif
 
 static int divideRoundUp(uint64_t dividende, uint64_t divisor)
 {
@@ -243,7 +245,7 @@ void DecSyncIp::addBuffer(BufferHandleInterface* handle)
 
   try
   {
-    sync.addBuffer(buf);
+    syncChannel->addBuffer(buf);
   }
   catch(sync_no_buf_slot_available& e)
   {
@@ -255,6 +257,6 @@ void DecSyncIp::addBuffer(BufferHandleInterface* handle)
 
 void DecSyncIp::enable()
 {
-  sync.enable();
+  syncChannel->enable();
 }
 

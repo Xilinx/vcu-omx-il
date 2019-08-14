@@ -41,11 +41,10 @@
 
 #include "omx_component.h"
 #include "base/omx_module/module_enc.h"
-#include "base/omx_module/sync_ip_interface.h"
 
 struct EncComponent final : public Component
 {
-  EncComponent(OMX_HANDLETYPE component, std::shared_ptr<MediatypeInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise, std::shared_ptr<SyncIpInterface> syncIp);
+  EncComponent(OMX_HANDLETYPE component, std::shared_ptr<MediatypeInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise);
   ~EncComponent() override;
   OMX_ERRORTYPE AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size) override;
   OMX_ERRORTYPE UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN OMX_U32 index, OMX_IN OMX_PTR app, OMX_IN OMX_U32 size, OMX_IN OMX_U8* buffer) override;
@@ -58,7 +57,6 @@ private:
   void AssociateCallBack(BufferHandleInterface* empty, BufferHandleInterface* fill) override;
   void FillThisBufferCallBack(BufferHandleInterface* filled) override;
   void TreatEmptyBufferCommand(Task* task) override;
-  std::shared_ptr<SyncIpInterface> syncIp;
   locked_queue<uint8_t*> roiFreeBuffers;
   ThreadSafeMap<OMX_BUFFERHEADERTYPE*, uint8_t*> roiMap;
   ThreadSafeMap<OMX_BUFFERHEADERTYPE*, uint8_t*> roiDestroyMap;

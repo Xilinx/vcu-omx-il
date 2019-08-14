@@ -36,9 +36,9 @@
 ******************************************************************************/
 
 #include "mediatype_enc_avc.h"
-#include "mediatype_enc_common.h"
-#include "mediatype_common.h"
-#include "mediatype_common_avc.h"
+#include "mediatype_enc_itu.h"
+#include "mediatype_codec_avc.h"
+#include "mediatype_codec_itu.h"
 #include "convert_module_soft_avc.h"
 #include "convert_module_soft_enc.h"
 #include "convert_module_soft.h"
@@ -94,11 +94,12 @@ void EncMediatypeAVC::Reset()
   rateControl.uFrameRate = 15;
   auto& gopParam = channel.tGopParam;
   gopParam.bEnableLT = false;
-  settings.bEnableFillerData = true;
+  settings.eEnableFillerData = AL_FILLER_APP;
   settings.bEnableAUD = false;
   settings.iPrefetchLevel2 = 0;
   settings.LookAhead = 0;
   settings.TwoPass = 0;
+  settings.uEnableSEI |= AL_SEI_MDCV;
 
   stride = RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignments.horizontal);
   sliceHeight = RoundUp(static_cast<int>(channel.uHeight), strideAlignments.vertical);
@@ -382,6 +383,18 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Get(std::string index, void* sett
   if(index == "SETTINGS_INDEX_COLOR_PRIMARIES")
   {
     *(static_cast<ColorPrimariesType*>(settings)) = CreateColorPrimaries(this->settings);
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_TRANSFER_CHARACTERISTICS")
+  {
+    *(static_cast<TransferCharacteristicsType*>(settings)) = CreateTransferCharacteristics(this->settings);
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_COLOUR_MATRIX")
+  {
+    *(static_cast<ColourMatrixType*>(settings)) = CreateColourMatrix(this->settings);
     return SUCCESS;
   }
 
@@ -683,6 +696,24 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Set(std::string index, void const
     auto colorimerty = *(static_cast<ColorPrimariesType const*>(settings));
 
     if(!UpdateColorPrimaries(this->settings, colorimerty))
+      return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_TRANSFER_CHARACTERISTICS")
+  {
+    auto transferCharac = *(static_cast<TransferCharacteristicsType const*>(settings));
+
+    if(!UpdateTransferCharacteristics(this->settings, transferCharac))
+      return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_COLOUR_MATRIX")
+  {
+    auto colourMatrix = *(static_cast<ColourMatrixType const*>(settings));
+
+    if(!UpdateColourMatrix(this->settings, colourMatrix))
       return BAD_PARAMETER;
     return SUCCESS;
   }

@@ -51,16 +51,19 @@ extern "C"
 struct DecSyncIp : SyncIpInterface
 {
   DecSyncIp(std::shared_ptr<MediatypeInterface> media, std::shared_ptr<AL_TAllocator> allocator);
-  ~DecSyncIp() = default;
+  ~DecSyncIp();
+
+  bool create();
+  void destroy();
 
   void addBuffer(BufferHandleInterface*) override;
   void enable() override;
 
 private:
-  bool displayNotified = false;
+  bool displayNotified;
   std::shared_ptr<MediatypeInterface> media;
+  std::shared_ptr<SyncIp> syncIp;
+  std::shared_ptr<DecSyncChannel> syncChannel;
   std::shared_ptr<AL_TAllocator> allocator;
-  SyncIp syncIp;
-  DecSyncChannel sync;
 };
 

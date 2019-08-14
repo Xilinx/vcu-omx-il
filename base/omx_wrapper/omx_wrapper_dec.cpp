@@ -43,7 +43,7 @@
 #if AL_ENABLE_SYNCIP_DEC
 #include "base/omx_module/sync_ip_dec.h"
 #else
-#include "base/omx_module/null_sync_ip.h"
+#include "base/omx_module/sync_ip_null.h"
 #endif
 
 

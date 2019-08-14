@@ -35,7 +35,7 @@
 *
 ******************************************************************************/
 
-#include "mediatype_enc_common.h"
+#include "mediatype_enc_itu.h"
 #include "mediatype_checks.h"
 #include "convert_module_soft.h"
 #include "convert_module_soft_enc.h"
@@ -230,12 +230,12 @@ BufferSizes CreateBufferSizes(AL_TEncSettings settings, int stride, int sliceHei
 
 bool CreateFillerData(AL_TEncSettings settings)
 {
-  return settings.bEnableFillerData;
+  return settings.eEnableFillerData != AL_FILLER_DISABLE;
 }
 
 bool UpdateFillerData(AL_TEncSettings& settings, bool isFillerDataEnabled)
 {
-  settings.bEnableFillerData = isFillerDataEnabled;
+  settings.eEnableFillerData = isFillerDataEnabled ? AL_FILLER_APP : AL_FILLER_DISABLE;
   return true;
 }
 
@@ -270,7 +270,8 @@ bool UpdateScalingList(AL_TEncSettings& settings, ScalingListType scalingList)
 QPs CreateQuantizationParameter(AL_TEncSettings settings)
 {
   QPs qps;
-  qps.mode = ConvertSoftToModuleQPControl(settings.eQpCtrlMode);
+  qps.mode.ctrl = ConvertSoftToModuleQPControl(settings.eQpCtrlMode);
+  qps.mode.table = ConvertSoftToModuleQPTable(settings.eQpTableMode);
   auto rateControl = settings.tChParam[0].tRCParam;
   qps.initial = rateControl.iInitialQP;
   qps.deltaIP = rateControl.uIPDelta;
@@ -291,7 +292,8 @@ bool UpdateQuantizationParameter(AL_TEncSettings& settings, QPs qps)
   if(!CheckQuantizationParameter(qps))
     return false;
 
-  settings.eQpCtrlMode = ConvertModuleToSoftQPControl(qps.mode);
+  settings.eQpCtrlMode = ConvertModuleToSoftQPControl(qps.mode.ctrl);
+  settings.eQpTableMode = ConvertModuleToSoftQPTable(qps.mode.table);
   auto& rateControl = settings.tChParam[0].tRCParam;
   rateControl.iInitialQP = qps.initial;
   rateControl.uIPDelta = qps.deltaIP;
@@ -393,6 +395,34 @@ bool UpdateColorPrimaries(AL_TEncSettings& settings, ColorPrimariesType colorPri
     return false;
 
   settings.eColourDescription = ConvertModuleToSoftColorPrimaries(colorPrimaries);
+  return true;
+}
+
+TransferCharacteristicsType CreateTransferCharacteristics(AL_TEncSettings settings)
+{
+  return ConvertSoftToModuleTransferCharacteristics(settings.eTransferCharacteristics);
+}
+
+bool UpdateTransferCharacteristics(AL_TEncSettings& settings, TransferCharacteristicsType transferCharacteristics)
+{
+  if(!CheckTransferCharacteristics(transferCharacteristics))
+    return false;
+
+  settings.eTransferCharacteristics = ConvertModuleToSoftTransferCharacteristics(transferCharacteristics);
+  return true;
+}
+
+ColourMatrixType CreateColourMatrix(AL_TEncSettings settings)
+{
+  return ConvertSoftToModuleColourMatrix(settings.eColourMatrixCoeffs);
+}
+
+bool UpdateColourMatrix(AL_TEncSettings& settings, ColourMatrixType colourMatrix)
+{
+  if(!CheckColourMatrix(colourMatrix))
+    return false;
+
+  settings.eColourMatrixCoeffs = ConvertModuleToSoftColourMatrix(colourMatrix);
   return true;
 }
 

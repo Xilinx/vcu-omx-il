@@ -88,21 +88,21 @@ OMX_U32 ConvertMediaToOMXPFrames(Gop gop);
 EntropyCodingType ConvertOMXToMediaEntropyCoding(OMX_BOOL isCabac);
 OMX_BOOL ConvertMediaToOMXEntropyCoding(EntropyCodingType mode);
 
-int ConvertOMXToMediaQPInitial(OMX_U32 qpI);
-int ConvertOMXToMediaQPDeltaIP(OMX_U32 qpI, OMX_U32 qpP);
-int ConvertOMXToMediaQPDeltaPB(OMX_U32 pP, OMX_U32 qpB);
+int ConvertOMXToMediaQpInitial(OMX_U32 qpI);
+int ConvertOMXToMediaQpDeltaIP(OMX_U32 qpI, OMX_U32 qpP);
+int ConvertOMXToMediaQpDeltaPB(OMX_U32 pP, OMX_U32 qpB);
 OMX_U32 ConvertMediaToOMXQpI(QPs qps);
 OMX_U32 ConvertMediaToOMXQpP(QPs qps);
 OMX_U32 ConvertMediaToOMXQpB(QPs qps);
 
-int ConvertOMXToMediaQPMin(OMX_S32 qpMin);
+int ConvertOMXToMediaQpMin(OMX_S32 qpMin);
 OMX_S32 ConvertMediaToOMXQpMin(QPs qps);
 
-int ConvertOMXToMediaQPMax(OMX_S32 qpMax);
+int ConvertOMXToMediaQpMax(OMX_S32 qpMax);
 OMX_S32 ConvertMediaToOMXQpMax(QPs qps);
 
-QPControlType ConvertOMXToMediaQPControl(OMX_ALG_EQpCtrlMode mode);
-OMX_ALG_EQpCtrlMode ConvertMediaToOMXQpControl(QPs qps);
+QPMode ConvertOMXToMediaQpMode(OMX_ALG_EQpCtrlMode mode);
+OMX_ALG_EQpCtrlMode ConvertMediaToOMXQpMode(QPMode mode);
 
 RateControlType ConvertOMXToMediaControlRate(OMX_VIDEO_CONTROLRATETYPE mode);
 OMX_VIDEO_CONTROLRATETYPE ConvertMediaToOMXControlRate(RateControlType mode);
@@ -132,4 +132,13 @@ OMX_ALG_SEQUENCE_PICTURE_MODE ConvertMediaToOMXSequencePictureMode(SequencePictu
 
 OMX_ALG_VIDEO_COLOR_PRIMARIESTYPE ConvertMediaToOMXColorPrimaries(ColorPrimariesType colorPrimaries);
 ColorPrimariesType ConvertOMXToMediaColorPrimaries(OMX_ALG_VIDEO_COLOR_PRIMARIESTYPE colorPrimaries);
+
+OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS ConvertMediaToOMXTransferCharacteristics(TransferCharacteristicsType transferCharac);
+TransferCharacteristicsType ConvertOMXToMediaTransferCharacteristics(OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS transferCharac);
+
+OMX_ALG_VIDEO_COLOR_MATRIX ConvertMediaToOMXColourMatrix(ColourMatrixType colourMatrix);
+ColourMatrixType ConvertOMXToMediaColourMatrix(OMX_ALG_VIDEO_COLOR_MATRIX colourMatrix);
+
+OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS ConvertMediaToOMXHDRSEIs(const HighDynamicRangeSeis& hdrSEIs);
+HighDynamicRangeSeis ConvertOMXToMediaHDRSEIs(const OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS& hdrSEIs);
 
