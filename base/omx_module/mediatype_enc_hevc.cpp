@@ -42,9 +42,10 @@
 #include "mediatype_checks.h"
 #include "convert_module_soft_hevc.h"
 #include "convert_module_soft_enc.h"
+#include <utility/round.h>
 #include <cmath>
 #include <cstring> // memset
-#include <utility/round.h>
+#include <algorithm> // max
 
 extern "C"
 {
@@ -747,8 +748,8 @@ bool EncMediatypeHEVC::Check()
   assert(AL_GET_BITDEPTH(channel.ePicFormat) == channel.uSrcBitDepth);
   AL_Settings_CheckCoherency(&settings, &settings.tChParam[0], fourCC, stdout);
 
-  stride = RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignments.horizontal);
-  sliceHeight = RoundUp(static_cast<int>(channel.uHeight), strideAlignments.vertical);
+  stride = max(stride, RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignments.horizontal));
+  sliceHeight = max(sliceHeight, RoundUp(static_cast<int>(channel.uHeight), strideAlignments.vertical));
 
   return true;
 }

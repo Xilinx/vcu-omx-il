@@ -46,6 +46,7 @@
 #include <utility/round.h>
 #include <cmath>
 #include <cstring> // memset
+#include <algorithm> // max
 
 extern "C"
 {
@@ -783,8 +784,8 @@ bool EncMediatypeAVC::Check()
   assert(AL_GET_BITDEPTH(channel.ePicFormat) == channel.uSrcBitDepth);
   AL_Settings_CheckCoherency(&settings, &channel, fourCC, stdout);
 
-  stride = RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignments.horizontal);
-  sliceHeight = RoundUp(static_cast<int>(channel.uHeight), strideAlignments.vertical);
+  stride = max(stride, RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignments.horizontal));
+  sliceHeight = max(sliceHeight, RoundUp(static_cast<int>(channel.uHeight), strideAlignments.vertical));
 
   return true;
 }
