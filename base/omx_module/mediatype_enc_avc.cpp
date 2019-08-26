@@ -777,11 +777,14 @@ bool EncMediatypeAVC::Check()
   if(AL_Settings_CheckValidity(&settings, &settings.tChParam[0], stderr) != 0)
     return false;
 
-  auto channel = settings.tChParam[0];
+  auto& channel = settings.tChParam[0];
   auto picFormat = AL_EncGetSrcPicFormat(AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER, false);
   auto fourCC = AL_EncGetSrcFourCC(picFormat);
   assert(AL_GET_BITDEPTH(channel.ePicFormat) == channel.uSrcBitDepth);
-  AL_Settings_CheckCoherency(&settings, &settings.tChParam[0], fourCC, stdout);
+  AL_Settings_CheckCoherency(&settings, &channel, fourCC, stdout);
+
+  stride = RoundUp(AL_EncGetMinPitch(channel.uWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignments.horizontal);
+  sliceHeight = RoundUp(static_cast<int>(channel.uHeight), strideAlignments.vertical);
 
   return true;
 }
