@@ -1740,6 +1740,8 @@ void Component::TreatFlushCommand(Task task)
   if(module->Stop())
     module->Start(true);
 
+  FlushEosHandles();
+
   callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandFlush, index, nullptr);
 }
 
@@ -2056,7 +2058,6 @@ void Component::_ProcessMain(Task task)
   {
     FlushComponent();
     TreatFlushCommand(task);
-    FlushEosHandles();
     break;
   }
   case Command::DisablePort:
