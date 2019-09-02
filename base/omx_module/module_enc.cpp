@@ -1217,7 +1217,7 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
       assert(0);
       return BAD_PARAMETER;
     }
-    auto ret = media->Set(SETTINGS_INDEX_RESOLUTION, &resolution);
+    auto ret = media->Set(SETTINGS_INDEX_RESOLUTION, resolution);
     assert(ret == MediatypeInterface::SUCCESS);
     return SUCCESS;
   }
