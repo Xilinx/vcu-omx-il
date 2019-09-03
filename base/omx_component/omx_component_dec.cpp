@@ -75,7 +75,9 @@ void DecComponent::EmptyThisBufferCallBack(BufferHandleInterface* handle)
 void DecComponent::FlushComponent()
 {
   FlushFillEmptyBuffers(true, true);
+  std::unique_lock<std::mutex> lock(mutex);
   transmit.clear();
+  lock.unlock();
   shouldPropagateData = true;
 }
 
