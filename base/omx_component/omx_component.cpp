@@ -542,12 +542,11 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto lat = static_cast<OMX_ALG_PARAM_REPORTED_LATENCY*>(param);
     return ConstructReportedLatency(*lat, media);
   }
-  case OMX_ALG_IndexParamSyncIp:
+  case OMX_ALG_IndexPortParamEarlyCallback:
   {
-    auto sync = static_cast<OMX_ALG_PARAM_SYNC_IP*>(param);
-    OMXChecker::SetHeaderVersion(*sync);
-    sync->bEnableSyncIp = ConvertMediaToOMXBool(isSyncIpCreated);
-    return OMX_ErrorNone;
+    auto port = getCurrentPort(param);
+    auto earlyCB = static_cast<OMX_ALG_PORT_PARAM_EARLY_CALLBACK*>(param);
+    return ConstructPortEarlyCallback(*earlyCB, *port, media);
   }
   case OMX_ALG_IndexPortParamBufferMode:
   {
@@ -825,25 +824,10 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     // Do nothing
     return OMX_ErrorNone;
   }
-  case OMX_ALG_IndexParamSyncIp:
+  case OMX_ALG_IndexPortParamEarlyCallback:
   {
-    auto sync = static_cast<OMX_ALG_PARAM_SYNC_IP*>(param);
-    OMX_ERRORTYPE error = OMX_ErrorNone;
-
-    if(ConvertOMXToMediaBool(sync->bEnableSyncIp))
-    {
-      isSyncIpCreated = syncIp->create();
-
-      if(!isSyncIpCreated)
-        error = OMX_ErrorBadParameter;
-    }
-    else
-    {
-      syncIp->destroy();
-      isSyncIpCreated = false;
-    }
-    media->Set(SETTINGS_INDEX_LLP2_EARLY_CB, &isSyncIpCreated);
-    return error;
+    auto earlyCB = static_cast<OMX_ALG_PORT_PARAM_EARLY_CALLBACK*>(param);
+    return SetPortEarlyCallback(*earlyCB, *port, media);
   }
   case OMX_IndexParamVideoPortFormat:
   {

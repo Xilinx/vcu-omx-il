@@ -1569,3 +1569,36 @@ OMX_ERRORTYPE SetVideoInputParsed(OMX_ALG_VIDEO_PARAM_INPUT_PARSED const& ip, Po
   return OMX_ErrorNone;
 }
 
+OMX_ERRORTYPE ConstructPortEarlyCallback(OMX_ALG_PORT_PARAM_EARLY_CALLBACK& earlyCB, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(earlyCB);
+  earlyCB.nPortIndex = port.index;
+  bool shouldUseLLP2EarlyCallback { false };
+  auto ret = media->Get(SETTINGS_INDEX_LLP2_EARLY_CB, &shouldUseLLP2EarlyCallback);
+  OMX_CHECK_MEDIA_GET(ret);
+  earlyCB.bEnableEarlyCallback = ConvertMediaToOMXBool(shouldUseLLP2EarlyCallback);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetEarlyCallback(OMX_BOOL bEnableEarlyCallback, shared_ptr<MediatypeInterface> media)
+{
+  auto shouldUseLLP2EarlyCallback = ConvertOMXToMediaBool(bEnableEarlyCallback);
+  auto ret = media->Set(SETTINGS_INDEX_LLP2_EARLY_CB, &shouldUseLLP2EarlyCallback);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetPortEarlyCallback(OMX_ALG_PORT_PARAM_EARLY_CALLBACK const& earlyCB, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_PORT_PARAM_EARLY_CALLBACK rollback;
+  ConstructPortEarlyCallback(rollback, port, media);
+  auto ret = SetEarlyCallback(earlyCB.bEnableEarlyCallback, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetPortEarlyCallback(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
