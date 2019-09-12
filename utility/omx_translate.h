@@ -387,6 +387,7 @@ static std::map<OMX_INDEXTYPE, std::string> OMXIndexInStringMap =
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexVendorPortStartUnused), "OMX_ALG_IndexVendorPortStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexPortParamBufferMode), "OMX_ALG_IndexPortParamBufferMode" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexPortParamEarlyCallback), "OMX_ALG_IndexPortParamEarlyCallback" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVendorVideoStartUnused), "OMX_ALG_IndexParamVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoHevc), "OMX_ALG_IndexParamVideoHevc" },

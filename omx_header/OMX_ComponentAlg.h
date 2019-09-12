@@ -68,6 +68,23 @@ typedef struct OMX_ALG_PORT_PARAM_BUFFER_MODE
 }OMX_ALG_PORT_PARAM_BUFFER_MODE;
 
 /**
+ * Early Callback parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                : Size of the structure in bytes
+ *  nVersion             : OMX specification version information
+ *  nPortIndex           : Port that this structure applies to
+ *  bEnableEarlyCallback : Indicate if sync IP should be enabled
+ */
+typedef struct OMX_ALG_PORT_PARAM_EARLY_CALLBACK
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bEnableEarlyCallback;
+}OMX_ALG_PORT_PARAM_EARLY_CALLBACK;
+
+/**
  * Component reported latency parameters
  *
  * STRUCT MEMBERS:
@@ -96,21 +113,6 @@ typedef struct OMX_ALG_PARAM_PREALLOCATION
   OMX_VERSIONTYPE nVersion;
   OMX_BOOL bDisablePreallocation;
 }OMX_ALG_PARAM_PREALLOCATION;
-
-/**
- * Sync IP parameters
- *
- * STRUCT MEMBERS:
- *  nSize         : Size of the structure in bytes
- *  nVersion      : OMX specification version information
- *  bEnableSyncIp : Indicate if sync IP should be enabled
- */
-typedef struct OMX_ALG_PARAM_SYNC_IP
-{
-  OMX_U32 nSize;
-  OMX_VERSIONTYPE nVersion;
-  OMX_BOOL bEnableSyncIp;
-}OMX_ALG_PARAM_SYNC_IP;
 
 #ifdef __cplusplus
 }
