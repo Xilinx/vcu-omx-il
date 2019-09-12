@@ -74,7 +74,7 @@ typedef struct OMX_ALG_PORT_PARAM_BUFFER_MODE
  *  nSize                : Size of the structure in bytes
  *  nVersion             : OMX specification version information
  *  nPortIndex           : Port that this structure applies to
- *  bEnableEarlyCallback : Indicate if sync IP should be enabled
+ *  bEnableEarlyCallback : Indicate if early callback should be enabled
  */
 typedef struct OMX_ALG_PORT_PARAM_EARLY_CALLBACK
 {
