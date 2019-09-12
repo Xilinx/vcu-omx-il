@@ -42,7 +42,7 @@ struct NullSyncIp final : SyncIpInterface
 {
   ~NullSyncIp() override {};
 
-  bool create() override { return false; };
+  bool create() override { return true; };
   void destroy() override {};
 
   void addBuffer(BufferHandleInterface*) override {};
