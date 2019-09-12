@@ -45,7 +45,6 @@
 #include <cmath>
 
 #include "base/omx_checker/omx_checker.h"
-#include "base/omx_module/sync_ip_null.h"
 
 #include "omx_component_getset.h"
 
@@ -65,7 +64,7 @@ static BufferHandleType GetBufferHandlePort(shared_ptr<MediatypeInterface> media
 }
 
 EncComponent::EncComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise) :
-  Component{component, media, std::move(module), std::move(expertise), std::shared_ptr<SyncIpInterface>(new NullSyncIp {}), name, role}
+  Component{component, media, std::move(module), std::move(expertise), name, role}
 {
 }
 

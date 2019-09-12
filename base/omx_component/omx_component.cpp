@@ -215,12 +215,11 @@ static void SetPortsParam(OMX_PORT_PARAM_TYPE& portParams)
   portParams.nStartPortNumber = VIDEO_START_PORT;
 }
 
-Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, unique_ptr<ModuleInterface>&& module, std::unique_ptr<ExpertiseInterface>&& expertise, std::shared_ptr<SyncIpInterface> syncIp, OMX_STRING name, OMX_STRING role) :
+Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, unique_ptr<ModuleInterface>&& module, std::unique_ptr<ExpertiseInterface>&& expertise, OMX_STRING name, OMX_STRING role) :
   component{component},
   media{media},
   module{move(module)},
   expertise{move(expertise)},
-  syncIp{syncIp},
   input{0, MinBufferCounts(media).input},
   output{1, MinBufferCounts(media).output}
 {
@@ -232,7 +231,6 @@ Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> me
   shouldClearROI = false;
   shouldPushROI = false;
   shouldFireEventPortSettingsChanges = true;
-  isSyncIpCreated = false;
   version.nVersion = ALLEGRODVT_OMX_VERSION;
   AssociateSpecVersion(spec);
 

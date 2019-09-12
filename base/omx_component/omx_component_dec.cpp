@@ -56,8 +56,8 @@ static DecModule& ToDecModule(ModuleInterface& module)
   return dynamic_cast<DecModule &>(module);
 }
 
-DecComponent::DecComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise, shared_ptr<SyncIpInterface> syncIp) :
-  Component{component, media, std::move(module), std::move(expertise), syncIp, name, role},
+DecComponent::DecComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise) :
+  Component{component, media, std::move(module), std::move(expertise), name, role},
   shouldPropagateData{true}
 {
 }
@@ -174,20 +174,6 @@ void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
 
   if(offset == 0 && payload == 0)
     header->nFlags = OMX_BUFFERFLAG_EOS;
-
-  /* We add the buffer to the sync ip. (might be racy if we can finish before
-   * we get the early callback, but then what's the point of the sync ip)
-   *
-   * We enable once the first frame is sent.
-   * As we are starting to decode a new frame, we should be able to add the buffer
-   * to the sync ip without a problem (the slot should be there)
-   */
-
-  if(isSyncIpCreated)
-  {
-    syncIp->addBuffer((OMXBufferHandle*)filled);
-    syncIp->enable();
-  }
 
   delete filled;
 

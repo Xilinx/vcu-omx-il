@@ -40,14 +40,6 @@
 #include "base/omx_module/mediatype_dec_hevc.h"
 #include "base/omx_module/module_dec.h"
 
-#if AL_ENABLE_SYNCIP_DEC
-#include "base/omx_module/sync_ip_dec.h"
-#else
-#include "base/omx_module/sync_ip_null.h"
-#endif
-
-
-
 #include "base/omx_module/device_dec_hardware_mcu.h"
 
 #include <cstring>
@@ -60,18 +52,6 @@ using namespace std;
 extern "C"
 {
 #include <lib_fpga/DmaAlloc.h>
-}
-
-static SyncIpInterface* createSyncIp(shared_ptr<MediatypeInterface> media, shared_ptr<AL_TAllocator> allocator)
-{
-#if AL_ENABLE_SYNCIP_DEC
-  return new DecSyncIp {
-           media, allocator
-  };
-#else
-  (void)media, (void)allocator;
-  return new NullSyncIp {};
-#endif
 }
 
 static char const* ALLOC_DEVICE_DEC_NAME = "/dev/allegroDecodeIP";
@@ -103,11 +83,8 @@ static StrideAlignments constexpr STRIDE_ALIGNMENTS_HARDWARE
   64, 64
 };
 
-
-
 #include "base/omx_component/omx_expertise_avc.h"
 #include "base/omx_module/mediatype_dec_avc.h"
-
 
 static DecComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
@@ -132,14 +109,10 @@ static DecComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
   unique_ptr<ExpertiseAVC> expertise {
     new ExpertiseAVC {}
   };
-  shared_ptr<SyncIpInterface> syncIp {
-    createSyncIp(media, allocator)
-  };
   return new DecComponent {
-           hComponent, media, move(module), cComponentName, cRole, move(expertise), syncIp
+           hComponent, media, move(module), cComponentName, cRole, move(expertise)
   };
 }
-
 
 static DecComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
@@ -164,11 +137,8 @@ static DecComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
   unique_ptr<ExpertiseHEVC> expertise {
     new ExpertiseHEVC {}
   };
-  shared_ptr<SyncIpInterface> syncIp {
-    createSyncIp(media, allocator)
-  };
   return new DecComponent {
-           hComponent, media, move(module), cComponentName, cRole, move(expertise), syncIp
+           hComponent, media, move(module), cComponentName, cRole, move(expertise)
   };
 }
 
