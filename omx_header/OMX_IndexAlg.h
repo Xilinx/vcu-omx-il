@@ -94,6 +94,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamVideoMaxPictureSizes,             /**< reference: OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES */
   OMX_ALG_IndexParamVideoLoopFilterBeta,              /**< reference: OMX_ALG_VIDEO_PARAM_LOOP_FILTER_BETA */
   OMX_ALG_IndexParamVideoLoopFilterTc,                /**< reference: OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC */
+  OMX_ALG_IndexParamVideoMaxResolutionChange,         /**< reference: OMX_ALG_VIDEO_PARAM_MAX_RESOLUTION_CHANGE */
 
   /* Vendor Video configrations */
   OMX_ALG_IndexConfigVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00380000,
