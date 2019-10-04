@@ -99,6 +99,7 @@ private:
 
   AL_HDecoder decoder;
   bool resolutionFoundAsBeenCalled;
+  AL_TDimension initialDimension;
 
   ErrorType CreateDecoder(bool shouldPrealloc);
   bool DestroyDecoder();

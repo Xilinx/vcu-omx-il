@@ -1281,6 +1281,15 @@ OMX_ERRORTYPE Component::GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR
     hdrSEIs = ConvertMediaToOMXHDRSEIs(modHDRSEIs);
     return OMX_ErrorNone;
   }
+  case OMX_ALG_IndexParamVideoMaxResolutionChange:
+  {
+    Dimension<int> dimension;
+    module->GetDynamic(DYNAMIC_INDEX_MAX_RESOLUTION_CHANGE_SUPPORTED, &dimension);
+    auto& dim = *(static_cast<OMX_ALG_VIDEO_PARAM_MAX_RESOLUTION_CHANGE*>(config));
+    dim.nWidth = dimension.horizontal;
+    dim.nHeight = dimension.vertical;
+    return OMX_ErrorNone;
+  }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
