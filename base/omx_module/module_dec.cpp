@@ -62,7 +62,8 @@ DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, shared_ptr<DecDevi
   device{device},
   allocator{allocator},
   decoder{nullptr},
-  resolutionFoundAsBeenCalled{false}
+  resolutionFoundAsBeenCalled{false},
+  initialDimension{-1,-1}
 {
   assert(this->media);
   assert(this->device);
@@ -290,6 +291,8 @@ void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSett
     return;
   }
   resolutionFoundAsBeenCalled = true;
+  initialDimension = settings.tDim;
+
   media->settings.tStream = settings;
 
   StrideAlignments strideAlignments;
@@ -371,6 +374,7 @@ bool DecModule::DestroyDecoder()
   device->Deinit();
   decoder = nullptr;
   resolutionFoundAsBeenCalled = false;
+  initialDimension = {-1, -1};
 
   return true;
 }
@@ -809,6 +813,14 @@ ModuleInterface::ErrorType DecModule::GetDynamic(std::string index, void* param)
   {
     auto hdrSEIs = static_cast<HighDynamicRangeSeis*>(param);
     *hdrSEIs = currentHDRSEIs;
+    return SUCCESS;
+  }
+
+  if(index == "DYNAMIC_INDEX_MAX_RESOLUTION_CHANGE_SUPPORTED")
+  {
+    auto dimension = static_cast<Dimension<int>*>(param);
+    dimension->horizontal = initialDimension.iWidth;
+    dimension->vertical = initialDimension.iHeight;
     return SUCCESS;
   }
 

@@ -129,6 +129,7 @@ private:
   AL_TBuffer* currentOutputedStreamForSei;
   int currentTemporalId;
   Flags currentFlags;
+  AL_TDimension initialDimension;
 
   bool CreateAndAttachStreamMeta(AL_TBuffer& buf);
   void InitEncoders(int numPass);
