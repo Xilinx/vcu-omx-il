@@ -421,7 +421,6 @@ static std::map<OMX_INDEXTYPE, std::string> OMXIndexInStringMap =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoMaxPictureSizes), "OMX_ALG_IndexParamVideoMaxPictureSizes" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLoopFilterBeta), "OMX_ALG_IndexParamVideoLoopFilterBeta" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLoopFilterTc), "OMX_ALG_IndexParamVideoLoopFilterTc" },
-  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoMaxResolutionChange), "OMX_ALG_IndexParamVideoMaxResolutionChange" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVendorVideoStartUnused), "OMX_ALG_IndexConfigVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), "OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh" },
@@ -439,6 +438,8 @@ static std::map<OMX_INDEXTYPE, std::string> OMXIndexInStringMap =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoTransferCharacteristics), "OMX_ALG_IndexConfigVideoTransferCharacteristics" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoColorMatrix), "OMX_ALG_IndexConfigVideoColorMatrix" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoHighDynamicRangeSEIs), "OMX_ALG_IndexConfigVideoHighDynamicRangeSEIs" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoMaxResolutionChange), "OMX_ALG_IndexConfigVideoMaxResolutionChange" },
+
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexVendorCommonStartUnused), "OMX_ALG_IndexVendorCommonStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamCommonSequencePictureModeCurrent), "OMX_ALG_IndexParamCommonSequencePictureModeCurrent" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamCommonSequencePictureModeQuerySupported), "OMX_ALG_IndexParamCommonSequencePictureModeQuerySupported" },
