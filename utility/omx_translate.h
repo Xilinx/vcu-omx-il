@@ -421,6 +421,7 @@ static std::map<OMX_INDEXTYPE, std::string> OMXIndexInStringMap =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoMaxPictureSizes), "OMX_ALG_IndexParamVideoMaxPictureSizes" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLoopFilterBeta), "OMX_ALG_IndexParamVideoLoopFilterBeta" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLoopFilterTc), "OMX_ALG_IndexParamVideoLoopFilterTc" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoMaxResolutionChange), "OMX_ALG_IndexParamVideoMaxResolutionChange" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVendorVideoStartUnused), "OMX_ALG_IndexConfigVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), "OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh" },
