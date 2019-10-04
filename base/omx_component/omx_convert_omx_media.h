@@ -101,8 +101,8 @@ OMX_S32 ConvertMediaToOMXQpMin(QPs qps);
 int ConvertOMXToMediaQpMax(OMX_S32 qpMax);
 OMX_S32 ConvertMediaToOMXQpMax(QPs qps);
 
-QPMode ConvertOMXToMediaQpMode(OMX_ALG_EQpCtrlMode mode);
-OMX_ALG_EQpCtrlMode ConvertMediaToOMXQpMode(QPMode mode);
+QPControlType ConvertOMXToMediaQpCtrlMode(OMX_ALG_EQpCtrlMode mode);
+OMX_ALG_EQpCtrlMode ConvertMediaToOMXQpCtrlMode(QPControlType mode);
 
 RateControlType ConvertOMXToMediaControlRate(OMX_VIDEO_CONTROLRATETYPE mode);
 OMX_VIDEO_CONTROLRATETYPE ConvertMediaToOMXControlRate(RateControlType mode);
@@ -142,3 +142,5 @@ ColourMatrixType ConvertOMXToMediaColourMatrix(OMX_ALG_VIDEO_COLOR_MATRIX colour
 OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS ConvertMediaToOMXHDRSEIs(const HighDynamicRangeSeis& hdrSEIs);
 HighDynamicRangeSeis ConvertOMXToMediaHDRSEIs(const OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS& hdrSEIs);
 
+OMX_ALG_EQpTableMode ConvertMediaToOMXQpTable(QPTableType mode);
+QPTableType ConvertOMXToMediaQpTable(OMX_ALG_EQpTableMode mode);

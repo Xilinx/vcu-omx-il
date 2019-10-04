@@ -563,7 +563,7 @@ OMX_ERRORTYPE ConstructVideoQuantizationControl(OMX_ALG_VIDEO_PARAM_QUANTIZATION
   QPs qps;
   auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &qps);
   OMX_CHECK_MEDIA_GET(ret);
-  q.eQpControlMode = ConvertMediaToOMXQpMode(qps.mode);
+  q.eQpControlMode = ConvertMediaToOMXQpCtrlMode(qps.mode.ctrl);
   return OMX_ErrorNone;
 }
 
@@ -572,7 +572,7 @@ static OMX_ERRORTYPE SetQuantizationControl(OMX_ALG_EQpCtrlMode const& mode, sha
   QPs curQPs;
   auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
   OMX_CHECK_MEDIA_GET(ret);
-  curQPs.mode = ConvertOMXToMediaQpMode(mode);
+  curQPs.mode.ctrl = ConvertOMXToMediaQpCtrlMode(mode);
   ret = media->Set(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
@@ -1597,6 +1597,43 @@ OMX_ERRORTYPE SetPortEarlyCallback(OMX_ALG_PORT_PARAM_EARLY_CALLBACK const& earl
   if(ret != OMX_ErrorNone)
   {
     SetPortEarlyCallback(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoQuantizationTable(OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE& table, Port const& port, std::shared_ptr<MediatypeInterface>media)
+{
+  OMXChecker::SetHeaderVersion(table);
+  table.nPortIndex = port.index;
+  QPs qps;
+  auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &qps);
+  table.eQpTableMode = ConvertMediaToOMXQpTable(qps.mode.table);
+  OMX_CHECK_MEDIA_GET(ret);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetQuantizationTable(OMX_ALG_EQpTableMode mode, shared_ptr<MediatypeInterface> media)
+{
+  QPs qps;
+  auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &qps);
+  OMX_CHECK_MEDIA_GET(ret);
+  qps.mode.table = ConvertOMXToMediaQpTable(mode);
+  ret = media->Set(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &qps);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoQuantizationTable(OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE const& table, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE rollback;
+  ConstructVideoQuantizationTable(rollback, port, media);
+  auto ret = SetQuantizationTable(table.eQpTableMode, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoQuantizationTable(rollback, port, media);
     throw ret;
   }
 

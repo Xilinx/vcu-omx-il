@@ -769,6 +769,12 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto tc = static_cast<OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC*>(param);
     return ConstructVideoLoopFilterTc(*tc, *port, media);
   }
+  case OMX_ALG_IndexParamVideoQuantizationTable:
+  {
+    auto port = getCurrentPort(param);
+    auto qpTable = static_cast<OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE*>(param);
+    return ConstructVideoQuantizationTable(*qpTable, *port, media);
+  }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
@@ -1021,6 +1027,11 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
   {
     auto ip = static_cast<OMX_ALG_VIDEO_PARAM_INPUT_PARSED*>(param);
     return SetVideoInputParsed(*ip, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoQuantizationTable:
+  {
+    auto table = static_cast<OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE*>(param);
+    return SetVideoQuantizationTable(*table, *port, media);
   }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
