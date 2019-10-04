@@ -120,7 +120,7 @@ struct Callbacks
   enum class Event
   {
     ERROR,
-    RESOLUTION_CHANGE,
+    RESOLUTION_DETECTED,
     SEI_PREFIX_PARSED,
     SEI_SUFFIX_PARSED,
     MAX,
@@ -139,7 +139,7 @@ static std::map<Callbacks::Event, char const*> ToStringCallbackEvent
     Callbacks::Event::ERROR, "ERROR"
   },
   {
-    Callbacks::Event::RESOLUTION_CHANGE, "RESOLUTION_CHANGE"
+    Callbacks::Event::RESOLUTION_DETECTED, "RESOLUTION_DETECTED"
   },
   {
     Callbacks::Event::SEI_PREFIX_PARSED, "SEI_PREFIX_PARSED"
