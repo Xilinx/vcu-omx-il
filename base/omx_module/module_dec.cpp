@@ -218,6 +218,22 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
     return;
   }
 
+  int frameWidth = info->tDim.iWidth - (info->tCrop.uCropOffsetLeft + info->tCrop.uCropOffsetRight);
+  int frameHeight = info->tDim.iHeight - (info->tCrop.uCropOffsetTop + info->tCrop.uCropOffsetBottom);
+
+  Resolution resolution;
+  media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
+
+  if((resolution.width != frameWidth) || (resolution.height != frameHeight))
+  {
+    resolution.width = frameWidth;
+    resolution.height = frameHeight;
+
+    media->Set(SETTINGS_INDEX_RESOLUTION, &resolution);
+
+    callbacks.event(Callbacks::Event::RESOLUTION_DETECTED, nullptr);
+  }
+
   auto seis = displaySeis.Pop(frameToDisplay);
 
   if(!seis.empty())
@@ -280,16 +296,8 @@ void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSett
   (void)bufferNumber, (void)bufferSize, (void)crop;
 
   if(resolutionFoundAsBeenCalled)
-  {
-    int width = settings.tDim.iWidth - (crop.uCropOffsetLeft + crop.uCropOffsetRight);
-    int height = settings.tDim.iHeight - (crop.uCropOffsetTop + crop.uCropOffsetBottom);
-
-    media->settings.tStream.tDim.iWidth = width;
-    media->settings.tStream.tDim.iHeight = height;
-
-    callbacks.event(Callbacks::Event::RESOLUTION_DETECTED, nullptr);
     return;
-  }
+
   resolutionFoundAsBeenCalled = true;
   initialDimension = settings.tDim;
 
