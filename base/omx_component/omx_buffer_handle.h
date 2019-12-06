@@ -37,7 +37,7 @@
 
 #pragma once
 
-#include "base/omx_module/buffer_handle_interface.h"
+#include "module/buffer_handle_interface.h"
 
 #include <OMX_Core.h>
 

@@ -92,11 +92,11 @@ include $(THIS)/utility/project.mk
 
 include $(THIS)/core/project.mk
 
-include $(THIS)/base/project_common.mk
--include $(THIS)/base/project_enc.mk
--include $(THIS)/base/project_dec.mk
+include $(THIS)/project_codec.mk
+-include $(THIS)/project_enc.mk
+-include $(THIS)/project_dec.mk
 
-include $(THIS)/exe_omx/project_common.mk
+include $(THIS)/exe_omx/project_codec.mk
 -include $(THIS)/exe_omx/project_enc.mk
 -include $(THIS)/exe_omx/project_dec.mk
 

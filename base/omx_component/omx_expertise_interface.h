@@ -40,7 +40,7 @@
 #include <OMX_Types.h>
 #include <cassert>
 
-#include "base/omx_module/mediatype_interface.h"
+#include "module/mediatype_interface.h"
 #include "omx_component_structs.h"
 
 #define OMX_CHECK_MEDIA_GET(ret) \

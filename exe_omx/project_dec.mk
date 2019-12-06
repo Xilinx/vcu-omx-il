@@ -5,7 +5,7 @@ SH_NAME_DEC:=$(EXE_NAME_DEC:%.exe=%.sh)
 
 include $(THIS.exe_omx_dec)/decoder/project_dec.mk
 
-EXE_OMX_DECODER_OBJ:=$(EXE_OMX_COMMON_OBJ)
+EXE_OMX_DECODER_OBJ:=$(EXE_OMX_CODEC_OBJ)
 EXE_OMX_DECODER_OBJ+=$(EXE_OMX_DECODER_SRCS:%=$(BIN)/%.o)
 EXE_OMX_DECODER_OBJ+=$(UTILITY_SRCS:%=$(BIN)/%.o)
 

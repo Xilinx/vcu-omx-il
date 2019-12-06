@@ -441,31 +441,18 @@ int ConvertOMXToMediaQpMax(OMX_S32 qpMax)
   return qpMax;
 }
 
-QPMode ConvertOMXToMediaQpMode(OMX_ALG_EQpCtrlMode mode)
+QPControlType ConvertOMXToMediaQpCtrlMode(OMX_ALG_EQpCtrlMode mode)
 {
-  if(mode == OMX_ALG_UNIFORM_QP)
-    return QPMode {
-             QPControlType::QP_CONTROL_NONE, QPTableType::QP_TABLE_NONE
-    };
+  switch(mode)
+  {
+  case OMX_ALG_QP_CTRL_NONE: return QPControlType::QP_CONTROL_NONE;
+  case OMX_ALG_QP_CTRL_AUTO: return QPControlType::QP_CONTROL_AUTO;
+  case OMX_ALG_QP_CTRL_ADAPTIVE_AUTO: return QPControlType::QP_CONTROL_ADAPTIVE_AUTO;
+  case OMX_ALG_QP_CTRL_MAX_ENUM: return QPControlType::QP_CONTROL_MAX_ENUM;
+  default: return QPControlType::QP_CONTROL_MAX_ENUM;
+  }
 
-  if(mode == OMX_ALG_ROI_QP)
-    return QPMode {
-             QPControlType::QP_CONTROL_NONE, QPTableType::QP_TABLE_RELATIVE
-    };
-
-  if(mode == OMX_ALG_AUTO_QP)
-    return QPMode {
-             QPControlType::QP_CONTROL_AUTO, QPTableType::QP_TABLE_NONE
-    };
-
-  if(mode == OMX_ALG_AUTO_QP)
-    return QPMode {
-             QPControlType::QP_CONTROL_AUTO, QPTableType::QP_TABLE_RELATIVE
-    };
-
-  return QPMode {
-           QPControlType::QP_CONTROL_MAX_ENUM, QPTableType::QP_TABLE_MAX_ENUM
-  };
+  return QPControlType::QP_CONTROL_MAX_ENUM;
 }
 
 RateControlType ConvertOMXToMediaControlRate(OMX_VIDEO_CONTROLRATETYPE mode)
@@ -593,21 +580,18 @@ OMX_S32 ConvertMediaToOMXQpMax(QPs qps)
   return qps.max;
 }
 
-OMX_ALG_EQpCtrlMode ConvertMediaToOMXQpMode(QPMode mode)
+OMX_ALG_EQpCtrlMode ConvertMediaToOMXQpCtrlMode(QPControlType mode)
 {
-  if((mode.ctrl == QPControlType::QP_CONTROL_NONE) && (mode.table == QPTableType::QP_TABLE_NONE))
-    return OMX_ALG_UNIFORM_QP;
+  switch(mode)
+  {
+  case QPControlType::QP_CONTROL_NONE: return OMX_ALG_QP_CTRL_NONE;
+  case QPControlType::QP_CONTROL_AUTO: return OMX_ALG_QP_CTRL_AUTO;
+  case QPControlType::QP_CONTROL_ADAPTIVE_AUTO: return OMX_ALG_QP_CTRL_ADAPTIVE_AUTO;
+  case QPControlType::QP_CONTROL_MAX_ENUM: return OMX_ALG_QP_CTRL_MAX_ENUM;
+  default: return OMX_ALG_QP_CTRL_MAX_ENUM;
+  }
 
-  if((mode.ctrl == QPControlType::QP_CONTROL_NONE) && (mode.table == QPTableType::QP_TABLE_RELATIVE))
-    return OMX_ALG_ROI_QP;
-
-  if((mode.ctrl == QPControlType::QP_CONTROL_AUTO) && (mode.table == QPTableType::QP_TABLE_NONE))
-    return OMX_ALG_AUTO_QP;
-
-  if((mode.ctrl == QPControlType::QP_CONTROL_AUTO) && (mode.table == QPTableType::QP_TABLE_RELATIVE))
-    return OMX_ALG_ROI_AUTO_QP;
-
-  return OMX_ALG_MAX_ENUM_QP;
+  return OMX_ALG_QP_CTRL_MAX_ENUM;
 }
 
 OMX_VIDEO_CONTROLRATETYPE ConvertMediaToOMXControlRate(RateControlType mode)
@@ -1038,7 +1022,7 @@ OMX_ALG_VIDEO_BUFFER_MODE ConvertMediaToOMXBufferMode(BufferModeType mode)
   return OMX_ALG_VIDEO_BUFFER_MODE_MAX_ENUM;
 }
 
-QualityType ConvertOMXToMediaQuality(OMX_ALG_ERoiQuality quality)
+QualityType ConvertOMXToMediaQualityPreset(OMX_ALG_ERoiQuality quality)
 {
   switch(quality)
   {
@@ -1052,6 +1036,11 @@ QualityType ConvertOMXToMediaQuality(OMX_ALG_ERoiQuality quality)
   }
 
   return QualityType::REGION_OF_INTEREST_QUALITY_MAX_ENUM;
+}
+
+int ConvertOMXToMediaQualityValue(OMX_S32 quality)
+{
+  return static_cast<int>(quality);
 }
 
 OMX_U32 ConvertMediaToOMXInterlaceFlag(VideoModeType mode)
@@ -1212,9 +1201,9 @@ ColourMatrixType ConvertOMXToMediaColourMatrix(OMX_ALG_VIDEO_COLOR_MATRIX colour
   return ColourMatrixType::COLOUR_MATRIX_MAX_ENUM;
 }
 
-OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS ConvertMediaToOMXHDRSEIs(const HighDynamicRangeSeis& hdrSEIs)
+OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI ConvertMediaToOMXHDRSEI(HighDynamicRangeSeis const& hdrSEIs)
 {
-  OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS omxHDRSEIs;
+  OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI omxHDRSEIs;
 
   omxHDRSEIs.bHasMDCV = ConvertMediaToOMXBool(hdrSEIs.hasMDCV);
 
@@ -1243,7 +1232,7 @@ OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS ConvertMediaToOMXHDRSEIs(const HighDynamic
   return omxHDRSEIs;
 }
 
-HighDynamicRangeSeis ConvertOMXToMediaHDRSEIs(const OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS& hdrSEIs)
+HighDynamicRangeSeis ConvertOMXToMediaHDRSEI(OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI const& hdrSEIs)
 {
   HighDynamicRangeSeis modHDRSEIs;
 
@@ -1274,3 +1263,30 @@ HighDynamicRangeSeis ConvertOMXToMediaHDRSEIs(const OMX_ALG_VIDEO_HIGH_DYNAMIC_R
   return modHDRSEIs;
 }
 
+OMX_ALG_EQpTableMode ConvertMediaToOMXQpTable(QPTableType mode)
+{
+  switch(mode)
+  {
+  case QPTableType::QP_TABLE_NONE: return OMX_ALG_QP_TABLE_NONE;
+  case QPTableType::QP_TABLE_ABSOLUTE: return OMX_ALG_QP_TABLE_ABSOLUTE;
+  case QPTableType::QP_TABLE_RELATIVE: return OMX_ALG_QP_TABLE_RELATIVE;
+  case QPTableType::QP_TABLE_MAX_ENUM: return OMX_ALG_QP_TABLE_MAX_ENUM;
+  default: return OMX_ALG_QP_TABLE_MAX_ENUM;
+  }
+
+  return OMX_ALG_QP_TABLE_MAX_ENUM;
+}
+
+QPTableType ConvertOMXToMediaQpTable(OMX_ALG_EQpTableMode mode)
+{
+  switch(mode)
+  {
+  case OMX_ALG_QP_TABLE_NONE: return QPTableType::QP_TABLE_NONE;
+  case OMX_ALG_QP_TABLE_ABSOLUTE: return QPTableType::QP_TABLE_ABSOLUTE;
+  case OMX_ALG_QP_TABLE_RELATIVE: return QPTableType::QP_TABLE_RELATIVE;
+  case OMX_ALG_QP_TABLE_MAX_ENUM: return QPTableType::QP_TABLE_MAX_ENUM;
+  default: return QPTableType::QP_TABLE_MAX_ENUM;
+  }
+
+  return QPTableType::QP_TABLE_MAX_ENUM;
+}

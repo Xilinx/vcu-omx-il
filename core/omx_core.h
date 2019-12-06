@@ -39,15 +39,12 @@
 
 #include <OMX_Core.h>
 
-static int constexpr OMX_MAX_COMP_ROLES = 1;
-
 typedef struct
 {
   char const name[OMX_MAX_STRINGNAME_SIZE];
   void* pLibHandle;
   char const* pSoLibName;
-  int const nRoles;
-  char const* roles[OMX_MAX_COMP_ROLES];
+  char const role[OMX_MAX_STRINGNAME_SIZE];
 }omx_comp_type;
 
 static omx_comp_type AL_COMP_LIST[] =
@@ -56,84 +53,49 @@ static omx_comp_type AL_COMP_LIST[] =
     "OMX.allegro.h265.encoder",
     nullptr,
     "libOMX.allegro.video_encoder.so",
-    1,
-    {
-      "video_encoder.hevc",
-    }
+    "video_encoder.hevc",
   },
   {
     "OMX.allegro.h265.hardware.encoder",
     nullptr,
     "libOMX.allegro.video_encoder.so",
-    1,
-    {
-      "video_encoder.hevc",
-    }
+    "video_encoder.hevc",
   },
   {
     "OMX.allegro.h264.encoder",
     nullptr,
     "libOMX.allegro.video_encoder.so",
-    1,
-    {
-      "video_encoder.avc",
-    }
+    "video_encoder.avc",
   },
   {
     "OMX.allegro.h264.hardware.encoder",
     nullptr,
     "libOMX.allegro.video_encoder.so",
-    1,
-    {
-      "video_encoder.avc",
-    }
+    "video_encoder.avc",
   },
-#if AL_ENABLE_VP9
-  {
-    "OMX.allegro.vp9.encoder",
-    nullptr,
-    "libOMX.allegro.video_encoder.so",
-    1,
-    {
-      "video_encoder.vp9",
-    }
-  },
-#endif
   {
     "OMX.allegro.h265.decoder",
     nullptr,
     "libOMX.allegro.video_decoder.so",
-    1,
-    {
-      "video_decoder.hevc",
-    }
+    "video_decoder.hevc",
   },
   {
     "OMX.allegro.h265.hardware.decoder",
     nullptr,
     "libOMX.allegro.video_decoder.so",
-    1,
-    {
-      "video_decoder.hevc",
-    }
+    "video_decoder.hevc",
   },
   {
     "OMX.allegro.h264.decoder",
     nullptr,
     "libOMX.allegro.video_decoder.so",
-    1,
-    {
-      "video_decoder.avc",
-    }
+    "video_decoder.avc",
   },
   {
     "OMX.allegro.h264.hardware.decoder",
     nullptr,
     "libOMX.allegro.video_decoder.so",
-    1,
-    {
-      "video_decoder.avc",
-    }
+    "video_decoder.avc",
   },
 };
 

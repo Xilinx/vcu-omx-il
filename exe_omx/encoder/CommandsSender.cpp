@@ -85,7 +85,6 @@ void CommandsSender::notifyUseLongTerm()
   assert(error == OMX_ErrorNone);
 }
 
-
 void CommandsSender::restartGop()
 {
   OMX_ALG_VIDEO_CONFIG_INSERT config;
@@ -126,6 +125,12 @@ void CommandsSender::setNumB(int numB)
   assert(error == OMX_ErrorNone);
 }
 
+void CommandsSender::setFreqIDR(int freqIDR)
+{
+  (void)freqIDR;
+  assert(0 && "setFreqIDR is not supported");
+}
+
 void CommandsSender::setFrameRate(int frameRate, int clockRatio)
 {
   OMX_CONFIG_FRAMERATETYPE xFramerate;
@@ -155,6 +160,25 @@ void CommandsSender::setQP(int qp)
   assert(0 && "setQP is not supported");
 }
 
+void CommandsSender::setQPBounds(int iMinQP, int iMaxQP)
+{
+  (void)iMinQP;
+  (void)iMaxQP;
+  assert(0 && "setQPBounds is not supported");
+}
+
+void CommandsSender::setQPIPDelta(int iQPDelta)
+{
+  (void)iQPDelta;
+  assert(0 && "setQPIPDelta is not supported");
+}
+
+void CommandsSender::setQPPBDelta(int iQPDelta)
+{
+  (void)iQPDelta;
+  assert(0 && "setQPPBDelta is not supported");
+}
+
 void CommandsSender::setDynamicInput(int iInputIdx)
 {
   (void)iInputIdx;
@@ -172,5 +196,4 @@ void CommandsSender::setLFTcOffset(int iTcOffset)
   (void)iTcOffset;
   assert(0 && "setLFTcOffset is not supported");
 }
-
 

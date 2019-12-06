@@ -207,8 +207,12 @@ struct Application
   semaphore flushEvent;
   semaphore disableEvent;
 
-  OMX_HANDLETYPE hDecoder;
-  OMX_PTR pAppData;
+  OMX_HANDLETYPE hDecoder {
+    nullptr
+  };
+  OMX_PTR pAppData {
+    nullptr
+  };
 
   Settings settings;
   locked_queue<OMX_BUFFERHEADERTYPE*> inputBuffers;
@@ -468,8 +472,12 @@ static OMX_ERRORTYPE allocBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Applicati
 
     for(decltype(minBuf)nbBuf = 0; nbBuf < minBuf; nbBuf++)
     {
-      OMX_BUFFERHEADERTYPE* pBufHeader = nullptr;
-      OMX_U8* pBufData;
+      OMX_BUFFERHEADERTYPE* pBufHeader {
+        nullptr
+      };
+      OMX_U8* pBufData {
+        nullptr
+      };
 
       if(use_dmabuf)
       {
@@ -906,6 +914,11 @@ static OMX_ERRORTYPE configureComponent(Application& app)
     param.nPortIndex = 1;
     param.bEnableSubframe = OMX_TRUE;
     OMX_SetParameter(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSubframe), &param);
+    OMX_ALG_VIDEO_PARAM_DECODED_PICTURE_BUFFER dpb;
+    InitHeader(dpb);
+    dpb.nPortIndex = 1;
+    dpb.eDecodedPictureBufferMode = OMX_ALG_DPB_NO_REORDERING;
+    OMX_SetParameter(app.hDecoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoDecodedPictureBuffer), &dpb);
   }
 
   if(app.settings.hasPrealloc)

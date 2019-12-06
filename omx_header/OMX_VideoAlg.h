@@ -368,11 +368,10 @@ typedef struct OMX_ALG_VIDEO_PARAM_CODED_PICTURE_BUFFER
  */
 typedef enum
 {
-  OMX_ALG_UNIFORM_QP, /*!< default behaviour */
-  OMX_ALG_ROI_QP, /*!< must be set for dynamic roi */
-  OMX_ALG_AUTO_QP, /*!< compute Qp by MB on the fly */
-  OMX_ALG_ROI_AUTO_QP, /*!< ROI and on the fly QP offsets summed */
-  OMX_ALG_MAX_ENUM_QP = 0x7FFFFFFF,
+  OMX_ALG_QP_CTRL_NONE,
+  OMX_ALG_QP_CTRL_AUTO,
+  OMX_ALG_QP_CTRL_ADAPTIVE_AUTO,
+  OMX_ALG_QP_CTRL_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_EQpCtrlMode;
 
 /**
@@ -410,6 +409,136 @@ typedef struct OMX_ALG_VIDEO_PARAM_QUANTIZATION_EXTENSION
   OMX_S32 nQpMin;
   OMX_S32 nQpMax;
 }OMX_ALG_VIDEO_PARAM_QUANTIZATION_EXTENSION;
+
+/**
+ * Enumeration of possible quantization table parameter (QP Table) types
+ */
+typedef enum
+{
+  OMX_ALG_QP_TABLE_NONE,
+  OMX_ALG_QP_TABLE_RELATIVE,
+  OMX_ALG_QP_TABLE_ABSOLUTE,
+  OMX_ALG_QP_TABLE_MAX_ENUM = 0x7FFFFFFF,
+}OMX_ALG_EQpTableMode;
+
+/**
+ * Quantization table parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize        : Size of the structure in bytes
+ *  nVersion     : OMX specification version information
+ *  nPortIndex   : Port that this structure applies to
+ *  eQpTableMode : Quantization table parameter type enum
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_ALG_EQpTableMode eQpTableMode;
+}OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE;
+
+/**
+ * Access Unit Delimiter parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                      : Size of the structure in bytes
+ *  nVersion                   : OMX specification version information
+ *  nPortIndex                 : Port that this structure applies to
+ *  bEnableAccessUnitDelimiter : Indicate if access unit delimiter should be enabled
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_ACCESS_UNIT_DELIMITER
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bEnableAccessUnitDelimiter;
+}OMX_ALG_VIDEO_PARAM_ACCESS_UNIT_DELIMITER;
+
+/**
+ * Buffering Period SEI parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                     : Size of the structure in bytes
+ *  nVersion                  : OMX specification version information
+ *  nPortIndex                : Port that this structure applies to
+ *  bEnableBufferingPeriodSEI : Indicate if buffering period sei should be enabled
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_BUFFERING_PERIOD_SEI
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bEnableBufferingPeriodSEI;
+}OMX_ALG_VIDEO_PARAM_BUFFERING_PERIOD_SEI;
+
+/**
+ * Picture Timing SEI parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                   : Size of the structure in bytes
+ *  nVersion                : OMX specification version information
+ *  nPortIndex              : Port that this structure applies to
+ *  bEnablePictureTimingSEI : Indicate if picture timing sei should be enabled
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_PICTURE_TIMING_SEI
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bEnablePictureTimingSEI;
+}OMX_ALG_VIDEO_PARAM_PICTURE_TIMING_SEI;
+
+/**
+ * Recovery Point SEI parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                   : Size of the structure in bytes
+ *  nVersion                : OMX specification version information
+ *  nPortIndex              : Port that this structure applies to
+ *  bEnableRecoveryPointSEI : Indicate if recovery point sei should be enabled
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_RECOVERY_POINT_SEI
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bEnableRecoveryPointSEI;
+}OMX_ALG_VIDEO_PARAM_RECOVERY_POINT_SEI;
+
+/**
+ * Mastering Display Colour Volume SEI parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                                  : Size of the structure in bytes
+ *  nVersion                               : OMX specification version information
+ *  nPortIndex                             : Port that this structure applies to
+ *  bEnableMasteringDisplayColourVolumeSEI : Indicate if mastering display colour volume sei should be enabled
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_MASTERING_DISPLAY_COLOUR_VOLUME_SEI
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bEnableMasteringDisplayColourVolumeSEI;
+}OMX_ALG_VIDEO_PARAM_MASTERING_DISPLAY_COLOUR_VOLUME_SEI;
+
+/**
+ * Content Light Level SEI parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                       : Size of the structure in bytes
+ *  nVersion                    : OMX specification version information
+ *  nPortIndex                  : Port that this structure applies to
+ *  bEnableContentLightLevelSEI : Indicate if content light level sei should be enabled
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bEnableContentLightLevelSEI;
+}OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI;
 
 /**
  *  Enumeration of possible scaling list (SCL) types
@@ -916,7 +1045,7 @@ typedef enum
  *  nTop       : Y Coordinate of the top left corner of the rectangle
  *  nWidth     : Width of the rectangle
  *  nHeight    : Height of the rectangle
- *  eQuality   : Quality of the region of interest type enum
+ *  eQuality   : Quality of the region of interest by enum
  */
 typedef struct OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST
 {
@@ -929,6 +1058,31 @@ typedef struct OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST
   OMX_U32 nHeight;
   OMX_ALG_ERoiQuality eQuality;
 }OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST;
+
+/**
+ * Structure for dynamically adding a region of interest
+ *
+ * STRUCT MEMBERS:
+ *  nSize      : Size of the structure in bytes
+ *  nVersion   : OMX specification version information
+ *  nPortIndex : Port that this structure applies to
+ *  nLeft      : X Coordinate of the top left corner of the rectangle
+ *  nTop       : Y Coordinate of the top left corner of the rectangle
+ *  nWidth     : Width of the rectangle
+ *  nHeight    : Height of the rectangle
+ *  nQuality   : Quality of the region of interest by value
+ */
+typedef struct OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST_BY_VALUE
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_S32 nLeft;
+  OMX_S32 nTop;
+  OMX_U32 nWidth;
+  OMX_U32 nHeight;
+  OMX_S32 nQuality;
+}OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST_BY_VALUE;
 
 /**
  * Structure for dynamically notifying a scene change
@@ -951,11 +1105,11 @@ typedef struct OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE
  * Structure for dynamically notifying a resolution change
  *
  * STRUCT MEMBERS:
- *  nSize    : Size of the structure in bytes
- *  nVersion : OMX specification version information
+ *  nSize      : Size of the structure in bytes
+ *  nVersion   : OMX specification version information
  *  nPortIndex : Port that this structure applies to
- *  nWidth   : Width of the resolution
- *  nHeight  : Height of the resoluton
+ *  nWidth     : Width of the resolution
+ *  nHeight    : Height of the resoluton
  */
 typedef struct OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE
 {
@@ -965,6 +1119,18 @@ typedef struct OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE
   OMX_U32 nWidth;
   OMX_U32 nHeight;
 }OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE;
+
+/**
+ * Structure for dynamically get the max resolution change
+ *
+ * STRUCT MEMBERS:
+ *  nSize      : Size of the structure in bytes
+ *  nVersion   : OMX specification version information
+ *  nPortIndex : Port that this structure applies to
+ *  nWidth     : Width of the resolution
+ *  nHeight    : Height of the resoluton
+ */
+typedef OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE OMX_ALG_VIDEO_CONFIG_MAX_RESOLUTION_CHANGE;
 
 /**
  * Struct for dynamically send sei
@@ -1037,6 +1203,17 @@ typedef OMX_ALG_VIDEO_PARAM_TRANSFER_CHARACTERISTICS OMX_ALG_VIDEO_CONFIG_TRANSF
 typedef OMX_ALG_VIDEO_PARAM_COLOR_MATRIX OMX_ALG_VIDEO_CONFIG_COLOR_MATRIX;
 
 /**
+ * ColorPrimaries parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize           : Size of the structure in bytes
+ *  nVersion        : OMX specification version information
+ *  nPortIndex      : Port that this structure applies to
+ *  eColorPrimaries : Color primaries
+ */
+typedef OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES OMX_ALG_VIDEO_CONFIG_COLOR_PRIMARIES;
+
+/**
  *  Normalized x and y chromaticity coordinates (CIE 1931 definition of x and y as specified in ISO 11664-1)
  *
  * STRUCT MEMBERS:
@@ -1091,7 +1268,7 @@ typedef struct OMX_ALG_VIDEO_CONTENT_LIGHT_LEVEL
  *  bHasCLL                      : Indicates if content light level SEI is specified
  *  contentLightLevel            : Content light level SEI content
  */
-typedef struct OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS
+typedef struct OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI
 {
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
@@ -1100,7 +1277,7 @@ typedef struct OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS
   OMX_ALG_VIDEO_MASTERING_DISPLAY_COLOUR_VOLUME masteringDisplayColourVolume;
   OMX_BOOL bHasCLL;
   OMX_ALG_VIDEO_CONTENT_LIGHT_LEVEL contentLightLevel;
-}OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS;
+}OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI;
 
 /**
  * Struct for dynamically change loop filter beta

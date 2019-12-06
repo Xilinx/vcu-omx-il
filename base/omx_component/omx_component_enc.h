@@ -40,7 +40,7 @@
 #include <vector>
 
 #include "omx_component.h"
-#include "base/omx_module/module_enc.h"
+#include "module/module_enc.h"
 
 struct EncComponent final : public Component
 {

@@ -38,11 +38,14 @@
 #include <utility/logger.h>
 #include "base/omx_component/omx_component_interface.h"
 #include "base/omx_checker/omx_checker.h"
-#include "omx_wrapper_common_entry_point.cpp"
+#include "omx_wrapper_codec_entry_point.cpp"
 #include "omx_wrapper_enc.h"
 
 #include <OMX_Core.h>
 #include <OMX_Component.h>
+#include <string>
+
+using namespace std;
 
 static OMX_ERRORTYPE ComponentDeInit(OMX_IN OMX_HANDLETYPE hComponent)
 {

@@ -234,7 +234,6 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
     OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSubframe), &sub);
   }
 
-
   if(app.settings.lookahead)
   {
     OMX_ALG_VIDEO_PARAM_LOOKAHEAD la;
@@ -251,7 +250,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
     InitHeader(tp);
     tp.nPortIndex = 1;
     tp.nPass = app.settings.pass;
-    strncpy((char*)tp.cLogFile, app.settings.twoPassLogFile.c_str(), OMX_MAX_STRINGNAME_SIZE);
+    strncpy((char*)tp.cLogFile, app.settings.twoPassLogFile.c_str(), OMX_MAX_STRINGNAME_SIZE - 1);
     OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoTwoPass), &tp);
   }
 
@@ -586,7 +585,9 @@ static void useBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Application& app)
 
   for(auto nbBuf = 0; nbBuf < minBuf; nbBuf++)
   {
-    OMX_U8* pBufData;
+    OMX_U8* pBufData {
+      nullptr
+    };
 
     if(use_dmabuf)
     {

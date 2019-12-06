@@ -171,5 +171,26 @@ OMX_ERRORTYPE SetCommonSequencePictureMode(OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE
 OMX_ERRORTYPE ConstructVideoInputParsed(OMX_ALG_VIDEO_PARAM_INPUT_PARSED& ip, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoInputParsed(OMX_ALG_VIDEO_PARAM_INPUT_PARSED const& ip, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
+OMX_ERRORTYPE ConstructVideoQuantizationTable(OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE& table, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoQuantizationTable(OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE const& table, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
 OMX_ERRORTYPE ConstructPortEarlyCallback(OMX_ALG_PORT_PARAM_EARLY_CALLBACK& earlyCB, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetPortEarlyCallback(OMX_ALG_PORT_PARAM_EARLY_CALLBACK const& earlyCB, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
+OMX_ERRORTYPE ConstructVideoAccessUnitDelimiter(OMX_ALG_VIDEO_PARAM_ACCESS_UNIT_DELIMITER& aud, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoAccessUnitDelimiter(OMX_ALG_VIDEO_PARAM_ACCESS_UNIT_DELIMITER const& aud, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
+OMX_ERRORTYPE ConstructVideoBufferingPeriodSEI(OMX_ALG_VIDEO_PARAM_BUFFERING_PERIOD_SEI& bpSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoBufferingPeriodSEI(OMX_ALG_VIDEO_PARAM_BUFFERING_PERIOD_SEI const& bpSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
+OMX_ERRORTYPE ConstructVideoPictureTimingSEI(OMX_ALG_VIDEO_PARAM_PICTURE_TIMING_SEI& ptSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoPictureTimingSEI(OMX_ALG_VIDEO_PARAM_PICTURE_TIMING_SEI const& ptSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
+OMX_ERRORTYPE ConstructVideoRecoveryPointSEI(OMX_ALG_VIDEO_PARAM_RECOVERY_POINT_SEI& rpSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoRecoveryPointSEI(OMX_ALG_VIDEO_PARAM_RECOVERY_POINT_SEI const& rpSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
+OMX_ERRORTYPE ConstructVideoMasteringDisplayColourVolumeSEI(OMX_ALG_VIDEO_PARAM_MASTERING_DISPLAY_COLOUR_VOLUME_SEI& mdcvSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoMasteringDisplayColourVolumeSEI(OMX_ALG_VIDEO_PARAM_MASTERING_DISPLAY_COLOUR_VOLUME_SEI const& mdcvSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
+OMX_ERRORTYPE ConstructVideoContentLightLevelSEI(OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI& cllSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoContentLightLevelSEI(OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI const& cllSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);

@@ -44,9 +44,9 @@
 
 #include <cmath>
 
-#include "base/omx_checker/omx_checker.h"
-
 #include "omx_component_getset.h"
+
+#include "base/omx_checker/omx_checker.h"
 
 using namespace std;
 

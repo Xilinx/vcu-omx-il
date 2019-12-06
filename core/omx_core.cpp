@@ -49,6 +49,7 @@
 
 using namespace std;
 
+static int constexpr OMX_MAX_COMP_ROLES = 1;
 static int constexpr NB_OF_COMP = sizeof(AL_COMP_LIST) / sizeof(omx_comp_type);
 
 static omx_comp_type const* getComp(char* cComponentName)
@@ -148,7 +149,7 @@ static OMX_HANDLETYPE CreateComponent(const omx_comp_type* pComponent, char cons
   }
 
   auto pMyComponent = new OMX_COMPONENTTYPE;
-  auto eRet = createFunction(pMyComponent, (OMX_STRING)pComponent->name, (OMX_STRING)pComponent->roles[0], pAppData, pCallBacks);
+  auto eRet = createFunction(pMyComponent, (OMX_STRING)pComponent->name, (OMX_STRING)pComponent->role, pAppData, pCallBacks);
 
   if(eRet != OMX_ErrorNone)
   {
@@ -208,14 +209,8 @@ OMX_ERRORTYPE OMX_GetComponentsOfRole(OMX_IN OMX_STRING role, OMX_INOUT OMX_U32*
 
     for(int i = 0; i < NB_OF_COMP; i++)
     {
-      for(int j = 0; j < AL_COMP_LIST[i].nRoles; j++)
-      {
-        if(strncmp(AL_COMP_LIST[i].roles[j], role, strlen(role)) == 0)
-        {
-          (*pNumComps)++;
-          break;
-        }
-      }
+      if(strncmp(AL_COMP_LIST[i].role, role, strlen(role)) == 0)
+        (*pNumComps)++;
     }
 
     return OMX_ErrorNone;
@@ -228,16 +223,12 @@ OMX_ERRORTYPE OMX_GetComponentsOfRole(OMX_IN OMX_STRING role, OMX_INOUT OMX_U32*
 
   for(int i = 0; i < NB_OF_COMP; i++)
   {
-    for(int j = 0; j < AL_COMP_LIST[i].nRoles; j++)
+    if(strncmp(AL_COMP_LIST[i].role, role, strlen(role)) == 0)
     {
-      if(strncmp(AL_COMP_LIST[i].roles[j], role, strlen(role)) == 0)
-      {
-        strncpy((char*)compNames[compNamesIndex++], AL_COMP_LIST[i].name, OMX_MAX_STRINGNAME_SIZE);
+      strncpy((char*)compNames[compNamesIndex++], AL_COMP_LIST[i].name, OMX_MAX_STRINGNAME_SIZE);
 
-        if(static_cast<OMX_U32>(compNamesIndex) >= *pNumComps)
-          return OMX_ErrorNone;
-        break;
-      }
+      if(static_cast<OMX_U32>(compNamesIndex) >= *pNumComps)
+        return OMX_ErrorNone;
     }
   }
 
@@ -263,7 +254,7 @@ OMX_ERRORTYPE OMX_GetRolesOfComponent(OMX_IN OMX_STRING compName, OMX_INOUT OMX_
 
   if(!roles && pNumRoles)
   {
-    *pNumRoles = pComponent->nRoles;
+    *pNumRoles = static_cast<OMX_U32>(OMX_MAX_COMP_ROLES);
     return OMX_ErrorNone;
   }
 
@@ -271,7 +262,7 @@ OMX_ERRORTYPE OMX_GetRolesOfComponent(OMX_IN OMX_STRING compName, OMX_INOUT OMX_
   *pNumRoles = minNumRoles;
 
   for(OMX_U32 i = 0; i < minNumRoles; i++)
-    strncpy((char*)roles[i], (char*)pComponent->roles[i], OMX_MAX_STRINGNAME_SIZE);
+    strncpy((char*)roles[i], (char*)pComponent->role, OMX_MAX_STRINGNAME_SIZE);
 
   return OMX_ErrorNone;
 }

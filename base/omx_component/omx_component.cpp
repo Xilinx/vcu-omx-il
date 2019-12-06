@@ -165,6 +165,21 @@ void Component::EventCallBack(Callbacks::Event type, void* data)
   assert(type <= Callbacks::Event::MAX);
   switch(type)
   {
+  case Callbacks::Event::RESOLUTION_DETECTED:
+  {
+    LOG_IMPORTANT(ToStringCallbackEvent.at(type));
+
+    callbacks.EventHandler(component, app, OMX_EventPortSettingsChanged, 1, 0, nullptr);
+    break;
+  }
+  case Callbacks::Event::RESOLUTION_CHANGED:
+  {
+    LOG_IMPORTANT(ToStringCallbackEvent.at(type));
+    auto dimension = static_cast<Dimension<int>*>(data);
+
+    callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_ALG_EventResolutionChanged), dimension->horizontal, dimension->vertical, nullptr);
+    break;
+  }
   case Callbacks::Event::ERROR:
   {
     ModuleInterface::ErrorType errorCode = static_cast<ModuleInterface::ErrorType>((uintptr_t)data);
@@ -236,13 +251,14 @@ Component::Component(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> me
 
   OMXChecker::SetHeaderVersion(videoPortParams);
   SetPortsParam(videoPortParams);
-  auto d2 = bind(&Component::_DeleteFillEmpty, this, placeholders::_1);
+  auto deleteEmpty = bind(&Component::_DeleteEmpty, this, placeholders::_1);
+  auto deleteFill = bind(&Component::_DeleteFill, this, placeholders::_1);
   auto p = bind(&Component::_ProcessMain, this, placeholders::_1);
   auto p2 = bind(&Component::_ProcessFillBuffer, this, placeholders::_1);
   auto p3 = bind(&Component::_ProcessEmptyBuffer, this, placeholders::_1);
   processorMain.reset(new ProcessorFifo<Task> { p, nullptr, "OMX - Sched" });
-  processorFill.reset(new ProcessorFifo<Task> { p2, d2, "OMX - Out" });
-  processorEmpty.reset(new ProcessorFifo<Task> { p3, d2, "OMX - In" });
+  processorFill.reset(new ProcessorFifo<Task> { p2, deleteFill, "OMX - Out" });
+  processorEmpty.reset(new ProcessorFifo<Task> { p3, deleteEmpty, "OMX - In" });
   pauseFillPromise = nullptr;
   pauseEmptyPromise = nullptr;
   eosHandles.input = nullptr;
@@ -542,8 +558,8 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
   }
   case OMX_ALG_IndexPortParamEarlyCallback:
   {
-    auto port = getCurrentPort(param);
     auto earlyCB = static_cast<OMX_ALG_PORT_PARAM_EARLY_CALLBACK*>(param);
+    auto port = getCurrentPort(param);
     return ConstructPortEarlyCallback(*earlyCB, *port, media);
   }
   case OMX_ALG_IndexPortParamBufferMode:
@@ -761,6 +777,48 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto port = getCurrentPort(param);
     auto tc = static_cast<OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC*>(param);
     return ConstructVideoLoopFilterTc(*tc, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoQuantizationTable:
+  {
+    auto port = getCurrentPort(param);
+    auto qpTable = static_cast<OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE*>(param);
+    return ConstructVideoQuantizationTable(*qpTable, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoAccessUnitDelimiter:
+  {
+    auto port = getCurrentPort(param);
+    auto aud = static_cast<OMX_ALG_VIDEO_PARAM_ACCESS_UNIT_DELIMITER*>(param);
+    return ConstructVideoAccessUnitDelimiter(*aud, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoBufferingPeriodSEI:
+  {
+    auto port = getCurrentPort(param);
+    auto bpSEI = static_cast<OMX_ALG_VIDEO_PARAM_BUFFERING_PERIOD_SEI*>(param);
+    return ConstructVideoBufferingPeriodSEI(*bpSEI, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoPictureTimingSEI:
+  {
+    auto port = getCurrentPort(param);
+    auto ptSEI = static_cast<OMX_ALG_VIDEO_PARAM_PICTURE_TIMING_SEI*>(param);
+    return ConstructVideoPictureTimingSEI(*ptSEI, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoRecoveryPointSEI:
+  {
+    auto port = getCurrentPort(param);
+    auto rpSEI = static_cast<OMX_ALG_VIDEO_PARAM_RECOVERY_POINT_SEI*>(param);
+    return ConstructVideoRecoveryPointSEI(*rpSEI, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoMasteringDisplayColourVolumeSEI:
+  {
+    auto port = getCurrentPort(param);
+    auto mdcvSEI = static_cast<OMX_ALG_VIDEO_PARAM_MASTERING_DISPLAY_COLOUR_VOLUME_SEI*>(param);
+    return ConstructVideoMasteringDisplayColourVolumeSEI(*mdcvSEI, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoContentLightLevelSEI:
+  {
+    auto port = getCurrentPort(param);
+    auto cllSEI = static_cast<OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI*>(param);
+    return ConstructVideoContentLightLevelSEI(*cllSEI, *port, media);
   }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
@@ -1015,6 +1073,41 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     auto ip = static_cast<OMX_ALG_VIDEO_PARAM_INPUT_PARSED*>(param);
     return SetVideoInputParsed(*ip, *port, media);
   }
+  case OMX_ALG_IndexParamVideoQuantizationTable:
+  {
+    auto table = static_cast<OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE*>(param);
+    return SetVideoQuantizationTable(*table, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoAccessUnitDelimiter:
+  {
+    auto aud = static_cast<OMX_ALG_VIDEO_PARAM_ACCESS_UNIT_DELIMITER*>(param);
+    return SetVideoAccessUnitDelimiter(*aud, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoBufferingPeriodSEI:
+  {
+    auto bpSEI = static_cast<OMX_ALG_VIDEO_PARAM_BUFFERING_PERIOD_SEI*>(param);
+    return SetVideoBufferingPeriodSEI(*bpSEI, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoPictureTimingSEI:
+  {
+    auto ptSEI = static_cast<OMX_ALG_VIDEO_PARAM_PICTURE_TIMING_SEI*>(param);
+    return SetVideoPictureTimingSEI(*ptSEI, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoRecoveryPointSEI:
+  {
+    auto rpSEI = static_cast<OMX_ALG_VIDEO_PARAM_RECOVERY_POINT_SEI*>(param);
+    return SetVideoRecoveryPointSEI(*rpSEI, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoMasteringDisplayColourVolumeSEI:
+  {
+    auto mdcvSEI = static_cast<OMX_ALG_VIDEO_PARAM_MASTERING_DISPLAY_COLOUR_VOLUME_SEI*>(param);
+    return SetVideoMasteringDisplayColourVolumeSEI(*mdcvSEI, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoContentLightLevelSEI:
+  {
+    auto cllSEI = static_cast<OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI*>(param);
+    return SetVideoContentLightLevelSEI(*cllSEI, *port, media);
+  }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
@@ -1266,12 +1359,29 @@ OMX_ERRORTYPE Component::GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR
     cm.eColorMatrix = ConvertMediaToOMXColourMatrix(modCM);
     return OMX_ErrorNone;
   }
-  case OMX_ALG_IndexConfigVideoHighDynamicRangeSEIs:
+  case OMX_ALG_IndexConfigVideoColorPrimaries:
+  {
+    ColorPrimariesType modCP;
+    module->GetDynamic(DYNAMIC_INDEX_COLOR_PRIMARIES, &modCP);
+    auto& cp = *(static_cast<OMX_ALG_VIDEO_CONFIG_COLOR_PRIMARIES*>(config));
+    cp.eColorPrimaries = ConvertMediaToOMXColorPrimaries(modCP);
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexConfigVideoHighDynamicRangeSEI:
   {
     HighDynamicRangeSeis modHDRSEIs;
     module->GetDynamic(DYNAMIC_INDEX_HIGH_DYNAMIC_RANGE_SEIS, &modHDRSEIs);
-    auto& hdrSEIs = *(static_cast<OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS*>(config));
-    hdrSEIs = ConvertMediaToOMXHDRSEIs(modHDRSEIs);
+    auto& hdrSEIs = *(static_cast<OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI*>(config));
+    hdrSEIs = ConvertMediaToOMXHDRSEI(modHDRSEIs);
+    return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexConfigVideoMaxResolutionChange:
+  {
+    Dimension<int> maxDimensionSupported;
+    module->GetDynamic(DYNAMIC_INDEX_MAX_RESOLUTION_CHANGE_SUPPORTED, &maxDimensionSupported);
+    auto& dimension = *(static_cast<OMX_ALG_VIDEO_CONFIG_MAX_RESOLUTION_CHANGE*>(config));
+    dimension.nWidth = maxDimensionSupported.horizontal;
+    dimension.nHeight = maxDimensionSupported.vertical;
     return OMX_ErrorNone;
   }
   default:
@@ -1375,11 +1485,11 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
     processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoInsertSuffixSEI, shared_ptr<void>(seiSuffix)));
     return OMX_ErrorNone;
   }
-  case OMX_ALG_IndexConfigVideoHighDynamicRangeSEIs:
+  case OMX_ALG_IndexConfigVideoHighDynamicRangeSEI:
   {
-    OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS* hdrSEIS = new OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS {};
-    memcpy(hdrSEIS, static_cast<OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS*>(config), sizeof(OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS));
-    processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoHighDynamicRangeSEIs, shared_ptr<void>(hdrSEIS)));
+    OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI* hdrSEIS = new OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI {};
+    memcpy(hdrSEIS, static_cast<OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI));
+    processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoHighDynamicRangeSEI, shared_ptr<void>(hdrSEIS)));
     return OMX_ErrorNone;
   }
   case OMX_ALG_IndexConfigVideoNotifyResolutionChange:
@@ -1557,15 +1667,19 @@ void Component::FlushFillEmptyBuffers(bool fill, bool empty)
   if(buffersFillBlocked || buffersEmptyBlocked)
     UnblockFillEmptyBuffers();
 
-  auto d = bind(&Component::_DeleteFillEmpty, this, placeholders::_1);
-  auto p = bind(&Component::_ProcessFillBuffer, this, placeholders::_1);
-  auto p2 = bind(&Component::_ProcessEmptyBuffer, this, placeholders::_1);
-
   if(fill)
-    processorFill.reset(new ProcessorFifo<Task> { p, d, "OMX - Out" });
+  {
+    auto deleteFill = bind(&Component::_DeleteFill, this, placeholders::_1);
+    auto processFill = bind(&Component::_ProcessFillBuffer, this, placeholders::_1);
+    processorFill.reset(new ProcessorFifo<Task> { processFill, deleteFill, "OMX - Out" });
+  }
 
   if(empty)
-    processorEmpty.reset(new ProcessorFifo<Task> { p2, d, "OMX - In" });
+  {
+    auto deleteEmpty = bind(&Component::_DeleteEmpty, this, placeholders::_1);
+    auto processEmpty = bind(&Component::_ProcessEmptyBuffer, this, placeholders::_1);
+    processorEmpty.reset(new ProcessorFifo<Task> { processEmpty, deleteEmpty, "OMX - In" });
+  }
 
   if(buffersFillBlocked || buffersEmptyBlocked)
     BlockFillEmptyBuffers(buffersFillBlocked, buffersEmptyBlocked);
@@ -1734,27 +1848,34 @@ void Component::TreatDisablePortCommand(Task task)
   auto index = static_cast<OMX_U32>((uintptr_t)task.data);
   auto port = GetPort(index);
 
-  if(port->isTransientToDisable)
+  if(!port->isTransientToDisable)
   {
-    bool isInput = IsInputPort(index);
-    FlushFillEmptyBuffers(!isInput, isInput);
-    BlockFillEmptyBuffers(true, shouldPrealloc);
+    callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandPortDisable, index, nullptr);
+    return;
+  }
 
-    if(shouldPrealloc && shouldFireEventPortSettingsChanges && (state == OMX_StateExecuting || state == OMX_StatePause))
+  bool isInput = IsInputPort(index);
+  FlushFillEmptyBuffers(!isInput, isInput);
+  BlockFillEmptyBuffers(true, shouldPrealloc);
+
+  if(shouldPrealloc && shouldFireEventPortSettingsChanges && (state == OMX_StateExecuting || state == OMX_StatePause))
+  {
+    if(module->Stop())
+      module->Start(true);
+
+    if(shouldFireEventPortSettingsChanges)
     {
-      if(module->Stop())
-        module->Start(true);
       callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_EventPortSettingsChanged), 1, 0, nullptr);
       shouldFireEventPortSettingsChanges = false;
     }
-
-    port->WaitEmpty();
-
-    if(port->error)
-      return;
-
-    port->isTransientToDisable = false;
   }
+
+  port->WaitEmpty();
+
+  if(port->error)
+    return;
+
+  port->isTransientToDisable = false;
 
   callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandPortDisable, index, nullptr);
 }
@@ -1766,27 +1887,34 @@ void Component::TreatEnablePortCommand(Task task)
   auto index = static_cast<OMX_U32>((uintptr_t)task.data);
   auto port = GetPort(index);
 
-  if(port->isTransientToEnable)
+  if(!port->isTransientToEnable)
   {
-    if(state != OMX_StateLoaded && state != OMX_StateWaitForResources)
-      port->WaitFull();
+    callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandPortEnable, index, nullptr);
+    return;
+  }
 
-    if(port->error)
-      return;
+  if(state != OMX_StateLoaded && state != OMX_StateWaitForResources)
+    port->WaitFull();
 
-    port->isTransientToEnable = false;
+  if(port->error)
+    return;
 
-    if(shouldPrealloc && shouldFireEventPortSettingsChanges && (state == OMX_StateExecuting || state == OMX_StatePause))
+  port->isTransientToEnable = false;
+
+  if(shouldPrealloc && shouldFireEventPortSettingsChanges && (state == OMX_StateExecuting || state == OMX_StatePause))
+  {
+    if(module->Stop())
+      module->Start(true);
+
+    if(shouldFireEventPortSettingsChanges)
     {
-      if(module->Stop())
-        module->Start(true);
       callbacks.EventHandler(component, app, static_cast<OMX_EVENTTYPE>(OMX_EventPortSettingsChanged), 1, 0, nullptr);
       shouldFireEventPortSettingsChanges = false;
     }
-
-    if(input.enable && output.enable && !input.isTransientToEnable && !output.isTransientToEnable && state != OMX_StatePause)
-      UnblockFillEmptyBuffers();
   }
+
+  if(input.enable && output.enable && !input.isTransientToEnable && !output.isTransientToEnable && state != OMX_StatePause)
+    UnblockFillEmptyBuffers();
 
   callbacks.EventHandler(component, app, OMX_EventCmdComplete, OMX_CommandPortEnable, index, nullptr);
 }
@@ -1868,14 +1996,25 @@ void Component::TreatFillBufferCommand(Task task)
   assert(success);
 }
 
-RegionQuality CreateRegionQuality(OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST const& roi)
+static RegionQuality CreateRegionQualityByPreset(OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST const& roi)
 {
   RegionQuality rq {};
   rq.region.point.x = roi.nLeft;
   rq.region.point.y = roi.nTop;
-  rq.region.width = roi.nWidth;
-  rq.region.height = roi.nHeight;
-  rq.quality = ConvertOMXToMediaQuality(roi.eQuality);
+  rq.region.dimension.horizontal = roi.nWidth;
+  rq.region.dimension.vertical = roi.nHeight;
+  rq.quality.byPreset = ConvertOMXToMediaQualityPreset(roi.eQuality);
+  return rq;
+}
+
+static RegionQuality CreateRegionQualityByValue(OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST_BY_VALUE const& roi)
+{
+  RegionQuality rq {};
+  rq.region.point.x = roi.nLeft;
+  rq.region.point.y = roi.nTop;
+  rq.region.dimension.horizontal = roi.nWidth;
+  rq.region.dimension.vertical = roi.nHeight;
+  rq.quality.byValue = ConvertOMXToMediaQualityValue(roi.nQuality);
   return rq;
 }
 
@@ -1932,7 +2071,22 @@ void Component::TreatDynamicCommand(Task task)
       shouldClearROI = false;
     }
 
-    auto rq = CreateRegionQuality(*roi);
+    auto rq = CreateRegionQualityByPreset(*roi);
+    module->SetDynamic(DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD, &rq);
+    shouldPushROI = true;
+    return;
+  }
+  case OMX_ALG_IndexConfigVideoRegionOfInterestByValue:
+  {
+    auto roi = static_cast<OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST_BY_VALUE*>(opt);
+
+    if(shouldClearROI)
+    {
+      module->SetDynamic(DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_CLEAR, nullptr);
+      shouldClearROI = false;
+    }
+
+    auto rq = CreateRegionQualityByValue(*roi);
     module->SetDynamic(DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD, &rq);
     shouldPushROI = true;
     return;
@@ -1969,9 +2123,9 @@ void Component::TreatDynamicCommand(Task task)
     tmpSeis.push_back(suffix);
     return;
   }
-  case OMX_ALG_IndexConfigVideoHighDynamicRangeSEIs:
+  case OMX_ALG_IndexConfigVideoHighDynamicRangeSEI:
   {
-    auto hdrSEIs = ConvertOMXToMediaHDRSEIs(*static_cast<OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS*>(opt));
+    auto hdrSEIs = ConvertOMXToMediaHDRSEI(*static_cast<OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI*>(opt));
     module->SetDynamic(DYNAMIC_INDEX_HIGH_DYNAMIC_RANGE_SEIS, &hdrSEIs);
     return;
   }
@@ -1981,8 +2135,8 @@ void Component::TreatDynamicCommand(Task task)
     auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
     assert(ret == MediatypeInterface::SUCCESS);
     auto drc = static_cast<OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE*>(opt);
-    resolution.width = drc->nWidth;
-    resolution.height = drc->nHeight;
+    resolution.dimension.horizontal = drc->nWidth;
+    resolution.dimension.vertical = drc->nHeight;
     module->SetDynamic(DYNAMIC_INDEX_RESOLUTION, (void*)(&resolution));
     return;
   }
@@ -2081,22 +2235,26 @@ void Component::_ProcessMain(Task task)
   }
 }
 
-void Component::_DeleteFillEmpty(Task task)
+void Component::_DeleteEmpty(Task task)
 {
-  if(task.cmd == Command::FillBuffer)
-  {
-    assert(static_cast<int>((uintptr_t)task.data) == output.index);
-    auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task.opt.get());
-    assert(header);
-    callbacks.FillBufferDone(component, app, header);
-  }
-  else if(task.cmd == Command::EmptyBuffer)
-  {
-    assert(static_cast<int>((uintptr_t)task.data) == input.index);
-    auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task.opt.get());
-    assert(header);
-    callbacks.EmptyBufferDone(component, app, header);
-  }
+  if(task.cmd != Command::EmptyBuffer)
+    return;
+
+  assert(static_cast<int>((uintptr_t)task.data) == input.index);
+  auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task.opt.get());
+  assert(header);
+  callbacks.EmptyBufferDone(component, app, header);
+}
+
+void Component::_DeleteFill(Task task)
+{
+  if(task.cmd != Command::FillBuffer)
+    return;
+
+  assert(static_cast<int>((uintptr_t)task.data) == output.index);
+  auto header = static_cast<OMX_BUFFERHEADERTYPE*>(task.opt.get());
+  assert(header);
+  callbacks.FillBufferDone(component, app, header);
 }
 
 void Component::_ProcessFillBuffer(Task task)

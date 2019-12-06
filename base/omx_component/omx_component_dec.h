@@ -40,7 +40,7 @@
 #include <OMX_ComponentAlg.h> // buffer mode
 
 #include "omx_component.h"
-#include "base/omx_module/module_dec.h"
+#include "module/module_dec.h"
 #include <list>
 
 struct DecComponent final : Component
@@ -76,6 +76,6 @@ private:
   void TreatEmptyBufferCommand(Task* task) override;
   std::list<PropagatedData> transmit;
   std::mutex mutex;
-  bool shouldPropagateData;
+  bool nextDataIsNew;
 };
 

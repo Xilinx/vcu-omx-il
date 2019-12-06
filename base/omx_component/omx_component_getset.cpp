@@ -244,8 +244,8 @@ static OMX_ERRORTYPE SetResolution(OMX_VIDEO_PORTDEFINITIONTYPE const& definitio
   Resolution resolution;
   auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
   OMX_CHECK_MEDIA_GET(ret);
-  resolution.width = definition.nFrameWidth;
-  resolution.height = definition.nFrameHeight;
+  resolution.dimension.horizontal = definition.nFrameWidth;
+  resolution.dimension.vertical = definition.nFrameHeight;
   resolution.stride.horizontal = definition.nStride;
   resolution.stride.vertical = definition.nSliceHeight;
   ret = media->Set(SETTINGS_INDEX_RESOLUTION, &resolution);
@@ -316,8 +316,8 @@ OMX_ERRORTYPE ConstructPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE& def, Port& p
     bitrate.target = 0; // 0 by default for Decoder
   auto mime = IsInputPort(def.nPortIndex) ? mimes.input : mimes.output;
   v.pNativeRender = 0; // XXX
-  v.nFrameWidth = resolution.width;
-  v.nFrameHeight = resolution.height;
+  v.nFrameWidth = resolution.dimension.horizontal;
+  v.nFrameHeight = resolution.dimension.vertical;
   v.nStride = resolution.stride.horizontal;
   v.nSliceHeight = resolution.stride.vertical;
   v.nBitrate = bitrate.target;
@@ -563,7 +563,7 @@ OMX_ERRORTYPE ConstructVideoQuantizationControl(OMX_ALG_VIDEO_PARAM_QUANTIZATION
   QPs qps;
   auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &qps);
   OMX_CHECK_MEDIA_GET(ret);
-  q.eQpControlMode = ConvertMediaToOMXQpMode(qps.mode);
+  q.eQpControlMode = ConvertMediaToOMXQpCtrlMode(qps.mode.ctrl);
   return OMX_ErrorNone;
 }
 
@@ -572,7 +572,7 @@ static OMX_ERRORTYPE SetQuantizationControl(OMX_ALG_EQpCtrlMode const& mode, sha
   QPs curQPs;
   auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
   OMX_CHECK_MEDIA_GET(ret);
-  curQPs.mode = ConvertOMXToMediaQpMode(mode);
+  curQPs.mode.ctrl = ConvertOMXToMediaQpCtrlMode(mode);
   ret = media->Set(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
@@ -1569,11 +1569,50 @@ OMX_ERRORTYPE SetVideoInputParsed(OMX_ALG_VIDEO_PARAM_INPUT_PARSED const& ip, Po
   return OMX_ErrorNone;
 }
 
+OMX_ERRORTYPE ConstructVideoQuantizationTable(OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE& table, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(table);
+  table.nPortIndex = port.index;
+  QPs qps;
+  auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &qps);
+  table.eQpTableMode = ConvertMediaToOMXQpTable(qps.mode.table);
+  OMX_CHECK_MEDIA_GET(ret);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetQuantizationTable(OMX_ALG_EQpTableMode mode, shared_ptr<MediatypeInterface> media)
+{
+  QPs qps;
+  auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &qps);
+  OMX_CHECK_MEDIA_GET(ret);
+  qps.mode.table = ConvertOMXToMediaQpTable(mode);
+  ret = media->Set(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &qps);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoQuantizationTable(OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE const& table, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE rollback;
+  ConstructVideoQuantizationTable(rollback, port, media);
+  auto ret = SetQuantizationTable(table.eQpTableMode, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoQuantizationTable(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
 OMX_ERRORTYPE ConstructPortEarlyCallback(OMX_ALG_PORT_PARAM_EARLY_CALLBACK& earlyCB, Port const& port, std::shared_ptr<MediatypeInterface> media)
 {
   OMXChecker::SetHeaderVersion(earlyCB);
   earlyCB.nPortIndex = port.index;
-  bool shouldUseLLP2EarlyCallback { false };
+  bool shouldUseLLP2EarlyCallback {
+    false
+  };
   auto ret = media->Get(SETTINGS_INDEX_LLP2_EARLY_CB, &shouldUseLLP2EarlyCallback);
   OMX_CHECK_MEDIA_GET(ret);
   earlyCB.bEnableEarlyCallback = ConvertMediaToOMXBool(shouldUseLLP2EarlyCallback);
@@ -1597,6 +1636,221 @@ OMX_ERRORTYPE SetPortEarlyCallback(OMX_ALG_PORT_PARAM_EARLY_CALLBACK const& earl
   if(ret != OMX_ErrorNone)
   {
     SetPortEarlyCallback(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoAccessUnitDelimiter(OMX_ALG_VIDEO_PARAM_ACCESS_UNIT_DELIMITER& aud, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(aud);
+  aud.nPortIndex = port.index;
+  bool isAUDEnabled {
+    false
+  };
+  auto ret = media->Get(SETTINGS_INDEX_ACCESS_UNIT_DELIMITER, &isAUDEnabled);
+  OMX_CHECK_MEDIA_GET(ret);
+  aud.bEnableAccessUnitDelimiter = ConvertMediaToOMXBool(isAUDEnabled);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetAccessUnitDelimiter(OMX_BOOL bEnableAccessUnitDelimiter, shared_ptr<MediatypeInterface> media)
+{
+  auto isAUDEnabled = ConvertOMXToMediaBool(bEnableAccessUnitDelimiter);
+  auto ret = media->Set(SETTINGS_INDEX_ACCESS_UNIT_DELIMITER, &isAUDEnabled);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoAccessUnitDelimiter(OMX_ALG_VIDEO_PARAM_ACCESS_UNIT_DELIMITER const& aud, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_ACCESS_UNIT_DELIMITER rollback;
+  ConstructVideoAccessUnitDelimiter(rollback, port, media);
+  auto ret = SetAccessUnitDelimiter(aud.bEnableAccessUnitDelimiter, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoAccessUnitDelimiter(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoBufferingPeriodSEI(OMX_ALG_VIDEO_PARAM_BUFFERING_PERIOD_SEI& bpSEI, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(bpSEI);
+  bpSEI.nPortIndex = port.index;
+  bool isBPEnabled {
+    false
+  };
+  auto ret = media->Get(SETTINGS_INDEX_BUFFERING_PERIOD_SEI, &isBPEnabled);
+  OMX_CHECK_MEDIA_GET(ret);
+  bpSEI.bEnableBufferingPeriodSEI = ConvertMediaToOMXBool(isBPEnabled);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetBufferingPeriodSEI(OMX_BOOL bEnableBufferingPeriodSEI, shared_ptr<MediatypeInterface> media)
+{
+  auto isBPEnabled = ConvertOMXToMediaBool(bEnableBufferingPeriodSEI);
+  auto ret = media->Set(SETTINGS_INDEX_BUFFERING_PERIOD_SEI, &isBPEnabled);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoBufferingPeriodSEI(OMX_ALG_VIDEO_PARAM_BUFFERING_PERIOD_SEI const& bpSEI, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_BUFFERING_PERIOD_SEI rollback;
+  ConstructVideoBufferingPeriodSEI(rollback, port, media);
+  auto ret = SetBufferingPeriodSEI(bpSEI.bEnableBufferingPeriodSEI, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoBufferingPeriodSEI(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoPictureTimingSEI(OMX_ALG_VIDEO_PARAM_PICTURE_TIMING_SEI& ptSEI, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(ptSEI);
+  ptSEI.nPortIndex = port.index;
+  bool isPTEnabled {
+    false
+  };
+  auto ret = media->Get(SETTINGS_INDEX_PICTURE_TIMING_SEI, &isPTEnabled);
+  OMX_CHECK_MEDIA_GET(ret);
+  ptSEI.bEnablePictureTimingSEI = ConvertMediaToOMXBool(isPTEnabled);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetPictureTimingSEI(OMX_BOOL bEnablePictureTimingSEI, shared_ptr<MediatypeInterface> media)
+{
+  auto isPTEnabled = ConvertOMXToMediaBool(bEnablePictureTimingSEI);
+  auto ret = media->Set(SETTINGS_INDEX_PICTURE_TIMING_SEI, &isPTEnabled);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoPictureTimingSEI(OMX_ALG_VIDEO_PARAM_PICTURE_TIMING_SEI const& ptSEI, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_PICTURE_TIMING_SEI rollback;
+  ConstructVideoPictureTimingSEI(rollback, port, media);
+  auto ret = SetPictureTimingSEI(ptSEI.bEnablePictureTimingSEI, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoPictureTimingSEI(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoRecoveryPointSEI(OMX_ALG_VIDEO_PARAM_RECOVERY_POINT_SEI& rpSEI, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(rpSEI);
+  rpSEI.nPortIndex = port.index;
+  bool isRPEnabled {
+    false
+  };
+  auto ret = media->Get(SETTINGS_INDEX_RECOVERY_POINT_SEI, &isRPEnabled);
+  OMX_CHECK_MEDIA_GET(ret);
+  rpSEI.bEnableRecoveryPointSEI = ConvertMediaToOMXBool(isRPEnabled);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetRecoveryPointSEI(OMX_BOOL bEnableRecoveryPointSEI, shared_ptr<MediatypeInterface> media)
+{
+  auto isRPEnabled = ConvertOMXToMediaBool(bEnableRecoveryPointSEI);
+  auto ret = media->Set(SETTINGS_INDEX_RECOVERY_POINT_SEI, &isRPEnabled);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoRecoveryPointSEI(OMX_ALG_VIDEO_PARAM_RECOVERY_POINT_SEI const& rpSEI, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_RECOVERY_POINT_SEI rollback;
+  ConstructVideoRecoveryPointSEI(rollback, port, media);
+  auto ret = SetRecoveryPointSEI(rpSEI.bEnableRecoveryPointSEI, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoRecoveryPointSEI(rollback, port, media);
+    throw ret;
+  }
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoMasteringDisplayColourVolumeSEI(OMX_ALG_VIDEO_PARAM_MASTERING_DISPLAY_COLOUR_VOLUME_SEI& mdcvSEI, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(mdcvSEI);
+  mdcvSEI.nPortIndex = port.index;
+  bool isMDCVEnabled {
+    false
+  };
+  auto ret = media->Get(SETTINGS_INDEX_MASTERING_DISPLAY_COLOUR_VOLUME_SEI, &isMDCVEnabled);
+  OMX_CHECK_MEDIA_GET(ret);
+  mdcvSEI.bEnableMasteringDisplayColourVolumeSEI = ConvertMediaToOMXBool(isMDCVEnabled);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetMasteringDisplayColourVolumeSEI(OMX_BOOL bEnableMasteringDisplayColourVolumeSEI, shared_ptr<MediatypeInterface> media)
+{
+  auto isMDCVEnabled = ConvertOMXToMediaBool(bEnableMasteringDisplayColourVolumeSEI);
+  auto ret = media->Set(SETTINGS_INDEX_MASTERING_DISPLAY_COLOUR_VOLUME_SEI, &isMDCVEnabled);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoMasteringDisplayColourVolumeSEI(OMX_ALG_VIDEO_PARAM_MASTERING_DISPLAY_COLOUR_VOLUME_SEI const& mdcvSEI, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_MASTERING_DISPLAY_COLOUR_VOLUME_SEI rollback;
+  ConstructVideoMasteringDisplayColourVolumeSEI(rollback, port, media);
+  auto ret = SetMasteringDisplayColourVolumeSEI(mdcvSEI.bEnableMasteringDisplayColourVolumeSEI, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoMasteringDisplayColourVolumeSEI(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoContentLightLevelSEI(OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI& cllSEI, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(cllSEI);
+  cllSEI.nPortIndex = port.index;
+  bool isCLLEnabled {
+    false
+  };
+  auto ret = media->Get(SETTINGS_INDEX_CONTENT_LIGHT_LEVEL_SEI, &isCLLEnabled);
+  OMX_CHECK_MEDIA_GET(ret);
+  cllSEI.bEnableContentLightLevelSEI = ConvertMediaToOMXBool(isCLLEnabled);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetContentLightLevelSEI(OMX_BOOL bEnableContentLightLevelSEI, shared_ptr<MediatypeInterface> media)
+{
+  auto isCLLEnabled = ConvertOMXToMediaBool(bEnableContentLightLevelSEI);
+  auto ret = media->Set(SETTINGS_INDEX_CONTENT_LIGHT_LEVEL_SEI, &isCLLEnabled);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoContentLightLevelSEI(OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI const& cllSEI, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI rollback;
+  ConstructVideoContentLightLevelSEI(rollback, port, media);
+  auto ret = SetContentLightLevelSEI(cllSEI.bEnableContentLightLevelSEI, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoContentLightLevelSEI(rollback, port, media);
     throw ret;
   }
 

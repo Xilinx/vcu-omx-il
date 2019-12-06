@@ -5,7 +5,7 @@ SH_NAME_ENC:=$(EXE_NAME_ENC:%.exe=%.sh)
 
 include $(THIS.exe_omx_enc)/encoder/project_enc.mk
 
-EXE_OMX_ENCODER_OBJ:=$(EXE_OMX_COMMON_OBJ)
+EXE_OMX_ENCODER_OBJ:=$(EXE_OMX_CODEC_OBJ)
 EXE_OMX_ENCODER_OBJ+=$(EXE_OMX_ENCODER_SRCS:%=$(BIN)/%.o)
 EXE_OMX_ENCODER_OBJ+=$(UTILITY_SRCS:%=$(BIN)/%.o)
 

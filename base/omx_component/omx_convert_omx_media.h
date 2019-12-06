@@ -41,8 +41,8 @@
 #include <OMX_ComponentAlg.h>
 #include <OMX_IVCommonAlg.h>
 
-#include "base/omx_module/module_enums.h"
-#include "base/omx_module/module_structs.h"
+#include "module/module_enums.h"
+#include "module/module_structs.h"
 
 ColorType ConvertOMXToMediaColor(OMX_COLOR_FORMATTYPE format);
 OMX_COLOR_FORMATTYPE ConvertMediaToOMXColor(ColorType color, int bitdepth);
@@ -101,8 +101,8 @@ OMX_S32 ConvertMediaToOMXQpMin(QPs qps);
 int ConvertOMXToMediaQpMax(OMX_S32 qpMax);
 OMX_S32 ConvertMediaToOMXQpMax(QPs qps);
 
-QPMode ConvertOMXToMediaQpMode(OMX_ALG_EQpCtrlMode mode);
-OMX_ALG_EQpCtrlMode ConvertMediaToOMXQpMode(QPMode mode);
+QPControlType ConvertOMXToMediaQpCtrlMode(OMX_ALG_EQpCtrlMode mode);
+OMX_ALG_EQpCtrlMode ConvertMediaToOMXQpCtrlMode(QPControlType mode);
 
 RateControlType ConvertOMXToMediaControlRate(OMX_VIDEO_CONTROLRATETYPE mode);
 OMX_VIDEO_CONTROLRATETYPE ConvertMediaToOMXControlRate(RateControlType mode);
@@ -122,7 +122,8 @@ OMX_ALG_EScalingList ConvertMediaToOMXScalingList(ScalingListType scalingLisgt);
 BufferModeType ConvertOMXToMediaBufferMode(OMX_ALG_VIDEO_BUFFER_MODE mode);
 OMX_ALG_VIDEO_BUFFER_MODE ConvertMediaToOMXBufferMode(BufferModeType mode);
 
-QualityType ConvertOMXToMediaQuality(OMX_ALG_ERoiQuality quality);
+QualityType ConvertOMXToMediaQualityPreset(OMX_ALG_ERoiQuality quality);
+int ConvertOMXToMediaQualityValue(OMX_S32 quality);
 
 OMX_U32 ConvertMediaToOMXInterlaceFlag(VideoModeType mode);
 VideoModeType ConvertOMXToMediaVideoMode(OMX_U32 flag);
@@ -139,6 +140,9 @@ TransferCharacteristicsType ConvertOMXToMediaTransferCharacteristics(OMX_ALG_VID
 OMX_ALG_VIDEO_COLOR_MATRIX ConvertMediaToOMXColourMatrix(ColourMatrixType colourMatrix);
 ColourMatrixType ConvertOMXToMediaColourMatrix(OMX_ALG_VIDEO_COLOR_MATRIX colourMatrix);
 
-OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS ConvertMediaToOMXHDRSEIs(const HighDynamicRangeSeis& hdrSEIs);
-HighDynamicRangeSeis ConvertOMXToMediaHDRSEIs(const OMX_ALG_VIDEO_HIGH_DYNAMIC_RANGE_SEIS& hdrSEIs);
+OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI ConvertMediaToOMXHDRSEI(HighDynamicRangeSeis const& hdrSEIs);
+HighDynamicRangeSeis ConvertOMXToMediaHDRSEI(OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI const& hdrSEIs);
+
+OMX_ALG_EQpTableMode ConvertMediaToOMXQpTable(QPTableType mode);
+QPTableType ConvertOMXToMediaQpTable(OMX_ALG_EQpTableMode mode);
 

@@ -69,18 +69,28 @@ typedef enum OMX_ALG_ERRORTYPE
 typedef enum OMX_ALG_EVENTTYPE
 {
   OMX_ALG_EventVendorStartUnused = OMX_EventVendorStartUnused,
+
   /** OMX_ALG_EventSEIPrefixParsed should be called when a decoder parsed a prefix SEI
    * nData1: payload type
    * nData2: payload size
    * pEventData: payload buffer (OMX_U8*)
    */
   OMX_ALG_EventSEIPrefixParsed,
- /** OMX_ALG_EventSEISuffixParsed should be called when a decoder parsed a suffix SEI
+
+  /** OMX_ALG_EventSEISuffixParsed should be called when a decoder parsed a suffix SEI
    * nData1: payload type
    * nData2: payload size
    * pEventData: payload buffer (OMX_U8*)
    */
   OMX_ALG_EventSEISuffixParsed,
+
+  /** OMX_ALG_EventResolutionChanged should be fired when a video codec detect a resolution changes
+   * Stride and nSliceHeight shall not be modified and reallocation shall not be done. Component keeps the same buffers
+   * nData1: width
+   * nData2: height
+   * pEventData: NULL
+   */
+  OMX_ALG_EventResolutionChanged,
 
   OMX_ALG_EventMax = OMX_EventMax,
 }OMX_ALG_EVENTTYPE;

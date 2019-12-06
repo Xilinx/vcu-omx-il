@@ -39,8 +39,8 @@
 
 #include "omx_component_structs.h"
 #include "omx_component_interface.h"
-#include "base/omx_module/module_interface.h"
-#include "base/omx_module/mediatype_interface.h"
+#include "module/module_interface.h"
+#include "module/mediatype_interface.h"
 #include <utility/processor_fifo.h>
 #include "omx_buffer_handle.h"
 #include "omx_convert_omx_media.h"
@@ -155,9 +155,10 @@ protected:
   std::shared_ptr<std::promise<void>> pauseFillPromise;
   std::shared_ptr<std::promise<void>> pauseEmptyPromise;
   void _ProcessMain(Task task);
-  void _ProcessFillBuffer(Task task);
   void _ProcessEmptyBuffer(Task task);
-  void _DeleteFillEmpty(Task task);
+  void _DeleteEmpty(Task task);
+  void _ProcessFillBuffer(Task task);
+  void _DeleteFill(Task task);
 
   void CreateName(OMX_STRING name);
   void CreateRole(OMX_STRING role);
@@ -206,9 +207,6 @@ static inline bool IsCompMarked(OMX_HANDLETYPE mark, OMX_HANDLETYPE component)
 
 static inline void PropagateHeaderData(OMX_BUFFERHEADERTYPE const& src, OMX_BUFFERHEADERTYPE& dst)
 {
-  assert(!dst.hMarkTargetComponent);
-  assert(!dst.pMarkData);
-  assert(!dst.nTimeStamp);
   dst.hMarkTargetComponent = src.hMarkTargetComponent;
   dst.pMarkData = src.pMarkData;
   dst.nTickCount = src.nTickCount;

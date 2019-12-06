@@ -35,19 +35,18 @@
 *
 ******************************************************************************/
 
+#include "module/mediatype_enc_hevc.h"
+#include "module/module_enc.h"
+#include "module/cpp_memory.h"
+
 #include "base/omx_component/omx_component_enc.h"
 #include "base/omx_component/omx_expertise_hevc.h"
-#include "base/omx_module/mediatype_enc_hevc.h"
-#include "base/omx_module/module_enc.h"
-#include "base/omx_module/cpp_memory.h"
 
 #if AL_ENABLE_DMA_COPY_ENC
-#include "base/omx_module/dma_memory.h"
+#include "module/dma_memory.h"
 #endif
 
-
-
-#include "base/omx_module/device_enc_hardware_mcu.h"
+#include "module/device_enc_hardware_mcu.h"
 
 #include <cstring>
 #include <memory>
@@ -73,7 +72,6 @@ static int constexpr VERCTICAL_STRIDE_ALIGNMENTS_AVC = 16;
 static StrideAlignments constexpr STRIDE_ALIGNMENTS_AVC {
   HORIZONTAL_STRIDE_ALIGNMENTS, VERCTICAL_STRIDE_ALIGNMENTS_AVC
 };
-
 
 #if defined(ANDROID) || defined(__ANDROID_API__)
 static bool constexpr IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED = true;
@@ -118,11 +116,8 @@ static BufferBytesAlignments constexpr BUFFER_BYTES_ALIGNMENTS_HARDWARE {
   HORIZONTAL_STRIDE_ALIGNMENTS, HORIZONTAL_STRIDE_ALIGNMENTS
 };
 
-
-
 #include "base/omx_component/omx_expertise_avc.h"
-#include "base/omx_module/mediatype_enc_avc.h"
-
+#include "module/mediatype_enc_avc.h"
 
 static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
@@ -157,7 +152,6 @@ static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
   };
 }
 
-
 static EncComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
   shared_ptr<EncMediatypeHEVC> media {
@@ -190,7 +184,6 @@ static EncComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
            hComponent, media, move(module), cComponentName, cRole, move(expertise)
   };
 }
-
 
 static OMX_PTR GenerateDefaultComponent(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_STRING cRole)
 {

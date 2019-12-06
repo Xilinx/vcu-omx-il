@@ -37,10 +37,10 @@
 
 #include "base/omx_component/omx_component_dec.h"
 #include "base/omx_component/omx_expertise_hevc.h"
-#include "base/omx_module/mediatype_dec_hevc.h"
-#include "base/omx_module/module_dec.h"
+#include "module/mediatype_dec_hevc.h"
+#include "module/module_dec.h"
 
-#include "base/omx_module/device_dec_hardware_mcu.h"
+#include "module/device_dec_hardware_mcu.h"
 
 #include <cstring>
 #include <memory>
@@ -84,7 +84,7 @@ static StrideAlignments constexpr STRIDE_ALIGNMENTS_HARDWARE
 };
 
 #include "base/omx_component/omx_expertise_avc.h"
-#include "base/omx_module/mediatype_dec_avc.h"
+#include "module/mediatype_dec_avc.h"
 
 static DecComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
@@ -141,7 +141,6 @@ static DecComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
            hComponent, media, move(module), cComponentName, cRole, move(expertise)
   };
 }
-
 
 static OMX_PTR GenerateDefaultComponent(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_STRING cRole)
 {
