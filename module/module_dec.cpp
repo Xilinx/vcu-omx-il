@@ -106,7 +106,9 @@ void DecModule::EndParsing(AL_TBuffer* parsedFrame)
   if(!handlesMeta)
     return;
 
-  for(int handle = handlesMeta->numHandles - 1; handle >= 0; handle--)
+  int numHandles = AL_HandleMetaData_GetNumHandles(handlesMeta);
+
+  for(int handle = numHandles - 1; handle >= 0; handle--)
   {
     AL_TDecMetaHandle* pDecMetaHandle = (AL_TDecMetaHandle*)AL_HandleMetaData_GetHandle(handlesMeta, handle);
 
