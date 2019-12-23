@@ -83,6 +83,9 @@ static std::string const DYNAMIC_INDEX_LOOP_FILTER_BETA {
 static std::string const DYNAMIC_INDEX_LOOP_FILTER_TC {
   "DYNAMIC_INDEX_LOOP_FILTER_TC"
 };
+static std::string const DYNAMIC_INDEX_SKIP_PICTURE {
+  "DYNAMIC_INDEX_SKIP_PICTURE"
+};
 
 struct Callbacks
 {

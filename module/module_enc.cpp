@@ -14,6 +14,7 @@ extern "C"
 {
 #include <lib_common/BufferPixMapMeta.h>
 #include <lib_common/BufferStreamMeta.h>
+#include <lib_common/BufferPictureMeta.h>
 #include <lib_common/BufferLookAheadMeta.h>
 #include <lib_common/StreamBuffer.h>
 #include <lib_common/Profiles.h>
@@ -60,6 +61,8 @@ EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, shared_ptr<EncDevi
   nextQPBuffer = nullptr;
   initialDimension = { -1, -1 };
   currentDimension = { -1, -1 };
+  currentPictureType = AL_SLICE_MAX_ENUM;
+  currentPictureIsSkipped = false;
 }
 
 EncModule::~EncModule()
@@ -149,6 +152,21 @@ static TwoPassMngr* createTwoPassManager(shared_ptr<MediatypeInterface> media)
   return new TwoPassMngr(tp.sLogFile, tp.nPass, false, gop.length, br.cpb, br.ird, ck.framerate);
 }
 
+static bool CreateAndAttachStreamMeta(AL_TBuffer& buf)
+{
+  auto meta = (AL_TMetaData*)(AL_StreamMetaData_Create(AL_MAX_SECTION));
+
+  if(!meta)
+    return false;
+
+  if(!AL_Buffer_AddMetaData(&buf, meta))
+  {
+    AL_MetaData_Destroy(meta);
+    return false;
+  }
+  return true;
+}
+
 ModuleInterface::ErrorType EncModule::CreateEncoder()
 {
   if(encoders.size())
@@ -160,7 +178,7 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
   twoPassMngr.reset(createTwoPassManager(media));
 
   Resolution resolution;
-  media->Get("SETTINGS_INDEX_RESOLUTION", &resolution);
+  media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
   initialDimension = { resolution.dimension.horizontal, resolution.dimension.vertical };
   currentDimension = { resolution.dimension.horizontal, resolution.dimension.vertical };
   roiCtx = AL_RoiMngr_Create(resolution.dimension.horizontal, resolution.dimension.vertical, media->settings.tChParam[0].eProfile, AL_ROI_QUALITY_MEDIUM, AL_ROI_INCOMING_ORDER);
@@ -252,6 +270,8 @@ bool EncModule::DestroyEncoder()
 
   initialDimension = { -1, -1 };
   currentDimension = { -1, -1 };
+  currentPictureType = AL_SLICE_MAX_ENUM;
+  currentPictureIsSkipped = false;
 
   for(int pass = 0; pass < (int)encoders.size(); pass++)
   {
@@ -592,9 +612,9 @@ bool EncModule::Empty(BufferHandleInterface* handle)
   return success;
 }
 
-bool EncModule::CreateAndAttachStreamMeta(AL_TBuffer& buf)
+static bool CreateAndAttachPictureMeta(AL_TBuffer& buf)
 {
-  auto meta = (AL_TMetaData*)(AL_StreamMetaData_Create(AL_MAX_SECTION));
+  auto meta = (AL_TMetaData*)(AL_PictureMetaData_Create());
 
   if(!meta)
     return false;
@@ -633,6 +653,12 @@ bool EncModule::Fill(BufferHandleInterface* handle)
   if(!AL_Buffer_GetMetaData(output, AL_META_TYPE_STREAM))
   {
     if(!CreateAndAttachStreamMeta(*output))
+      return false;
+  }
+
+  if(!AL_Buffer_GetMetaData(output, AL_META_TYPE_PICTURE))
+  {
+    if(!CreateAndAttachPictureMeta(*output))
       return false;
   }
 
@@ -711,9 +737,9 @@ static int ConstructConfigStream(shared_ptr<MemoryInterface> memory, AL_TBuffer*
 
   assert(firstSection <= meta->uNumSection);
 
-  while(((meta->pSections[firstSection].uFlags & AL_SECTION_CONFIG_FLAG) != 0) && (firstSection < meta->uNumSection))
+  while(((meta->pSections[firstSection].eFlags & AL_SECTION_CONFIG_FLAG) != 0) && (firstSection < meta->uNumSection))
   {
-    if(meta->pSections[firstSection].uFlags & AL_SECTION_APP_FILLER_FLAG)
+    if(meta->pSections[firstSection].eFlags & AL_SECTION_APP_FILLER_FLAG)
       size += WriteFillerDataSection(memory, stream, config, size, firstSection);
     else
       size += WriteOneSection(memory, stream, config, size, firstSection);
@@ -733,7 +759,7 @@ static int ReconstructStream(shared_ptr<MemoryInterface> memory, AL_TBuffer* str
 
   for(int i = firstSection; i < meta->uNumSection; i++)
   {
-    if(meta->pSections[i].uFlags & AL_SECTION_APP_FILLER_FLAG)
+    if(meta->pSections[i].eFlags & AL_SECTION_APP_FILLER_FLAG)
       size += WriteFillerDataSection(memory, stream, stream, size, i);
     else
       size += WriteOneSection(memory, stream, stream, size, i);
@@ -763,16 +789,16 @@ static Flags GetCurrentFlags(AL_TBuffer* stream, int firstSection)
 
   for(int i = firstSection; i < meta->uNumSection; i++)
   {
-    if(meta->pSections[i].uFlags & AL_SECTION_SYNC_FLAG)
+    if(meta->pSections[i].eFlags & AL_SECTION_SYNC_FLAG)
       flags.isSync = true;
 
-    if(!(meta->pSections[i].uFlags & AL_SECTION_CONFIG_FLAG))
+    if(!(meta->pSections[i].eFlags & AL_SECTION_CONFIG_FLAG))
       flags.isEndOfSlice = true;
 
-    if(meta->pSections[i].uFlags & AL_SECTION_END_FRAME_FLAG)
+    if(meta->pSections[i].eFlags & AL_SECTION_END_FRAME_FLAG)
       flags.isEndOfFrame = true;
 
-    if(meta->pSections[i].uFlags & AL_SECTION_CONFIG_FLAG)
+    if(meta->pSections[i].eFlags & AL_SECTION_CONFIG_FLAG)
       flags.isConfig = true;
   }
 
@@ -803,7 +829,7 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
   BufferHandles bufferHandles;
   media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
 
-  auto isSrcRelease = (stream == nullptr && source);
+  auto isSrcRelease = ((stream == nullptr) && source);
 
   if(isSrcRelease)
   {
@@ -811,7 +837,7 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
     return;
   }
 
-  auto isStreamRelease = (stream && source == nullptr);
+  auto isStreamRelease = (stream && (source == nullptr));
 
   if(isStreamRelease)
   {
@@ -819,7 +845,7 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
     return;
   }
 
-  auto isEOS = (stream == nullptr && source == nullptr);
+  auto isEOS = ((stream == nullptr) && (source == nullptr));
 
   if(twoPassMngr->iPass == 1)
   {
@@ -947,6 +973,10 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
   }
 
   auto size = async_stream_reconstruction_handle.get();
+
+  AL_TPictureMetaData* pictureMeta = (AL_TPictureMetaData*)AL_Buffer_GetMetaData(stream, AL_META_TYPE_PICTURE);
+  currentPictureType = pictureMeta->eType;
+  currentPictureIsSkipped = pictureMeta->bSkipped;
 
   if(isFd(bufferHandles.output))
     UnuseDMA(rhandleOut);
@@ -1324,6 +1354,12 @@ ModuleInterface::ErrorType EncModule::GetDynamic(std::string index, void* param)
     auto dimension = static_cast<Dimension<int>*>(param);
     dimension->horizontal = initialDimension.horizontal;
     dimension->vertical = initialDimension.vertical;
+    return SUCCESS;
+  }
+
+  if(index == "DYNAMIC_INDEX_SKIP_PICTURE")
+  {
+    *static_cast<bool*>(param) = currentPictureIsSkipped;
     return SUCCESS;
   }
 

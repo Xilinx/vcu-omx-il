@@ -840,10 +840,10 @@ typedef enum OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS
  * TransferCharacteristics parameters
  *
  * STRUCT MEMBERS:
- *  nSize           : Size of the structure in bytes
- *  nVersion        : OMX specification version information
- *  nPortIndex      : Port that this structure applies to
- *  eTransferChar 	: Transfer characteristics
+ *  nSize         : Size of the structure in bytes
+ *  nVersion      : OMX specification version information
+ *  nPortIndex    : Port that this structure applies to
+ *  eTransferChar : Transfer characteristics
  */
 typedef struct OMX_ALG_VIDEO_PARAM_TRANSFER_CHARACTERISTICS
 {
@@ -865,10 +865,10 @@ typedef enum OMX_ALG_VIDEO_COLOR_MATRIX
  * Matrix coefficient parameters
  *
  * STRUCT MEMBERS:
- *  nSize           : Size of the structure in bytes
- *  nVersion        : OMX specification version information
- *  nPortIndex      : Port that this structure applies to
- *  eColorMatrix 	: Color matrix coefficients
+ *  nSize        : Size of the structure in bytes
+ *  nVersion     : OMX specification version information
+ *  nPortIndex   : Port that this structure applies to
+ *  eColorMatrix : Color matrix coefficients
  */
 typedef struct OMX_ALG_VIDEO_PARAM_COLOR_MATRIX
 {

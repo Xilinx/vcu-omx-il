@@ -2,17 +2,18 @@
 #include "dmaproxy.h"
 
 #include <algorithm> // move
+#include <cstring> // memset
 #include <string>
-#include <cstring>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+
 #include <utility/logger.h>
 
 extern "C"
 {
 #include <lib_fpga/DmaAlloc.h>
 #include <lib_fpga/DmaAllocLinux.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
 }
 
 DMAMemory::DMAMemory(char const* device)
@@ -59,8 +60,9 @@ void DMAMemory::move(AL_TBuffer* destination, int destination_offset, AL_TBuffer
   }
 }
 
-void DMAMemory::set(AL_TBuffer* destination, int destination_offset, int val, size_t size)
+void DMAMemory::set(AL_TBuffer* destination, int destination_offset, int value, size_t size)
 {
   // To be optimized later if such DMA capability exists
-  std::memset(AL_Buffer_GetData(destination) + destination_offset, val, size);
+  std::memset(AL_Buffer_GetData(destination) + destination_offset, value, size);
 }
+

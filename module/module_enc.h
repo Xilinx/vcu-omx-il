@@ -89,6 +89,8 @@ private:
   AL_TBuffer* nextQPBuffer;
   Dimension<int> initialDimension;
   Dimension<int> currentDimension;
+  AL_ESliceType currentPictureType;
+  bool currentPictureIsSkipped;
 
   AL_TRoiMngrCtx* roiCtx;
   std::shared_ptr<TwoPassMngr> twoPassMngr;
@@ -96,7 +98,6 @@ private:
   int currentTemporalId;
   Flags currentFlags;
 
-  bool CreateAndAttachStreamMeta(AL_TBuffer& buf);
   void InitEncoders(int numPass);
   bool Use(BufferHandleInterface* handle, uint8_t* buffer, int size);
   void Unuse(BufferHandleInterface* handle);

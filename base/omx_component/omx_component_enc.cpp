@@ -165,6 +165,13 @@ void EncComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
   auto header = (OMX_BUFFERHEADERTYPE*)(((OMXBufferHandle*)(filled))->header);
   auto offset = ((OMXBufferHandle*)filled)->offset;
   auto payload = ((OMXBufferHandle*)filled)->payload;
+  bool isSkipped;
+  auto err = module->GetDynamic(DYNAMIC_INDEX_SKIP_PICTURE, &isSkipped);
+  assert(err == ModuleInterface::SUCCESS);
+
+  if(isSkipped)
+    header->nFlags |= OMX_BUFFERFLAG_SKIPFRAME;
+
   delete filled;
 
   ReturnFilledBuffer(header, offset, payload);

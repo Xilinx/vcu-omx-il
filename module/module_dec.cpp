@@ -555,15 +555,15 @@ bool DecModule::CreateAndAttachStreamMeta(AL_TBuffer& buf)
   return true;
 }
 
-uint32_t ConvertModuleToSoftFlags(Flags flags)
+AL_ESectionFlags ConvertModuleToSoftFlags(Flags flags)
 {
-  uint32_t softFlags = 0;
+  AL_ESectionFlags softFlags = AL_SECTION_NO_FLAG;
 
   if(flags.isSync)
-    softFlags |= AL_SECTION_SYNC_FLAG;
+    softFlags = static_cast<AL_ESectionFlags>(softFlags | AL_SECTION_SYNC_FLAG);
 
   if(flags.isEndOfFrame)
-    softFlags |= AL_SECTION_END_FRAME_FLAG;
+    softFlags = static_cast<AL_ESectionFlags>(softFlags | AL_SECTION_END_FRAME_FLAG);
 
   return softFlags;
 }
@@ -780,7 +780,7 @@ ModuleInterface::ErrorType DecModule::GetDynamic(std::string index, void* param)
   if(index == "DYNAMIC_INDEX_CURRENT_DISPLAY_PICTURE_INFO")
   {
     auto displayPictureInfo = static_cast<DisplayPictureInfo*>(param);
-    displayPictureInfo->type = currentDisplayPictureInfo.type;
+    *displayPictureInfo = currentDisplayPictureInfo;
     return SUCCESS;
   }
 
