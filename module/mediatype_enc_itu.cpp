@@ -90,10 +90,11 @@ bool CreateConstrainedIntraPrediction(AL_TEncSettings settings)
 
 bool UpdateConstrainedIntraPrediction(AL_TEncSettings& settings, bool isConstrainedIntraPredictionEnabled)
 {
-  auto& opt = settings.tChParam[0].eEncTools;
+  if(!isConstrainedIntraPredictionEnabled)
+    return true;
 
-  if(isConstrainedIntraPredictionEnabled)
-    opt = static_cast<AL_EChEncTool>(opt | AL_OPT_CONST_INTRA_PRED);
+  auto& opt = settings.tChParam[0].eEncTools;
+  opt = static_cast<AL_EChEncTool>(opt | AL_OPT_CONST_INTRA_PRED);
 
   return true;
 }

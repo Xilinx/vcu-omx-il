@@ -43,7 +43,7 @@
 
 struct OMXBufferHandle : BufferHandleInterface
 {
-  OMXBufferHandle(OMX_BUFFERHEADERTYPE* header);
+  explicit OMXBufferHandle(OMX_BUFFERHEADERTYPE* header);
   ~OMXBufferHandle() override;
 
   OMX_BUFFERHEADERTYPE* const header;

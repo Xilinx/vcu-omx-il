@@ -4,6 +4,7 @@
 
 struct DecDeviceHardwareMcu final : DecDeviceInterface
 {
+  DecDeviceHardwareMcu();
   ~DecDeviceHardwareMcu() override;
 
   AL_IDecScheduler* Init() override;

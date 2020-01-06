@@ -388,12 +388,6 @@ MediatypeInterface::ErrorType EncMediatypeHEVC::Get(std::string index, void* set
     return SUCCESS;
   }
 
-  if(index == "SETTINGS_INDEX_LOOP_FILTER_TC")
-  {
-    *static_cast<int*>(settings) = CreateLoopFilterTc(this->settings);
-    return SUCCESS;
-  }
-
   if(index == "SETTINGS_INDEX_ACCESS_UNIT_DELIMITER")
   {
     *static_cast<bool*>(settings) = CreateAccessUnitDelimiter(this->settings);

@@ -2,17 +2,12 @@
 
 #include "module_structs.h"
 #include <vector>
+#include <algorithm>
 
 template<class T>
 bool IsSupported(T value, std::vector<T> supported)
 {
-  for(auto each: supported)
-  {
-    if(each == value)
-      return true;
-  }
-
-  return false;
+  return std::any_of(supported.cbegin(), supported.cend(), [&](T const& each) { return each == value; });
 }
 
 bool CheckClock(Clock clock);

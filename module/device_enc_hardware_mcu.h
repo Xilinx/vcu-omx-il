@@ -11,7 +11,7 @@ extern "C"
 
 struct EncDeviceHardwareMcu final : EncDeviceInterface
 {
-  EncDeviceHardwareMcu(std::shared_ptr<AL_TAllocator> allocator);
+  explicit EncDeviceHardwareMcu(std::shared_ptr<AL_TAllocator> allocator);
   ~EncDeviceHardwareMcu() override;
 
   AL_IEncScheduler* Init() override;

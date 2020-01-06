@@ -6,6 +6,7 @@ extern "C"
 #include "lib_decode/DecSchedulerMcu.h"
 }
 
+DecDeviceHardwareMcu::DecDeviceHardwareMcu() = default;
 DecDeviceHardwareMcu::~DecDeviceHardwareMcu() = default;
 
 AL_IDecScheduler* DecDeviceHardwareMcu::Init()

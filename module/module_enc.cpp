@@ -204,11 +204,11 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
     AL_CB_EndEncoding callback = { EncModule::RedirectionEndEncoding, this };
 
     if(twoPassMngr && twoPassMngr->iPass == 1)
-      AL_TwoPassMngr_SetPass1Settings(settingsPass);
+      AL_TwoPassMngr_SetPass1Settings(settingsPass, nullptr);
 
     if((pass < (numPass - 1)) && (AL_TwoPassMngr_HasLookAhead(settings)))
     {
-      AL_TwoPassMngr_SetPass1Settings(settingsPass);
+      AL_TwoPassMngr_SetPass1Settings(settingsPass, nullptr);
       callback = { EncModule::RedirectionEndEncodingLookAhead, &(encoderPass.callbackParam) };
       LookAhead la;
       media->Get(SETTINGS_INDEX_LOOKAHEAD, &la);

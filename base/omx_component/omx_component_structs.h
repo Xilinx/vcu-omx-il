@@ -155,7 +155,7 @@ struct Port
   {
     std::unique_lock<std::mutex> lck(mutex);
     cv_empty.wait(lck, [&] {
-      return !playable || (playable && expected == 0) || error;
+      return !playable || expected == 0 || error;
     });
   }
 
