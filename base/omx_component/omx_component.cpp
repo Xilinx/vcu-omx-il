@@ -1444,6 +1444,13 @@ OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR co
     processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoRegionOfInterest, shared_ptr<void>(roi)));
     return OMX_ErrorNone;
   }
+  case OMX_ALG_IndexConfigVideoRegionOfInterestByValue:
+  {
+    OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST_BY_VALUE* roi = new OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST_BY_VALUE;
+    memcpy(roi, static_cast<OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST_BY_VALUE*>(config), sizeof(OMX_ALG_VIDEO_CONFIG_REGION_OF_INTEREST_BY_VALUE));
+    processorMain->queue(CreateTask(Command::SetDynamic, OMX_ALG_IndexConfigVideoRegionOfInterestByValue, shared_ptr<void>(roi)));
+    return OMX_ErrorNone;
+  }
   case OMX_ALG_IndexConfigVideoNotifySceneChange:
   {
     OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE* notifySceneChange = new OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE;
