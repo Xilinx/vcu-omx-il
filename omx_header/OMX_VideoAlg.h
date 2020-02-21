@@ -967,7 +967,7 @@ typedef struct OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE
 }OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE;
 
 /**
- * Structure for dynamically get the max resolution change
+ * Max resolution change parameters
  *
  * STRUCT MEMBERS:
  *  nSize      : Size of the structure in bytes
@@ -976,7 +976,7 @@ typedef struct OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE
  *  nWidth     : Width of the resolution
  *  nHeight    : Height of the resoluton
  */
-typedef OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE OMX_ALG_VIDEO_CONFIG_MAX_RESOLUTION_CHANGE;
+typedef OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE OMX_ALG_VIDEO_PARAM_MAX_RESOLUTION_CHANGE;
 
 /**
  * Struct for dynamically send sei
