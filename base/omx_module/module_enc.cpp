@@ -95,7 +95,6 @@ EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, shared_ptr<EncDevi
   media->Reset();
   sem.reset();
   configHandle = nullptr;
-  nextQPBuffer = nullptr;
 }
 
 EncModule::~EncModule() = default;
@@ -337,10 +336,7 @@ ModuleInterface::ErrorType EncModule::Start(bool)
 bool EncModule::Stop()
 {
   if(this->nextQPBuffer)
-  {
     AL_Buffer_Unref(this->nextQPBuffer);
-    this->nextQPBuffer = nullptr;
-  }
 
   if(!encoders.size())
     return false;
@@ -1082,10 +1078,7 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
   if(index == "DYNAMIC_INDEX_INSERT_QUANTIZATION_PARAMETER_BUFFER")
   {
     if(this->nextQPBuffer)
-    {
       AL_Buffer_Unref(this->nextQPBuffer);
-      this->nextQPBuffer = nullptr;
-    }
     auto qpTable = createQPTable(static_cast<unsigned char const*>(param));
     AL_Buffer_Ref(qpTable);
     nextQPBuffer = qpTable;
@@ -1162,10 +1155,7 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
     assert(roiCtx);
 
     if(encoders.front().nextQPBuffer)
-    {
       AL_Buffer_Unref(encoders.front().nextQPBuffer);
-      encoders.front().nextQPBuffer = nullptr;
-    }
     auto roiBuffer = createQPTable(static_cast<unsigned char const*>(param));
     AL_Buffer_Ref(roiBuffer);
     encoders.front().nextQPBuffer = roiBuffer;
