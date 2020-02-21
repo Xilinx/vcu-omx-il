@@ -129,7 +129,6 @@ private:
   std::shared_ptr<TwoPassMngr> twoPassMngr;
   AL_TBuffer* currentOutputedStreamForSei;
   int currentTemporalId;
-  int drcSent;
   Flags currentFlags;
   AL_TDimension initialDimension;
 

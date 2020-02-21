@@ -86,7 +86,6 @@ EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, shared_ptr<EncDevi
   device{device},
   allocator{allocator},
   memory{memory},
-  drcSent{0},
   initialDimension { -1, -1}
 {
   assert(this->media);
@@ -250,7 +249,6 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
     }
   }
 
-  drcSent = 0;
   return SUCCESS;
 }
 
@@ -321,7 +319,6 @@ bool EncModule::DestroyEncoder()
     return false;
   }
   AL_RoiMngr_Destroy(roiCtx);
-  drcSent = 0;
 
   return true;
 }
@@ -860,22 +857,6 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
     return;
   }
 
-  auto srcMeta = (AL_TSrcMetaData*)AL_Buffer_GetMetaData(source, AL_META_TYPE_SOURCE);
-  int frameWidth = srcMeta->tDim.iWidth;
-  int frameHeight = srcMeta->tDim.iHeight;
-  Resolution resolution;
-  media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
-
-  unique_lock<std::mutex> lock(mutex);
-  if((drcSent > 0) && (resolution.width == frameWidth) && (resolution.height == frameHeight))
-  {
-    drcSent--;
-    lock.unlock();
-    callbacks.event(Callbacks::Event::RESOLUTION_DETECTED, nullptr);
-  }
-  else
-    lock.unlock();
-
   auto rhandleIn = handles.Get(source);
   assert(rhandleIn->data);
 
@@ -1258,9 +1239,7 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
     }
     auto ret = media->Set(SETTINGS_INDEX_RESOLUTION, resolution);
     assert(ret == MediatypeInterface::SUCCESS);
-    unique_lock<std::mutex> lock(mutex);
-    drcSent++;
-    lock.unlock();
+    callbacks.event(Callbacks::Event::RESOLUTION_DETECTED, nullptr);
     return SUCCESS;
   }
 
