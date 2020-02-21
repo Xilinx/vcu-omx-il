@@ -76,6 +76,6 @@ private:
   void TreatEmptyBufferCommand(Task* task) override;
   std::list<PropagatedData> transmit;
   std::mutex mutex;
-  bool nextDataIsFreshFrame;
+  bool shouldPropagateData;
 };
 
