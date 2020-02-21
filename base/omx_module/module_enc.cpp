@@ -1092,19 +1092,6 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
     return SUCCESS;
   }
 
- if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_EMPTY")
-  {
-    if(this->nextQPBuffer)
-    {
-      AL_Buffer_Unref(this->nextQPBuffer);
-      this->nextQPBuffer = nullptr;
-    }
-    auto roiBuffer = createQPTable(static_cast<unsigned char const*>(param));
-    AL_Buffer_Ref(roiBuffer);
-    nextQPBuffer = roiBuffer;
-    return SUCCESS;
-  }
-
   if(!encoders.size())
     return UNDEFINED;
 
@@ -1167,6 +1154,21 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
   {
     assert(roiCtx);
     AL_RoiMngr_Clear(roiCtx);
+    return SUCCESS;
+  }
+
+  if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_EMPTY")
+  {
+    assert(roiCtx);
+
+    if(encoders.front().nextQPBuffer)
+    {
+      AL_Buffer_Unref(encoders.front().nextQPBuffer);
+      encoders.front().nextQPBuffer = nullptr;
+    }
+    auto roiBuffer = createQPTable(static_cast<unsigned char const*>(param));
+    AL_Buffer_Ref(roiBuffer);
+    encoders.front().nextQPBuffer = roiBuffer;
     return SUCCESS;
   }
 
