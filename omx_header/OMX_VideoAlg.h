@@ -368,10 +368,11 @@ typedef struct OMX_ALG_VIDEO_PARAM_CODED_PICTURE_BUFFER
  */
 typedef enum
 {
-  OMX_ALG_QP_CTRL_NONE,
-  OMX_ALG_QP_CTRL_AUTO,
-  OMX_ALG_QP_CTRL_ADAPTIVE_AUTO,
-  OMX_ALG_QP_CTRL_MAX_ENUM = 0x7FFFFFFF,
+  OMX_ALG_UNIFORM_QP, /*!< default behaviour */
+  OMX_ALG_ROI_QP, /*!< must be set for dynamic roi */
+  OMX_ALG_AUTO_QP, /*!< compute Qp by MB on the fly */
+  OMX_ALG_ROI_AUTO_QP, /*!< ROI and on the fly QP offsets summed */
+  OMX_ALG_MAX_ENUM_QP = 0x7FFFFFFF,
 }OMX_ALG_EQpCtrlMode;
 
 /**
@@ -409,34 +410,6 @@ typedef struct OMX_ALG_VIDEO_PARAM_QUANTIZATION_EXTENSION
   OMX_S32 nQpMin;
   OMX_S32 nQpMax;
 }OMX_ALG_VIDEO_PARAM_QUANTIZATION_EXTENSION;
-
-/**
- * Enumeration of possible quantization table parameter (QP Table) types
- */
-typedef enum
-{
-  OMX_ALG_QP_TABLE_NONE,
-  OMX_ALG_QP_TABLE_RELATIVE,
-  OMX_ALG_QP_TABLE_ABSOLUTE,
-  OMX_ALG_QP_TABLE_MAX_ENUM = 0x7FFFFFF,
-}OMX_ALG_EQpTableMode;
-
-/**
- * Quantization table parameters
- *
- * STRUCT MEMBERS:
- *  nSize        : Size of the structure in bytes
- *  nVersion     : OMX specification version information
- *  nPortIndex   : Port that this structure applies to
- *  eQpTableMode : Quantization table parameter type enum
- */
-typedef struct OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE
-{
-  OMX_U32 nSize;
-  OMX_VERSIONTYPE nVersion;
-  OMX_U32 nPortIndex;
-  OMX_ALG_EQpTableMode eQpTableMode;
-}OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE;
 
 /**
  *  Enumeration of possible scaling list (SCL) types
