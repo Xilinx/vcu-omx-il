@@ -85,8 +85,7 @@ EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, shared_ptr<EncDevi
   media{media},
   device{device},
   allocator{allocator},
-  memory{memory},
-  initialDimension { -1, -1}
+  memory{memory}
 {
   assert(this->media);
   assert(this->device);
@@ -226,9 +225,6 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
 
     auto errorCode = AL_Encoder_Create(&encoderPass.enc, scheduler, allocator.get(), &settingsPass, callback);
 
-    Resolution resolution;
-    media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
-    initialDimension = { resolution.width, resolution.height };
     if(AL_IS_ERROR_CODE(errorCode))
     {
       LOG_ERROR(string { "Failed to create Encoder: " } +ToStringEncodeError(errorCode));
@@ -278,7 +274,6 @@ bool EncModule::DestroyEncoder()
     sem.reset();
   }
 
-  initialDimension = { -1, -1};
   for(int pass = 0; pass < (int)encoders.size(); pass++)
   {
     GenericEncoder encoder = encoders[pass];
@@ -1293,14 +1288,6 @@ ModuleInterface::ErrorType EncModule::GetDynamic(std::string index, void* param)
   if(index == "DYNAMIC_INDEX_STREAM_FLAGS")
   {
     *static_cast<Flags*>(param) = this->currentFlags;
-    return SUCCESS;
-  }
-
-  if(index == "DYNAMIC_INDEX_MAX_RESOLUTION_CHANGE_SUPPORTED")
-  {
-    auto dimension = static_cast<Dimension<int>*>(param);
-    dimension->horizontal = initialDimension.iWidth;
-    dimension->vertical = initialDimension.iHeight;
     return SUCCESS;
   }
 
