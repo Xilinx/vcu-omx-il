@@ -185,11 +185,14 @@ void DecComponent::EventCallBack(Callbacks::Event type, void* data)
   assert(type < Callbacks::Event::MAX);
   switch(type)
   {
-  case Callbacks::Event::RESOLUTION_DETECTED:
+  case Callbacks::Event::RESOLUTION_CHANGE:
   {
     LOG_IMPORTANT(ToStringCallbackEvent.at(type));
 
-    callbacks.EventHandler(component, app, OMX_EventPortSettingsChanged, 1, 0, nullptr);
+    auto port = GetPort(1);
+
+    if(port->isTransientToEnable || !port->enable)
+      callbacks.EventHandler(component, app, OMX_EventPortSettingsChanged, 1, 0, nullptr);
     break;
   }
   case Callbacks::Event::SEI_PREFIX_PARSED:

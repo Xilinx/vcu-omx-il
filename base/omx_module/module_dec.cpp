@@ -280,13 +280,7 @@ void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSett
 
   if(resolutionFoundAsBeenCalled)
   {
-    int width = settings.tDim.iWidth - (crop.uCropOffsetLeft + crop.uCropOffsetRight);
-    int height = settings.tDim.iHeight - (crop.uCropOffsetTop + crop.uCropOffsetBottom);
-
-    media->settings.tStream.tDim.iWidth = width;
-    media->settings.tStream.tDim.iHeight = height;
-
-    callbacks.event(Callbacks::Event::RESOLUTION_DETECTED, nullptr);
+    /* TODO: implement dynamic resolution changes*/
     return;
   }
   resolutionFoundAsBeenCalled = true;
@@ -298,7 +292,7 @@ void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSett
   media->stride = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(settings.tDim.iWidth, settings.iBitDepth, media->settings.eFBStorageMode)), strideAlignments.horizontal);
   media->sliceHeight = RoundUp(static_cast<int>(AL_Decoder_GetMinStrideHeight(settings.tDim.iHeight)), strideAlignments.vertical);
 
-  callbacks.event(Callbacks::Event::RESOLUTION_DETECTED, nullptr);
+  callbacks.event(Callbacks::Event::RESOLUTION_CHANGE, nullptr);
 }
 
 void DecModule::ParsedPrefixSei(int type, uint8_t* payload, int size)
