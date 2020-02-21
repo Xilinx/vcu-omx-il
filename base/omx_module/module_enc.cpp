@@ -305,9 +305,6 @@ bool EncModule::DestroyEncoder()
     }
   }
 
-  if(this->nextQPBuffer)
-    AL_Buffer_Unref(this->nextQPBuffer);
-
   encoders.clear();
 
   device->Deinit();
@@ -335,9 +332,6 @@ ModuleInterface::ErrorType EncModule::Start(bool)
 
 bool EncModule::Stop()
 {
-  if(this->nextQPBuffer)
-    AL_Buffer_Unref(this->nextQPBuffer);
-
   if(!encoders.size())
     return false;
 
@@ -590,17 +584,17 @@ bool EncModule::Empty(BufferHandleInterface* handle)
     copy(buffer, buffer + input->zSize, AL_Buffer_GetData(input));
   }
 
-  if(this->nextQPBuffer == nullptr)
+  if(currentEnc.nextQPBuffer == nullptr)
     return AL_Encoder_Process(encoder, input, nullptr);
 
-  auto success = AL_Encoder_Process(encoder, input, this->nextQPBuffer);
+  auto success = AL_Encoder_Process(encoder, input, currentEnc.nextQPBuffer);
 
   if(currentEnc.index != encoders.back().index)
-    encoders[currentEnc.index + 1].nextQPBuffer = this->nextQPBuffer;
+    encoders[currentEnc.index + 1].nextQPBuffer = currentEnc.nextQPBuffer;
   else
   {
-    AL_Buffer_Unref(this->nextQPBuffer);
-    this->nextQPBuffer = nullptr;
+    AL_Buffer_Unref(currentEnc.nextQPBuffer);
+    currentEnc.nextQPBuffer = nullptr;
   }
 
   return success;
@@ -1060,31 +1054,6 @@ void EncModule::EmptyFifo(GenericEncoder& encoder, bool isEOS)
 
 ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* param)
 {
-  auto createQPTable = [&](unsigned char const* bufferToCopy) -> AL_TBuffer*
-                       {
-                         Resolution resolution;
-                         auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
-                         assert(ret == MediatypeInterface::SUCCESS);
-                         AL_TDimension tDim {
-                           resolution.width, resolution.height
-                         };
-                         auto size = AL_GetAllocSizeEP2(tDim, static_cast<AL_ECodec>(AL_GET_PROFILE_CODEC(media->settings.tChParam[0].eProfile)));
-                         auto qpTable = AL_Buffer_Create_And_Allocate(allocator.get(), size, AL_Buffer_Destroy);
-                         copy(bufferToCopy, bufferToCopy + size, AL_Buffer_GetData(qpTable));
-                         return qpTable;
-                       };
-
-  /* Hack: qp buffer can be done without encoder */
-  if(index == "DYNAMIC_INDEX_INSERT_QUANTIZATION_PARAMETER_BUFFER")
-  {
-    if(this->nextQPBuffer)
-      AL_Buffer_Unref(this->nextQPBuffer);
-    auto qpTable = createQPTable(static_cast<unsigned char const*>(param));
-    AL_Buffer_Ref(qpTable);
-    nextQPBuffer = qpTable;
-    return SUCCESS;
-  }
-
   if(!encoders.size())
     return UNDEFINED;
 
@@ -1150,6 +1119,20 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
     return SUCCESS;
   }
 
+  auto createQPTable = [&](unsigned char const* bufferToCopy) -> AL_TBuffer*
+                       {
+                         Resolution resolution;
+                         auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
+                         assert(ret == MediatypeInterface::SUCCESS);
+                         AL_TDimension tDim {
+                           resolution.width, resolution.height
+                         };
+                         auto size = AL_GetAllocSizeEP2(tDim, static_cast<AL_ECodec>(AL_GET_PROFILE_CODEC(media->settings.tChParam[0].eProfile)));
+                         auto qpTable = AL_Buffer_Create_And_Allocate(allocator.get(), size, AL_Buffer_Destroy);
+                         copy(bufferToCopy, bufferToCopy + size, AL_Buffer_GetData(qpTable));
+                         return qpTable;
+                       };
+
   if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_BUFFER_EMPTY")
   {
     assert(roiCtx);
@@ -1159,6 +1142,16 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
     auto roiBuffer = createQPTable(static_cast<unsigned char const*>(param));
     AL_Buffer_Ref(roiBuffer);
     encoders.front().nextQPBuffer = roiBuffer;
+    return SUCCESS;
+  }
+
+  if(index == "DYNAMIC_INDEX_INSERT_QUANTIZATION_PARAMETER_BUFFER")
+  {
+    if(encoders.front().nextQPBuffer)
+      AL_Buffer_Unref(encoders.front().nextQPBuffer);
+    auto qpTable = createQPTable(static_cast<unsigned char const*>(param));
+    AL_Buffer_Ref(qpTable);
+    encoders.front().nextQPBuffer = qpTable;
     return SUCCESS;
   }
 

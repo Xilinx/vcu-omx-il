@@ -123,7 +123,6 @@ private:
   semaphore sem;
   AL_TBuffer* configHandle;
   Callbacks callbacks;
-  AL_TBuffer* nextQPBuffer;
 
   AL_TRoiMngrCtx* roiCtx;
   std::shared_ptr<TwoPassMngr> twoPassMngr;
