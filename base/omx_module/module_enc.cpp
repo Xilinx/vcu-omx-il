@@ -1219,7 +1219,6 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
     }
     auto ret = media->Set(SETTINGS_INDEX_RESOLUTION, resolution);
     assert(ret == MediatypeInterface::SUCCESS);
-    callbacks.event(Callbacks::Event::RESOLUTION_DETECTED, nullptr);
     return SUCCESS;
   }
 

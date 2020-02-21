@@ -185,6 +185,13 @@ void DecComponent::EventCallBack(Callbacks::Event type, void* data)
   assert(type < Callbacks::Event::MAX);
   switch(type)
   {
+  case Callbacks::Event::RESOLUTION_DETECTED:
+  {
+    LOG_IMPORTANT(ToStringCallbackEvent.at(type));
+
+    callbacks.EventHandler(component, app, OMX_EventPortSettingsChanged, 1, 0, nullptr);
+    break;
+  }
   case Callbacks::Event::SEI_PREFIX_PARSED:
   {
     LOG_IMPORTANT(ToStringCallbackEvent.at(type));
