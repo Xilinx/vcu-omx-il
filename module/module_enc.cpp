@@ -237,6 +237,7 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
   }
 
   encoders.front().nextQPBuffer = nextQPBuffer;
+  nextQPBuffer = nullptr;
 
   return SUCCESS;
 }
