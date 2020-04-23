@@ -2079,7 +2079,7 @@ void Component::TreatDynamicCommand(Task task)
     }
 
     auto rq = CreateRegionQualityByPreset(*roi);
-    module->SetDynamic(DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD, &rq);
+    module->SetDynamic(DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD_BY_PRESET, &rq);
     shouldPushROI = true;
     return;
   }
@@ -2094,7 +2094,7 @@ void Component::TreatDynamicCommand(Task task)
     }
 
     auto rq = CreateRegionQualityByValue(*roi);
-    module->SetDynamic(DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD, &rq);
+    module->SetDynamic(DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD_BY_VALUE, &rq);
     shouldPushROI = true;
     return;
   }

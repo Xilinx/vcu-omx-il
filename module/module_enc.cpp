@@ -1,6 +1,8 @@
 #include "module_enc.h"
+#include "convert_module_soft_enc_roi.h"
 #include "convert_module_soft_enc.h"
 #include "convert_module_soft.h"
+#include "ROIMngr.h"
 #include <cassert>
 #include <cmath>
 #include <unistd.h> // close fd
@@ -1194,7 +1196,16 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
     return SUCCESS;
   }
 
-  if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD")
+  if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD_BY_PRESET")
+  {
+    assert(roiCtx);
+    auto roi = static_cast<RegionQuality const*>(param);
+    auto ret = AL_RoiMngr_AddROI(roiCtx, roi->region.point.x, roi->region.point.y, roi->region.dimension.horizontal, roi->region.dimension.vertical, ConvertModuleToSoftQualityByPreset(roi->quality.byPreset));
+    assert(ret);
+    return SUCCESS;
+  }
+
+  if(index == "DYNAMIC_INDEX_REGION_OF_INTEREST_QUALITY_ADD_BY_VALUE")
   {
     assert(roiCtx);
     auto roi = static_cast<RegionQuality const*>(param);
