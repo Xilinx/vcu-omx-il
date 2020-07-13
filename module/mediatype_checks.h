@@ -67,3 +67,4 @@ bool CheckTwoPass(TwoPass tp);
 bool CheckMaxPictureSizes(MaxPicturesSizes sizes);
 bool CheckLoopFilterBeta(int beta);
 bool CheckLoopFilterTc(int tc);
+bool CheckCrop(Region region);

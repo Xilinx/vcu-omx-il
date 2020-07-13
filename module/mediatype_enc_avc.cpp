@@ -487,6 +487,12 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Get(std::string index, void* sett
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_CROP")
+  {
+    *(static_cast<Region*>(settings)) = CreateCrop(this->settings);
+    return SUCCESS;
+  }
+
   return BAD_INDEX;
 }
 
@@ -884,6 +890,15 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Set(std::string index, void const
     if(!SetRcPluginContext(this->allocator.get(), &this->settings, rcp))
       return BAD_PARAMETER;
 
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_CROP")
+  {
+    auto crop = *(static_cast<Region const*>(settings));
+
+    if(!UpdateCrop(this->settings, crop))
+      return BAD_PARAMETER;
     return SUCCESS;
   }
 

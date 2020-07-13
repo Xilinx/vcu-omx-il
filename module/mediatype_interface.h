@@ -192,6 +192,9 @@ static std::string const SETTINGS_INDEX_CONTENT_LIGHT_LEVEL_SEI {
 static std::string const SETTINGS_INDEX_RATE_CONTROL_PLUGIN {
   "SETTINGS_INDEX_RATE_CONTROL_PLUGIN"
 };
+static std::string const SETTINGS_INDEX_CROP {
+  "SETTINGS_INDEX_CROP"
+};
 
 struct MediatypeInterface
 {

@@ -194,5 +194,9 @@ OMX_ERRORTYPE SetVideoMasteringDisplayColourVolumeSEI(OMX_ALG_VIDEO_PARAM_MASTER
 
 OMX_ERRORTYPE ConstructVideoContentLightLevelSEI(OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI& cllSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoContentLightLevelSEI(OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI const& cllSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
 OMX_ERRORTYPE SetVideoRateControlPlugin(OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN const& rateCtrlPlugin, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE ConstructVideoRateControlPlugin(OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN& rateCtrlPlugin, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
+OMX_ERRORTYPE SetVideoCrop(OMX_CONFIG_RECTTYPE const& crop, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE ConstructVideoCrop(OMX_CONFIG_RECTTYPE& crop, Port const& port, std::shared_ptr<MediatypeInterface> media);

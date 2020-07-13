@@ -244,3 +244,8 @@ bool CheckLoopFilterTc(int tc)
   (void)tc;
   return true;
 }
+
+bool CheckCrop(Region region)
+{
+  return (region.point.x >= 0) && (region.point.y >= 0) && (region.dimension.horizontal >= 0) && (region.dimension.vertical >= 0);
+}

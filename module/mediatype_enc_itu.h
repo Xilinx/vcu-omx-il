@@ -137,3 +137,6 @@ bool UpdateContentLightLevelSEI(AL_TEncSettings& settings, bool isCLLEnabled);
 RateControlPlugin CreateRateControlPlugin(AL_TAllocator* allocator, AL_TEncSettings const& settings);
 bool SetRcPluginContext(AL_TAllocator* allocator, AL_TEncSettings* settings, RateControlPlugin const& rcp);
 void ResetRcPluginContext(AL_TAllocator* allocator, AL_TEncSettings* settings);
+
+Region CreateCrop(AL_TEncSettings settings);
+bool UpdateCrop(AL_TEncSettings& settings, Region region);

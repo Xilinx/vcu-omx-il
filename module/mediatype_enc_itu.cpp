@@ -632,3 +632,28 @@ void ResetRcPluginContext(AL_TAllocator* allocator, AL_TEncSettings* settings)
   rcp.dmaSize = 0;
   SetRcPluginContext(allocator, settings, rcp);
 }
+
+Region CreateCrop(AL_TEncSettings settings)
+{
+  auto channel = settings.tChParam[0];
+  Region region;
+  region.point.x = channel.uOutputCropPosX;
+  region.point.y = channel.uOutputCropPosY;
+  region.dimension.horizontal = channel.uOutputCropWidth;
+  region.dimension.vertical = channel.uOutputCropHeight;
+  return region;
+}
+
+bool UpdateCrop(AL_TEncSettings& settings, Region region)
+{
+  if(!CheckCrop(region))
+    return false;
+
+  auto& channel = settings.tChParam[0];
+  channel.uOutputCropPosX = region.point.x;
+  channel.uOutputCropPosY = region.point.y;
+  channel.uOutputCropWidth = region.dimension.horizontal;
+  channel.uOutputCropHeight = region.dimension.vertical;
+
+  return true;
+}

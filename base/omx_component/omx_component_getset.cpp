@@ -1881,3 +1881,44 @@ OMX_ERRORTYPE ConstructVideoRateControlPlugin(OMX_ALG_VIDEO_PARAM_RATE_CONTROL_P
   rateCtrlPlugin.nDmaSize = rcp.dmaSize;
   return OMX_ErrorNone;
 }
+
+static OMX_ERRORTYPE SetCrop(OMX_U32 nLeft, OMX_U32 nTop, OMX_U32 nWidth, OMX_U32 nHeight, shared_ptr<MediatypeInterface> media)
+{
+  Region region;
+  region.point.x = nLeft;
+  region.point.y = nTop;
+  region.dimension.horizontal = nWidth;
+  region.dimension.vertical = nHeight;
+  auto ret = media->Set(SETTINGS_INDEX_CROP, &region);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoCrop(OMX_CONFIG_RECTTYPE const& crop, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_CONFIG_RECTTYPE rollback;
+  ConstructVideoCrop(rollback, port, media);
+  auto ret = SetCrop(crop.nLeft, crop.nTop, crop.nWidth, crop.nHeight, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoCrop(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoCrop(OMX_CONFIG_RECTTYPE& crop, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(crop);
+  crop.nPortIndex = port.index;
+  Region region {};
+  auto ret = media->Get(SETTINGS_INDEX_CROP, &region);
+  OMX_CHECK_MEDIA_GET(ret);
+  crop.nLeft = region.point.x;
+  crop.nTop = region.point.y;
+  crop.nWidth = region.dimension.horizontal;
+  crop.nHeight = region.dimension.vertical;
+  return OMX_ErrorNone;
+}

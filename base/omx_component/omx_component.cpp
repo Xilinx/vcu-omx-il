@@ -826,6 +826,12 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto rcp = static_cast<OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN*>(param);
     return ConstructVideoRateControlPlugin(*rcp, *port, media);
   }
+  case OMX_ALG_IndexParamVideoCrop:
+  {
+    auto port = getCurrentPort(param);
+    auto crop = static_cast<OMX_CONFIG_RECTTYPE*>(param);
+    return ConstructVideoCrop(*crop, *port, media);
+  }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
@@ -1118,6 +1124,11 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
   {
     auto rcPlugin = static_cast<OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN*>(param);
     return SetVideoRateControlPlugin(*rcPlugin, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoCrop:
+  {
+    auto crop = static_cast<OMX_CONFIG_RECTTYPE*>(param);
+    return SetVideoCrop(*crop, *port, media);
   }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
