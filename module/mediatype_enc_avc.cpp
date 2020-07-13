@@ -481,6 +481,18 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Get(std::string index, void* sett
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_ST2094_10_SEI")
+  {
+    *static_cast<bool*>(settings) = CreateST209410SEI(this->settings);
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_ST2094_40_SEI")
+  {
+    *static_cast<bool*>(settings) = CreateST209440SEI(this->settings);
+    return SUCCESS;
+  }
+
   if(index == "SETTINGS_INDEX_RATE_CONTROL_PLUGIN")
   {
     *(static_cast<RateControlPlugin*>(settings)) = CreateRateControlPlugin(this->allocator.get(), this->settings);
@@ -876,6 +888,24 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Set(std::string index, void const
     auto cll = *(static_cast<bool const*>(settings));
 
     if(!UpdateContentLightLevelSEI(this->settings, cll))
+      return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_ST2094_10_SEI")
+  {
+    auto st2094_10 = *(static_cast<bool const*>(settings));
+
+    if(!UpdateST209410SEI(this->settings, st2094_10))
+      return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_ST2094_40_SEI")
+  {
+    auto st2094_40 = *(static_cast<bool const*>(settings));
+
+    if(!UpdateST209440SEI(this->settings, st2094_40))
       return BAD_PARAMETER;
     return SUCCESS;
   }

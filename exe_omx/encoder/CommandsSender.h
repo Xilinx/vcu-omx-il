@@ -65,6 +65,7 @@ struct CommandsSender final : public ICommandsSender
   void setDynamicInput(int iInputIdx) override;
   void setLFBetaOffset(int iBetaOffset) override;
   void setLFTcOffset(int iTcOffset) override;
+  void setHDRIndex(int iHDRIdx) override;
 
 private:
   OMX_HANDLETYPE hEnc;

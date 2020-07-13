@@ -267,12 +267,129 @@ struct ContentLightLevel
   uint16_t maxPicAverageLightLevel;
 };
 
+/*  --------- ST2094_10 --------- */
+#define MAX_MANUAL_ADJUSTMENT_ST2094_10 16
+
+struct ProcessingWindow_ST2094_10
+{
+  uint16_t activeAreaLeftOffset;
+  uint16_t activeAreaRightOffset;
+  uint16_t activeAreaTopOffset;
+  uint16_t activeAreaBottomOffset;
+};
+
+struct ImageCharacteristics_ST2094_10
+{
+  uint16_t minPQ;
+  uint16_t maxPQ;
+  uint16_t avgPQ;
+};
+
+struct ManualAdjustment_ST2094_10
+{
+  uint16_t targetMaxPQ;
+  uint16_t trimSlope;
+  uint16_t trimOffset;
+  uint16_t trimPower;
+  uint16_t trimChromaWeight;
+  uint16_t trimSaturationGain;
+  int16_t msWeight;
+};
+
+struct DynamicMeta_ST2094_10
+{
+  uint8_t applicationVersion;
+  bool processingWindowFlag;
+  ProcessingWindow_ST2094_10 processingWindow;
+  ImageCharacteristics_ST2094_10 imageCharacteristics;
+  uint8_t numManualAdjustments;
+  ManualAdjustment_ST2094_10 manualAdjustments[MAX_MANUAL_ADJUSTMENT_ST2094_10];
+};
+
+/*  --------- ST2094_40 --------- */
+#define MIN_WINDOW_ST2094_40 1
+#define MAX_WINDOW_ST2094_40 3
+#define MAX_MAXRGB_PERCENTILES_ST2094_40 15
+#define MAX_BEZIER_CURVE_ANCHORS_ST2094_40 15
+#define MAX_ROW_ACTUAL_PEAK_LUMINANCE_ST2094_40 25
+#define MAX_COL_ACTUAL_PEAK_LUMINANCE_ST2094_40 25
+
+struct ProcessingWindow_ST2094_1
+{
+  uint16_t upperLeftCornerX;
+  uint16_t upperLeftCornerY;
+  uint16_t lowerRightCornerX;
+  uint16_t lowerRightCornerY;
+};
+
+struct ProcessingWindow_ST2094_40
+{
+  ProcessingWindow_ST2094_1 baseProcessingWindow;
+  uint16_t centerOfEllipseX;
+  uint16_t centerOfEllipseY;
+  uint8_t rotationAngle;
+  uint16_t semimajorAxisInternalEllipse;
+  uint16_t semimajorAxisExternalEllipse;
+  uint16_t semiminorAxisExternalEllipse;
+  uint8_t overlapProcessOption;
+};
+
+struct DisplayPeakLuminance_ST2094_40
+{
+  bool actualPeakLuminanceFlag;
+  uint8_t numRowsActualPeakLuminance;
+  uint8_t numColsActualPeakLuminance;
+  uint8_t actualPeakLuminance[MAX_ROW_ACTUAL_PEAK_LUMINANCE_ST2094_40][MAX_COL_ACTUAL_PEAK_LUMINANCE_ST2094_40];
+};
+
+struct TargetedSystemDisplay_ST2094_40
+{
+  uint32_t maximumLuminance;
+  DisplayPeakLuminance_ST2094_40 peakLuminance;
+};
+
+struct ToneMapping_ST2094_40
+{
+  bool toneMappingFlag;
+  uint16_t kneePointX;
+  uint16_t kneePointY;
+  uint8_t numBezierCurveAnchors;
+  uint16_t bezierCurveAnchors[MAX_BEZIER_CURVE_ANCHORS_ST2094_40];
+};
+
+struct ProcessingWindowTransform_ST2094_40
+{
+  uint32_t maxscl[3];
+  uint32_t averageMaxrgb;
+  uint8_t numDistributionMaxrgbPercentiles;
+  uint8_t distributionMaxrgbPercentages[MAX_MAXRGB_PERCENTILES_ST2094_40];
+  uint32_t distributionMaxrgbPercentiles[MAX_MAXRGB_PERCENTILES_ST2094_40];
+  uint8_t fractionBrightPixels;
+  ToneMapping_ST2094_40 toneMapping;
+  bool colorSaturationMappingFlag;
+  uint8_t colorSaturationWeight;
+};
+
+struct DynamicMeta_ST2094_40
+{
+  uint8_t applicationVersion;
+  uint8_t numWindows;
+  ProcessingWindow_ST2094_40 processingWindows[MAX_WINDOW_ST2094_40 - 1];
+  TargetedSystemDisplay_ST2094_40 targetedSystemDisplay;
+  DisplayPeakLuminance_ST2094_40 masteringDisplayPeakLuminance;
+  ProcessingWindowTransform_ST2094_40 processingWindowTransforms[MAX_WINDOW_ST2094_40];
+};
+
 struct HighDynamicRangeSeis
 {
   bool hasMDCV;
   MasteringDisplayColourVolume masteringDisplayColourVolume;
   bool hasCLL;
   ContentLightLevel contentLightLevel;
+  bool hasST2094_10;
+  DynamicMeta_ST2094_10 st2094_10;
+  bool hasST2094_40;
+  DynamicMeta_ST2094_40 st2094_40;
 };
 
 struct RateControlPlugin

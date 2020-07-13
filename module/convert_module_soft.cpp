@@ -155,6 +155,7 @@ TransferCharacteristicsType ConvertSoftToModuleTransferCharacteristics(AL_ETrans
   {
   case AL_TRANSFER_CHARAC_UNSPECIFIED: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_UNSPECIFIED;
   case AL_TRANSFER_CHARAC_BT_2100_PQ: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2100_PQ;
+  case AL_TRANSFER_CHARAC_BT_2100_HLG: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2100_HLG;
   default: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_MAX_ENUM;
   }
 
@@ -167,6 +168,7 @@ AL_ETransferCharacteristics ConvertModuleToSoftTransferCharacteristics(TransferC
   {
   case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_UNSPECIFIED: return AL_TRANSFER_CHARAC_UNSPECIFIED;
   case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2100_PQ: return AL_TRANSFER_CHARAC_BT_2100_PQ;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2100_HLG: return AL_TRANSFER_CHARAC_BT_2100_HLG;
   default: return AL_TRANSFER_CHARAC_MAX_ENUM;
   }
 
@@ -245,6 +247,21 @@ AL_EColourDescription ConvertModuleToSoftColorPrimaries(ColorPrimariesType color
   return AL_COLOUR_DESC_MAX_ENUM;
 }
 
+void ConvertSoftToModule_DPL_ST2094_40(DisplayPeakLuminance_ST2094_40& dst, AL_TDisplayPeakLuminance_ST2094_40 const& src)
+{
+  dst.actualPeakLuminanceFlag = src.actual_peak_luminance_flag;
+
+  if(src.actual_peak_luminance_flag)
+  {
+    dst.numRowsActualPeakLuminance = src.num_rows_actual_peak_luminance;
+    dst.numColsActualPeakLuminance = src.num_cols_actual_peak_luminance;
+
+    for(int i = 0; i < src.num_rows_actual_peak_luminance; i++)
+      for(int j = 0; j < src.num_cols_actual_peak_luminance; j++)
+        dst.actualPeakLuminance[i][j] = src.actual_peak_luminance[i][j];
+  }
+}
+
 HighDynamicRangeSeis ConvertSoftToModuleHDRSEIs(const AL_THDRSEIs& hdrSEIs)
 {
   HighDynamicRangeSeis modHDRSEIs;
@@ -273,7 +290,125 @@ HighDynamicRangeSeis ConvertSoftToModuleHDRSEIs(const AL_THDRSEIs& hdrSEIs)
     modHDRSEIs.contentLightLevel.maxPicAverageLightLevel = hdrSEIs.tCLL.max_pic_average_light_level;
   }
 
+  modHDRSEIs.hasST2094_10 = hdrSEIs.bHasST2094_10;
+
+  if(modHDRSEIs.hasST2094_10)
+  {
+    modHDRSEIs.st2094_10.applicationVersion = hdrSEIs.tST2094_10.application_version;
+
+    modHDRSEIs.st2094_10.processingWindowFlag = hdrSEIs.tST2094_10.processing_window_flag;
+
+    if(modHDRSEIs.st2094_10.processingWindowFlag)
+    {
+      modHDRSEIs.st2094_10.processingWindow.activeAreaLeftOffset = hdrSEIs.tST2094_10.processing_window.active_area_left_offset;
+      modHDRSEIs.st2094_10.processingWindow.activeAreaRightOffset = hdrSEIs.tST2094_10.processing_window.active_area_right_offset;
+      modHDRSEIs.st2094_10.processingWindow.activeAreaTopOffset = hdrSEIs.tST2094_10.processing_window.active_area_top_offset;
+      modHDRSEIs.st2094_10.processingWindow.activeAreaBottomOffset = hdrSEIs.tST2094_10.processing_window.active_area_bottom_offset;
+    }
+
+    modHDRSEIs.st2094_10.imageCharacteristics.minPQ = hdrSEIs.tST2094_10.image_characteristics.min_pq;
+    modHDRSEIs.st2094_10.imageCharacteristics.maxPQ = hdrSEIs.tST2094_10.image_characteristics.max_pq;
+    modHDRSEIs.st2094_10.imageCharacteristics.avgPQ = hdrSEIs.tST2094_10.image_characteristics.avg_pq;
+
+    modHDRSEIs.st2094_10.numManualAdjustments = hdrSEIs.tST2094_10.num_manual_adjustments;
+
+    for(int i = 0; i < modHDRSEIs.st2094_10.numManualAdjustments; i++)
+    {
+      modHDRSEIs.st2094_10.manualAdjustments[i].targetMaxPQ = hdrSEIs.tST2094_10.manual_adjustments[i].target_max_pq;
+      modHDRSEIs.st2094_10.manualAdjustments[i].trimSlope = hdrSEIs.tST2094_10.manual_adjustments[i].trim_slope;
+      modHDRSEIs.st2094_10.manualAdjustments[i].trimOffset = hdrSEIs.tST2094_10.manual_adjustments[i].trim_offset;
+      modHDRSEIs.st2094_10.manualAdjustments[i].trimPower = hdrSEIs.tST2094_10.manual_adjustments[i].trim_power;
+      modHDRSEIs.st2094_10.manualAdjustments[i].trimChromaWeight = hdrSEIs.tST2094_10.manual_adjustments[i].trim_chroma_weight;
+      modHDRSEIs.st2094_10.manualAdjustments[i].trimSaturationGain = hdrSEIs.tST2094_10.manual_adjustments[i].trim_saturation_gain;
+      modHDRSEIs.st2094_10.manualAdjustments[i].msWeight = hdrSEIs.tST2094_10.manual_adjustments[i].ms_weight;
+    }
+  }
+
+  modHDRSEIs.hasST2094_40 = hdrSEIs.bHasST2094_40;
+
+  if(modHDRSEIs.hasST2094_40)
+  {
+    modHDRSEIs.st2094_40.applicationVersion = hdrSEIs.tST2094_40.application_version;
+    modHDRSEIs.st2094_40.numWindows = hdrSEIs.tST2094_40.num_windows;
+
+    for(int i = 0; i < modHDRSEIs.st2094_40.numWindows - 1; i++)
+    {
+      const AL_TProcessingWindow_ST2094_40* pALPW = &hdrSEIs.tST2094_40.processing_windows[i];
+      ProcessingWindow_ST2094_40* pPW = &modHDRSEIs.st2094_40.processingWindows[i];
+
+      pPW->baseProcessingWindow.upperLeftCornerX = pALPW->base_processing_window.upper_left_corner_x;
+      pPW->baseProcessingWindow.upperLeftCornerY = pALPW->base_processing_window.upper_left_corner_y;
+      pPW->baseProcessingWindow.lowerRightCornerX = pALPW->base_processing_window.lower_right_corner_x;
+      pPW->baseProcessingWindow.lowerRightCornerY = pALPW->base_processing_window.lower_right_corner_y;
+
+      pPW->centerOfEllipseX = pALPW->center_of_ellipse_x;
+      pPW->centerOfEllipseY = pALPW->center_of_ellipse_y;
+      pPW->rotationAngle = pALPW->rotation_angle;
+      pPW->semimajorAxisInternalEllipse = pALPW->semimajor_axis_internal_ellipse;
+      pPW->semimajorAxisExternalEllipse = pALPW->semimajor_axis_external_ellipse;
+      pPW->semiminorAxisExternalEllipse = pALPW->semiminor_axis_external_ellipse;
+      pPW->overlapProcessOption = pALPW->overlap_process_option;
+    }
+
+    modHDRSEIs.st2094_40.targetedSystemDisplay.maximumLuminance = hdrSEIs.tST2094_40.targeted_system_display.maximum_luminance;
+    ConvertSoftToModule_DPL_ST2094_40(modHDRSEIs.st2094_40.targetedSystemDisplay.peakLuminance, hdrSEIs.tST2094_40.targeted_system_display.peak_luminance);
+
+    ConvertSoftToModule_DPL_ST2094_40(modHDRSEIs.st2094_40.masteringDisplayPeakLuminance, hdrSEIs.tST2094_40.mastering_display_peak_luminance);
+
+    for(int i = 0; i < modHDRSEIs.st2094_40.numWindows; i++)
+    {
+      const AL_TProcessingWindowTransform_ST2094_40* pALPWT = &hdrSEIs.tST2094_40.processing_window_transforms[i];
+      ProcessingWindowTransform_ST2094_40* pPWT = &modHDRSEIs.st2094_40.processingWindowTransforms[i];
+
+      for(int j = 0; j < 3; j++)
+        pPWT->maxscl[j] = pALPWT->maxscl[j];
+
+      pPWT->averageMaxrgb = pALPWT->average_maxrgb;
+      pPWT->numDistributionMaxrgbPercentiles = pALPWT->num_distribution_maxrgb_percentiles;
+
+      for(int j = 0; j < pPWT->numDistributionMaxrgbPercentiles; j++)
+      {
+        pPWT->distributionMaxrgbPercentages[j] = pALPWT->distribution_maxrgb_percentages[j];
+        pPWT->distributionMaxrgbPercentiles[j] = pALPWT->distribution_maxrgb_percentiles[j];
+      }
+
+      pPWT->fractionBrightPixels = pALPWT->fraction_bright_pixels;
+
+      pPWT->toneMapping.toneMappingFlag = pALPWT->tone_mapping.tone_mapping_flag;
+
+      if(pPWT->toneMapping.toneMappingFlag)
+      {
+        pPWT->toneMapping.kneePointX = pALPWT->tone_mapping.knee_point_x;
+        pPWT->toneMapping.kneePointY = pALPWT->tone_mapping.knee_point_y;
+        pPWT->toneMapping.numBezierCurveAnchors = pALPWT->tone_mapping.num_bezier_curve_anchors;
+
+        for(int j = 0; j < pALPWT->tone_mapping.num_bezier_curve_anchors; j++)
+          pPWT->toneMapping.bezierCurveAnchors[j] = pALPWT->tone_mapping.bezier_curve_anchors[j];
+      }
+
+      pPWT->colorSaturationMappingFlag = pALPWT->color_saturation_mapping_flag;
+
+      if(pPWT->colorSaturationMappingFlag)
+        pPWT->colorSaturationWeight = pALPWT->color_saturation_weight;
+    }
+  }
+
   return modHDRSEIs;
+}
+
+void ConvertModuleToSoft_DPL_ST2094_40(AL_TDisplayPeakLuminance_ST2094_40& dst, DisplayPeakLuminance_ST2094_40 const& src)
+{
+  dst.actual_peak_luminance_flag = src.actualPeakLuminanceFlag;
+
+  if(src.actualPeakLuminanceFlag)
+  {
+    dst.num_rows_actual_peak_luminance = src.numRowsActualPeakLuminance;
+    dst.num_cols_actual_peak_luminance = src.numColsActualPeakLuminance;
+
+    for(int i = 0; i < src.numRowsActualPeakLuminance; i++)
+      for(int j = 0; j < src.numColsActualPeakLuminance; j++)
+        dst.actual_peak_luminance[i][j] = src.actualPeakLuminance[i][j];
+  }
 }
 
 AL_THDRSEIs ConvertModuleToSoftHDRSEIs(const HighDynamicRangeSeis& hdrSEIs)
@@ -302,6 +437,109 @@ AL_THDRSEIs ConvertModuleToSoftHDRSEIs(const HighDynamicRangeSeis& hdrSEIs)
   {
     alHDRSEIs.tCLL.max_content_light_level = hdrSEIs.contentLightLevel.maxContentLightLevel;
     alHDRSEIs.tCLL.max_pic_average_light_level = hdrSEIs.contentLightLevel.maxPicAverageLightLevel;
+  }
+
+  alHDRSEIs.bHasST2094_10 = hdrSEIs.hasST2094_10;
+
+  if(hdrSEIs.hasST2094_10)
+  {
+    alHDRSEIs.tST2094_10.application_version = hdrSEIs.st2094_10.applicationVersion;
+
+    alHDRSEIs.tST2094_10.processing_window_flag = hdrSEIs.st2094_10.processingWindowFlag;
+
+    if(hdrSEIs.st2094_10.processingWindowFlag)
+    {
+      alHDRSEIs.tST2094_10.processing_window.active_area_left_offset = hdrSEIs.st2094_10.processingWindow.activeAreaLeftOffset;
+      alHDRSEIs.tST2094_10.processing_window.active_area_right_offset = hdrSEIs.st2094_10.processingWindow.activeAreaRightOffset;
+      alHDRSEIs.tST2094_10.processing_window.active_area_top_offset = hdrSEIs.st2094_10.processingWindow.activeAreaTopOffset;
+      alHDRSEIs.tST2094_10.processing_window.active_area_bottom_offset = hdrSEIs.st2094_10.processingWindow.activeAreaBottomOffset;
+    }
+
+    alHDRSEIs.tST2094_10.image_characteristics.min_pq = hdrSEIs.st2094_10.imageCharacteristics.minPQ;
+    alHDRSEIs.tST2094_10.image_characteristics.max_pq = hdrSEIs.st2094_10.imageCharacteristics.maxPQ;
+    alHDRSEIs.tST2094_10.image_characteristics.avg_pq = hdrSEIs.st2094_10.imageCharacteristics.avgPQ;
+
+    alHDRSEIs.tST2094_10.num_manual_adjustments = hdrSEIs.st2094_10.numManualAdjustments;
+
+    for(int i = 0; i < hdrSEIs.st2094_10.numManualAdjustments; i++)
+    {
+      alHDRSEIs.tST2094_10.manual_adjustments[i].target_max_pq = hdrSEIs.st2094_10.manualAdjustments[i].targetMaxPQ;
+      alHDRSEIs.tST2094_10.manual_adjustments[i].trim_slope = hdrSEIs.st2094_10.manualAdjustments[i].trimSlope;
+      alHDRSEIs.tST2094_10.manual_adjustments[i].trim_offset = hdrSEIs.st2094_10.manualAdjustments[i].trimOffset;
+      alHDRSEIs.tST2094_10.manual_adjustments[i].trim_power = hdrSEIs.st2094_10.manualAdjustments[i].trimPower;
+      alHDRSEIs.tST2094_10.manual_adjustments[i].trim_chroma_weight = hdrSEIs.st2094_10.manualAdjustments[i].trimChromaWeight;
+      alHDRSEIs.tST2094_10.manual_adjustments[i].trim_saturation_gain = hdrSEIs.st2094_10.manualAdjustments[i].trimSaturationGain;
+      alHDRSEIs.tST2094_10.manual_adjustments[i].ms_weight = hdrSEIs.st2094_10.manualAdjustments[i].msWeight;
+    }
+  }
+
+  alHDRSEIs.bHasST2094_40 = hdrSEIs.hasST2094_40;
+
+  if(hdrSEIs.hasST2094_40)
+  {
+    alHDRSEIs.tST2094_40.application_version = hdrSEIs.st2094_40.applicationVersion;
+    alHDRSEIs.tST2094_40.num_windows = hdrSEIs.st2094_40.numWindows;
+
+    for(int i = 0; i < hdrSEIs.st2094_40.numWindows - 1; i++)
+    {
+      AL_TProcessingWindow_ST2094_40* pALPW = &alHDRSEIs.tST2094_40.processing_windows[i];
+      const ProcessingWindow_ST2094_40* pPW = &hdrSEIs.st2094_40.processingWindows[i];
+
+      pALPW->base_processing_window.upper_left_corner_x = pPW->baseProcessingWindow.upperLeftCornerX;
+      pALPW->base_processing_window.upper_left_corner_y = pPW->baseProcessingWindow.upperLeftCornerY;
+      pALPW->base_processing_window.lower_right_corner_x = pPW->baseProcessingWindow.lowerRightCornerX;
+      pALPW->base_processing_window.lower_right_corner_y = pPW->baseProcessingWindow.lowerRightCornerY;
+
+      pALPW->center_of_ellipse_x = pPW->centerOfEllipseX;
+      pALPW->center_of_ellipse_y = pPW->centerOfEllipseY;
+      pALPW->rotation_angle = pPW->rotationAngle;
+      pALPW->semimajor_axis_internal_ellipse = pPW->semimajorAxisInternalEllipse;
+      pALPW->semimajor_axis_external_ellipse = pPW->semimajorAxisExternalEllipse;
+      pALPW->semiminor_axis_external_ellipse = pPW->semiminorAxisExternalEllipse;
+      pALPW->overlap_process_option = pPW->overlapProcessOption;
+    }
+
+    alHDRSEIs.tST2094_40.targeted_system_display.maximum_luminance = hdrSEIs.st2094_40.targetedSystemDisplay.maximumLuminance;
+    ConvertModuleToSoft_DPL_ST2094_40(alHDRSEIs.tST2094_40.targeted_system_display.peak_luminance, hdrSEIs.st2094_40.targetedSystemDisplay.peakLuminance);
+
+    ConvertModuleToSoft_DPL_ST2094_40(alHDRSEIs.tST2094_40.mastering_display_peak_luminance, hdrSEIs.st2094_40.masteringDisplayPeakLuminance);
+
+    for(int i = 0; i < hdrSEIs.st2094_40.numWindows; i++)
+    {
+      AL_TProcessingWindowTransform_ST2094_40* pALPWT = &alHDRSEIs.tST2094_40.processing_window_transforms[i];
+      const ProcessingWindowTransform_ST2094_40* pPWT = &hdrSEIs.st2094_40.processingWindowTransforms[i];
+
+      for(int j = 0; j < 3; j++)
+        pALPWT->maxscl[j] = pPWT->maxscl[j];
+
+      pALPWT->average_maxrgb = pPWT->averageMaxrgb;
+      pALPWT->num_distribution_maxrgb_percentiles = pPWT->numDistributionMaxrgbPercentiles;
+
+      for(int j = 0; j < pPWT->numDistributionMaxrgbPercentiles; j++)
+      {
+        pALPWT->distribution_maxrgb_percentages[j] = pPWT->distributionMaxrgbPercentages[j];
+        pALPWT->distribution_maxrgb_percentiles[j] = pPWT->distributionMaxrgbPercentiles[j];
+      }
+
+      pALPWT->fraction_bright_pixels = pPWT->fractionBrightPixels;
+
+      pALPWT->tone_mapping.tone_mapping_flag = pPWT->toneMapping.toneMappingFlag;
+
+      if(pPWT->toneMapping.toneMappingFlag)
+      {
+        pALPWT->tone_mapping.knee_point_x = pPWT->toneMapping.kneePointX;
+        pALPWT->tone_mapping.knee_point_y = pPWT->toneMapping.kneePointY;
+        pALPWT->tone_mapping.num_bezier_curve_anchors = pPWT->toneMapping.numBezierCurveAnchors;
+
+        for(int j = 0; j < pPWT->toneMapping.numBezierCurveAnchors; j++)
+          pALPWT->tone_mapping.bezier_curve_anchors[j] = pPWT->toneMapping.bezierCurveAnchors[j];
+      }
+
+      pALPWT->color_saturation_mapping_flag = pPWT->colorSaturationMappingFlag;
+
+      if(pPWT->colorSaturationMappingFlag)
+        pALPWT->color_saturation_weight = pPWT->colorSaturationWeight;
+    }
   }
 
   return alHDRSEIs;

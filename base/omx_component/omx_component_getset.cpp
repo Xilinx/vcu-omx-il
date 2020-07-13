@@ -1859,6 +1859,78 @@ OMX_ERRORTYPE SetVideoContentLightLevelSEI(OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEV
   return OMX_ErrorNone;
 }
 
+OMX_ERRORTYPE ConstructVideoST209410SEI(OMX_ALG_VIDEO_PARAM_ST2094_10_SEI& st2094_10SEI, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(st2094_10SEI);
+  st2094_10SEI.nPortIndex = port.index;
+  bool isST209410Enabled {
+    false
+  };
+  auto ret = media->Get(SETTINGS_INDEX_ST2094_10_SEI, &isST209410Enabled);
+  OMX_CHECK_MEDIA_GET(ret);
+  st2094_10SEI.bEnableST209410SEI = ConvertMediaToOMXBool(isST209410Enabled);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetST209410SEI(OMX_BOOL bEnableST209410SEI, shared_ptr<MediatypeInterface> media)
+{
+  auto isST209410Enabled = ConvertOMXToMediaBool(bEnableST209410SEI);
+  auto ret = media->Set(SETTINGS_INDEX_ST2094_10_SEI, &isST209410Enabled);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoST209410SEI(OMX_ALG_VIDEO_PARAM_ST2094_10_SEI const& st2094_10SEI, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_ST2094_10_SEI rollback;
+  ConstructVideoST209410SEI(rollback, port, media);
+  auto ret = SetST209410SEI(st2094_10SEI.bEnableST209410SEI, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoST209410SEI(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoST209440SEI(OMX_ALG_VIDEO_PARAM_ST2094_40_SEI& st2094_40SEI, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(st2094_40SEI);
+  st2094_40SEI.nPortIndex = port.index;
+  bool isST209440Enabled {
+    false
+  };
+  auto ret = media->Get(SETTINGS_INDEX_ST2094_40_SEI, &isST209440Enabled);
+  OMX_CHECK_MEDIA_GET(ret);
+  st2094_40SEI.bEnableST209440SEI = ConvertMediaToOMXBool(isST209440Enabled);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetST209440SEI(OMX_BOOL bEnableST209440SEI, shared_ptr<MediatypeInterface> media)
+{
+  auto isST209440Enabled = ConvertOMXToMediaBool(bEnableST209440SEI);
+  auto ret = media->Set(SETTINGS_INDEX_ST2094_40_SEI, &isST209440Enabled);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoST209440SEI(OMX_ALG_VIDEO_PARAM_ST2094_40_SEI const& st2094_40SEI, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_ST2094_40_SEI rollback;
+  ConstructVideoST209440SEI(rollback, port, media);
+  auto ret = SetST209440SEI(st2094_40SEI.bEnableST209440SEI, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoST209440SEI(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
 OMX_ERRORTYPE SetVideoRateControlPlugin(OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN const& rateCtrlPlugin, Port const& port, std::shared_ptr<MediatypeInterface> media)
 {
   (void)port;

@@ -593,6 +593,28 @@ bool UpdateContentLightLevelSEI(AL_TEncSettings& settings, bool isCLLEnabled)
   return true;
 }
 
+bool CreateST209410SEI(AL_TEncSettings settings)
+{
+  return (settings.uEnableSEI & AL_SEI_ST2094_10) != 0;
+}
+
+bool UpdateST209410SEI(AL_TEncSettings& settings, bool isST209410Enabled)
+{
+  isST209410Enabled ? settings.uEnableSEI |= AL_SEI_ST2094_10 : settings.uEnableSEI &= ~AL_SEI_ST2094_10;
+  return true;
+}
+
+bool CreateST209440SEI(AL_TEncSettings settings)
+{
+  return (settings.uEnableSEI & AL_SEI_ST2094_40) != 0;
+}
+
+bool UpdateST209440SEI(AL_TEncSettings& settings, bool isST209440Enabled)
+{
+  isST209440Enabled ? settings.uEnableSEI |= AL_SEI_ST2094_40 : settings.uEnableSEI &= ~AL_SEI_ST2094_40;
+  return true;
+}
+
 RateControlPlugin CreateRateControlPlugin(AL_TAllocator* allocator, AL_TEncSettings const& settings)
 {
   RateControlPlugin rcp;

@@ -195,6 +195,12 @@ OMX_ERRORTYPE SetVideoMasteringDisplayColourVolumeSEI(OMX_ALG_VIDEO_PARAM_MASTER
 OMX_ERRORTYPE ConstructVideoContentLightLevelSEI(OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI& cllSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoContentLightLevelSEI(OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI const& cllSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
+OMX_ERRORTYPE ConstructVideoST209410SEI(OMX_ALG_VIDEO_PARAM_ST2094_10_SEI& st2094_10SEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoST209410SEI(OMX_ALG_VIDEO_PARAM_ST2094_10_SEI const& st2094_10SEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
+OMX_ERRORTYPE ConstructVideoST209440SEI(OMX_ALG_VIDEO_PARAM_ST2094_40_SEI& st2094_40SEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoST209440SEI(OMX_ALG_VIDEO_PARAM_ST2094_40_SEI const& st2094_40SEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
 OMX_ERRORTYPE SetVideoRateControlPlugin(OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN const& rateCtrlPlugin, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE ConstructVideoRateControlPlugin(OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN& rateCtrlPlugin, Port const& port, std::shared_ptr<MediatypeInterface> media);
 

@@ -820,6 +820,18 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto cllSEI = static_cast<OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI*>(param);
     return ConstructVideoContentLightLevelSEI(*cllSEI, *port, media);
   }
+  case OMX_ALG_IndexParamVideoST209410SEI:
+  {
+    auto port = getCurrentPort(param);
+    auto st209410SEI = static_cast<OMX_ALG_VIDEO_PARAM_ST2094_10_SEI*>(param);
+    return ConstructVideoST209410SEI(*st209410SEI, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoST209440SEI:
+  {
+    auto port = getCurrentPort(param);
+    auto st209440SEI = static_cast<OMX_ALG_VIDEO_PARAM_ST2094_40_SEI*>(param);
+    return ConstructVideoST209440SEI(*st209440SEI, *port, media);
+  }
   case OMX_ALG_IndexParamVideoRateControlPlugin:
   {
     auto port = getCurrentPort(param);
@@ -1119,6 +1131,16 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
   {
     auto cllSEI = static_cast<OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI*>(param);
     return SetVideoContentLightLevelSEI(*cllSEI, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoST209410SEI:
+  {
+    auto st209410 = static_cast<OMX_ALG_VIDEO_PARAM_ST2094_10_SEI*>(param);
+    return SetVideoST209410SEI(*st209410, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoST209440SEI:
+  {
+    auto st209440 = static_cast<OMX_ALG_VIDEO_PARAM_ST2094_40_SEI*>(param);
+    return SetVideoST209440SEI(*st209440, *port, media);
   }
   case OMX_ALG_IndexParamVideoRateControlPlugin:
   {

@@ -134,6 +134,12 @@ bool UpdateMasteringDisplayColourVolumeSEI(AL_TEncSettings& settings, bool isMDC
 bool CreateContentLightLevelSEI(AL_TEncSettings settings);
 bool UpdateContentLightLevelSEI(AL_TEncSettings& settings, bool isCLLEnabled);
 
+bool CreateST209410SEI(AL_TEncSettings settings);
+bool UpdateST209410SEI(AL_TEncSettings& settings, bool isST209410Enabled);
+
+bool CreateST209440SEI(AL_TEncSettings settings);
+bool UpdateST209440SEI(AL_TEncSettings& settings, bool isST209440Enabled);
+
 RateControlPlugin CreateRateControlPlugin(AL_TAllocator* allocator, AL_TEncSettings const& settings);
 bool SetRcPluginContext(AL_TAllocator* allocator, AL_TEncSettings* settings, RateControlPlugin const& rcp);
 void ResetRcPluginContext(AL_TAllocator* allocator, AL_TEncSettings* settings);

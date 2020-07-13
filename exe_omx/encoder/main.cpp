@@ -335,6 +335,8 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
     OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoTwoPass), &tp);
   }
 
+  setEnableLongTerm(app);
+
   OMX_PARAM_PORTDEFINITIONTYPE paramPortForActual;
   InitHeader(paramPortForActual);
   paramPortForActual.nPortIndex = 0;
@@ -346,8 +348,6 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   paramPortForActual.nBufferCountActual = paramPortForActual.nBufferCountMin + 4; // alloc max for b frames
   OMX_CALL(OMX_SetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPortForActual));
   OMX_CALL(OMX_GetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPort));
-
-  setEnableLongTerm(app);
 
   LOG_VERBOSE(string { "Input picture: " } +to_string(app.settings.width) + string { "x" } +to_string(app.settings.height));
   return OMX_ErrorNone;

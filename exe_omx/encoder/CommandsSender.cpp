@@ -197,3 +197,8 @@ void CommandsSender::setLFTcOffset(int iTcOffset)
   assert(0 && "setLFTcOffset is not supported");
 }
 
+void CommandsSender::setHDRIndex(int iHDRIdx)
+{
+  (void)iHDRIdx;
+  assert(0 && "setHDRIndex is not supported");
+}

@@ -429,6 +429,8 @@ static std::map<OMX_INDEXTYPE, std::string> OMXIndexInStringMap =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoRecoveryPointSEI), "OMX_ALG_IndexParamVideoRecoveryPointSEI" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoMasteringDisplayColourVolumeSEI), "OMX_ALG_IndexParamVideoMasteringDisplayColourVolumeSEI" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoContentLightLevelSEI), "OMX_ALG_IndexParamVideoContentLightLevelSEI" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoST209410SEI), "OMX_ALG_IndexParamVideoST209410SEI" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoST209440SEI), "OMX_ALG_IndexParamVideoST209440SEI" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoRateControlPlugin), "OMX_ALG_IndexParamVideoRateControlPlugin" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoCrop), "OMX_ALG_IndexParamVideoCrop" },
 
