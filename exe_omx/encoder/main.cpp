@@ -90,6 +90,8 @@ extern "C"
 #include <lib_fpga/DmaAllocLinux.h>
 }
 
+#include "RCPlugin.h"
+
 using namespace std;
 
 struct Ports
@@ -283,7 +285,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
 
     OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN rcPlugin;
     InitHeader(rcPlugin);
-    rcPlugin.nDmaSize = 4096;
+    rcPlugin.nDmaSize = sizeof(RCPlugin);
 
     AL_HANDLE hBuf = AL_Allocator_Alloc(app.pAllocator, rcPlugin.nDmaSize);
 
@@ -303,9 +305,11 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
 
     rcPlugin.nDmabuf = fd;
 
-    uint8_t* pRcPluginAddr = AL_Allocator_GetVirtualAddr(app.pAllocator, hBuf);
+    RCPlugin* rc = (RCPlugin*)AL_Allocator_GetVirtualAddr(app.pAllocator, hBuf);
+    RCPlugin_Init(rc);
+    rc->capacity = 1;
+    RCPlugin_SetNextFrameQP(rc);
     // Using the example RC Plugin, the first word is the qp for the sequence
-    pRcPluginAddr[0] = 30;
     OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoRateControlPlugin), &rcPlugin);
 
     AL_Allocator_Free(app.pAllocator, hBuf);
