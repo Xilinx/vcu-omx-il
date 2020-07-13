@@ -1,3 +1,40 @@
+/******************************************************************************
+*
+* Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+*
+* Use of the Software is limited solely to applications:
+* (a) running on a Xilinx device, or
+* (b) that interact with a Xilinx device through a bus or interconnect.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
+* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+* Except as contained in this notice, the name of  Xilinx shall not be used
+* in advertising or otherwise to promote the sale, use or other dealings in
+* this Software without prior written authorization from Xilinx.
+*
+*
+* Except as contained in this notice, the name of Allegro DVT2 shall not be used
+* in advertising or otherwise to promote the sale, use or other dealings in
+* this Software without prior written authorization from Allegro DVT2.
+*
+******************************************************************************/
+
 #include "TwoPassMngr.h"
 #include <stdexcept>
 #include <algorithm>
@@ -75,11 +112,12 @@ bool AL_TwoPassMngr_HasLookAhead(AL_TEncSettings const& settings)
 }
 
 /***************************************************************************/
-static void setPass1RateControlSettings(AL_TRCParam& rc)
+static void setPass1RateControlSettings(AL_TEncChanParam& channel)
 {
-  rc.eRCMode = AL_RC_CONST_QP;
-  rc.iInitialQP = AL_RC_FIRSTPASS_QP;
-  rc.eOptions = static_cast<AL_ERateCtrlOption>(rc.eOptions & (~AL_RC_OPT_ENABLE_SKIP));
+  channel.tRCParam.eRCMode = AL_RC_CONST_QP;
+  channel.tRCParam.iInitialQP = AL_RC_FIRSTPASS_QP;
+
+  channel.tRCParam.eOptions = static_cast<AL_ERateCtrlOption>(channel.tRCParam.eOptions & (~AL_RC_OPT_ENABLE_SKIP));
 }
 
 /***************************************************************************/
@@ -89,6 +127,12 @@ static void setPass1GopSettings(AL_TGopParam& gop)
   gop.eMode = AL_GOP_MODE_LOW_DELAY_P;
   gop.uGopLength = 0;
   gop.uNumB = 0;
+}
+
+/***************************************************************************/
+void AL_TwoPassMngr_SetGlobalSettings(AL_TEncSettings& settings)
+{
+  (void)settings;
 }
 
 /***************************************************************************/
@@ -106,7 +150,7 @@ void AL_TwoPassMngr_SetPass1Settings(AL_TEncSettings& settings, AL_HANDLE hBaseH
     channel.uNumSlices = 1;
   }
 
-  setPass1RateControlSettings(channel.tRCParam);
+  setPass1RateControlSettings(channel);
   setPass1GopSettings(channel.tGopParam);
 }
 

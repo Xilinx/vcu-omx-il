@@ -1,3 +1,40 @@
+/******************************************************************************
+*
+* Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+*
+* Use of the Software is limited solely to applications:
+* (a) running on a Xilinx device, or
+* (b) that interact with a Xilinx device through a bus or interconnect.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
+* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+* Except as contained in this notice, the name of  Xilinx shall not be used
+* in advertising or otherwise to promote the sale, use or other dealings in
+* this Software without prior written authorization from Xilinx.
+*
+*
+* Except as contained in this notice, the name of Allegro DVT2 shall not be used
+* in advertising or otherwise to promote the sale, use or other dealings in
+* this Software without prior written authorization from Allegro DVT2.
+*
+******************************************************************************/
+
 #include "module_dec.h"
 #include <cmath>
 #include <cassert>
@@ -98,7 +135,7 @@ static ModuleInterface::ErrorType ToModuleError(int errorCode)
   return ModuleInterface::UNDEFINED;
 }
 
-void DecModule::EndParsing(AL_TBuffer* parsedFrame)
+void DecModule::EndParsing(AL_TBuffer* parsedFrame, int parsingID)
 {
   assert(parsedFrame);
   auto handlesMeta = (AL_THandleMetaData*)AL_Buffer_GetMetaData(parsedFrame, AL_META_TYPE_HANDLE);
@@ -107,32 +144,30 @@ void DecModule::EndParsing(AL_TBuffer* parsedFrame)
     return;
 
   int numHandles = AL_HandleMetaData_GetNumHandles(handlesMeta);
+  assert(parsingID < numHandles);
 
-  for(int handle = numHandles - 1; handle >= 0; handle--)
+  AL_TDecMetaHandle* pDecMetaHandle = (AL_TDecMetaHandle*)AL_HandleMetaData_GetHandle(handlesMeta, parsingID);
+
+  if(pDecMetaHandle->eState == AL_DEC_HANDLE_STATE_PROCESSED)
   {
-    AL_TDecMetaHandle* pDecMetaHandle = (AL_TDecMetaHandle*)AL_HandleMetaData_GetHandle(handlesMeta, handle);
+    AL_TBuffer* stream = pDecMetaHandle->pHandle;
+    assert(stream);
+    auto seiMeta = (AL_TSeiMetaData*)AL_Buffer_GetMetaData(stream, AL_META_TYPE_SEI);
 
-    if(pDecMetaHandle->eState == AL_DEC_HANDLE_STATE_PROCESSED)
+    if(seiMeta != nullptr)
     {
-      AL_TBuffer* stream = pDecMetaHandle->pHandle;
-      assert(stream);
-      auto seiMeta = (AL_TSeiMetaData*)AL_Buffer_GetMetaData(stream, AL_META_TYPE_SEI);
-
-      if(seiMeta != nullptr)
-      {
-        AL_Buffer_RemoveMetaData(stream, (AL_TMetaData*)seiMeta);
-        auto seis = displaySeis.Pop(parsedFrame);
-        seis.push_back(seiMeta);
-        displaySeis.Add(parsedFrame, seis);
-      }
-
-      auto handleIn = handles.Get(stream);
-      auto handleOut = handles.Get(parsedFrame);
-      assert(handleOut);
-      callbacks.associate(handleIn, handleOut);
-      AL_Buffer_Unref(stream);
-      return;
+      AL_Buffer_RemoveMetaData(stream, (AL_TMetaData*)seiMeta);
+      auto seis = displaySeis.Pop(parsedFrame);
+      seis.push_back(seiMeta);
+      displaySeis.Add(parsedFrame, seis);
     }
+
+    auto handleIn = handles.Get(stream);
+    auto handleOut = handles.Get(parsedFrame);
+    assert(handleOut);
+    callbacks.associate(handleIn, handleOut);
+    AL_Buffer_Unref(stream);
+    return;
   }
 
   assert(0);
@@ -603,7 +638,7 @@ bool DecModule::Empty(BufferHandleInterface* handle)
     if(!AL_Buffer_GetMetaData(input, AL_META_TYPE_SEI))
     {
       int maxSei = 32;
-      int maxSeiBuf = 2 * 1024;
+      int maxSeiBuf = 10 * 1024;
       auto pSeiMeta = AL_SeiMetaData_Create(maxSei, maxSeiBuf);
 
       if(!pSeiMeta)

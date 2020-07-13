@@ -58,7 +58,7 @@ static DecModule& ToDecModule(ModuleInterface& module)
 
 DecComponent::DecComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise) :
   Component{component, media, std::move(module), std::move(expertise), name, role},
-  nextDataIsNew{true}
+  shouldPropagateData{true}
 {
 }
 
@@ -77,8 +77,8 @@ void DecComponent::FlushComponent()
   FlushFillEmptyBuffers(true, true);
   std::unique_lock<std::mutex> lock(mutex);
   transmit.clear();
-  nextDataIsNew = true;
   lock.unlock();
+  shouldPropagateData = true;
 }
 
 void DecComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandleInterface* fill_)
@@ -104,7 +104,7 @@ void DecComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandle
     {
       callbacks.EventHandler(component, app, OMX_EventBufferFlag, output.index, emptyHeader.nFlags, nullptr);
       transmit.clear();
-      nextDataIsNew = true;
+      shouldPropagateData = true;
     }
 
     if(IsCompMarked(emptyHeader.hMarkTargetComponent, component))
@@ -347,18 +347,14 @@ void DecComponent::TreatEmptyBufferCommand(Task* task)
   {
     bool isEndOfFrameFlagRaised = (header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME);
 
-    if(!isEarlyCallbackUsed)
-    {
-      if(isEndOfFrameFlagRaised)
-        transmit.push_back(PropagatedData { header->hMarkTargetComponent, header->pMarkData, header->nTickCount, header->nTimeStamp, header->nFlags });
-    }
+    if(isEndOfFrameFlagRaised && !isEarlyCallbackUsed)
+      transmit.push_back(PropagatedData { header->hMarkTargetComponent, header->pMarkData, header->nTickCount, header->nTimeStamp, header->nFlags });
     else
     {
-      // We 're in early callback mode, use the first slice nTimeStamps
-      if(nextDataIsNew)
+      if(shouldPropagateData)
         transmit.push_back(PropagatedData { header->hMarkTargetComponent, header->pMarkData, header->nTickCount, header->nTimeStamp, header->nFlags });
 
-      nextDataIsNew = isEndOfFrameFlagRaised;
+      shouldPropagateData = isEndOfFrameFlagRaised;
     }
   }
 

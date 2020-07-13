@@ -820,6 +820,12 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto cllSEI = static_cast<OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI*>(param);
     return ConstructVideoContentLightLevelSEI(*cllSEI, *port, media);
   }
+  case OMX_ALG_IndexParamVideoRateControlPlugin:
+  {
+    auto port = getCurrentPort(param);
+    auto rcp = static_cast<OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN*>(param);
+    return ConstructVideoRateControlPlugin(*rcp, *port, media);
+  }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
@@ -842,7 +848,7 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
                           return GetPort(index);
                         };
 
-  Port* port;
+  Port* port = nullptr;
   shouldFireEventPortSettingsChanges = true;
 
   if(OMX_U32(index) != OMX_IndexParamStandardComponentRole)
@@ -1107,6 +1113,11 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
   {
     auto cllSEI = static_cast<OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI*>(param);
     return SetVideoContentLightLevelSEI(*cllSEI, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoRateControlPlugin:
+  {
+    auto rcPlugin = static_cast<OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN*>(param);
+    return SetVideoRateControlPlugin(*rcPlugin, *port, media);
   }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });

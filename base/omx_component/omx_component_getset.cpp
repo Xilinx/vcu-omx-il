@@ -829,15 +829,17 @@ OMX_ERRORTYPE ConstructVideoSkipFrame(OMX_ALG_VIDEO_PARAM_SKIP_FRAME& skipFrame,
   auto ret = media->Get(SETTINGS_INDEX_BITRATE, &bitrate);
   OMX_CHECK_MEDIA_GET(ret);
   skipFrame.bEnableSkipFrame = ConvertMediaToOMXBool(bitrate.rateControl.options.isSkipEnabled);
+  skipFrame.nMaxConsecutiveSkipFrame = bitrate.maxConsecutiveSkipFrame;
   return OMX_ErrorNone;
 }
 
-static OMX_ERRORTYPE SetSkipFrame(OMX_BOOL enableSkipFrame, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetSkipFrame(OMX_BOOL enableSkipFrame, OMX_U32 maxConsecutiveSkipFrame, shared_ptr<MediatypeInterface> media)
 {
   Bitrate bitrate;
   auto ret = media->Get(SETTINGS_INDEX_BITRATE, &bitrate);
   OMX_CHECK_MEDIA_GET(ret);
   bitrate.rateControl.options.isSkipEnabled = ConvertOMXToMediaBool(enableSkipFrame);
+  bitrate.maxConsecutiveSkipFrame = maxConsecutiveSkipFrame;
   ret = media->Set(SETTINGS_INDEX_BITRATE, &bitrate);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
@@ -848,7 +850,7 @@ OMX_ERRORTYPE SetVideoSkipFrame(OMX_ALG_VIDEO_PARAM_SKIP_FRAME const& skipFrame,
   OMX_ALG_VIDEO_PARAM_SKIP_FRAME rollback;
   ConstructVideoSkipFrame(rollback, port, media);
 
-  auto ret = SetSkipFrame(skipFrame.bEnableSkipFrame, media);
+  auto ret = SetSkipFrame(skipFrame.bEnableSkipFrame, skipFrame.nMaxConsecutiveSkipFrame, media);
 
   if(ret != OMX_ErrorNone)
   {
@@ -1854,5 +1856,28 @@ OMX_ERRORTYPE SetVideoContentLightLevelSEI(OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEV
     throw ret;
   }
 
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoRateControlPlugin(OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN const& rateCtrlPlugin, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  (void)port;
+  RateControlPlugin rcp;
+  rcp.dmaBuf = rateCtrlPlugin.nDmabuf;
+  rcp.dmaSize = rateCtrlPlugin.nDmaSize;
+  auto ret = media->Set(SETTINGS_INDEX_RATE_CONTROL_PLUGIN, &rcp);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoRateControlPlugin(OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN& rateCtrlPlugin, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(rateCtrlPlugin);
+  rateCtrlPlugin.nPortIndex = port.index;
+  RateControlPlugin rcp;
+  auto ret = media->Get(SETTINGS_INDEX_RATE_CONTROL_PLUGIN, &rcp);
+  OMX_CHECK_MEDIA_GET(ret);
+  rateCtrlPlugin.nDmabuf = rcp.dmaBuf;
+  rateCtrlPlugin.nDmaSize = rcp.dmaSize;
   return OMX_ErrorNone;
 }

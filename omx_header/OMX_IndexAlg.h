@@ -52,13 +52,13 @@ typedef enum OMX_ALG_INDEXTYPE
 {
   /* Component parameters and configurations */
   OMX_ALG_IndexVendorComponentStartUnused = OMX_IndexVendorStartUnused + 0x00100000,
-  OMX_ALG_IndexParamReportedLatency,                  /**< reference: OMX_ALG_PARAM_REPORTED_LATENCY */
-  OMX_ALG_IndexParamPreallocation,                    /**< reference: OMX_ALG_PARAM_PREALLOCATION */
+  OMX_ALG_IndexParamReportedLatency, /**< reference: OMX_ALG_PARAM_REPORTED_LATENCY */
+  OMX_ALG_IndexParamPreallocation,   /**< reference: OMX_ALG_PARAM_PREALLOCATION */
 
   /* Port parameters and configurations */
   OMX_ALG_IndexVendorPortStartUnused = OMX_IndexVendorStartUnused + 0x00200000,
-  OMX_ALG_IndexPortParamBufferMode,                   /**< reference: OMX_ALG_PORT_PARAM_BUFFER_MODE */
-  OMX_ALG_IndexPortParamEarlyCallback,                /**< reference: OMX_ALG_PORT_PARAM_EARLY_CALLBACK */
+  OMX_ALG_IndexPortParamBufferMode,    /**< reference: OMX_ALG_PORT_PARAM_BUFFER_MODE */
+  OMX_ALG_IndexPortParamEarlyCallback, /**< reference: OMX_ALG_PORT_PARAM_EARLY_CALLBACK */
 
   /* Vendor Video parameters */
   OMX_ALG_IndexParamVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00300000,
@@ -101,8 +101,9 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamVideoRecoveryPointSEI,                /**< reference: OMX_ALG_VIDEO_PARAM_RECOVERY_POINT_SEI */
   OMX_ALG_IndexParamVideoMasteringDisplayColourVolumeSEI, /**< reference: OMX_ALG_VIDEO_PARAM_MASTERING_DISPLAY_COLOUR_VOLUME_SEI */
   OMX_ALG_IndexParamVideoContentLightLevelSEI,            /**< reference: OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI */
+  OMX_ALG_IndexParamVideoRateControlPlugin,               /**< reference: OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN */
 
-  /* Vendor Video configrations */
+  /* Vendor Video configurations */
   OMX_ALG_IndexConfigVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00380000,
   OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh, /**< reference: OMX_ALG_VIDEO_CONFIG_INSERT */
   OMX_ALG_IndexConfigVideoGroupOfPictures,                    /**< reference: OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES */
@@ -125,11 +126,11 @@ typedef enum OMX_ALG_INDEXTYPE
 
   /* Vender Image & Video common configurations */
   OMX_ALG_IndexVendorCommonStartUnused = OMX_IndexVendorStartUnused + 0x00700000,
-  OMX_ALG_IndexParamCommonSequencePictureModeCurrent,         /**< reference: OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE */
-  OMX_ALG_IndexParamCommonSequencePictureModeQuerySupported,  /**< reference: OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE */
+  OMX_ALG_IndexParamCommonSequencePictureModeCurrent,        /**< reference: OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE */
+  OMX_ALG_IndexParamCommonSequencePictureModeQuerySupported, /**< reference: OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE */
 
   OMX_ALG_IndexMaxEnum = 0x7FFFFFFF,
-}OMX_ALG_INDEXTYPE;
+} OMX_ALG_INDEXTYPE;
 
 #ifdef __cplusplus
 }

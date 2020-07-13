@@ -1,3 +1,40 @@
+/******************************************************************************
+*
+* Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+*
+* Use of the Software is limited solely to applications:
+* (a) running on a Xilinx device, or
+* (b) that interact with a Xilinx device through a bus or interconnect.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
+* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+* Except as contained in this notice, the name of  Xilinx shall not be used
+* in advertising or otherwise to promote the sale, use or other dealings in
+* this Software without prior written authorization from Xilinx.
+*
+*
+* Except as contained in this notice, the name of Allegro DVT2 shall not be used
+* in advertising or otherwise to promote the sale, use or other dealings in
+* this Software without prior written authorization from Allegro DVT2.
+*
+******************************************************************************/
+
 #include "mediatype_enc_itu.h"
 #include "mediatype_checks.h"
 #include "convert_module_soft.h"
@@ -9,6 +46,7 @@ extern "C"
 #include <lib_common_enc/EncBuffers.h>
 #include <lib_common/StreamBuffer.h>
 #include <lib_common/SEI.h>
+#include <lib_fpga/DmaAllocLinux.h>
 }
 
 using namespace std;
@@ -125,6 +163,7 @@ Bitrate CreateBitrate(AL_TEncSettings settings)
   bitrate.cpb = rateControl.uCPBSize / 90;
   bitrate.ird = rateControl.uInitialRemDelay / 90;
   bitrate.quality = (rateControl.uMaxPSNR / 100) - 28;
+  bitrate.maxConsecutiveSkipFrame = rateControl.uMaxConsecSkip;
   bitrate.rateControl.mode = ConvertSoftToModuleRateControl(rateControl.eRCMode);
   bitrate.rateControl.options = ConvertSoftToModuleRateControlOption(rateControl.eOptions);
   return bitrate;
@@ -144,6 +183,7 @@ bool UpdateBitrate(AL_TEncSettings& settings, Bitrate bitrate)
   rateControl.uCPBSize = bitrate.cpb * 90;
   rateControl.uInitialRemDelay = bitrate.ird * 90;
   rateControl.uMaxPSNR = (bitrate.quality + 28) * 100;
+  rateControl.uMaxConsecSkip = bitrate.maxConsecutiveSkipFrame;
   rateControl.eRCMode = ConvertModuleToSoftRateControl(bitrate.rateControl.mode);
   rateControl.eOptions = ConvertModuleToSoftRateControlOption(bitrate.rateControl.options);
   return true;
@@ -551,4 +591,44 @@ bool UpdateContentLightLevelSEI(AL_TEncSettings& settings, bool isCLLEnabled)
 {
   isCLLEnabled ? settings.uEnableSEI |= AL_SEI_CLL : settings.uEnableSEI &= ~AL_SEI_CLL;
   return true;
+}
+
+RateControlPlugin CreateRateControlPlugin(AL_TAllocator* allocator, AL_TEncSettings const& settings)
+{
+  RateControlPlugin rcp;
+  AL_TLinuxDmaAllocator* linuxAllocator = (AL_TLinuxDmaAllocator*)allocator;
+  rcp.dmaBuf = AL_LinuxDmaAllocator_GetFd(linuxAllocator, settings.hRcPluginDmaContext);
+  rcp.dmaSize = settings.tChParam[0].zRcPluginDmaSize;
+  return rcp;
+}
+
+bool SetRcPluginContext(AL_TAllocator* allocator, AL_TEncSettings* settings, RateControlPlugin const& rcp)
+{
+  AL_TLinuxDmaAllocator* linuxAllocator = (AL_TLinuxDmaAllocator*)allocator;
+  AL_HANDLE hRcPluginDmaContext = NULL;
+
+  if(rcp.dmaBuf != -1)
+  {
+    hRcPluginDmaContext = AL_LinuxDmaAllocator_ImportFromFd(linuxAllocator, rcp.dmaBuf);
+
+    if(hRcPluginDmaContext == NULL)
+      return false;
+  }
+
+  if(settings->hRcPluginDmaContext)
+    AL_Allocator_Free(allocator, settings->hRcPluginDmaContext);
+
+  settings->hRcPluginDmaContext = hRcPluginDmaContext;
+  settings->tChParam[0].pRcPluginDmaContext = 0;
+  settings->tChParam[0].zRcPluginDmaSize = rcp.dmaSize;
+
+  return true;
+}
+
+void ResetRcPluginContext(AL_TAllocator* allocator, AL_TEncSettings* settings)
+{
+  RateControlPlugin rcp;
+  rcp.dmaBuf = -1;
+  rcp.dmaSize = 0;
+  SetRcPluginContext(allocator, settings, rcp);
 }

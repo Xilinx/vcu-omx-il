@@ -1,3 +1,40 @@
+/******************************************************************************
+*
+* Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+*
+* Use of the Software is limited solely to applications:
+* (a) running on a Xilinx device, or
+* (b) that interact with a Xilinx device through a bus or interconnect.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
+* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+* Except as contained in this notice, the name of  Xilinx shall not be used
+* in advertising or otherwise to promote the sale, use or other dealings in
+* this Software without prior written authorization from Xilinx.
+*
+*
+* Except as contained in this notice, the name of Allegro DVT2 shall not be used
+* in advertising or otherwise to promote the sale, use or other dealings in
+* this Software without prior written authorization from Allegro DVT2.
+*
+******************************************************************************/
+
 #include "mediatype_enc_avc.h"
 #include "mediatype_enc_itu.h"
 #include "mediatype_codec_avc.h"
@@ -17,11 +54,12 @@ extern "C"
 #include <lib_common/Profiles.h>
 #include <lib_common_enc/EncBuffers.h>
 #include <lib_common_enc/IpEncFourCC.h>
+#include <lib_fpga/DmaAllocLinux.h>
 }
 
 using namespace std;
 
-EncMediatypeAVC::EncMediatypeAVC(BufferContiguities bufferContiguities, BufferBytesAlignments bufferBytesAlignments, StrideAlignments strideAlignments, bool isSeparateConfigurationFromDataEnabled)
+EncMediatypeAVC::EncMediatypeAVC(BufferContiguities bufferContiguities, BufferBytesAlignments bufferBytesAlignments, StrideAlignments strideAlignments, bool isSeparateConfigurationFromDataEnabled, std::shared_ptr<AL_TAllocator> const& allocator)
 {
   this->bufferContiguities.input = bufferContiguities.input;
   this->bufferContiguities.output = bufferContiguities.output;
@@ -30,11 +68,15 @@ EncMediatypeAVC::EncMediatypeAVC(BufferContiguities bufferContiguities, BufferBy
   this->strideAlignments.horizontal = strideAlignments.horizontal;
   this->strideAlignments.vertical = strideAlignments.vertical;
   this->isSeparateConfigurationFromDataEnabled = isSeparateConfigurationFromDataEnabled;
+  this->allocator = allocator;
   CreateFormatsSupportedMap(this->colors, this->bitdepths, this->supportedFormatsMap);
   Reset();
 }
 
-EncMediatypeAVC::~EncMediatypeAVC() = default;
+EncMediatypeAVC::~EncMediatypeAVC()
+{
+  ResetRcPluginContext(this->allocator.get(), &this->settings);
+}
 
 void EncMediatypeAVC::Reset()
 {
@@ -71,6 +113,8 @@ void EncMediatypeAVC::Reset()
 
   stride.horizontal = RoundUp(AL_EncGetMinPitch(channel.uEncWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignments.horizontal);
   stride.vertical = RoundUp(static_cast<int>(channel.uEncHeight), strideAlignments.vertical);
+
+  ResetRcPluginContext(this->allocator.get(), &this->settings);
 }
 
 static Mimes CreateMimes()
@@ -434,6 +478,12 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Get(std::string index, void* sett
   if(index == "SETTINGS_INDEX_CONTENT_LIGHT_LEVEL_SEI")
   {
     *static_cast<bool*>(settings) = CreateContentLightLevelSEI(this->settings);
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_RATE_CONTROL_PLUGIN")
+  {
+    *(static_cast<RateControlPlugin*>(settings)) = CreateRateControlPlugin(this->allocator.get(), this->settings);
     return SUCCESS;
   }
 
@@ -821,6 +871,19 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Set(std::string index, void const
 
     if(!UpdateContentLightLevelSEI(this->settings, cll))
       return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_RATE_CONTROL_PLUGIN")
+  {
+    auto rcp = *(static_cast<RateControlPlugin const*>(settings));
+
+    if(rcp.dmaBuf == -1)
+      return BAD_PARAMETER;
+
+    if(!SetRcPluginContext(this->allocator.get(), &this->settings, rcp))
+      return BAD_PARAMETER;
+
     return SUCCESS;
   }
 

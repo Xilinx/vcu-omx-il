@@ -779,10 +779,11 @@ typedef struct OMX_ALG_VIDEO_PARAM_LONG_TERM
  * Skip frame parameters
  *
  * STRUCT MEMBERS:
- *  nSize            : Size of the structure in bytes
- *  nVersion         : OMX specification version information
- *  nPortIndex       : Port that this structure applies to
- *  bEnableSkipFrame : Indicate if skip frame should be enabled
+ *  nSize                    : Size of the structure in bytes
+ *  nVersion                 : OMX specification version information
+ *  nPortIndex               : Port that this structure applies to
+ *  bEnableSkipFrame         : Indicate if skip frame should be enabled
+ *  nMaxConsecutiveSkipFrame : Number of consecutive frame. If used, stream might no be compliant
  */
 typedef struct OMX_ALG_VIDEO_PARAM_SKIP_FRAME
 {
@@ -790,6 +791,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_SKIP_FRAME
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
   OMX_BOOL bEnableSkipFrame;
+  OMX_U32 nMaxConsecutiveSkipFrame;
 }OMX_ALG_VIDEO_PARAM_SKIP_FRAME;
 
 /** ColorPrimaries enumeration */
@@ -1300,6 +1302,15 @@ typedef OMX_ALG_VIDEO_PARAM_LOOP_FILTER_BETA OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_BE
  *  nLoopFilterTc : Loop filter tc offset value
  */
 typedef OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC OMX_ALG_VIDEO_CONFIG_LOOP_FILTER_TC;
+
+typedef struct OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_U32 nDmabuf;
+  OMX_U32 nDmaSize;
+}OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN;
 
 #ifdef __cplusplus
 }

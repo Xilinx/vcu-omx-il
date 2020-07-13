@@ -1,3 +1,40 @@
+/******************************************************************************
+*
+* Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+*
+* Use of the Software is limited solely to applications:
+* (a) running on a Xilinx device, or
+* (b) that interact with a Xilinx device through a bus or interconnect.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
+* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+* Except as contained in this notice, the name of  Xilinx shall not be used
+* in advertising or otherwise to promote the sale, use or other dealings in
+* this Software without prior written authorization from Xilinx.
+*
+*
+* Except as contained in this notice, the name of Allegro DVT2 shall not be used
+* in advertising or otherwise to promote the sale, use or other dealings in
+* this Software without prior written authorization from Allegro DVT2.
+*
+******************************************************************************/
+
 #include <cstring> // memset
 #include <cmath>
 #include <cassert>
@@ -41,7 +78,7 @@ void DecMediatypeHEVC::Reset()
   settings.eFBStorageMode = AL_FB_RASTER;
   settings.eCodec = AL_CODEC_HEVC;
   settings.bUseIFramesAsSyncPoint = true;
-  settings.bSplitInput = false;
+  settings.eInputMode = AL_DEC_UNSPLIT_INPUT;
 
   auto& stream = settings.tStream;
   stream.tDim = { 176, 144 };
@@ -80,7 +117,7 @@ static Mimes CreateMimes()
 static int CreateLatency(AL_TDecSettings settings)
 {
   auto stream = settings.tStream;
-  double buffers = static_cast<double>(AL_HEVC_GetMinOutputBuffersNeeded(stream, settings.iStackSize));
+  double buffers = static_cast<double>(AL_HEVC_GetMinOutputBuffersNeeded(&stream, settings.iStackSize));
 
   if(settings.eDpbMode == AL_DPB_NO_REORDERING)
     buffers = 3;
@@ -106,7 +143,7 @@ static BufferCounts CreateBufferCounts(AL_TDecSettings settings)
   BufferCounts bufferCounts;
   bufferCounts.input = 2;
   auto stream = settings.tStream;
-  bufferCounts.output = AL_HEVC_GetMinOutputBuffersNeeded(stream, settings.iStackSize);
+  bufferCounts.output = AL_HEVC_GetMinOutputBuffersNeeded(&stream, settings.iStackSize);
   return bufferCounts;
 }
 
@@ -246,7 +283,7 @@ MediatypeInterface::ErrorType DecMediatypeHEVC::Get(std::string index, void* set
 
   if(index == "SETTINGS_INDEX_INPUT_PARSED")
   {
-    *(static_cast<bool*>(settings)) = this->settings.bSplitInput;
+    *(static_cast<bool*>(settings)) = (this->settings.eInputMode == AL_DEC_SPLIT_INPUT);
     return SUCCESS;
   }
 
@@ -376,7 +413,7 @@ MediatypeInterface::ErrorType DecMediatypeHEVC::Set(std::string index, void cons
 
   if(index == "SETTINGS_INDEX_INPUT_PARSED")
   {
-    this->settings.bSplitInput = *(static_cast<bool const*>(settings));
+    this->settings.eInputMode = *(static_cast<bool const*>(settings)) ? AL_DEC_SPLIT_INPUT : AL_DEC_UNSPLIT_INPUT;
     return SUCCESS;
   }
 

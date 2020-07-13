@@ -121,14 +121,14 @@ static BufferBytesAlignments constexpr BUFFER_BYTES_ALIGNMENTS_HARDWARE {
 
 static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
-  shared_ptr<EncMediatypeAVC> media {
-    new EncMediatypeAVC {
-      BUFFER_CONTIGUITIES_HARDWARE, BUFFER_BYTES_ALIGNMENTS_HARDWARE, STRIDE_ALIGNMENTS_AVC, IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED
-    }
-  };
   shared_ptr<AL_TAllocator> allocator {
     createDmaAlloc(ALLOC_DEVICE_ENC_NAME), [](AL_TAllocator* allocator) {
       AL_Allocator_Destroy(allocator);
+    }
+  };
+  shared_ptr<EncMediatypeAVC> media {
+    new EncMediatypeAVC {
+      BUFFER_CONTIGUITIES_HARDWARE, BUFFER_BYTES_ALIGNMENTS_HARDWARE, STRIDE_ALIGNMENTS_AVC, IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED, allocator
     }
   };
   shared_ptr<EncDeviceHardwareMcu> device {
@@ -154,14 +154,14 @@ static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
 
 static EncComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole)
 {
-  shared_ptr<EncMediatypeHEVC> media {
-    new EncMediatypeHEVC {
-      BUFFER_CONTIGUITIES_HARDWARE, BUFFER_BYTES_ALIGNMENTS_HARDWARE, STRIDE_ALIGNMENTS_HEVC, IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED
-    }
-  };
   shared_ptr<AL_TAllocator> allocator {
     createDmaAlloc(ALLOC_DEVICE_ENC_NAME), [](AL_TAllocator* allocator) {
       AL_Allocator_Destroy(allocator);
+    }
+  };
+  shared_ptr<EncMediatypeHEVC> media {
+    new EncMediatypeHEVC {
+      BUFFER_CONTIGUITIES_HARDWARE, BUFFER_BYTES_ALIGNMENTS_HARDWARE, STRIDE_ALIGNMENTS_HEVC, IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED, allocator
     }
   };
   shared_ptr<EncDeviceHardwareMcu> device {

@@ -117,6 +117,9 @@ struct Settings
   int pass;
   string twoPassLogFile;
   bool isDummySeiEnabled;
+
+  OMX_VIDEO_CONTROLRATETYPE eControlRate;
+  int targetBitrate;
 };
 
 struct Application
@@ -151,6 +154,8 @@ static inline void SetDefaultSettings(Settings& settings)
   settings.pass = 0;
   settings.twoPassLogFile = "";
   settings.isDummySeiEnabled = false;
+  settings.targetBitrate = 64000;
+  settings.eControlRate = OMX_Video_ControlRateConstant;
 }
 
 static inline void SetDefaultApplication(Application& app)
@@ -187,6 +192,29 @@ static OMX_ERRORTYPE setEnableLongTerm(Application& app)
   lt.bEnableLongTerm = OMX_TRUE;
   OMX_CALL(OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLongTerm), &lt));
   return OMX_ErrorNone;
+}
+
+static int AllocDmabufFd(AL_TAllocator* pAllocator, size_t size)
+{
+  AL_HANDLE hBuf = AL_Allocator_Alloc(pAllocator, size);
+
+  if(!hBuf)
+  {
+    LOG_ERROR(string { "Failed to allocate Buffer for dma" });
+    assert(0);
+  }
+  auto fd = AL_LinuxDmaAllocator_GetFd((AL_TLinuxDmaAllocator*)(pAllocator), hBuf);
+  fd = dup(fd);
+
+  if(fd == -1)
+  {
+    LOG_ERROR(string { "Failed to ExportToFd: " } +ToStringAddr(hBuf));
+    assert(0);
+  }
+
+  AL_Allocator_Free(pAllocator, hBuf);
+
+  return fd;
 }
 
 static OMX_ERRORTYPE setPortParameters(Application& app)
@@ -232,6 +260,55 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
     sub.nPortIndex = 1;
     sub.bEnableSubframe = OMX_TRUE;
     OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSubframe), &sub);
+  }
+
+  OMX_ALG_VIDEO_PARAM_SKIP_FRAME skip;
+  InitHeader(skip);
+  OMX_GetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSkipFrame), &skip);
+  assert(skip.nMaxConsecutiveSkipFrame == UINT32_MAX);
+  skip.bEnableSkipFrame = OMX_FALSE;
+  skip.nMaxConsecutiveSkipFrame = 1;
+  OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSkipFrame), &skip);
+
+  OMX_VIDEO_PARAM_BITRATETYPE bitrate;
+  InitHeader(bitrate);
+  bitrate.eControlRate = app.settings.eControlRate;
+  bitrate.nTargetBitrate = app.settings.targetBitrate;
+  OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_IndexParamVideoBitrate), &bitrate);
+
+  if(bitrate.eControlRate == (OMX_VIDEO_CONTROLRATETYPE)OMX_ALG_Video_ControlRatePlugin)
+  {
+    if(!app.input.isDMA)
+      throw std::runtime_error("RC Plugin isn't supported in non-dmabuf mode.");
+
+    OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN rcPlugin;
+    InitHeader(rcPlugin);
+    rcPlugin.nDmaSize = 4096;
+
+    AL_HANDLE hBuf = AL_Allocator_Alloc(app.pAllocator, rcPlugin.nDmaSize);
+
+    if(!hBuf)
+    {
+      LOG_ERROR(string { "Failed to allocate Buffer for dma" });
+      assert(0);
+    }
+    auto fd = AL_LinuxDmaAllocator_GetFd((AL_TLinuxDmaAllocator*)(app.pAllocator), hBuf);
+    fd = dup(fd);
+
+    if(fd == -1)
+    {
+      LOG_ERROR(string { "Failed to ExportToFd: " } +ToStringAddr(hBuf));
+      assert(0);
+    }
+
+    rcPlugin.nDmabuf = fd;
+
+    uint8_t* pRcPluginAddr = AL_Allocator_GetVirtualAddr(app.pAllocator, hBuf);
+    // Using the example RC Plugin, the first word is the qp for the sequence
+    pRcPluginAddr[0] = 30;
+    OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoRateControlPlugin), &rcPlugin);
+
+    AL_Allocator_Free(app.pAllocator, hBuf);
   }
 
   if(app.settings.lookahead)
@@ -286,11 +363,26 @@ static bool isFourCCExist(string const& fourcc)
   return fourcc == "y800" || fourcc == "xv10" || fourcc == "nv12" || fourcc == "xv15" || fourcc == "nv16" || fourcc == "xv20";
 }
 
+static OMX_VIDEO_CONTROLRATETYPE parseControlRate(std::string const& cr)
+{
+  if(cr == "CBR")
+    return OMX_Video_ControlRateConstant;
+  else if(cr == "VBR")
+    return OMX_Video_ControlRateVariable;
+  else if(cr == "CONST_QP")
+    return OMX_Video_ControlRateDisable;
+  else if(cr == "PLUGIN")
+    return (OMX_VIDEO_CONTROLRATETYPE)OMX_ALG_Video_ControlRatePlugin;
+
+  throw std::runtime_error("Unknown rate control mode: " + cr);
+}
+
 static void parseCommandLine(int argc, char** argv, Application& app)
 {
   Settings& settings = app.settings;
   bool help = false;
   string fourcc = "nv12";
+  string controlRate = "";
 
   CommandLineParser opt {};
   opt.addString("input_file", &input_file, "Input file");
@@ -300,8 +392,8 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addInt("--framerate", &settings.framerate, "Input fps ('1')");
   opt.addString("--out", &output_file, "Output compressed file name");
   opt.addString("--fourcc", &fourcc, "Input file fourcc <y800 || xv10 || nv12 || xv15 || nv16 || xv20> ('nv12')");
-  opt.addFlag("--hevc", &settings.codec, "", Codec::HEVC);
-  opt.addFlag("--avc", &settings.codec, "", Codec::AVC);
+  opt.addFlag("--hevc", &settings.codec, "Use the default hevc encoder", Codec::HEVC);
+  opt.addFlag("--avc", &settings.codec, "Use the default avc encoder", Codec::AVC);
   opt.addFlag("--hevc-hard", &settings.codec, "Use hard hevc encoder", Codec::HEVC_HARD);
   opt.addFlag("--avc-hard", &settings.codec, "Use hard avc encoder", Codec::AVC_HARD);
   opt.addFlag("--dma-in", &app.input.isDMA, "Use dmabufs on input port");
@@ -312,6 +404,8 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addInt("--pass", &settings.pass, "<0 || 1 || 2>: specify which pass we encode'(0)'");
   opt.addString("--pass-logfile", &settings.twoPassLogFile, "LogFile to transmit dualpass statistics");
   opt.addFlag("--dummy-sei", &settings.isDummySeiEnabled, "Enable dummy seis on firsts frames");
+  opt.addString("--rate-control-type", &controlRate, "Available rate control mode: CONST_QP, CBR, VBR and PLUGIN");
+  opt.addInt("--target-bitrate", &settings.targetBitrate, "Targeted bitrate (Not applicable in CONST_QP)");
 
   opt.parse(argc, argv);
 
@@ -320,6 +414,9 @@ static void parseCommandLine(int argc, char** argv, Application& app)
     Usage(opt, argv[0]);
     exit(0);
   }
+
+  if(!controlRate.empty())
+    settings.eControlRate = parseControlRate(controlRate);
 
   if(!isFourCCExist(fourcc))
   {
@@ -590,25 +687,7 @@ static void useBuffers(OMX_U32 nPortIndex, bool use_dmabuf, Application& app)
     };
 
     if(use_dmabuf)
-    {
-      AL_HANDLE hBuf = AL_Allocator_Alloc(app.pAllocator, size);
-
-      if(!hBuf)
-      {
-        LOG_ERROR(string { "Failed to allocate Buffer for dma" });
-        assert(0);
-      }
-      auto fd = AL_LinuxDmaAllocator_GetFd((AL_TLinuxDmaAllocator*)(app.pAllocator), hBuf);
-      pBufData = (OMX_U8*)(uintptr_t)dup(fd);
-
-      if(!pBufData)
-      {
-        LOG_ERROR(string { "Failed to ExportToFd: " } +ToStringAddr(hBuf));
-        assert(0);
-      }
-
-      AL_Allocator_Free(app.pAllocator, hBuf);
-    }
+      pBufData = (OMX_U8*)(uintptr_t)AllocDmabufFd(app.pAllocator, size);
     else
       pBufData = (OMX_U8*)calloc(size, sizeof(OMX_U8));
 
@@ -748,10 +827,6 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   });
 
   OMX_CALL(showComponentVersion(&app.hEncoder));
-  auto ret = setPortParameters(app);
-
-  if(ret != OMX_ErrorNone)
-    return ret;
 
   app.pAllocator = nullptr;
 
@@ -768,6 +843,11 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
     if(app.pAllocator)
       AL_Allocator_Destroy(app.pAllocator);
   });
+
+  auto ret = setPortParameters(app);
+
+  if(ret != OMX_ErrorNone)
+    return ret;
 
   Getters get(&app.hEncoder);
 
