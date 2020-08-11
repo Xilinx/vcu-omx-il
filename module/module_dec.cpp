@@ -663,9 +663,19 @@ static AL_TMetaData* CreatePixMapMeta(AL_TStreamSettings const& streamSettings, 
   auto fourCC = AL_GetDecFourCC(picFormat);
   auto stride = resolution.stride.horizontal;
   auto sliceHeight = resolution.stride.vertical;
+  auto meta = AL_PixMapMetaData_CreateEmpty(fourCC);
+  meta->tDim = { resolution.dimension.horizontal, resolution.dimension.vertical };
   AL_TPlane planeY = { 0, 0, stride };
+  auto success = AL_PixMapMetaData_AddPlane(meta, planeY, AL_PLANE_Y);
+  assert(success);
+
+  if(AL_IsMonochrome(fourCC))
+    return (AL_TMetaData*)meta;
+  assert(AL_IsSemiPlanar(fourCC) && "Unsupported chroma format");
   AL_TPlane planeUV = { 0, stride * sliceHeight, stride };
-  return (AL_TMetaData*)(AL_PixMapMetaData_Create({ resolution.dimension.horizontal, resolution.dimension.vertical }, planeY, planeUV, fourCC));
+  success = AL_PixMapMetaData_AddPlane(meta, planeUV, AL_PLANE_UV);
+  assert(success);
+  return (AL_TMetaData*)meta;
 }
 
 static AL_TMetaData* CreateHDRMeta()
