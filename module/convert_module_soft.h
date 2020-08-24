@@ -40,6 +40,7 @@
 extern "C"
 {
 #include <lib_common/SliceConsts.h>
+#include <lib_common/PicFormat.h>
 #include <lib_common/VideoMode.h>
 #include <lib_common/HDR.h>
 }

@@ -59,6 +59,7 @@ AspectRatioType ConvertSoftToModuleAspectRatio(AL_EAspectRatio aspectRatio)
   switch(aspectRatio)
   {
   case AL_ASPECT_RATIO_NONE: return AspectRatioType::ASPECT_RATIO_NONE;
+  case AL_ASPECT_RATIO_1_1: return AspectRatioType::ASPECT_RATIO_1_1;
   case AL_ASPECT_RATIO_4_3: return AspectRatioType::ASPECT_RATIO_4_3;
   case AL_ASPECT_RATIO_16_9: return AspectRatioType::ASPECT_RATIO_16_9;
   case AL_ASPECT_RATIO_AUTO: return AspectRatioType::ASPECT_RATIO_AUTO;
@@ -185,6 +186,7 @@ AL_EAspectRatio ConvertModuleToSoftAspectRatio(AspectRatioType aspectRatio)
   switch(aspectRatio)
   {
   case AspectRatioType::ASPECT_RATIO_NONE: return AL_ASPECT_RATIO_NONE;
+  case AspectRatioType::ASPECT_RATIO_1_1: return AL_ASPECT_RATIO_1_1;
   case AspectRatioType::ASPECT_RATIO_4_3: return AL_ASPECT_RATIO_4_3;
   case AspectRatioType::ASPECT_RATIO_16_9: return AL_ASPECT_RATIO_16_9;
   case AspectRatioType::ASPECT_RATIO_AUTO: return AL_ASPECT_RATIO_AUTO;

@@ -477,6 +477,7 @@ AspectRatioType ConvertOMXToMediaAspectRatio(OMX_ALG_EAspectRatio aspectRatio)
   switch(aspectRatio)
   {
   case OMX_ALG_ASPECT_RATIO_NONE: return AspectRatioType::ASPECT_RATIO_NONE;
+  case OMX_ALG_ASPECT_RATIO_1_1: return AspectRatioType::ASPECT_RATIO_1_1;
   case OMX_ALG_ASPECT_RATIO_4_3: return AspectRatioType::ASPECT_RATIO_4_3;
   case OMX_ALG_ASPECT_RATIO_16_9: return AspectRatioType::ASPECT_RATIO_16_9;
   case OMX_ALG_ASPECT_RATIO_AUTO: return AspectRatioType::ASPECT_RATIO_AUTO;
@@ -616,6 +617,7 @@ OMX_ALG_EAspectRatio ConvertMediaToOMXAspectRatio(AspectRatioType aspectRatio)
   switch(aspectRatio)
   {
   case AspectRatioType::ASPECT_RATIO_NONE: return OMX_ALG_ASPECT_RATIO_NONE;
+  case AspectRatioType::ASPECT_RATIO_1_1: return OMX_ALG_ASPECT_RATIO_1_1;
   case AspectRatioType::ASPECT_RATIO_4_3: return OMX_ALG_ASPECT_RATIO_4_3;
   case AspectRatioType::ASPECT_RATIO_16_9: return OMX_ALG_ASPECT_RATIO_16_9;
   case AspectRatioType::ASPECT_RATIO_AUTO: return OMX_ALG_ASPECT_RATIO_AUTO;
