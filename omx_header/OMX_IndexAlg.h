@@ -105,6 +105,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamVideoST209440SEI,                     /**< reference: OMX_ALG_VIDEO_PARAM_ST2094_40_SEI */
   OMX_ALG_IndexParamVideoRateControlPlugin,               /**< reference: OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN */
   OMX_ALG_IndexParamVideoCrop,                            /**< reference: OMX_CONFIG_RECTTYPE */
+  OMX_ALG_IndexParamVideoMaxPictureSizesInBits,            /**< reference: OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE_IN_BITS */
 
   /* Vendor Video configurations */
   OMX_ALG_IndexConfigVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00380000,

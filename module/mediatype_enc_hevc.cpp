@@ -491,6 +491,12 @@ MediatypeInterface::ErrorType EncMediatypeHEVC::Get(std::string index, void* set
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_MAX_PICTURE_SIZES_IN_BITS")
+  {
+    *static_cast<MaxPicturesSizes*>(settings) = CreateMaxPictureSizesInBits(this->settings);
+    return SUCCESS;
+  }
+
   return BAD_INDEX;
 }
 
@@ -886,6 +892,16 @@ MediatypeInterface::ErrorType EncMediatypeHEVC::Set(std::string index, void cons
 
     if(!UpdateCrop(this->settings, crop))
       return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_MAX_PICTURE_SIZES_IN_BITS")
+  {
+    auto sizes = *(static_cast<MaxPicturesSizes const*>(settings));
+
+    if(!UpdateMaxPictureSizesInBits(this->settings, sizes))
+      return BAD_PARAMETER;
+
     return SUCCESS;
   }
 

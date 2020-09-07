@@ -1994,3 +1994,43 @@ OMX_ERRORTYPE ConstructVideoCrop(OMX_CONFIG_RECTTYPE& crop, Port const& port, st
   crop.nHeight = region.dimension.vertical;
   return OMX_ErrorNone;
 }
+
+OMX_ERRORTYPE ConstructVideoMaxPictureSizesInBits(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS& maxPictureSize, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(maxPictureSize);
+  maxPictureSize.nPortIndex = port.index;
+  MaxPicturesSizes mps;
+  auto ret = media->Get(SETTINGS_INDEX_MAX_PICTURE_SIZES_IN_BITS, &mps);
+  OMX_CHECK_MEDIA_GET(ret);
+  maxPictureSize.nMaxPictureSizeI = mps.i;
+  maxPictureSize.nMaxPictureSizeP = mps.p;
+  maxPictureSize.nMaxPictureSizeB = mps.b;
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetMaxPictureSizesInBits(OMX_S32 mpsI, OMX_S32 mpsP, OMX_S32 mpsB, shared_ptr<MediatypeInterface> media)
+{
+  MaxPicturesSizes mps;
+  mps.i = static_cast<int>(mpsI);
+  mps.p = static_cast<int>(mpsP);
+  mps.b = static_cast<int>(mpsB);
+  auto ret = media->Set(SETTINGS_INDEX_MAX_PICTURE_SIZES_IN_BITS, &mps);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoMaxPictureSizesInBits(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS const& maxPictureSize, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS rollback;
+  ConstructVideoMaxPictureSizesInBits(rollback, port, media);
+
+  auto ret = SetMaxPictureSizesInBits(maxPictureSize.nMaxPictureSizeI, maxPictureSize.nMaxPictureSizeP, maxPictureSize.nMaxPictureSizeB, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoMaxPictureSizesInBits(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}

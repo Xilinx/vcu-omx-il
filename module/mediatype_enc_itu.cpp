@@ -220,8 +220,12 @@ BufferSizes CreateBufferSizes(AL_TEncSettings settings, Stride stride)
 {
   BufferSizes bufferSizes {};
   auto channel = settings.tChParam[0];
+  bool bIsXAVCIntraCBG = AL_IS_XAVC_CBG(channel.eProfile) && AL_IS_INTRA_PROFILE(channel.eProfile);
   bufferSizes.input = RawAllocationSize(stride, AL_GET_CHROMA_MODE(channel.ePicFormat));
   bufferSizes.output = AL_GetMitigatedMaxNalSize({ channel.uEncWidth, channel.uEncHeight }, AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat));
+
+  if(bIsXAVCIntraCBG)
+    bufferSizes.output = AL_GetMaxNalSize(AL_GET_CODEC(channel.eProfile), { channel.uEncWidth, channel.uEncHeight }, AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), channel.uLevel, AL_GET_PROFILE_IDC(channel.eProfile));
 
   if(channel.bSubframeLatency)
   {
@@ -489,6 +493,29 @@ bool UpdateMaxPictureSizes(AL_TEncSettings& settings, MaxPicturesSizes sizes)
   rateControl.pMaxPictureSize[AL_SLICE_I] = sizes.i * 1000;
   rateControl.pMaxPictureSize[AL_SLICE_P] = sizes.p * 1000;
   rateControl.pMaxPictureSize[AL_SLICE_B] = sizes.b * 1000;
+
+  return true;
+}
+
+MaxPicturesSizes CreateMaxPictureSizesInBits(AL_TEncSettings settings)
+{
+  auto rateControl = settings.tChParam[0].tRCParam;
+  MaxPicturesSizes sizes;
+  sizes.i = static_cast<int>(rateControl.pMaxPictureSize[AL_SLICE_I]);
+  sizes.p = static_cast<int>(rateControl.pMaxPictureSize[AL_SLICE_P]);
+  sizes.b = static_cast<int>(rateControl.pMaxPictureSize[AL_SLICE_B]);
+  return sizes;
+}
+
+bool UpdateMaxPictureSizesInBits(AL_TEncSettings& settings, MaxPicturesSizes sizes)
+{
+  if(!CheckMaxPictureSizes(sizes))
+    return false;
+
+  auto& rateControl = settings.tChParam[0].tRCParam;
+  rateControl.pMaxPictureSize[AL_SLICE_I] = sizes.i;
+  rateControl.pMaxPictureSize[AL_SLICE_P] = sizes.p;
+  rateControl.pMaxPictureSize[AL_SLICE_B] = sizes.b;
 
   return true;
 }

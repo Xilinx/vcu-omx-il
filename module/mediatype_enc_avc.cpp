@@ -505,6 +505,12 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Get(std::string index, void* sett
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_MAX_PICTURE_SIZES_IN_BITS")
+  {
+    *static_cast<MaxPicturesSizes*>(settings) = CreateMaxPictureSizesInBits(this->settings);
+    return SUCCESS;
+  }
+
   return BAD_INDEX;
 }
 
@@ -929,6 +935,16 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Set(std::string index, void const
 
     if(!UpdateCrop(this->settings, crop))
       return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_MAX_PICTURE_SIZES_IN_BITS")
+  {
+    auto sizes = *(static_cast<MaxPicturesSizes const*>(settings));
+
+    if(!UpdateMaxPictureSizesInBits(this->settings, sizes))
+      return BAD_PARAMETER;
+
     return SUCCESS;
   }
 

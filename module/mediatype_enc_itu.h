@@ -146,3 +146,6 @@ void ResetRcPluginContext(AL_TAllocator* allocator, AL_TEncSettings* settings);
 
 Region CreateCrop(AL_TEncSettings settings);
 bool UpdateCrop(AL_TEncSettings& settings, Region region);
+
+MaxPicturesSizes CreateMaxPictureSizesInBits(AL_TEncSettings settings);
+bool UpdateMaxPictureSizesInBits(AL_TEncSettings& settings, MaxPicturesSizes sizes);

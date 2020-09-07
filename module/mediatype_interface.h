@@ -201,6 +201,9 @@ static std::string const SETTINGS_INDEX_RATE_CONTROL_PLUGIN {
 static std::string const SETTINGS_INDEX_CROP {
   "SETTINGS_INDEX_CROP"
 };
+static std::string const SETTINGS_INDEX_MAX_PICTURE_SIZES_IN_BITS {
+  "SETTINGS_INDEX_MAX_PICTURE_SIZES_IN_BITS"
+};
 
 struct MediatypeInterface
 {

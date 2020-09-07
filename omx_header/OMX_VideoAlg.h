@@ -1581,6 +1581,27 @@ typedef struct OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN
   OMX_U32 nDmaSize;
 }OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN;
 
+/**
+ * Max picture sizes in bits parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize            : Size of the structure in bytes
+ *  nVersion         : OMX specification version information
+ *  nPortIndex       : Port that this structure applies to
+ *  nMaxPictureSizeI : Max picture size for I frames in bits
+ *  nMaxPictureSizeP : Max picture size for P frames in bits
+ *  nMaxPictureSizeB : Max picture size for B frames in bits
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_S32 nMaxPictureSizeI;
+  OMX_S32 nMaxPictureSizeP;
+  OMX_S32 nMaxPictureSizeB;
+}OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS;
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
