@@ -77,5 +77,6 @@ private:
   std::list<PropagatedData> transmit;
   std::mutex mutex;
   bool shouldPropagateData;
+  OMX_TICKS oldTimeStamp;
 };
 

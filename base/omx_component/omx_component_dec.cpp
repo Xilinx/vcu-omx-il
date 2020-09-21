@@ -58,7 +58,7 @@ static DecModule& ToDecModule(ModuleInterface& module)
 
 DecComponent::DecComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise) :
   Component{component, media, std::move(module), std::move(expertise), name, role},
-  shouldPropagateData{true}
+  shouldPropagateData{true}, oldTimeStamp{-1}
 {
 }
 
@@ -85,7 +85,7 @@ void DecComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandle
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  if(!empty_)
+  if(empty_ == nullptr)
   {
     if(transmit.empty())
       return;
@@ -105,6 +105,7 @@ void DecComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandle
       callbacks.EventHandler(component, app, OMX_EventBufferFlag, output.index, emptyHeader.nFlags, nullptr);
       transmit.clear();
       shouldPropagateData = true;
+      oldTimeStamp = -1;
     }
 
     if(IsCompMarked(emptyHeader.hMarkTargetComponent, component))
@@ -174,6 +175,8 @@ void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
 
   if(offset == 0 && payload == 0)
     header->nFlags = OMX_BUFFERFLAG_EOS;
+  else
+    header->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
 
   delete filled;
 
@@ -351,8 +354,11 @@ void DecComponent::TreatEmptyBufferCommand(Task* task)
       transmit.push_back(PropagatedData { header->hMarkTargetComponent, header->pMarkData, header->nTickCount, header->nTimeStamp, header->nFlags });
     else
     {
-      if(shouldPropagateData)
+      if(oldTimeStamp != header->nTimeStamp || shouldPropagateData)
+      {
         transmit.push_back(PropagatedData { header->hMarkTargetComponent, header->pMarkData, header->nTickCount, header->nTimeStamp, header->nFlags });
+        oldTimeStamp = header->nTimeStamp;
+      }
 
       shouldPropagateData = isEndOfFrameFlagRaised;
     }
