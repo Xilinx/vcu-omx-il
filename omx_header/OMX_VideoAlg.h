@@ -541,6 +541,23 @@ typedef struct OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI
 }OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI;
 
 /**
+ * Alternative Transfer Characteristics SEI parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                       : Size of the structure in bytes
+ *  nVersion                    : OMX specification version information
+ *  nPortIndex                  : Port that this structure applies to
+ *  bEnableAlternativeTransferCharacteristicsSEI : Indicate if alternative transfer characteristics sei should be enabled
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_ALTERNATIVE_TRANSFER_CHARACTERISTICS_SEI
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bEnableAlternativeTransferCharacteristicsSEI;
+}OMX_ALG_VIDEO_PARAM_ALTERNATIVE_TRANSFER_CHARACTERISTICS_SEI;
+
+/**
 * ST2094-10 SEI parameters
 *
 * STRUCT MEMBERS:
@@ -868,8 +885,22 @@ typedef struct OMX_ALG_VIDEO_PARAM_COLOR_PRIMARIES
 /** TransferCharacteristics enumeration */
 typedef enum OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS
 {
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_BT_709,
   OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_UNSPECIFIED,
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_BT_470_SYSTEM_M,
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_BT_470_SYSTEM_B,
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_BT_601,
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_SMPTE_240M,
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_LINEAR,
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_LOG,
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_LOG_EXTENDED,
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_IEC_61966_2_4,
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_BT_1361,
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_IEC_61966_2_1,
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_BT_2020_10B,
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_BT_2020_12B,
   OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_BT_2100_PQ,
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_SMPTE_428,
   OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_BT_2100_HLG,
   OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS;
@@ -894,8 +925,20 @@ typedef struct OMX_ALG_VIDEO_PARAM_TRANSFER_CHARACTERISTICS
 /** Color matrix coefficients for luma/chroma computation from RBG  */
 typedef enum OMX_ALG_VIDEO_COLOR_MATRIX
 {
+  OMX_ALG_VIDEO_COLOR_MATRIX_GBR,
+  OMX_ALG_VIDEO_COLOR_MATRIX_BT_709,
   OMX_ALG_VIDEO_COLOR_MATRIX_UNSPECIFIED,
+  OMX_ALG_VIDEO_COLOR_MATRIX_USFCC_CFR,
+  OMX_ALG_VIDEO_COLOR_MATRIX_BT_601_625,
+  OMX_ALG_VIDEO_COLOR_MATRIX_BT_601_525,
+  OMX_ALG_VIDEO_COLOR_MATRIX_BT_SMPTE_240M,
+  OMX_ALG_VIDEO_COLOR_MATRIX_BT_YCGCO,
   OMX_ALG_VIDEO_COLOR_MATRIX_BT_2100_YCBCR,
+  OMX_ALG_VIDEO_COLOR_MATRIX_BT_2020_CLS,
+  OMX_ALG_VIDEO_COLOR_MATRIX_SMPTE_2085,
+  OMX_ALG_VIDEO_COLOR_MATRIX_CHROMA_DERIVED_NCLS,
+  OMX_ALG_VIDEO_COLOR_MATRIX_CHROMA_DERIVED_CLS,
+  OMX_ALG_VIDEO_COLOR_MATRIX_BT_2100_ICTCP,
   OMX_ALG_VIDEO_COLOR_MATRIX_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_COLOR_MATRIX;
 
@@ -934,13 +977,13 @@ typedef struct OMX_ALG_VIDEO_PARAM_INPUT_PARSED
 }OMX_ALG_VIDEO_PARAM_INPUT_PARSED;
 
 /**
- * Max picture size parameter
+ * Max picture size in kbits parameter
  *
  * STRUCT MEMBERS:
  *  nSize           : Size of the structure in bytes
  *  nVersion        : OMX specification version information
  *  nPortIndex      : Port that this structure applies to
- *  nMaxPictureSize : Max picture size in kbits
+ *  nMaxPictureSize : Max picture size in kbits (1000 * bits)
  */
 typedef struct OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE
 {
@@ -951,15 +994,26 @@ typedef struct OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE
 }OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE;
 
 /**
- * Max picture sizes parameters
+ * Max picture size in bits parameter
+ *
+ * STRUCT MEMBERS:
+ *  nSize           : Size of the structure in bytes
+ *  nVersion        : OMX specification version information
+ *  nPortIndex      : Port that this structure applies to
+ *  nMaxPictureSize : Max picture size in bits
+ */
+typedef OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE_IN_BITS;
+
+/**
+ * Max picture sizes in kbits parameters
  *
  * STRUCT MEMBERS:
  *  nSize            : Size of the structure in bytes
  *  nVersion         : OMX specification version information
  *  nPortIndex       : Port that this structure applies to
- *  nMaxPictureSizeI : Max picture size for I frames in kbits
- *  nMaxPictureSizeP : Max picture size for P frames in kbits
- *  nMaxPictureSizeB : Max picture size for B frames in kbits
+ *  nMaxPictureSizeI : Max picture size for I frames in kbits (1000 * bits)
+ *  nMaxPictureSizeP : Max picture size for P frames in kbits (1000 * bits)
+ *  nMaxPictureSizeB : Max picture size for B frames in kbits (1000 * bits)
  */
 typedef struct OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES
 {
@@ -970,6 +1024,19 @@ typedef struct OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES
   OMX_S32 nMaxPictureSizeP;
   OMX_S32 nMaxPictureSizeB;
 }OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES;
+
+/**
+ * Max picture sizes in bits parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize            : Size of the structure in bytes
+ *  nVersion         : OMX specification version information
+ *  nPortIndex       : Port that this structure applies to
+ *  nMaxPictureSizeI : Max picture size for I frames in bits
+ *  nMaxPictureSizeP : Max picture size for P frames in bits
+ *  nMaxPictureSizeB : Max picture size for B frames in bits
+ */
+typedef OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS;
 
 /**
  * Loop filter beta parameters
@@ -1294,6 +1361,16 @@ typedef struct OMX_ALG_VIDEO_CONTENT_LIGHT_LEVEL
   OMX_U16 nMaxPicAverageLightLevel;
 }OMX_ALG_VIDEO_CONTENT_LIGHT_LEVEL;
 
+/**
+ * Struct for alternative transfer characteristics SEI
+ *
+ * STRUCT MEMBERS:
+ *  preferredTransferCharacteristics    : Preferred alternative for the transfer characteristic function
+ */
+typedef struct OMX_ALG_VIDEO_ALTERNATIVE_TRANSFER_CHARACTERISTICS
+{
+  OMX_ALG_VIDEO_TRANSFER_CHARACTERISTICS preferredTransferCharacteristics;
+}OMX_ALG_VIDEO_ALTERNATIVE_TRANSFER_CHARACTERISTICS;
 
 #define OMX_ALG_MAX_MANUAL_ADJUSTMENT_ST2094_10 16
 
@@ -1523,17 +1600,19 @@ typedef struct OMX_ALG_DYNAMIC_META_ST2094_40
  * Struct for all High Dynamic Range related SEI
  *
  * STRUCT MEMBERS:
- *  nSize                        : Size of the structure in bytes
- *  nVersion                     : OMX specification version information
- *  nPortIndex                   : Port that this structure applies to
- *  bHasMDCV                     : Indicates if mastering display colour volume SEI is specified
- *  masteringDisplayColourVolume : Mastering display colour volume SEI content
- *  bHasCLL                      : Indicates if content light level SEI is specified
- *  contentLightLevel            : Content light level SEI content
- *  bHasST2094_10                : Indicates if ST2094_10 SEI is specified
- *  st2094_10                    : ST2094_10 SEI content
- *  bHasST2094_40                : Indicates if ST2094_40 SEI is specified
- *  st2094_40                    : ST2094_40 SEI content
+ *  nSize                               : Size of the structure in bytes
+ *  nVersion                            : OMX specification version information
+ *  nPortIndex                          : Port that this structure applies to
+ *  bHasMDCV                            : Indicates if mastering display colour volume SEI is specified
+ *  masteringDisplayColourVolume        : Mastering display colour volume SEI content
+ *  bHasCLL                             : Indicates if content light level SEI is specified
+ *  contentLightLevel                   : Content light level SEI content
+ *  bHasATC                             : Indicates if alternative transfer characteristics SEI is specified
+ *  alternativeTransferCharacteristics  : alternative transfer characteristics SEI content
+ *  bHasST2094_10                       : Indicates if ST2094_10 SEI is specified
+ *  st2094_10                           : ST2094_10 SEI content
+ *  bHasST2094_40                       : Indicates if ST2094_40 SEI is specified
+ *  st2094_40                           : ST2094_40 SEI content
  */
 typedef struct OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI
 {
@@ -1544,6 +1623,8 @@ typedef struct OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI
   OMX_ALG_VIDEO_MASTERING_DISPLAY_COLOUR_VOLUME masteringDisplayColourVolume;
   OMX_BOOL bHasCLL;
   OMX_ALG_VIDEO_CONTENT_LIGHT_LEVEL contentLightLevel;
+  OMX_BOOL bHasATC;
+  OMX_ALG_VIDEO_ALTERNATIVE_TRANSFER_CHARACTERISTICS alternativeTransferCharacteristics;
   OMX_BOOL bHasST2094_10;
   OMX_ALG_DYNAMIC_META_ST2094_10 st2094_10;
   OMX_BOOL bHasST2094_40;
@@ -1580,27 +1661,6 @@ typedef struct OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN
   OMX_U32 nDmabuf;
   OMX_U32 nDmaSize;
 }OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN;
-
-/**
- * Max picture sizes in bits parameters
- *
- * STRUCT MEMBERS:
- *  nSize            : Size of the structure in bytes
- *  nVersion         : OMX specification version information
- *  nPortIndex       : Port that this structure applies to
- *  nMaxPictureSizeI : Max picture size for I frames in bits
- *  nMaxPictureSizeP : Max picture size for P frames in bits
- *  nMaxPictureSizeB : Max picture size for B frames in bits
- */
-typedef struct OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS
-{
-  OMX_U32 nSize;
-  OMX_VERSIONTYPE nVersion;
-  OMX_U32 nPortIndex;
-  OMX_S32 nMaxPictureSizeI;
-  OMX_S32 nMaxPictureSizeP;
-  OMX_S32 nMaxPictureSizeB;
-}OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS;
 
 #ifdef __cplusplus
 }

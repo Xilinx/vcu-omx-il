@@ -497,6 +497,7 @@ static OMX_VERSIONTYPE GetVersion(OMX_PTR ptr)
 OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR param)
 {
   OMX_TRY();
+  lock_guard<std::mutex> lock(mutex);
   OMXChecker::CheckNotNull(param);
   OMXChecker::CheckHeaderVersion(GetVersion(param));
   OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::GetParameter, state);
@@ -574,7 +575,6 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto subframe = static_cast<OMX_ALG_VIDEO_PARAM_SUBFRAME*>(param);
     return ConstructVideoSubframe(*subframe, *port, media);
   }
-  // only encoder
   case OMX_IndexParamVideoQuantization:
   {
     auto port = getCurrentPort(param);
@@ -725,13 +725,24 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto mps = static_cast<OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE*>(param);
     return ConstructVideoMaxPictureSize(*mps, *port, media);
   }
+  case OMX_ALG_IndexParamVideoMaxPictureSizeInBits:
+  {
+    auto port = getCurrentPort(param);
+    auto mps = static_cast<OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE_IN_BITS*>(param);
+    return ConstructVideoMaxPictureSizeInBits(*mps, *port, media);
+  }
   case OMX_ALG_IndexParamVideoMaxPictureSizes:
   {
     auto port = getCurrentPort(param);
     auto mps = static_cast<OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES*>(param);
     return ConstructVideoMaxPictureSizes(*mps, *port, media);
   }
-  // only decoder
+  case OMX_ALG_IndexParamVideoMaxPictureSizesInBits:
+  {
+    auto port = getCurrentPort(param);
+    auto mps = static_cast<OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS*>(param);
+    return ConstructVideoMaxPictureSizesInBits(*mps, *port, media);
+  }
   case OMX_ALG_IndexParamPreallocation:
   {
     auto prealloc = static_cast<OMX_ALG_PARAM_PREALLOCATION*>(param);
@@ -820,6 +831,12 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto cllSEI = static_cast<OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI*>(param);
     return ConstructVideoContentLightLevelSEI(*cllSEI, *port, media);
   }
+  case OMX_ALG_IndexParamVideoAlternativeTransferCharacteristicsSEI:
+  {
+    auto port = getCurrentPort(param);
+    auto atcSEI = static_cast<OMX_ALG_VIDEO_PARAM_ALTERNATIVE_TRANSFER_CHARACTERISTICS_SEI*>(param);
+    return ConstructVideoAlternativeTransferCharacteristicsSEI(*atcSEI, *port, media);
+  }
   case OMX_ALG_IndexParamVideoST209410SEI:
   {
     auto port = getCurrentPort(param);
@@ -844,12 +861,6 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto crop = static_cast<OMX_CONFIG_RECTTYPE*>(param);
     return ConstructVideoCrop(*crop, *port, media);
   }
-  case OMX_ALG_IndexParamVideoMaxPictureSizesInBits:
-  {
-    auto port = getCurrentPort(param);
-    auto mps = static_cast<OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS*>(param);
-    return ConstructVideoMaxPictureSizesInBits(*mps, *port, media);
-  }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
@@ -863,6 +874,7 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
 OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param)
 {
   OMX_TRY();
+  lock_guard<std::mutex> lock(mutex);
   OMXChecker::CheckNotNull(param);
   OMXChecker::CheckHeaderVersion(GetVersion(param));
 
@@ -939,7 +951,6 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     auto portBufferMode = static_cast<OMX_ALG_PORT_PARAM_BUFFER_MODE*>(param);
     return SetPortBufferMode(*portBufferMode, *port, media);
   }
-  // only encoder
   case OMX_IndexParamVideoQuantization:
   {
     auto quantization = static_cast<OMX_VIDEO_PARAM_QUANTIZATIONTYPE*>(param);
@@ -1060,10 +1071,21 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     auto mps = static_cast<OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE*>(param);
     return SetVideoMaxPictureSize(*mps, *port, media);
   }
+  case OMX_ALG_IndexParamVideoMaxPictureSizeInBits:
+  {
+    auto mps = static_cast<OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE_IN_BITS*>(param);
+    return SetVideoMaxPictureSizeInBits(*mps, *port, media);
+  }
+
   case OMX_ALG_IndexParamVideoMaxPictureSizes:
   {
     auto mps = static_cast<OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES*>(param);
     return SetVideoMaxPictureSizes(*mps, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoMaxPictureSizesInBits:
+  {
+    auto mps = static_cast<OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS*>(param);
+    return SetVideoMaxPictureSizesInBits(*mps, *port, media);
   }
   case OMX_ALG_IndexParamVideoLoopFilterBeta:
   {
@@ -1075,7 +1097,6 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     auto lftc = static_cast<OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC*>(param);
     return SetVideoLoopFilterTc(*lftc, *port, media);
   }
-  // only decoder
   case OMX_ALG_IndexParamPreallocation:
   {
     auto p = (OMX_ALG_PARAM_PREALLOCATION*)param;
@@ -1138,6 +1159,11 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     auto cllSEI = static_cast<OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI*>(param);
     return SetVideoContentLightLevelSEI(*cllSEI, *port, media);
   }
+  case OMX_ALG_IndexParamVideoAlternativeTransferCharacteristicsSEI:
+  {
+    auto atcSEI = static_cast<OMX_ALG_VIDEO_PARAM_ALTERNATIVE_TRANSFER_CHARACTERISTICS_SEI*>(param);
+    return SetVideoAlternativeTransferCharacteristicsSEI(*atcSEI, *port, media);
+  }
   case OMX_ALG_IndexParamVideoST209410SEI:
   {
     auto st209410 = static_cast<OMX_ALG_VIDEO_PARAM_ST2094_10_SEI*>(param);
@@ -1157,11 +1183,6 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
   {
     auto crop = static_cast<OMX_CONFIG_RECTTYPE*>(param);
     return SetVideoCrop(*crop, *port, media);
-  }
-  case OMX_ALG_IndexParamVideoMaxPictureSizesInBits:
-  {
-    auto mps = static_cast<OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS*>(param);
-    return SetVideoMaxPictureSizesInBits(*mps, *port, media);
   }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
@@ -1370,6 +1391,7 @@ OMX_ERRORTYPE Component::GetComponentVersion(OMX_OUT OMX_STRING name, OMX_OUT OM
 OMX_ERRORTYPE Component::GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR config)
 {
   OMX_TRY();
+  lock_guard<std::mutex> lock(mutex);
   OMXChecker::CheckNotNull(config);
   OMXChecker::CheckHeaderVersion(GetVersion(config));
   OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::GetConfig, state);
@@ -1452,6 +1474,7 @@ OMX_ERRORTYPE Component::GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR
 OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR config)
 {
   OMX_TRY();
+  lock_guard<std::mutex> lock(mutex);
   OMXChecker::CheckNotNull(config);
   OMXChecker::CheckHeaderVersion(GetVersion(config));
   OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::SetConfig, state);
@@ -2049,11 +2072,15 @@ void Component::TreatFillBufferCommand(Task task)
 
   auto handle = new OMXBufferHandle(header);
 
+  unique_lock<std::mutex> lock(eosHandles.mutex);
+
   if(!eosHandles.output)
   {
     eosHandles.output = handle;
+    lock.unlock();
     return;
   }
+  lock.unlock();
   auto success = module->Fill(handle);
   assert(success);
 }
@@ -2082,6 +2109,7 @@ static RegionQuality CreateRegionQualityByValue(OMX_ALG_VIDEO_CONFIG_REGION_OF_I
 
 void Component::TreatDynamicCommand(Task task)
 {
+  lock_guard<std::mutex> lock(mutex);
   assert(task.cmd == Command::SetDynamic);
   auto index = static_cast<OMX_U32>((uintptr_t)task.data);
   void* opt = task.opt.get();

@@ -220,19 +220,31 @@ BufferSizes CreateBufferSizes(AL_TEncSettings settings, Stride stride)
 {
   BufferSizes bufferSizes {};
   auto channel = settings.tChParam[0];
-  bool bIsXAVCIntraCBG = AL_IS_XAVC_CBG(channel.eProfile) && AL_IS_INTRA_PROFILE(channel.eProfile);
   bufferSizes.input = RawAllocationSize(stride, AL_GET_CHROMA_MODE(channel.ePicFormat));
   bufferSizes.output = AL_GetMitigatedMaxNalSize({ channel.uEncWidth, channel.uEncHeight }, AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat));
+
+  bool bIsXAVCIntraCBG = AL_IS_XAVC_CBG(channel.eProfile) && AL_IS_INTRA_PROFILE(channel.eProfile);
 
   if(bIsXAVCIntraCBG)
     bufferSizes.output = AL_GetMaxNalSize(AL_GET_CODEC(channel.eProfile), { channel.uEncWidth, channel.uEncHeight }, AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), channel.uLevel, AL_GET_PROFILE_IDC(channel.eProfile));
 
   if(channel.bSubframeLatency)
   {
-    bufferSizes.output /= channel.uNumSlices;
-    bufferSizes.output += 4095 * 2; /* we need space for the headers on each slice */
-    bufferSizes.output = RoundUp(bufferSizes.output, 32); /* stream size is required to be 32 bits aligned */
+    /* Due to rounding, the slices don't have all the same height. Compute size of the biggest slice */
+    auto lcuSize = 1 << channel.uLog2MaxCuSize;
+    auto rndHeight = RoundUp(static_cast<int>(channel.uEncHeight), lcuSize);
+    size_t outputSize = bufferSizes.output * lcuSize * (1 + rndHeight / (channel.uNumSlices * lcuSize)) / rndHeight;
+    /* we need space for the headers on each slice */
+    outputSize += AL_ENC_MAX_HEADER_SIZE * channel.uNumSlices;
+    /* stream size is required to be 32 bits aligned */
+    size_t IP_WIDTH_ALIGNMENT = 32;
+    outputSize = RoundUp(outputSize, IP_WIDTH_ALIGNMENT);
+
+    assert(outputSize <= static_cast<size_t>((1 << ((8 * sizeof(bufferSizes.output) - 1)))));
+    bufferSizes.output = outputSize;
   }
+
+  assert(bufferSizes.output >= 0);
   return bufferSizes;
 }
 
@@ -617,6 +629,17 @@ bool CreateContentLightLevelSEI(AL_TEncSettings settings)
 bool UpdateContentLightLevelSEI(AL_TEncSettings& settings, bool isCLLEnabled)
 {
   isCLLEnabled ? settings.uEnableSEI |= AL_SEI_CLL : settings.uEnableSEI &= ~AL_SEI_CLL;
+  return true;
+}
+
+bool CreateAlternativeTransferCharacteristicsSEI(AL_TEncSettings settings)
+{
+  return (settings.uEnableSEI & AL_SEI_ATC) != 0;
+}
+
+bool UpdateAlternativeTransferCharacteristicsSEI(AL_TEncSettings& settings, bool isATCEnabled)
+{
+  isATCEnabled ? settings.uEnableSEI |= AL_SEI_ATC : settings.uEnableSEI &= ~AL_SEI_ATC;
   return true;
 }
 

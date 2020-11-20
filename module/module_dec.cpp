@@ -81,6 +81,8 @@ void DecModule::ResetHDR()
   currentColorPrimaries = ColorPrimariesType::COLOR_PRIMARIES_UNSPECIFIED;
   currentHDRSEIs.hasMDCV = false;
   currentHDRSEIs.hasCLL = false;
+  currentHDRSEIs.hasST2094_10 = false;
+  currentHDRSEIs.hasST2094_40 = false;
 }
 
 DecModule::~DecModule() = default;
@@ -215,20 +217,10 @@ void DecModule::CopyIfRequired(AL_TBuffer* frameToDisplay, int size)
   copy(AL_Buffer_GetData(frameToDisplay), AL_Buffer_GetData(frameToDisplay) + size, buffer);
 }
 
-void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
+void DecModule::_ProcessDisplay(DisplayBuffers buffers)
 {
-  auto isRelease = (frameToDisplay && info == nullptr);
-
-  if(isRelease)
-    return ReleaseBufs(frameToDisplay);
-
-  auto isEOS = (frameToDisplay == nullptr && info == nullptr);
-
-  if(isEOS)
-  {
-    callbacks.filled(nullptr);
-    return;
-  }
+  auto frameToDisplay = buffers.frameToDisplay;
+  auto info = &buffers.info;
 
   int frameWidth = info->tDim.iWidth - (info->tCrop.uCropOffsetLeft + info->tCrop.uCropOffsetRight);
   int frameHeight = info->tDim.iHeight - (info->tCrop.uCropOffsetTop + info->tCrop.uCropOffsetBottom);
@@ -262,6 +254,13 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
     }
   }
 
+  BufferSizes bufferSizes {};
+  media->Get(SETTINGS_INDEX_BUFFER_SIZES, &bufferSizes);
+
+  auto size = bufferSizes.output;
+  CopyIfRequired(frameToDisplay, size);
+
+  unique_lock<std::mutex> lock(mutex);
   ResetHDR();
   auto pHDR = (AL_THDRMetaData*)AL_Buffer_GetMetaData(frameToDisplay, AL_META_TYPE_HDR);
 
@@ -272,13 +271,9 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
     currentColorPrimaries = ConvertSoftToModuleColorPrimaries(pHDR->eColourDescription);
     currentHDRSEIs = ConvertSoftToModuleHDRSEIs(pHDR->tHDRSEIs);
   }
-
-  BufferSizes bufferSizes {};
-  media->Get(SETTINGS_INDEX_BUFFER_SIZES, &bufferSizes);
-  auto size = bufferSizes.output;
-  CopyIfRequired(frameToDisplay, size);
   currentDisplayPictureInfo.type = info->ePicStruct;
   currentDisplayPictureInfo.concealed = (AL_Decoder_GetFrameError(decoder, frameToDisplay) == AL_WARN_CONCEAL_DETECT);
+  lock.unlock();
   auto handleOut = handles.Pop(frameToDisplay);
   handleOut->offset = 0;
   handleOut->payload = size;
@@ -300,8 +295,35 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
     }
   }
 
+  AL_Buffer_Unref(frameToDisplay);
+
+  lock.lock();
   currentDisplayPictureInfo.type = -1;
   currentDisplayPictureInfo.concealed = false;
+  lock.unlock();
+}
+
+void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
+{
+  auto isRelease = (frameToDisplay && info == nullptr);
+
+  if(isRelease)
+    return ReleaseBufs(frameToDisplay);
+
+  auto isEOS = (frameToDisplay == nullptr && info == nullptr);
+
+  if(isEOS)
+  {
+    /* Ensure all buffers are outputted by flushing the threadDisplay*/
+    auto p = bind(&DecModule::_ProcessDisplay, this, placeholders::_1);
+    threadDisplay.reset(new ProcessorFifo<DisplayBuffers> { p, p, "Display" });
+    callbacks.filled(nullptr);
+    return;
+  }
+
+  AL_Buffer_Ref(frameToDisplay);
+
+  threadDisplay->queue({ frameToDisplay, *info });
 }
 
 void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSettings const& settings, AL_TCropInfo const& crop)
@@ -350,6 +372,8 @@ ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
   }
 
   auto channel = device->Init();
+  auto p = bind(&DecModule::_ProcessDisplay, this, placeholders::_1);
+  threadDisplay.reset(new ProcessorFifo<DisplayBuffers> { p, p, "Display" });
   AL_TDecCallBacks decCallbacks {};
   decCallbacks.endParsingCB = { RedirectionEndParsing, this };
   decCallbacks.endDecodingCB = { RedirectionEndDecoding, this };
@@ -394,6 +418,7 @@ bool DecModule::DestroyDecoder()
 
   AL_Decoder_Destroy(decoder);
   device->Deinit();
+  threadDisplay.reset();
   decoder = nullptr;
   resolutionFoundAsBeenCalled = false;
   initialDimension = { -1, -1 };
@@ -824,6 +849,7 @@ ModuleInterface::ErrorType DecModule::GetDynamic(std::string index, void* param)
 {
   if(index == "DYNAMIC_INDEX_CURRENT_DISPLAY_PICTURE_INFO")
   {
+    lock_guard<std::mutex> lock(mutex);
     auto displayPictureInfo = static_cast<DisplayPictureInfo*>(param);
     *displayPictureInfo = currentDisplayPictureInfo;
     return SUCCESS;
@@ -831,6 +857,7 @@ ModuleInterface::ErrorType DecModule::GetDynamic(std::string index, void* param)
 
   if(index == "DYNAMIC_INDEX_TRANSFER_CHARACTERISTICS")
   {
+    lock_guard<std::mutex> lock(mutex);
     auto tc = static_cast<TransferCharacteristicsType*>(param);
     *tc = currentTransferCharacteristics;
     return SUCCESS;
@@ -838,6 +865,7 @@ ModuleInterface::ErrorType DecModule::GetDynamic(std::string index, void* param)
 
   if(index == "DYNAMIC_INDEX_COLOUR_MATRIX")
   {
+    lock_guard<std::mutex> lock(mutex);
     auto cm = static_cast<ColourMatrixType*>(param);
     *cm = currentColourMatrix;
     return SUCCESS;
@@ -845,6 +873,7 @@ ModuleInterface::ErrorType DecModule::GetDynamic(std::string index, void* param)
 
   if(index == "DYNAMIC_INDEX_COLOR_PRIMARIES")
   {
+    lock_guard<std::mutex> lock(mutex);
     auto cp = static_cast<ColorPrimariesType*>(param);
     *cp = currentColorPrimaries;
     return SUCCESS;
@@ -852,6 +881,7 @@ ModuleInterface::ErrorType DecModule::GetDynamic(std::string index, void* param)
 
   if(index == "DYNAMIC_INDEX_HIGH_DYNAMIC_RANGE_SEIS")
   {
+    lock_guard<std::mutex> lock(mutex);
     auto hdrSEIs = static_cast<HighDynamicRangeSeis*>(param);
     *hdrSEIs = currentHDRSEIs;
     return SUCCESS;

@@ -267,6 +267,11 @@ struct ContentLightLevel
   uint16_t maxPicAverageLightLevel;
 };
 
+struct AlternativeTransferCharacteristics
+{
+  TransferCharacteristicsType preferredTransferCharacteristics;
+};
+
 /*  --------- ST2094_10 --------- */
 #define MAX_MANUAL_ADJUSTMENT_ST2094_10 16
 
@@ -386,6 +391,8 @@ struct HighDynamicRangeSeis
   MasteringDisplayColourVolume masteringDisplayColourVolume;
   bool hasCLL;
   ContentLightLevel contentLightLevel;
+  bool hasATC;
+  AlternativeTransferCharacteristics alternativeTransferCharacteristics;
   bool hasST2094_10;
   DynamicMeta_ST2094_10 st2094_10;
   bool hasST2094_40;

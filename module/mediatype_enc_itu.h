@@ -134,6 +134,9 @@ bool UpdateMasteringDisplayColourVolumeSEI(AL_TEncSettings& settings, bool isMDC
 bool CreateContentLightLevelSEI(AL_TEncSettings settings);
 bool UpdateContentLightLevelSEI(AL_TEncSettings& settings, bool isCLLEnabled);
 
+bool CreateAlternativeTransferCharacteristicsSEI(AL_TEncSettings settings);
+bool UpdateAlternativeTransferCharacteristicsSEI(AL_TEncSettings& settings, bool isATCEnabled);
+
 bool CreateST209410SEI(AL_TEncSettings settings);
 bool UpdateST209410SEI(AL_TEncSettings& settings, bool isST209410Enabled);
 

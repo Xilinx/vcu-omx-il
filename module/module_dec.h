@@ -44,8 +44,10 @@
 #include <vector>
 #include <queue>
 #include <memory>
+#include <mutex>
 
 #include <utility/threadsafe_map.h>
+#include <utility/processor_fifo.h>
 
 extern "C"
 {
@@ -54,6 +56,12 @@ extern "C"
 #include <lib_common/StreamBuffer.h>
 #include <lib_common/BufferSeiMeta.h>
 }
+
+struct DisplayBuffers
+{
+  AL_TBuffer* frameToDisplay;
+  AL_TInfoDecode info;
+};
 
 struct DecModule final : ModuleInterface
 {
@@ -81,7 +89,9 @@ private:
   std::shared_ptr<DecMediatypeInterface> const media;
   std::shared_ptr<DecDeviceInterface> device;
   std::shared_ptr<AL_TAllocator> allocator;
+  std::shared_ptr<ProcessorFifo<DisplayBuffers>> threadDisplay;
 
+  std::mutex mutex;
   DisplayPictureInfo currentDisplayPictureInfo;
   Flags currentFlags;
   TransferCharacteristicsType currentTransferCharacteristics;
@@ -132,6 +142,7 @@ private:
     pThis->Display(frameToDisplay, info);
   };
   void Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info);
+  void _ProcessDisplay(DisplayBuffers buffers);
 
   static AL_ERR RedirectionResolutionFound(int buffersNumber, int bufferSize, AL_TStreamSettings const* settings, AL_TCropInfo const* crop, void* userParam)
   {

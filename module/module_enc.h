@@ -77,16 +77,23 @@ struct EmptyFifoParam
   bool isEOS;
 };
 
+struct EndEncodingBuffers
+{
+  AL_TBuffer const* source;
+  AL_TBuffer* stream;
+};
+
 struct GenericEncoder
 {
   GenericEncoder(int pass) : index{pass} {}
-
   ~GenericEncoder() = default;
+
   AL_HEncoder enc {};
   int index {};
   AL_TBuffer* nextQPBuffer {};
   std::vector<AL_TBuffer*> streamBuffers {};
   std::shared_ptr<ProcessorFifo<EmptyFifoParam>> threadFifo {};
+  std::shared_ptr<ProcessorFifo<EndEncodingBuffers>> threadEndEncoding {};
   std::shared_ptr<LookAheadMngr> lookAheadMngr {};
   LookAheadCallBackParam callbackParam {};
 };
@@ -154,6 +161,8 @@ private:
     pThis->EndEncoding(pStream, pSource);
   };
   void EndEncoding(AL_TBuffer* pStream, AL_TBuffer const* pSource);
+  void _ProcessEndEncoding(EndEncodingBuffers buffers);
+
   static void RedirectionEndEncodingLookAhead(void* userParam, AL_TBuffer* pStream, AL_TBuffer const* pSource, int)
   {
     auto params = static_cast<LookAheadCallBackParam*>(userParam);

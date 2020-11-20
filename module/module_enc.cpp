@@ -240,6 +240,8 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
   {
     auto settingsPass = media->settings;
     GenericEncoder& encoderPass = encoders[pass];
+    auto p = bind(&EncModule::_ProcessEndEncoding, this, placeholders::_1);
+    encoderPass.threadEndEncoding.reset(new ProcessorFifo<EndEncodingBuffers> { p, p, "End encoding" });
     AL_CB_EndEncoding callback = { EncModule::RedirectionEndEncoding, this };
 
     if(twoPassMngr && twoPassMngr->iPass == 1)
@@ -315,9 +317,10 @@ bool EncModule::DestroyEncoder()
 
   for(int pass = 0; pass < (int)encoders.size(); pass++)
   {
-    GenericEncoder encoder = encoders[pass];
+    auto encoder = encoders[pass];
 
     AL_Encoder_Destroy(encoder.enc);
+    encoder.threadEndEncoding.reset();
 
     if(encoder.nextQPBuffer != nullptr)
     {
@@ -861,20 +864,10 @@ bool EncModule::isEndOfFrame(AL_TBuffer* stream)
   return flags.isEndOfFrame;
 }
 
-void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
+void EncModule::_ProcessEndEncoding(EndEncodingBuffers buffers)
 {
-  AL_HEncoder encoder = encoders.back().enc;
-
-  auto errorCode = AL_Encoder_GetLastError(encoder);
-
-  if(AL_IS_ERROR_CODE(errorCode))
-  {
-    LOG_ERROR(ToStringEncodeError(errorCode));
-    callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(errorCode));
-  }
-
-  if(AL_IS_WARNING_CODE(errorCode))
-    LOG_WARNING(ToStringEncodeError(errorCode));
+  AL_TBuffer const* source = buffers.source;
+  AL_TBuffer* stream = buffers.stream;
 
   BufferHandles bufferHandles;
   media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
@@ -1039,6 +1032,24 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
   callbacks.filled(rhandleOut);
 }
 
+void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
+{
+  AL_HEncoder encoder = encoders.back().enc;
+
+  auto errorCode = AL_Encoder_GetLastError(encoder);
+
+  if(AL_IS_ERROR_CODE(errorCode))
+  {
+    LOG_ERROR(ToStringEncodeError(errorCode));
+    callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(errorCode));
+  }
+
+  if(AL_IS_WARNING_CODE(errorCode))
+    LOG_WARNING(ToStringEncodeError(errorCode));
+
+  encoders.back().threadEndEncoding->queue({ source, stream });
+}
+
 void EncModule::EndEncodingLookAhead(AL_TBuffer* stream, AL_TBuffer const* source, int index)
 {
   assert(index < (int)encoders.size() - 1);
@@ -1104,7 +1115,7 @@ void EncModule::EmptyFifo(GenericEncoder& encoder, bool isEOS)
 {
   assert(encoder.index < (int)encoders.size() - 1);
 
-  GenericEncoder nextEnc = encoders[encoder.index + 1];
+  auto nextEnc = encoders[encoder.index + 1];
 
   if(isEOS && encoder.lookAheadMngr->m_fifo.size() == 0)
   {

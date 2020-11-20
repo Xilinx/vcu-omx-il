@@ -481,6 +481,12 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Get(std::string index, void* sett
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_ALTERNATIVE_TRANSFER_CHARACTERISTICS_SEI")
+  {
+    *static_cast<bool*>(settings) = CreateAlternativeTransferCharacteristicsSEI(this->settings);
+    return SUCCESS;
+  }
+
   if(index == "SETTINGS_INDEX_ST2094_10_SEI")
   {
     *static_cast<bool*>(settings) = CreateST209410SEI(this->settings);
@@ -894,6 +900,15 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Set(std::string index, void const
     auto cll = *(static_cast<bool const*>(settings));
 
     if(!UpdateContentLightLevelSEI(this->settings, cll))
+      return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_ALTERNATIVE_TRANSFER_CHARACTERISTICS_SEI")
+  {
+    auto atc = *(static_cast<bool const*>(settings));
+
+    if(!UpdateAlternativeTransferCharacteristicsSEI(this->settings, atc))
       return BAD_PARAMETER;
     return SUCCESS;
   }

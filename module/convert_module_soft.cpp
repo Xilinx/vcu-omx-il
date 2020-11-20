@@ -153,8 +153,22 @@ TransferCharacteristicsType ConvertSoftToModuleTransferCharacteristics(AL_ETrans
 {
   switch(transferCharac)
   {
+  case AL_TRANSFER_CHARAC_BT_709: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_709;
   case AL_TRANSFER_CHARAC_UNSPECIFIED: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_UNSPECIFIED;
+  case AL_TRANSFER_CHARAC_BT_470_SYSTEM_M: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_470_SYSTEM_M;
+  case AL_TRANSFER_CHARAC_BT_470_SYSTEM_B: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_470_SYSTEM_B;
+  case AL_TRANSFER_CHARAC_BT_601: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_601;
+  case AL_TRANSFER_CHARAC_SMPTE_240M: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_SMPTE_240M;
+  case AL_TRANSFER_CHARAC_LINEAR: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_LINEAR;
+  case AL_TRANSFER_CHARAC_LOG: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_LOG;
+  case AL_TRANSFER_CHARAC_LOG_EXTENDED: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_LOG_EXTENDED;
+  case AL_TRANSFER_CHARAC_IEC_61966_2_4: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_IEC_61966_2_4;
+  case AL_TRANSFER_CHARAC_BT_1361: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_1361;
+  case AL_TRANSFER_CHARAC_IEC_61966_2_1: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_IEC_61966_2_1;
+  case AL_TRANSFER_CHARAC_BT_2020_10B: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2020_10B;
+  case AL_TRANSFER_CHARAC_BT_2020_12B: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2020_12B;
   case AL_TRANSFER_CHARAC_BT_2100_PQ: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2100_PQ;
+  case AL_TRANSFER_CHARAC_SMPTE_428: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_SMPTE_428;
   case AL_TRANSFER_CHARAC_BT_2100_HLG: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2100_HLG;
   default: return TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_MAX_ENUM;
   }
@@ -166,8 +180,22 @@ AL_ETransferCharacteristics ConvertModuleToSoftTransferCharacteristics(TransferC
 {
   switch(transferCharac)
   {
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_709: return AL_TRANSFER_CHARAC_BT_709;
   case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_UNSPECIFIED: return AL_TRANSFER_CHARAC_UNSPECIFIED;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_470_SYSTEM_M: return AL_TRANSFER_CHARAC_BT_470_SYSTEM_M;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_470_SYSTEM_B: return AL_TRANSFER_CHARAC_BT_470_SYSTEM_B;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_601: return AL_TRANSFER_CHARAC_BT_601;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_SMPTE_240M: return AL_TRANSFER_CHARAC_SMPTE_240M;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_LINEAR: return AL_TRANSFER_CHARAC_LINEAR;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_LOG: return AL_TRANSFER_CHARAC_LOG;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_LOG_EXTENDED: return AL_TRANSFER_CHARAC_LOG_EXTENDED;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_IEC_61966_2_4: return AL_TRANSFER_CHARAC_IEC_61966_2_4;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_1361: return AL_TRANSFER_CHARAC_BT_1361;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_IEC_61966_2_1: return AL_TRANSFER_CHARAC_IEC_61966_2_1;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2020_10B: return AL_TRANSFER_CHARAC_BT_2020_10B;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2020_12B: return AL_TRANSFER_CHARAC_BT_2020_12B;
   case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2100_PQ: return AL_TRANSFER_CHARAC_BT_2100_PQ;
+  case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_SMPTE_428: return AL_TRANSFER_CHARAC_SMPTE_428;
   case TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_BT_2100_HLG: return AL_TRANSFER_CHARAC_BT_2100_HLG;
   default: return AL_TRANSFER_CHARAC_MAX_ENUM;
   }
@@ -179,8 +207,20 @@ ColourMatrixType ConvertSoftToModuleColourMatrix(AL_EColourMatrixCoefficients co
 {
   switch(colourMatrix)
   {
+  case AL_COLOUR_MAT_COEFF_GBR: return ColourMatrixType::COLOUR_MATRIX_GBR;
+  case AL_COLOUR_MAT_COEFF_BT_709: return ColourMatrixType::COLOUR_MATRIX_BT_709;
   case AL_COLOUR_MAT_COEFF_UNSPECIFIED: return ColourMatrixType::COLOUR_MATRIX_UNSPECIFIED;
+  case AL_COLOUR_MAT_COEFF_USFCC_CFR: return ColourMatrixType::COLOUR_MATRIX_USFCC_CFR;
+  case AL_COLOUR_MAT_COEFF_BT_601_625: return ColourMatrixType::COLOUR_MATRIX_BT_601_625;
+  case AL_COLOUR_MAT_COEFF_BT_601_525: return ColourMatrixType::COLOUR_MATRIX_BT_601_525;
+  case AL_COLOUR_MAT_COEFF_BT_SMPTE_240M: return ColourMatrixType::COLOUR_MATRIX_BT_SMPTE_240M;
+  case AL_COLOUR_MAT_COEFF_BT_YCGCO: return ColourMatrixType::COLOUR_MATRIX_BT_YCGCO;
   case AL_COLOUR_MAT_COEFF_BT_2100_YCBCR: return ColourMatrixType::COLOUR_MATRIX_BT_2100_YCBCR;
+  case AL_COLOUR_MAT_COEFF_BT_2020_CLS: return ColourMatrixType::COLOUR_MATRIX_BT_2020_CLS;
+  case AL_COLOUR_MAT_COEFF_SMPTE_2085: return ColourMatrixType::COLOUR_MATRIX_SMPTE_2085;
+  case AL_COLOUR_MAT_COEFF_CHROMA_DERIVED_NCLS: return ColourMatrixType::COLOUR_MATRIX_CHROMA_DERIVED_NCLS;
+  case AL_COLOUR_MAT_COEFF_CHROMA_DERIVED_CLS: return ColourMatrixType::COLOUR_MATRIX_CHROMA_DERIVED_CLS;
+  case AL_COLOUR_MAT_COEFF_BT_2100_ICTCP: return ColourMatrixType::COLOUR_MATRIX_BT_2100_ICTCP;
   default: return ColourMatrixType::COLOUR_MATRIX_MAX_ENUM;
   }
 
@@ -191,8 +231,20 @@ AL_EColourMatrixCoefficients ConvertModuleToSoftColourMatrix(ColourMatrixType co
 {
   switch(colourMatrix)
   {
+  case ColourMatrixType::COLOUR_MATRIX_GBR: return AL_COLOUR_MAT_COEFF_GBR;
+  case ColourMatrixType::COLOUR_MATRIX_BT_709: return AL_COLOUR_MAT_COEFF_BT_709;
   case ColourMatrixType::COLOUR_MATRIX_UNSPECIFIED: return AL_COLOUR_MAT_COEFF_UNSPECIFIED;
+  case ColourMatrixType::COLOUR_MATRIX_USFCC_CFR: return AL_COLOUR_MAT_COEFF_USFCC_CFR;
+  case ColourMatrixType::COLOUR_MATRIX_BT_601_625: return AL_COLOUR_MAT_COEFF_BT_601_625;
+  case ColourMatrixType::COLOUR_MATRIX_BT_601_525: return AL_COLOUR_MAT_COEFF_BT_601_525;
+  case ColourMatrixType::COLOUR_MATRIX_BT_SMPTE_240M: return AL_COLOUR_MAT_COEFF_BT_SMPTE_240M;
+  case ColourMatrixType::COLOUR_MATRIX_BT_YCGCO: return AL_COLOUR_MAT_COEFF_BT_YCGCO;
   case ColourMatrixType::COLOUR_MATRIX_BT_2100_YCBCR: return AL_COLOUR_MAT_COEFF_BT_2100_YCBCR;
+  case ColourMatrixType::COLOUR_MATRIX_BT_2020_CLS: return AL_COLOUR_MAT_COEFF_BT_2020_CLS;
+  case ColourMatrixType::COLOUR_MATRIX_SMPTE_2085: return AL_COLOUR_MAT_COEFF_SMPTE_2085;
+  case ColourMatrixType::COLOUR_MATRIX_CHROMA_DERIVED_NCLS: return AL_COLOUR_MAT_COEFF_CHROMA_DERIVED_NCLS;
+  case ColourMatrixType::COLOUR_MATRIX_CHROMA_DERIVED_CLS: return AL_COLOUR_MAT_COEFF_CHROMA_DERIVED_CLS;
+  case ColourMatrixType::COLOUR_MATRIX_BT_2100_ICTCP: return AL_COLOUR_MAT_COEFF_BT_2100_ICTCP;
   default: return AL_COLOUR_MAT_COEFF_MAX_ENUM;
   }
 
@@ -288,6 +340,14 @@ HighDynamicRangeSeis ConvertSoftToModuleHDRSEIs(const AL_THDRSEIs& hdrSEIs)
   {
     modHDRSEIs.contentLightLevel.maxContentLightLevel = hdrSEIs.tCLL.max_content_light_level;
     modHDRSEIs.contentLightLevel.maxPicAverageLightLevel = hdrSEIs.tCLL.max_pic_average_light_level;
+  }
+
+  modHDRSEIs.hasATC = hdrSEIs.bHasATC;
+
+  if(modHDRSEIs.hasATC)
+  {
+    modHDRSEIs.alternativeTransferCharacteristics.preferredTransferCharacteristics =
+      ConvertSoftToModuleTransferCharacteristics(hdrSEIs.tATC.preferred_transfer_characteristics);
   }
 
   modHDRSEIs.hasST2094_10 = hdrSEIs.bHasST2094_10;
@@ -437,6 +497,14 @@ AL_THDRSEIs ConvertModuleToSoftHDRSEIs(const HighDynamicRangeSeis& hdrSEIs)
   {
     alHDRSEIs.tCLL.max_content_light_level = hdrSEIs.contentLightLevel.maxContentLightLevel;
     alHDRSEIs.tCLL.max_pic_average_light_level = hdrSEIs.contentLightLevel.maxPicAverageLightLevel;
+  }
+
+  alHDRSEIs.bHasATC = hdrSEIs.hasATC;
+
+  if(hdrSEIs.hasATC)
+  {
+    alHDRSEIs.tATC.preferred_transfer_characteristics =
+      ConvertModuleToSoftTransferCharacteristics(hdrSEIs.alternativeTransferCharacteristics.preferredTransferCharacteristics);
   }
 
   alHDRSEIs.bHasST2094_10 = hdrSEIs.hasST2094_10;

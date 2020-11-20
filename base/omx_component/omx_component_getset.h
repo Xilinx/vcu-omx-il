@@ -144,17 +144,20 @@ OMX_ERRORTYPE SetVideoColorMatrix(OMX_ALG_VIDEO_PARAM_COLOR_MATRIX const& colorM
 OMX_ERRORTYPE ConstructVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE& maxPictureSizes, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoMaxPictureSize(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE const& maxPictureSizes, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
+OMX_ERRORTYPE ConstructVideoMaxPictureSizeInBits(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE_IN_BITS& maxPictureSizes, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoMaxPictureSizeInBits(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZE_IN_BITS const& maxPictureSizes, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
 OMX_ERRORTYPE ConstructVideoMaxPictureSizes(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES& maxPictureSizes, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoMaxPictureSizes(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES const& maxPictureSizes, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
+OMX_ERRORTYPE ConstructVideoMaxPictureSizesInBits(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS& maxPictureSizes, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoMaxPictureSizesInBits(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS const& maxPictureSizes, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
 OMX_ERRORTYPE ConstructVideoLoopFilterBeta(OMX_ALG_VIDEO_PARAM_LOOP_FILTER_BETA& loopFilterBeta, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoLoopFilterBeta(OMX_ALG_VIDEO_PARAM_LOOP_FILTER_BETA const& loopFilterBeta, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
 OMX_ERRORTYPE ConstructVideoLoopFilterTc(OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC& loopFilterTc, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoLoopFilterTc(OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC const& loopFilterTc, Port const& port, std::shared_ptr<MediatypeInterface> media);
-
-OMX_ERRORTYPE ConstructVideoMaxPictureSizesInBits(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS& maxPictureSizes, Port const& port, std::shared_ptr<MediatypeInterface> media);
-OMX_ERRORTYPE SetVideoMaxPictureSizesInBits(OMX_ALG_VIDEO_PARAM_MAX_PICTURE_SIZES_IN_BITS const& maxPictureSizes, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
 // Decoder
 
@@ -197,6 +200,9 @@ OMX_ERRORTYPE SetVideoMasteringDisplayColourVolumeSEI(OMX_ALG_VIDEO_PARAM_MASTER
 
 OMX_ERRORTYPE ConstructVideoContentLightLevelSEI(OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI& cllSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoContentLightLevelSEI(OMX_ALG_VIDEO_PARAM_CONTENT_LIGHT_LEVEL_SEI const& cllSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
+OMX_ERRORTYPE ConstructVideoAlternativeTransferCharacteristicsSEI(OMX_ALG_VIDEO_PARAM_ALTERNATIVE_TRANSFER_CHARACTERISTICS_SEI& atcSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoAlternativeTransferCharacteristicsSEI(OMX_ALG_VIDEO_PARAM_ALTERNATIVE_TRANSFER_CHARACTERISTICS_SEI const& atcSEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
 OMX_ERRORTYPE ConstructVideoST209410SEI(OMX_ALG_VIDEO_PARAM_ST2094_10_SEI& st2094_10SEI, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoST209410SEI(OMX_ALG_VIDEO_PARAM_ST2094_10_SEI const& st2094_10SEI, Port const& port, std::shared_ptr<MediatypeInterface> media);

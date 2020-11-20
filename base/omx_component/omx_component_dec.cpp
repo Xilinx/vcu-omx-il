@@ -139,7 +139,9 @@ void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
     if(eosHandles.output)
       FillThisBufferCallBack(eosHandles.output);
     eosHandles.input = nullptr;
+    unique_lock<std::mutex> lock(eosHandles.mutex);
     eosHandles.output = nullptr;
+    lock.unlock();
     return;
   }
 
@@ -176,7 +178,10 @@ void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
   if(offset == 0 && payload == 0)
     header->nFlags = OMX_BUFFERFLAG_EOS;
   else
+  {
+    /* Concealment case (input EOF flag is missing): ensure flag is set */
     header->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
+  }
 
   delete filled;
 
@@ -354,7 +359,10 @@ void DecComponent::TreatEmptyBufferCommand(Task* task)
       transmit.push_back(PropagatedData { header->hMarkTargetComponent, header->pMarkData, header->nTickCount, header->nTimeStamp, header->nFlags });
     else
     {
-      if(oldTimeStamp != header->nTimeStamp || shouldPropagateData)
+      /* Concealment case(header->nFlags EndOfFrame is missing): propagate data if timestamps differ */
+      shouldPropagateData |= (oldTimeStamp != header->nTimeStamp);
+
+      if(shouldPropagateData)
       {
         transmit.push_back(PropagatedData { header->hMarkTargetComponent, header->pMarkData, header->nTickCount, header->nTimeStamp, header->nFlags });
         oldTimeStamp = header->nTimeStamp;
