@@ -231,16 +231,15 @@ BufferSizes CreateBufferSizes(AL_TEncSettings settings, Stride stride)
   if(channel.bSubframeLatency)
   {
     /* Due to rounding, the slices don't have all the same height. Compute size of the biggest slice */
-    auto lcuSize = 1 << channel.uLog2MaxCuSize;
-    auto rndHeight = RoundUp(static_cast<int>(channel.uEncHeight), lcuSize);
+    size_t lcuSize = 1 << channel.uLog2MaxCuSize;
+    size_t rndHeight = RoundUp(static_cast<size_t>(channel.uEncHeight), lcuSize);
     size_t outputSize = bufferSizes.output * lcuSize * (1 + rndHeight / (channel.uNumSlices * lcuSize)) / rndHeight;
     /* we need space for the headers on each slice */
-    outputSize += AL_ENC_MAX_HEADER_SIZE * channel.uNumSlices;
+    outputSize += (AL_ENC_MAX_HEADER_SIZE * channel.uNumSlices);
     /* stream size is required to be 32 bits aligned */
     size_t IP_WIDTH_ALIGNMENT = 32;
     outputSize = RoundUp(outputSize, IP_WIDTH_ALIGNMENT);
-
-    assert(outputSize <= static_cast<size_t>((1 << ((8 * sizeof(bufferSizes.output) - 1)))));
+    assert(outputSize <= static_cast<size_t>((1 << ((8 * sizeof(bufferSizes.output)) - 1))));
     bufferSizes.output = outputSize;
   }
 
