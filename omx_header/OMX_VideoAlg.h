@@ -1662,6 +1662,23 @@ typedef struct OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN
   OMX_U32 nDmaSize;
 }OMX_ALG_VIDEO_PARAM_RATE_CONTROL_PLUGIN;
 
+/**
+ * Uniform Slice Type parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                   : Size of the structure in bytes
+ *  nVersion                : OMX specification version information
+ *  nPortIndex              : Port that this structure applies to
+ *  bEnableUniformSliceType : Indicate if uniform slice type should be enabled
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_UNIFORM_SLICE_TYPE
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bEnableUniformSliceType;
+}OMX_ALG_VIDEO_PARAM_UNIFORM_SLICE_TYPE;
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

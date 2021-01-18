@@ -422,5 +422,10 @@ MediatypeInterface::ErrorType DecMediatypeHEVC::Set(std::string index, void cons
 
 bool DecMediatypeHEVC::Check()
 {
+  if(AL_DecSettings_CheckValidity(&settings, stderr) != 0)
+    return false;
+
+  AL_DecSettings_CheckCoherency(&settings, stdout);
+
   return true;
 }

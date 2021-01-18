@@ -517,6 +517,12 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Get(std::string index, void* sett
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_UNIFORM_SLICE_TYPE")
+  {
+    *static_cast<bool*>(settings) = CreateUniformSliceType(this->settings);
+    return SUCCESS;
+  }
+
   return BAD_INDEX;
 }
 
@@ -960,6 +966,15 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Set(std::string index, void const
     if(!UpdateMaxPictureSizesInBits(this->settings, sizes))
       return BAD_PARAMETER;
 
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_UNIFORM_SLICE_TYPE")
+  {
+    auto ust = *(static_cast<bool const*>(settings));
+
+    if(!UpdateUniformeSliceType(this->settings, ust))
+      return BAD_PARAMETER;
     return SUCCESS;
   }
 

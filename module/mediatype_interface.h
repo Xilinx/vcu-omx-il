@@ -207,6 +207,9 @@ static std::string const SETTINGS_INDEX_CROP {
 static std::string const SETTINGS_INDEX_MAX_PICTURE_SIZES_IN_BITS {
   "SETTINGS_INDEX_MAX_PICTURE_SIZES_IN_BITS"
 };
+static std::string const SETTINGS_INDEX_UNIFORM_SLICE_TYPE {
+  "SETTINGS_INDEX_UNIFORM_SLICE_TYPE"
+};
 
 struct MediatypeInterface
 {

@@ -239,6 +239,7 @@ BufferSizes CreateBufferSizes(AL_TEncSettings settings, Stride stride)
     /* stream size is required to be 32 bits aligned */
     size_t IP_WIDTH_ALIGNMENT = 32;
     outputSize = RoundUp(outputSize, IP_WIDTH_ALIGNMENT);
+
     assert(outputSize <= static_cast<size_t>((1 << ((8 * sizeof(bufferSizes.output)) - 1))));
     bufferSizes.output = outputSize;
   }
@@ -726,5 +727,18 @@ bool UpdateCrop(AL_TEncSettings& settings, Region region)
   channel.uOutputCropWidth = region.dimension.horizontal;
   channel.uOutputCropHeight = region.dimension.vertical;
 
+  return true;
+}
+
+bool CreateUniformSliceType(AL_TEncSettings settings)
+{
+  auto channel = settings.tChParam[0];
+  return channel.bUseUniformSliceType;
+}
+
+bool UpdateUniformeSliceType(AL_TEncSettings& settings, bool isUniformSliceTypeEnable)
+{
+  auto& channel = settings.tChParam[0];
+  channel.bUseUniformSliceType = isUniformSliceTypeEnable;
   return true;
 }

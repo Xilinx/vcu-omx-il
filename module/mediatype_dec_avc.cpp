@@ -414,5 +414,10 @@ MediatypeInterface::ErrorType DecMediatypeAVC::Set(std::string index, void const
 
 bool DecMediatypeAVC::Check()
 {
+  if(AL_DecSettings_CheckValidity(&settings, stderr) != 0)
+    return false;
+
+  AL_DecSettings_CheckCoherency(&settings, stdout);
+
   return true;
 }

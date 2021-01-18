@@ -2098,3 +2098,37 @@ OMX_ERRORTYPE ConstructVideoCrop(OMX_CONFIG_RECTTYPE& crop, Port const& port, st
   return OMX_ErrorNone;
 }
 
+static OMX_ERRORTYPE SetUniformSliceType(OMX_BOOL bEnableUniformSliceType, shared_ptr<MediatypeInterface> media)
+{
+  auto isUniformSliceTypeEnabled = ConvertOMXToMediaBool(bEnableUniformSliceType);
+  auto ret = media->Set(SETTINGS_INDEX_UNIFORM_SLICE_TYPE, &isUniformSliceTypeEnabled);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoUniformSliceType(OMX_ALG_VIDEO_PARAM_UNIFORM_SLICE_TYPE const& ust, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_UNIFORM_SLICE_TYPE rollback;
+  ConstructVideoUniformSliceType(rollback, port, media);
+  auto ret = SetUniformSliceType(ust.bEnableUniformSliceType, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoUniformSliceType(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoUniformSliceType(OMX_ALG_VIDEO_PARAM_UNIFORM_SLICE_TYPE& ust, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(ust);
+  ust.nPortIndex = port.index;
+  bool bIsUniformSliceTypeEnabled {
+    false
+  };
+  auto ret = media->Get(SETTINGS_INDEX_UNIFORM_SLICE_TYPE, &bIsUniformSliceTypeEnabled);
+  OMX_CHECK_MEDIA_GET(ret);
+  return OMX_ErrorNone;
+}

@@ -215,3 +215,6 @@ OMX_ERRORTYPE ConstructVideoRateControlPlugin(OMX_ALG_VIDEO_PARAM_RATE_CONTROL_P
 
 OMX_ERRORTYPE SetVideoCrop(OMX_CONFIG_RECTTYPE const& crop, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE ConstructVideoCrop(OMX_CONFIG_RECTTYPE& crop, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
+OMX_ERRORTYPE SetVideoUniformSliceType(OMX_ALG_VIDEO_PARAM_UNIFORM_SLICE_TYPE const& ust, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE ConstructVideoUniformSliceType(OMX_ALG_VIDEO_PARAM_UNIFORM_SLICE_TYPE& ust, Port const& port, std::shared_ptr<MediatypeInterface> media);

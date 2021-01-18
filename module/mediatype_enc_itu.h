@@ -152,3 +152,6 @@ bool UpdateCrop(AL_TEncSettings& settings, Region region);
 
 MaxPicturesSizes CreateMaxPictureSizesInBits(AL_TEncSettings settings);
 bool UpdateMaxPictureSizesInBits(AL_TEncSettings& settings, MaxPicturesSizes sizes);
+
+bool CreateUniformSliceType(AL_TEncSettings settings);
+bool UpdateUniformeSliceType(AL_TEncSettings& settings, bool isUniformSliceTypeEnable);
