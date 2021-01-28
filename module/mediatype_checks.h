@@ -68,3 +68,4 @@ bool CheckMaxPictureSizes(MaxPicturesSizes sizes);
 bool CheckLoopFilterBeta(int beta);
 bool CheckLoopFilterTc(int tc);
 bool CheckCrop(Region region);
+bool CheckLog2CodingUnit(MinMax<int> log2CodingUnit);

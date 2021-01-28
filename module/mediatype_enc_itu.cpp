@@ -705,7 +705,7 @@ void ResetRcPluginContext(AL_TAllocator* allocator, AL_TEncSettings* settings)
   SetRcPluginContext(allocator, settings, rcp);
 }
 
-Region CreateCrop(AL_TEncSettings settings)
+Region CreateOutputCrop(AL_TEncSettings settings)
 {
   auto channel = settings.tChParam[0];
   Region region;
@@ -716,7 +716,7 @@ Region CreateCrop(AL_TEncSettings settings)
   return region;
 }
 
-bool UpdateCrop(AL_TEncSettings& settings, Region region)
+bool UpdateOutputCrop(AL_TEncSettings& settings, Region region)
 {
   if(!CheckCrop(region))
     return false;
@@ -726,6 +726,32 @@ bool UpdateCrop(AL_TEncSettings& settings, Region region)
   channel.uOutputCropPosY = region.point.y;
   channel.uOutputCropWidth = region.dimension.horizontal;
   channel.uOutputCropHeight = region.dimension.vertical;
+
+  return true;
+}
+
+Region CreateInputCrop(AL_TEncSettings settings)
+{
+  auto channel = settings.tChParam[0];
+  Region region;
+  region.point.x = channel.uSrcCropPosX;
+  region.point.y = channel.uSrcCropPosY;
+  region.dimension.horizontal = channel.uSrcCropWidth;
+  region.dimension.vertical = channel.uSrcCropHeight;
+  return region;
+}
+
+bool UpdateInputCrop(AL_TEncSettings& settings, Region region)
+{
+  if(!CheckCrop(region))
+    return false;
+
+  auto& channel = settings.tChParam[0];
+  channel.uSrcCropPosX = region.point.x;
+  channel.uSrcCropPosY = region.point.y;
+  channel.uSrcCropWidth = region.dimension.horizontal;
+  channel.uSrcCropHeight = region.dimension.vertical;
+  channel.bEnableSrcCrop = (region.dimension.horizontal > 0) || (region.dimension.vertical > 0);
 
   return true;
 }
@@ -740,5 +766,25 @@ bool UpdateUniformeSliceType(AL_TEncSettings& settings, bool isUniformSliceTypeE
 {
   auto& channel = settings.tChParam[0];
   channel.bUseUniformSliceType = isUniformSliceTypeEnable;
+  return true;
+}
+
+MinMax<int> CreateLog2CodingUnit(AL_TEncSettings settings)
+{
+  auto channel = settings.tChParam[0];
+  MinMax<int> log2CodingUnit;
+  log2CodingUnit.min = channel.uLog2MinCuSize;
+  log2CodingUnit.max = channel.uLog2MaxCuSize;
+  return log2CodingUnit;
+}
+
+bool UpdateLog2CodingUnit(AL_TEncSettings& settings, MinMax<int> log2CodingUnit)
+{
+  if(!CheckLog2CodingUnit(log2CodingUnit))
+    return false;
+
+  auto& channel = settings.tChParam[0];
+  channel.uLog2MinCuSize = log2CodingUnit.min;
+  channel.uLog2MaxCuSize = log2CodingUnit.max;
   return true;
 }

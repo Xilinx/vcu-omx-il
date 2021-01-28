@@ -491,15 +491,27 @@ MediatypeInterface::ErrorType EncMediatypeHEVC::Get(std::string index, void* set
     return SUCCESS;
   }
 
-  if(index == "SETTINGS_INDEX_CROP")
+  if(index == "SETTINGS_INDEX_INPUT_CROP")
   {
-    *(static_cast<Region*>(settings)) = CreateCrop(this->settings);
+    *(static_cast<Region*>(settings)) = CreateInputCrop(this->settings);
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_OUTPUT_CROP")
+  {
+    *(static_cast<Region*>(settings)) = CreateOutputCrop(this->settings);
     return SUCCESS;
   }
 
   if(index == "SETTINGS_INDEX_MAX_PICTURE_SIZES_IN_BITS")
   {
     *static_cast<MaxPicturesSizes*>(settings) = CreateMaxPictureSizesInBits(this->settings);
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_LOG2_CODING_UNIT")
+  {
+    *static_cast<MinMax<int>*>(settings) = CreateLog2CodingUnit(this->settings);
     return SUCCESS;
   }
 
@@ -901,11 +913,20 @@ MediatypeInterface::ErrorType EncMediatypeHEVC::Set(std::string index, void cons
     return SUCCESS;
   }
 
-  if(index == "SETTINGS_INDEX_CROP")
+  if(index == "SETTINGS_INDEX_INPUT_CROP")
   {
     auto crop = *(static_cast<Region const*>(settings));
 
-    if(!UpdateCrop(this->settings, crop))
+    if(!UpdateInputCrop(this->settings, crop))
+      return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_OUTPUT_CROP")
+  {
+    auto crop = *(static_cast<Region const*>(settings));
+
+    if(!UpdateOutputCrop(this->settings, crop))
       return BAD_PARAMETER;
     return SUCCESS;
   }
@@ -915,6 +936,16 @@ MediatypeInterface::ErrorType EncMediatypeHEVC::Set(std::string index, void cons
     auto sizes = *(static_cast<MaxPicturesSizes const*>(settings));
 
     if(!UpdateMaxPictureSizesInBits(this->settings, sizes))
+      return BAD_PARAMETER;
+
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_LOG2_CODING_UNIT")
+  {
+    auto log2CodingUnit = *(static_cast<MinMax<int> const*>(settings));
+
+    if(!UpdateLog2CodingUnit(this->settings, log2CodingUnit))
       return BAD_PARAMETER;
 
     return SUCCESS;

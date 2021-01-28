@@ -68,3 +68,6 @@ DecodedPictureBufferType CreateDecodedPictureBuffer(AL_TDecSettings settings);
 bool UpdateIsEnabledSubframe(AL_TDecSettings& settings, bool isSubframeEnabled);
 
 bool UpdateDecodedPictureBuffer(AL_TDecSettings& settings, DecodedPictureBufferType decodedPictureBuffer);
+
+Point<int> CreateOutputPosition(AL_TDecSettings settings);
+bool UpdateOutputPosition(AL_TDecSettings& settings, Point<int> position);

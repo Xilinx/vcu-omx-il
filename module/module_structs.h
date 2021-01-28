@@ -96,6 +96,13 @@ struct Resolution
   Stride stride;
 };
 
+template<typename T>
+struct MinMax
+{
+  T min;
+  T max;
+};
+
 struct Clock
 {
   int framerate;

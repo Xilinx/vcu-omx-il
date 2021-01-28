@@ -199,3 +199,18 @@ bool UpdateResolution(AL_TDecSettings& settings, Stride& stride, StrideAlignment
 
   return true;
 }
+
+Point<int> CreateOutputPosition(AL_TDecSettings settings)
+{
+  Point<int> position {};
+  position.x = settings.tOutputPosition.iX;
+  position.y = settings.tOutputPosition.iY;
+  return position;
+}
+
+bool UpdateOutputPosition(AL_TDecSettings& settings, Point<int> position)
+{
+  settings.tOutputPosition.iX = position.x;
+  settings.tOutputPosition.iY = position.y;
+  return true;
+}

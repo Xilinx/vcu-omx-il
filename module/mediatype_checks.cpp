@@ -249,3 +249,8 @@ bool CheckCrop(Region region)
 {
   return (region.point.x >= 0) && (region.point.y >= 0) && (region.dimension.horizontal >= 0) && (region.dimension.vertical >= 0);
 }
+
+bool CheckLog2CodingUnit(MinMax<int> log2CodingUnit)
+{
+  return log2CodingUnit.min >= 0 && log2CodingUnit.max >= 0;
+}

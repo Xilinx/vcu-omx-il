@@ -147,11 +147,17 @@ RateControlPlugin CreateRateControlPlugin(AL_TAllocator* allocator, AL_TEncSetti
 bool SetRcPluginContext(AL_TAllocator* allocator, AL_TEncSettings* settings, RateControlPlugin const& rcp);
 void ResetRcPluginContext(AL_TAllocator* allocator, AL_TEncSettings* settings);
 
-Region CreateCrop(AL_TEncSettings settings);
-bool UpdateCrop(AL_TEncSettings& settings, Region region);
+Region CreateOutputCrop(AL_TEncSettings settings);
+bool UpdateOutputCrop(AL_TEncSettings& settings, Region region);
+
+Region CreateInputCrop(AL_TEncSettings settings);
+bool UpdateInputCrop(AL_TEncSettings& settings, Region region);
 
 MaxPicturesSizes CreateMaxPictureSizesInBits(AL_TEncSettings settings);
 bool UpdateMaxPictureSizesInBits(AL_TEncSettings& settings, MaxPicturesSizes sizes);
 
 bool CreateUniformSliceType(AL_TEncSettings settings);
 bool UpdateUniformeSliceType(AL_TEncSettings& settings, bool isUniformSliceTypeEnable);
+
+MinMax<int> CreateLog2CodingUnit(AL_TEncSettings settings);
+bool UpdateLog2CodingUnit(AL_TEncSettings& settings, MinMax<int> log2CodingUnit);

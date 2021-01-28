@@ -218,3 +218,6 @@ OMX_ERRORTYPE ConstructVideoCrop(OMX_CONFIG_RECTTYPE& crop, Port const& port, st
 
 OMX_ERRORTYPE SetVideoUniformSliceType(OMX_ALG_VIDEO_PARAM_UNIFORM_SLICE_TYPE const& ust, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE ConstructVideoUniformSliceType(OMX_ALG_VIDEO_PARAM_UNIFORM_SLICE_TYPE& ust, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
+OMX_ERRORTYPE SetVideoOutputPosition(OMX_CONFIG_POINTTYPE const& position, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE ConstructVideoOutputPosition(OMX_CONFIG_POINTTYPE& position, Port const& port, std::shared_ptr<MediatypeInterface> media);

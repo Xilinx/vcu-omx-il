@@ -281,6 +281,12 @@ MediatypeInterface::ErrorType DecMediatypeAVC::Get(std::string index, void* sett
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_OUTPUT_POSITION")
+  {
+    *(static_cast<Point<int>*>(settings)) = CreateOutputPosition(this->settings);
+    return SUCCESS;
+  }
+
   return BAD_INDEX;
 }
 
@@ -406,6 +412,15 @@ MediatypeInterface::ErrorType DecMediatypeAVC::Set(std::string index, void const
   if(index == "SETTINGS_INDEX_INPUT_PARSED")
   {
     this->settings.eInputMode = *(static_cast<bool const*>(settings)) ? AL_DEC_SPLIT_INPUT : AL_DEC_UNSPLIT_INPUT;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_OUTPUT_POSITION")
+  {
+    auto position = *(static_cast<Point<int> const*>(settings));
+
+    if(!UpdateOutputPosition(this->settings, position))
+      return BAD_PARAMETER;
     return SUCCESS;
   }
 

@@ -2057,14 +2057,15 @@ OMX_ERRORTYPE ConstructVideoRateControlPlugin(OMX_ALG_VIDEO_PARAM_RATE_CONTROL_P
   return OMX_ErrorNone;
 }
 
-static OMX_ERRORTYPE SetCrop(OMX_U32 nLeft, OMX_U32 nTop, OMX_U32 nWidth, OMX_U32 nHeight, shared_ptr<MediatypeInterface> media)
+static OMX_ERRORTYPE SetCrop(OMX_U32 portIndex, OMX_U32 nLeft, OMX_U32 nTop, OMX_U32 nWidth, OMX_U32 nHeight, shared_ptr<MediatypeInterface> media)
 {
   Region region;
   region.point.x = nLeft;
   region.point.y = nTop;
   region.dimension.horizontal = nWidth;
   region.dimension.vertical = nHeight;
-  auto ret = media->Set(SETTINGS_INDEX_CROP, &region);
+  auto indexSettings = IsInputPort(portIndex) ? SETTINGS_INDEX_INPUT_CROP : SETTINGS_INDEX_OUTPUT_CROP;
+  auto ret = media->Set(indexSettings, &region);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
 }
@@ -2073,7 +2074,7 @@ OMX_ERRORTYPE SetVideoCrop(OMX_CONFIG_RECTTYPE const& crop, Port const& port, st
 {
   OMX_CONFIG_RECTTYPE rollback;
   ConstructVideoCrop(rollback, port, media);
-  auto ret = SetCrop(crop.nLeft, crop.nTop, crop.nWidth, crop.nHeight, media);
+  auto ret = SetCrop(port.index, crop.nLeft, crop.nTop, crop.nWidth, crop.nHeight, media);
 
   if(ret != OMX_ErrorNone)
   {
@@ -2089,7 +2090,9 @@ OMX_ERRORTYPE ConstructVideoCrop(OMX_CONFIG_RECTTYPE& crop, Port const& port, st
   OMXChecker::SetHeaderVersion(crop);
   crop.nPortIndex = port.index;
   Region region {};
-  auto ret = media->Get(SETTINGS_INDEX_CROP, &region);
+
+  auto index = IsInputPort(port.index) ? SETTINGS_INDEX_INPUT_CROP : SETTINGS_INDEX_OUTPUT_CROP;
+  auto ret = media->Get(index, &region);
   OMX_CHECK_MEDIA_GET(ret);
   crop.nLeft = region.point.x;
   crop.nTop = region.point.y;
@@ -2130,5 +2133,48 @@ OMX_ERRORTYPE ConstructVideoUniformSliceType(OMX_ALG_VIDEO_PARAM_UNIFORM_SLICE_T
   };
   auto ret = media->Get(SETTINGS_INDEX_UNIFORM_SLICE_TYPE, &bIsUniformSliceTypeEnabled);
   OMX_CHECK_MEDIA_GET(ret);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetOutputPosition(OMX_S32 nX, OMX_S32 nY, shared_ptr<MediatypeInterface> media)
+{
+  Point<int> point {};
+  point.x = nX;
+  point.y = nY;
+  auto ret = media->Set(SETTINGS_INDEX_OUTPUT_POSITION, &point);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoOutputPosition(OMX_CONFIG_POINTTYPE const& position, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  if(IsInputPort(port.index))
+    throw OMX_ErrorBadParameter;
+
+  OMX_CONFIG_POINTTYPE rollback;
+  ConstructVideoOutputPosition(rollback, port, media);
+  auto ret = SetOutputPosition(position.nX, position.nY, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoOutputPosition(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoOutputPosition(OMX_CONFIG_POINTTYPE& position, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  if(IsInputPort(port.index))
+    throw OMX_ErrorBadParameter;
+
+  OMXChecker::SetHeaderVersion(position);
+  position.nPortIndex = port.index;
+  Point<int> point {};
+  auto ret = media->Get(SETTINGS_INDEX_OUTPUT_POSITION, &point);
+  OMX_CHECK_MEDIA_GET(ret);
+  position.nX = point.x;
+  position.nY = point.y;
   return OMX_ErrorNone;
 }

@@ -1161,7 +1161,10 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
                          AL_TDimension tDim {
                            resolution.dimension.horizontal, resolution.dimension.vertical
                          };
-                         auto size = AL_GetAllocSizeEP2(tDim, static_cast<AL_ECodec>(AL_GET_CODEC(media->settings.tChParam[0].eProfile)));
+                         MinMax<int> log2CodingUnit {};
+                         ret = media->Get(SETTINGS_INDEX_LOG2_CODING_UNIT, &log2CodingUnit);
+                         assert(ret == MediatypeInterface::SUCCESS);
+                         auto size = AL_GetAllocSizeEP2(tDim, static_cast<AL_ECodec>(AL_GET_CODEC(media->settings.tChParam[0].eProfile)), log2CodingUnit.max);
                          auto qpTable = AL_Buffer_Create_And_Allocate(allocator.get(), size, AL_Buffer_Destroy);
                          copy(bufferToCopy, bufferToCopy + size, AL_Buffer_GetData(qpTable));
                          return qpTable;
@@ -1409,7 +1412,10 @@ ModuleInterface::ErrorType EncModule::GetDynamic(std::string index, void* param)
     AL_TDimension tDim {
       resolution.dimension.horizontal, resolution.dimension.vertical
     };
-    *static_cast<int*>(param) = AL_GetAllocSizeEP2(tDim, static_cast<AL_ECodec>(AL_GET_CODEC(media->settings.tChParam[0].eProfile)));
+    MinMax<int> log2CodingUnit {};
+    ret = media->Get(SETTINGS_INDEX_LOG2_CODING_UNIT, &log2CodingUnit);
+    assert(ret == MediatypeInterface::SUCCESS);
+    *static_cast<int*>(param) = AL_GetAllocSizeEP2(tDim, static_cast<AL_ECodec>(AL_GET_CODEC(media->settings.tChParam[0].eProfile)), log2CodingUnit.max);
     return SUCCESS;
   }
 
