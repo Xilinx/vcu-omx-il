@@ -437,10 +437,16 @@ MediatypeInterface::ErrorType DecMediatypeHEVC::Set(std::string index, void cons
 
 bool DecMediatypeHEVC::Check()
 {
+  int tmp_height = settings.tStream.tDim.iHeight;
+
+  settings.tStream.tDim.iHeight = RoundUp(settings.tStream.tDim.iHeight, 16);
+
   if(AL_DecSettings_CheckValidity(&settings, stderr) != 0)
     return false;
 
   AL_DecSettings_CheckCoherency(&settings, stdout);
+
+  settings.tStream.tDim.iHeight = tmp_height;
 
   return true;
 }

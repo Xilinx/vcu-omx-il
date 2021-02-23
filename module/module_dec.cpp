@@ -387,6 +387,14 @@ ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
   if(inputParsed)
     decCallbacks.parsedSeiCB = { nullptr, nullptr };
 
+  int tmp_height = media->settings.tStream.tDim.iHeight;
+
+  if(shouldPrealloc)
+  {
+    // Fix: remove this line when a better fix is found
+    media->settings.tStream.tDim.iHeight = RoundUp(media->settings.tStream.tDim.iHeight, 16);
+  }
+
   auto errorCode = AL_Decoder_Create(&decoder, channel, allocator.get(), &media->settings, &decCallbacks);
 
   if(AL_IS_ERROR_CODE(errorCode))
@@ -403,6 +411,9 @@ ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
       DestroyDecoder();
       return ToModuleError(errorCode);
     }
+
+    // Fix: remove this line when a better fix is found
+    media->settings.tStream.tDim.iHeight = tmp_height;
   }
 
   return SUCCESS;
