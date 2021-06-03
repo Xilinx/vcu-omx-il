@@ -104,8 +104,6 @@ GdrType ConvertSoftToModuleGdr(AL_EGdrMode gdr)
 
 RateControlOptions ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption options)
 {
-  if(options & AL_RC_OPT_NONE)
-    return RateControlOptions {};
   RateControlOptions moduleOptions {};
 
   if(options & AL_RC_OPT_SCN_CHG_RES)
@@ -119,6 +117,9 @@ RateControlOptions ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption optio
 
   if(options & AL_RC_OPT_ENABLE_SKIP)
     moduleOptions.isSkipEnabled = true;
+
+  if(options & AL_RC_OPT_SC_PREVENTION)
+    moduleOptions.isSceneChangePrevention = true;
 
   return moduleOptions;
 }
@@ -257,6 +258,9 @@ AL_ERateCtrlOption ConvertModuleToSoftRateControlOption(RateControlOptions optio
 
   if(options.isSkipEnabled)
     softOptions = static_cast<AL_ERateCtrlOption>(softOptions | AL_RC_OPT_ENABLE_SKIP);
+
+  if(options.isSceneChangePrevention)
+    softOptions = static_cast<AL_ERateCtrlOption>(softOptions | AL_RC_OPT_SC_PREVENTION);
 
   return softOptions;
 }

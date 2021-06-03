@@ -165,6 +165,7 @@ struct QPs
 struct RateControlOptions
 {
   bool isSceneChangeResilienceEnabled;
+  bool isSceneChangePrevention;
   bool isDelayEnabled;
   bool isStaticSceneEnabled;
   bool isSkipEnabled;

@@ -99,7 +99,7 @@ void EncMediatypeAVC::Reset()
   auto& rateControl = channel.tRCParam;
   rateControl.eRCMode = AL_RC_CBR;
   rateControl.iInitialQP = 30;
-  rateControl.eOptions = static_cast<AL_ERateCtrlOption>(rateControl.eOptions | AL_RC_OPT_SCN_CHG_RES);
+  rateControl.eOptions = static_cast<AL_ERateCtrlOption>(rateControl.eOptions | AL_RC_OPT_SCN_CHG_RES | AL_RC_OPT_SC_PREVENTION);
   rateControl.uMaxBitRate = rateControl.uTargetBitRate = 64000;
   rateControl.uFrameRate = 15;
   auto& gopParam = channel.tGopParam;
