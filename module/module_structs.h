@@ -165,10 +165,10 @@ struct QPs
 struct RateControlOptions
 {
   bool isSceneChangeResilienceEnabled;
-  bool isSceneChangePrevention;
   bool isDelayEnabled;
   bool isStaticSceneEnabled;
   bool isSkipEnabled;
+  bool isSceneChangePrevention;
 };
 
 struct MaxPicturesSizes
@@ -257,6 +257,7 @@ struct Flags
   bool isSync = false;
   bool isEndOfSlice = false;
   bool isEndOfFrame = false;
+  bool isCorrupt = false;
 };
 
 typedef Point<uint16_t> ChromaCoord;

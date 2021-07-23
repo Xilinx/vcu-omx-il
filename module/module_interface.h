@@ -183,6 +183,7 @@ struct ModuleInterface
     CHANNEL_CREATION_RESOURCE_UNAVAILABLE,
     CHANNEL_CREATION_RESOURCE_FRAGMENTED,
     NO_MEMORY,
+    WATCHDOG_TIMEOUT,
     MAX,
   };
 
@@ -234,6 +235,9 @@ static std::map<ModuleInterface::ErrorType, std::string> ModuleInterfaceErrorInS
   },
   {
     ModuleInterface::NO_MEMORY, "NO_MEMORY"
+  },
+  {
+    ModuleInterface::WATCHDOG_TIMEOUT, "WATCHDOG_TIMEOUT"
   },
   {
     ModuleInterface::MAX, "MAX"

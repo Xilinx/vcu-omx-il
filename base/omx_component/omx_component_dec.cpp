@@ -139,9 +139,7 @@ void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
     if(eosHandles.output)
       FillThisBufferCallBack(eosHandles.output);
     eosHandles.input = nullptr;
-    unique_lock<std::mutex> lock(eosHandles.mutex);
     eosHandles.output = nullptr;
-    lock.unlock();
     return;
   }
 

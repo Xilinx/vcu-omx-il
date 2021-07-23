@@ -226,7 +226,7 @@ BufferSizes CreateBufferSizes(AL_TEncSettings settings, Stride stride)
   bool bIsXAVCIntraCBG = AL_IS_XAVC_CBG(channel.eProfile) && AL_IS_INTRA_PROFILE(channel.eProfile);
 
   if(bIsXAVCIntraCBG)
-    bufferSizes.output = AL_GetMaxNalSize(AL_GET_CODEC(channel.eProfile), { channel.uEncWidth, channel.uEncHeight }, AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), channel.uLevel, AL_GET_PROFILE_IDC(channel.eProfile));
+    bufferSizes.output = AL_GetMaxNalSize({ channel.uEncWidth, channel.uEncHeight }, AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), channel.eProfile, channel.uLevel);
 
   if(channel.bSubframeLatency)
   {

@@ -62,7 +62,7 @@ static void ClearPropagatedData(OMX_BUFFERHEADERTYPE* header)
   header->pMarkData = nullptr;
   header->nFilledLen = 0;
   header->nTickCount = 0;
-  header->nFlags = 0;
+  header->nFlags = header->nFlags & OMX_BUFFERFLAG_DATACORRUPT ? OMX_BUFFERFLAG_DATACORRUPT : 0;
 }
 
 void Component::ReturnEmptiedBuffer(OMX_BUFFERHEADERTYPE* emptied)
@@ -497,7 +497,6 @@ static OMX_VERSIONTYPE GetVersion(OMX_PTR ptr)
 OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR param)
 {
   OMX_TRY();
-  lock_guard<std::mutex> lock(mutex);
   OMXChecker::CheckNotNull(param);
   OMXChecker::CheckHeaderVersion(GetVersion(param));
   OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::GetParameter, state);
@@ -886,7 +885,6 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
 OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR param)
 {
   OMX_TRY();
-  lock_guard<std::mutex> lock(mutex);
   OMXChecker::CheckNotNull(param);
   OMXChecker::CheckHeaderVersion(GetVersion(param));
 
@@ -1413,7 +1411,6 @@ OMX_ERRORTYPE Component::GetComponentVersion(OMX_OUT OMX_STRING name, OMX_OUT OM
 OMX_ERRORTYPE Component::GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR config)
 {
   OMX_TRY();
-  lock_guard<std::mutex> lock(mutex);
   OMXChecker::CheckNotNull(config);
   OMXChecker::CheckHeaderVersion(GetVersion(config));
   OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::GetConfig, state);
@@ -1496,7 +1493,6 @@ OMX_ERRORTYPE Component::GetConfig(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_PTR
 OMX_ERRORTYPE Component::SetConfig(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR config)
 {
   OMX_TRY();
-  lock_guard<std::mutex> lock(mutex);
   OMXChecker::CheckNotNull(config);
   OMXChecker::CheckHeaderVersion(GetVersion(config));
   OMXChecker::CheckStateOperation(OMXChecker::ComponentMethods::SetConfig, state);
@@ -2094,15 +2090,11 @@ void Component::TreatFillBufferCommand(Task task)
 
   auto handle = new OMXBufferHandle(header);
 
-  unique_lock<std::mutex> lock(eosHandles.mutex);
-
   if(!eosHandles.output)
   {
     eosHandles.output = handle;
-    lock.unlock();
     return;
   }
-  lock.unlock();
   auto success = module->Fill(handle);
   assert(success);
 }
@@ -2131,7 +2123,6 @@ static RegionQuality CreateRegionQualityByValue(OMX_ALG_VIDEO_CONFIG_REGION_OF_I
 
 void Component::TreatDynamicCommand(Task task)
 {
-  lock_guard<std::mutex> lock(mutex);
   assert(task.cmd == Command::SetDynamic);
   auto index = static_cast<OMX_U32>((uintptr_t)task.data);
   void* opt = task.opt.get();

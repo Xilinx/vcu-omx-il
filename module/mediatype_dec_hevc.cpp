@@ -85,7 +85,7 @@ void DecMediatypeHEVC::Reset()
   stream.eChroma = AL_CHROMA_4_2_0;
   stream.iBitDepth = 8;
   stream.iLevel = 10;
-  stream.iProfileIdc = AL_PROFILE_HEVC_MAIN;
+  stream.eProfile = AL_PROFILE_HEVC_MAIN;
   stream.eSequenceMode = AL_SM_PROGRESSIVE;
 
   tier = 0;
@@ -150,7 +150,7 @@ static BufferCounts CreateBufferCounts(AL_TDecSettings settings)
 static ProfileLevel CreateProfileLevel(AL_TDecSettings settings, int tier)
 {
   auto stream = settings.tStream;
-  return IsHighTier(tier) ? CreateHEVCHighTierProfileLevel(static_cast<AL_EProfile>(stream.iProfileIdc), stream.iLevel) : CreateHEVCMainTierProfileLevel(static_cast<AL_EProfile>(stream.iProfileIdc), stream.iLevel);
+  return IsHighTier(tier) ? CreateHEVCHighTierProfileLevel(stream.eProfile, stream.iLevel) : CreateHEVCMainTierProfileLevel(stream.eProfile, stream.iLevel);
 }
 
 MediatypeInterface::ErrorType DecMediatypeHEVC::Get(std::string index, void* settings) const
@@ -319,7 +319,7 @@ static bool UpdateProfileLevel(AL_TDecSettings& settings, int& tier, ProfileLeve
 
   auto profile = ConvertModuleToSoftHEVCProfile(profilelevel.profile.hevc);
 
-  settings.tStream.iProfileIdc = profile;
+  settings.tStream.eProfile = profile;
   settings.tStream.iLevel = profilelevel.level;
   tier = IsHighTierProfile(profilelevel.profile.hevc) ? 1 : 0;
   return true;
@@ -437,8 +437,9 @@ MediatypeInterface::ErrorType DecMediatypeHEVC::Set(std::string index, void cons
 
 bool DecMediatypeHEVC::Check()
 {
+  // Fix: remove this line and below block when a better fix is found
+  // This is a Gstreamer issue (not OMX) for allocation!
   int tmp_height = settings.tStream.tDim.iHeight;
-
   settings.tStream.tDim.iHeight = RoundUp(settings.tStream.tDim.iHeight, 16);
 
   if(AL_DecSettings_CheckValidity(&settings, stderr) != 0)
@@ -446,6 +447,8 @@ bool DecMediatypeHEVC::Check()
 
   AL_DecSettings_CheckCoherency(&settings, stdout);
 
+  // Fix: remove this line and below block when a better fix is found
+  // This is a Gstreamer issue (not OMX) for allocation!
   settings.tStream.tDim.iHeight = tmp_height;
 
   return true;

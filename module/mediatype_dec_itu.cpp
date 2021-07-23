@@ -160,7 +160,7 @@ BufferSizes CreateBufferSizes(AL_TDecSettings settings, Stride stride)
 {
   BufferSizes bufferSizes {};
   auto streamSettings = settings.tStream;
-  bufferSizes.input = AL_GetMaxNalSize(settings.eCodec, streamSettings.tDim, streamSettings.eChroma, streamSettings.iBitDepth, streamSettings.iLevel, streamSettings.iProfileIdc);
+  bufferSizes.input = AL_GetMaxNalSize(streamSettings.tDim, streamSettings.eChroma, streamSettings.iBitDepth, streamSettings.eProfile, streamSettings.iLevel);
   bufferSizes.output = RawAllocationSize(stride, streamSettings.eChroma);
   return bufferSizes;
 }

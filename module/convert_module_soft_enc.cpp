@@ -106,20 +106,11 @@ RateControlOptions ConvertSoftToModuleRateControlOption(AL_ERateCtrlOption optio
 {
   RateControlOptions moduleOptions {};
 
-  if(options & AL_RC_OPT_SCN_CHG_RES)
-    moduleOptions.isSceneChangeResilienceEnabled = true;
-
-  if(options & AL_RC_OPT_DELAYED)
-    moduleOptions.isDelayEnabled = true;
-
-  if(options & AL_RC_OPT_STATIC_SCENE)
-    moduleOptions.isStaticSceneEnabled = true;
-
-  if(options & AL_RC_OPT_ENABLE_SKIP)
-    moduleOptions.isSkipEnabled = true;
-
-  if(options & AL_RC_OPT_SC_PREVENTION)
-    moduleOptions.isSceneChangePrevention = true;
+  moduleOptions.isSceneChangeResilienceEnabled = (options & AL_RC_OPT_SCN_CHG_RES);
+  moduleOptions.isDelayEnabled = (options & AL_RC_OPT_DELAYED);
+  moduleOptions.isStaticSceneEnabled = (options & AL_RC_OPT_STATIC_SCENE);
+  moduleOptions.isSkipEnabled = (options & AL_RC_OPT_ENABLE_SKIP);
+  moduleOptions.isSceneChangePrevention = (options & AL_RC_OPT_SC_PREVENTION);
 
   return moduleOptions;
 }

@@ -85,7 +85,7 @@ void DecMediatypeAVC::Reset()
   stream.eChroma = AL_CHROMA_4_2_0;
   stream.iBitDepth = 8;
   stream.iLevel = 10;
-  stream.iProfileIdc = AL_PROFILE_AVC_C_BASELINE;
+  stream.eProfile = AL_PROFILE_AVC_C_BASELINE;
   stream.eSequenceMode = AL_SM_PROGRESSIVE;
 
   stride.horizontal = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode)), strideAlignments.horizontal);
@@ -144,7 +144,7 @@ static BufferCounts CreateBufferCounts(AL_TDecSettings settings)
 static ProfileLevel CreateProfileLevel(AL_TDecSettings settings)
 {
   auto stream = settings.tStream;
-  return CreateAVCProfileLevel(static_cast<AL_EProfile>(stream.iProfileIdc), stream.iLevel);
+  return CreateAVCProfileLevel(stream.eProfile, stream.iLevel);
 }
 
 MediatypeInterface::ErrorType DecMediatypeAVC::Get(std::string index, void* settings) const
@@ -312,7 +312,7 @@ static bool UpdateProfileLevel(AL_TDecSettings& settings, ProfileLevel profilele
     return false;
 
   auto profile = ConvertModuleToSoftAVCProfile(profilelevel.profile.avc);
-  settings.tStream.iProfileIdc = profile;
+  settings.tStream.eProfile = profile;
   settings.tStream.iLevel = profilelevel.level;
   return true;
 }
@@ -429,8 +429,9 @@ MediatypeInterface::ErrorType DecMediatypeAVC::Set(std::string index, void const
 
 bool DecMediatypeAVC::Check()
 {
+  // Fix: remove this line and below block when a better fix is found
+  // This is a Gstreamer issue (not OMX) for allocation!
   int tmp_height = settings.tStream.tDim.iHeight;
-
   settings.tStream.tDim.iHeight = RoundUp(settings.tStream.tDim.iHeight, 16);
 
   if(AL_DecSettings_CheckValidity(&settings, stderr) != 0)
@@ -438,6 +439,8 @@ bool DecMediatypeAVC::Check()
 
   AL_DecSettings_CheckCoherency(&settings, stdout);
 
+  // Fix: remove this line and below block when a better fix is found
+  // This is a Gstreamer issue (not OMX) for allocation!
   settings.tStream.tDim.iHeight = tmp_height;
 
   return true;

@@ -109,6 +109,9 @@ static void AddEncoderFlags(OMX_BUFFERHEADERTYPE* header, shared_ptr<MediatypeIn
 
   if(flags.isSync)
     header->nFlags |= OMX_BUFFERFLAG_SYNCFRAME;
+
+  if(flags.isCorrupt)
+    header->nFlags |= OMX_BUFFERFLAG_DATACORRUPT;
 }
 
 void EncComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandleInterface* fill_)
@@ -121,6 +124,10 @@ void EncComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandle
   PropagateHeaderData(*emptyHeader, *fillHeader);
 
   AddEncoderFlags(fillHeader, media, ToEncModule(*module));
+
+  /* backward datacorrupt to source buffer */
+  if(fillHeader->nFlags & OMX_BUFFERFLAG_DATACORRUPT)
+    emptyHeader->nFlags |= OMX_BUFFERFLAG_DATACORRUPT;
 
   if(seisMap.Exist(empty_) && ((fillHeader->nFlags & OMX_BUFFERFLAG_CODECCONFIG) == 0))
   {
@@ -156,11 +163,8 @@ void EncComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
 
     if(eosHandles.output)
       FillThisBufferCallBack(eosHandles.output);
-
     eosHandles.input = nullptr;
-    unique_lock<std::mutex> lock(eosHandles.mutex);
     eosHandles.output = nullptr;
-    lock.unlock();
     return;
   }
 

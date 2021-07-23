@@ -145,12 +145,10 @@ protected:
   {
     BufferHandleInterface* input {};
     BufferHandleInterface* output {};
-    std::mutex mutex {};
   };
 
   EOSHandles eosHandles;
 
-  std::mutex mutex {};
   std::unique_ptr<ProcessorFifo<Task>> processorMain;
   std::unique_ptr<ProcessorFifo<Task>> processorEmpty;
   std::unique_ptr<ProcessorFifo<Task>> processorFill;

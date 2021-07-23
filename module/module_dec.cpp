@@ -50,9 +50,12 @@ extern "C"
 #include <lib_common/BufferPixMapMeta.h>
 #include <lib_common/BufferStreamMeta.h>
 #include <lib_common/BufferHandleMeta.h>
+#include <lib_common/Error.h>
+
 #include <lib_common_dec/HDRMeta.h>
-#include <lib_fpga/DmaAllocLinux.h>
 #include <lib_common_dec/IpDecFourCC.h>
+
+#include <lib_fpga/DmaAllocLinux.h>
 }
 
 using namespace std;
@@ -87,24 +90,14 @@ void DecModule::ResetHDR()
 
 DecModule::~DecModule() = default;
 
-static map<int, string> MapToStringDecodeError =
-{
-  { AL_ERR_NO_MEMORY, "decoder: memory allocation failure (firmware or ctrlsw)" },
-  { AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE, "decoder: no channel available on the hardware" },
-  { AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE, "decoder: hardware doesn't have enough resources" },
-  { AL_ERR_CHAN_CREATION_NOT_ENOUGH_CORES, "decoder: hardware doesn't have enough resources (fragmentation)" },
-  { AL_ERR_REQUEST_MALFORMED, "decoder: request to hardware was malformed" },
-  { AL_WARN_CONCEAL_DETECT, "decoder: concealment" },
-  { AL_WARN_SPS_NOT_COMPATIBLE_WITH_CHANNEL_SETTINGS, "decoder: some SPS not compatible with the channel settings has been disacarded" },
-  { AL_WARN_SEI_OVERFLOW, "decoder: some SEI metadata buffer was too small" },
-};
-
-static string ToStringDecodeError(int error)
+static string ToStringDecodeError(AL_ERR error)
 {
   string str_error = "";
   try
   {
-    str_error = MapToStringDecodeError.at(error);
+    str_error = string {
+      AL_Codec_ErrorToString(error)
+    };
   }
   catch(out_of_range& e)
   {
@@ -217,10 +210,20 @@ void DecModule::CopyIfRequired(AL_TBuffer* frameToDisplay, int size)
   copy(AL_Buffer_GetData(frameToDisplay), AL_Buffer_GetData(frameToDisplay) + size, buffer);
 }
 
-void DecModule::_ProcessDisplay(DisplayBuffers buffers)
+void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
 {
-  auto frameToDisplay = buffers.frameToDisplay;
-  auto info = &buffers.info;
+  auto isRelease = (frameToDisplay && info == nullptr);
+
+  if(isRelease)
+    return ReleaseBufs(frameToDisplay);
+
+  auto isEOS = (frameToDisplay == nullptr && info == nullptr);
+
+  if(isEOS)
+  {
+    callbacks.filled(nullptr);
+    return;
+  }
 
   int frameWidth = info->tDim.iWidth - (info->tCrop.uCropOffsetLeft + info->tCrop.uCropOffsetRight);
   int frameHeight = info->tDim.iHeight - (info->tCrop.uCropOffsetTop + info->tCrop.uCropOffsetBottom);
@@ -254,13 +257,6 @@ void DecModule::_ProcessDisplay(DisplayBuffers buffers)
     }
   }
 
-  BufferSizes bufferSizes {};
-  media->Get(SETTINGS_INDEX_BUFFER_SIZES, &bufferSizes);
-
-  auto size = bufferSizes.output;
-  CopyIfRequired(frameToDisplay, size);
-
-  unique_lock<std::mutex> lock(mutex);
   ResetHDR();
   auto pHDR = (AL_THDRMetaData*)AL_Buffer_GetMetaData(frameToDisplay, AL_META_TYPE_HDR);
 
@@ -271,9 +267,13 @@ void DecModule::_ProcessDisplay(DisplayBuffers buffers)
     currentColorPrimaries = ConvertSoftToModuleColorPrimaries(pHDR->eColourDescription);
     currentHDRSEIs = ConvertSoftToModuleHDRSEIs(pHDR->tHDRSEIs);
   }
+
+  BufferSizes bufferSizes {};
+  media->Get(SETTINGS_INDEX_BUFFER_SIZES, &bufferSizes);
+  auto size = bufferSizes.output;
+  CopyIfRequired(frameToDisplay, size);
   currentDisplayPictureInfo.type = info->ePicStruct;
   currentDisplayPictureInfo.concealed = (AL_Decoder_GetFrameError(decoder, frameToDisplay) == AL_WARN_CONCEAL_DETECT);
-  lock.unlock();
   auto handleOut = handles.Pop(frameToDisplay);
   handleOut->offset = 0;
   handleOut->payload = size;
@@ -295,35 +295,8 @@ void DecModule::_ProcessDisplay(DisplayBuffers buffers)
     }
   }
 
-  AL_Buffer_Unref(frameToDisplay);
-
-  lock.lock();
   currentDisplayPictureInfo.type = -1;
   currentDisplayPictureInfo.concealed = false;
-  lock.unlock();
-}
-
-void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
-{
-  auto isRelease = (frameToDisplay && info == nullptr);
-
-  if(isRelease)
-    return ReleaseBufs(frameToDisplay);
-
-  auto isEOS = (frameToDisplay == nullptr && info == nullptr);
-
-  if(isEOS)
-  {
-    /* Ensure all buffers are outputted by flushing the threadDisplay*/
-    auto p = bind(&DecModule::_ProcessDisplay, this, placeholders::_1);
-    threadDisplay.reset(new ProcessorFifo<DisplayBuffers> { p, p, "Display" });
-    callbacks.filled(nullptr);
-    return;
-  }
-
-  AL_Buffer_Ref(frameToDisplay);
-
-  threadDisplay->queue({ frameToDisplay, *info });
 }
 
 void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSettings const& settings, AL_TCropInfo const& crop)
@@ -372,8 +345,6 @@ ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
   }
 
   auto channel = device->Init();
-  auto p = bind(&DecModule::_ProcessDisplay, this, placeholders::_1);
-  threadDisplay.reset(new ProcessorFifo<DisplayBuffers> { p, p, "Display" });
   AL_TDecCallBacks decCallbacks {};
   decCallbacks.endParsingCB = { RedirectionEndParsing, this };
   decCallbacks.endDecodingCB = { RedirectionEndDecoding, this };
@@ -387,12 +358,12 @@ ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
   if(inputParsed)
     decCallbacks.parsedSeiCB = { nullptr, nullptr };
 
+  // Fix: remove this line and below block when a better fix is found
+  // This is a Gstreamer issue (not OMX) for allocation!
   int tmp_height = media->settings.tStream.tDim.iHeight;
-
-  if(shouldPrealloc)
   {
-    // Fix: remove this line when a better fix is found
-    media->settings.tStream.tDim.iHeight = RoundUp(media->settings.tStream.tDim.iHeight, 16);
+    if(shouldPrealloc)
+      media->settings.tStream.tDim.iHeight = RoundUp(media->settings.tStream.tDim.iHeight, 16);
   }
 
   auto errorCode = AL_Decoder_Create(&decoder, channel, allocator.get(), &media->settings, &decCallbacks);
@@ -412,7 +383,8 @@ ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
       return ToModuleError(errorCode);
     }
 
-    // Fix: remove this line when a better fix is found
+    // Fix remove this line when a better fix is found
+    // This is a Gstreamer issue (not OMX) for allocation!
     media->settings.tStream.tDim.iHeight = tmp_height;
   }
 
@@ -429,7 +401,6 @@ bool DecModule::DestroyDecoder()
 
   AL_Decoder_Destroy(decoder);
   device->Deinit();
-  threadDisplay.reset();
   decoder = nullptr;
   resolutionFoundAsBeenCalled = false;
   initialDimension = { -1, -1 };
@@ -626,7 +597,20 @@ bool DecModule::CreateAndAttachStreamMeta(AL_TBuffer& buf)
   return true;
 }
 
-AL_ESectionFlags ConvertModuleToSoftFlags(Flags flags)
+AL_EStreamBufFlags ConvertModuleToSoftStreamBufFlag(Flags flags)
+{
+  AL_EStreamBufFlags streamBufFlag = AL_STREAM_BUF_FLAG_UNKNOWN;
+
+  if(flags.isEndOfSlice)
+    streamBufFlag = static_cast<AL_EStreamBufFlags>(streamBufFlag | AL_STREAM_BUF_FLAG_ENDOFSLICE);
+
+  if(flags.isEndOfFrame)
+    streamBufFlag = static_cast<AL_EStreamBufFlags>(streamBufFlag | AL_STREAM_BUF_FLAG_ENDOFFRAME);
+
+  return streamBufFlag;
+}
+
+AL_ESectionFlags ConvertModuleToSoftSectionFlags(Flags flags)
 {
   AL_ESectionFlags softFlags = AL_SECTION_NO_FLAG;
 
@@ -669,7 +653,7 @@ bool DecModule::Empty(BufferHandleInterface* handle)
     }
     auto streamMeta = (AL_TStreamMetaData*)(AL_Buffer_GetMetaData(input, AL_META_TYPE_STREAM));
     AL_StreamMetaData_ClearAllSections(streamMeta);
-    AL_StreamMetaData_AddSection(streamMeta, 0, handle->payload, ConvertModuleToSoftFlags(currentFlags));
+    AL_StreamMetaData_AddSection(streamMeta, 0, handle->payload, ConvertModuleToSoftSectionFlags(currentFlags));
 
     if(!AL_Buffer_GetMetaData(input, AL_META_TYPE_SEI))
     {
@@ -685,7 +669,7 @@ bool DecModule::Empty(BufferHandleInterface* handle)
 
   handles.Add(input, handle);
 
-  auto pushed = AL_Decoder_PushBuffer(decoder, input, handle->payload);
+  auto pushed = AL_Decoder_PushStreamBuffer(decoder, input, handle->payload, ConvertModuleToSoftStreamBufFlag(currentFlags));
 
   if(!inputParsed)
     AL_Buffer_Unref(input);
@@ -860,7 +844,6 @@ ModuleInterface::ErrorType DecModule::GetDynamic(std::string index, void* param)
 {
   if(index == "DYNAMIC_INDEX_CURRENT_DISPLAY_PICTURE_INFO")
   {
-    lock_guard<std::mutex> lock(mutex);
     auto displayPictureInfo = static_cast<DisplayPictureInfo*>(param);
     *displayPictureInfo = currentDisplayPictureInfo;
     return SUCCESS;
@@ -868,7 +851,6 @@ ModuleInterface::ErrorType DecModule::GetDynamic(std::string index, void* param)
 
   if(index == "DYNAMIC_INDEX_TRANSFER_CHARACTERISTICS")
   {
-    lock_guard<std::mutex> lock(mutex);
     auto tc = static_cast<TransferCharacteristicsType*>(param);
     *tc = currentTransferCharacteristics;
     return SUCCESS;
@@ -876,7 +858,6 @@ ModuleInterface::ErrorType DecModule::GetDynamic(std::string index, void* param)
 
   if(index == "DYNAMIC_INDEX_COLOUR_MATRIX")
   {
-    lock_guard<std::mutex> lock(mutex);
     auto cm = static_cast<ColourMatrixType*>(param);
     *cm = currentColourMatrix;
     return SUCCESS;
@@ -884,7 +865,6 @@ ModuleInterface::ErrorType DecModule::GetDynamic(std::string index, void* param)
 
   if(index == "DYNAMIC_INDEX_COLOR_PRIMARIES")
   {
-    lock_guard<std::mutex> lock(mutex);
     auto cp = static_cast<ColorPrimariesType*>(param);
     *cp = currentColorPrimaries;
     return SUCCESS;
@@ -892,7 +872,6 @@ ModuleInterface::ErrorType DecModule::GetDynamic(std::string index, void* param)
 
   if(index == "DYNAMIC_INDEX_HIGH_DYNAMIC_RANGE_SEIS")
   {
-    lock_guard<std::mutex> lock(mutex);
     auto hdrSEIs = static_cast<HighDynamicRangeSeis*>(param);
     *hdrSEIs = currentHDRSEIs;
     return SUCCESS;

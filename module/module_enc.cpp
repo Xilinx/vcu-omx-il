@@ -55,6 +55,7 @@ extern "C"
 #include <lib_common/BufferStreamMeta.h>
 #include <lib_common/BufferPictureMeta.h>
 #include <lib_common/BufferLookAheadMeta.h>
+#include <lib_common/Error.h>
 #include <lib_common/StreamBuffer.h>
 #include <lib_common/Profiles.h>
 
@@ -113,25 +114,14 @@ EncModule::~EncModule()
   }
 }
 
-static map<AL_ERR, string> MapToStringEncodeError =
-{
-  { AL_ERR_NO_MEMORY, "encoder: memory allocation failure (firmware or ctrlsw)" },
-  { AL_ERR_STREAM_OVERFLOW, "encoder: stream overflow" },
-  { AL_ERR_TOO_MANY_SLICES, "encoder: too many slices" },
-  { AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE, "encoder: no channel available on the hardware" },
-  { AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE, "encoder: hardware doesn't have enough resources" },
-  { AL_ERR_CHAN_CREATION_NOT_ENOUGH_CORES, "encoder, hardware doesn't have enough resources (fragmentation)" },
-  { AL_ERR_REQUEST_MALFORMED, "encoder: request to hardware was malformed" },
-  { AL_WARN_LCU_OVERFLOW, "encoder: lcu overflow" },
-  { AL_WARN_NUM_SLICES_ADJUSTED, "encoder: num slices have been adjusted" }
-};
-
-static string ToStringEncodeError(int error)
+static string ToStringEncodeError(AL_ERR error)
 {
   string str_error {};
   try
   {
-    str_error = MapToStringEncodeError.at(error);
+    str_error = string {
+      AL_Codec_ErrorToString(error)
+    };
   }
   catch(out_of_range& e)
   {
@@ -240,8 +230,6 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
   {
     auto settingsPass = media->settings;
     GenericEncoder& encoderPass = encoders[pass];
-    auto p = bind(&EncModule::_ProcessEndEncoding, this, placeholders::_1);
-    encoderPass.threadEndEncoding.reset(new ProcessorFifo<EndEncodingBuffers> { p, p, "End encoding" });
     AL_CB_EndEncoding callback = { EncModule::RedirectionEndEncoding, this };
 
     if(twoPassMngr && twoPassMngr->iPass == 1)
@@ -317,10 +305,9 @@ bool EncModule::DestroyEncoder()
 
   for(int pass = 0; pass < (int)encoders.size(); pass++)
   {
-    auto encoder = encoders[pass];
+    GenericEncoder encoder = encoders[pass];
 
     AL_Encoder_Destroy(encoder.enc);
-    encoder.threadEndEncoding.reset();
 
     if(encoder.nextQPBuffer != nullptr)
     {
@@ -864,10 +851,24 @@ bool EncModule::isEndOfFrame(AL_TBuffer* stream)
   return flags.isEndOfFrame;
 }
 
-void EncModule::_ProcessEndEncoding(EndEncodingBuffers buffers)
+void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 {
-  AL_TBuffer const* source = buffers.source;
-  AL_TBuffer* stream = buffers.stream;
+  AL_HEncoder encoder = encoders.back().enc;
+
+  auto errorCode = AL_Encoder_GetLastError(encoder);
+  bool shouldBeConcealed = false;
+
+  if(AL_IS_ERROR_CODE(errorCode))
+  {
+    shouldBeConcealed = errorCode == AL_ERR_WATCHDOG_TIMEOUT;
+    LOG_ERROR(ToStringEncodeError(errorCode));
+
+    if(!shouldBeConcealed)
+      callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(errorCode));
+  }
+
+  if(AL_IS_WARNING_CODE(errorCode))
+    LOG_WARNING(ToStringEncodeError(errorCode));
 
   BufferHandles bufferHandles;
   media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
@@ -944,6 +945,7 @@ void EncModule::_ProcessEndEncoding(EndEncodingBuffers buffers)
   {
     currentFlags.isEndOfFrame = false;
     currentFlags.isEndOfSlice = false;
+    currentFlags.isCorrupt = false;
 
     unique_lock<std::mutex> lock(mutex);
     sem.wait();
@@ -981,6 +983,7 @@ void EncModule::_ProcessEndEncoding(EndEncodingBuffers buffers)
   }
 
   currentFlags = GetCurrentFlags(stream, firstSection);
+  currentFlags.isCorrupt = shouldBeConcealed;
 
   callbacks.associate(rhandleIn, rhandleOut);
 
@@ -1030,24 +1033,6 @@ void EncModule::_ProcessEndEncoding(EndEncodingBuffers buffers)
   rhandleOut->offset = 0;
   rhandleOut->payload = size;
   callbacks.filled(rhandleOut);
-}
-
-void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
-{
-  AL_HEncoder encoder = encoders.back().enc;
-
-  auto errorCode = AL_Encoder_GetLastError(encoder);
-
-  if(AL_IS_ERROR_CODE(errorCode))
-  {
-    LOG_ERROR(ToStringEncodeError(errorCode));
-    callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(errorCode));
-  }
-
-  if(AL_IS_WARNING_CODE(errorCode))
-    LOG_WARNING(ToStringEncodeError(errorCode));
-
-  encoders.back().threadEndEncoding->queue({ source, stream });
 }
 
 void EncModule::EndEncodingLookAhead(AL_TBuffer* stream, AL_TBuffer const* source, int index)
@@ -1115,7 +1100,7 @@ void EncModule::EmptyFifo(GenericEncoder& encoder, bool isEOS)
 {
   assert(encoder.index < (int)encoders.size() - 1);
 
-  auto nextEnc = encoders[encoder.index + 1];
+  GenericEncoder nextEnc = encoders[encoder.index + 1];
 
   if(isEOS && encoder.lookAheadMngr->m_fifo.size() == 0)
   {
@@ -1400,7 +1385,8 @@ ModuleInterface::ErrorType EncModule::GetDynamic(std::string index, void* param)
   {
     assert(roiCtx);
     auto bufferToFill = static_cast<unsigned char*>(param);
-    AL_RoiMngr_FillBuff(roiCtx, 1, 1, bufferToFill + EP2_BUF_QP_BY_MB.Offset);
+    auto const iLcuQpOffset = 0;
+    AL_RoiMngr_FillBuff(roiCtx, 1, 1, bufferToFill + EP2_BUF_QP_BY_MB.Offset, iLcuQpOffset);
     return SUCCESS;
   }
 
