@@ -219,6 +219,9 @@ static std::string const SETTINGS_INDEX_LOG2_CODING_UNIT {
 static std::string const SETTINGS_INDEX_OUTPUT_POSITION {
   "SETTINGS_INDEX_OUTPUT_POSITION"
 };
+static std::string const SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT {
+  "SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT"
+};
 
 struct MediatypeInterface
 {

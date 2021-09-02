@@ -1679,6 +1679,35 @@ typedef struct OMX_ALG_VIDEO_PARAM_UNIFORM_SLICE_TYPE
   OMX_BOOL bEnableUniformSliceType;
 }OMX_ALG_VIDEO_PARAM_UNIFORM_SLICE_TYPE;
 
+/**
+ * Enumeration of possible start code bytes alignment types
+ */
+typedef enum
+{
+  OMX_ALG_START_CODE_BYTES_ALIGNMENT_AUTO,
+  OMX_ALG_START_CODE_BYTES_ALIGNMENT_3_BYTES,
+  OMX_ALG_START_CODE_BYTES_ALIGNMENT_4_BYTES,
+  OMX_ALG_START_CODE_BYTES_ALIGNMENT_MAX_ENUM = 0x7FFFFFFF,
+}OMX_ALG_EStartCodeBytesAligment;
+
+
+/**
+ * Start Code Bytes Alignment parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                    : Size of the structure in bytes
+ *  nVersion                 : OMX specification version information
+ *  nPortIndex               : Port that this structure applies to
+ *  eStartCodeBytesAlignment : Start Code Bytes Alignment by enum
+ */
+typedef struct OMX_ALG_VIDEO_START_CODE_BYTES_ALIGNMENT
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_ALG_EStartCodeBytesAligment eStartCodeBytesAlignment;
+}OMX_ALG_VIDEO_PARAM_START_CODE_BYTES_ALIGNMENT;
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

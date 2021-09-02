@@ -254,3 +254,8 @@ bool CheckLog2CodingUnit(MinMax<int> log2CodingUnit)
 {
   return log2CodingUnit.min >= 0 && log2CodingUnit.max >= 0;
 }
+
+bool CheckStartCodeBytesAlignment(StartCodeBytesAlignmentType startCodeBytesAlignment)
+{
+  return startCodeBytesAlignment != StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_MAX_ENUM;
+}

@@ -314,7 +314,7 @@ void ConvertSoftToModule_DPL_ST2094_40(DisplayPeakLuminance_ST2094_40& dst, AL_T
   }
 }
 
-HighDynamicRangeSeis ConvertSoftToModuleHDRSEIs(const AL_THDRSEIs& hdrSEIs)
+HighDynamicRangeSeis ConvertSoftToModuleHDRSEIs(AL_THDRSEIs const& hdrSEIs)
 {
   HighDynamicRangeSeis modHDRSEIs;
 
@@ -471,7 +471,7 @@ void ConvertModuleToSoft_DPL_ST2094_40(AL_TDisplayPeakLuminance_ST2094_40& dst, 
   }
 }
 
-AL_THDRSEIs ConvertModuleToSoftHDRSEIs(const HighDynamicRangeSeis& hdrSEIs)
+AL_THDRSEIs ConvertModuleToSoftHDRSEIs(HighDynamicRangeSeis const& hdrSEIs)
 {
   AL_THDRSEIs alHDRSEIs;
 
@@ -611,4 +611,32 @@ AL_THDRSEIs ConvertModuleToSoftHDRSEIs(const HighDynamicRangeSeis& hdrSEIs)
   }
 
   return alHDRSEIs;
+}
+
+AL_EStartCodeBytesAlignedMode ConvertModuleToSoftStartCodeBytesAlignment(StartCodeBytesAlignmentType alignment)
+{
+  switch(alignment)
+  {
+  case StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_AUTO: return AL_START_CODE_AUTO;
+  case StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_3_BYTES: return AL_START_CODE_3_BYTES;
+  case StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_4_BYTES: return AL_START_CODE_4_BYTES;
+  case StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_MAX_ENUM: return AL_START_CODE_MAX_ENUM;
+  default: return AL_START_CODE_MAX_ENUM;
+  }
+
+  return AL_START_CODE_MAX_ENUM;
+}
+
+StartCodeBytesAlignmentType ConvertSoftToModuleStartCodeBytesAlignment(AL_EStartCodeBytesAlignedMode mode)
+{
+  switch(mode)
+  {
+  case AL_START_CODE_AUTO: return StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_AUTO;
+  case AL_START_CODE_3_BYTES: return StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_3_BYTES;
+  case AL_START_CODE_4_BYTES: return StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_4_BYTES;
+  case AL_START_CODE_MAX_ENUM: return StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_MAX_ENUM;
+  default: return StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_MAX_ENUM;
+  }
+
+  return StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_MAX_ENUM;
 }

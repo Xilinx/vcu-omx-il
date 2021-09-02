@@ -351,7 +351,8 @@ Format CreateFormat(AL_TEncSettings settings)
 {
   Format format;
   auto channel = settings.tChParam[0];
-  format.color = ConvertSoftToModuleColor(AL_GET_CHROMA_MODE(channel.ePicFormat));
+  AL_EChromaMode eChromaMode = AL_GET_CHROMA_MODE(channel.ePicFormat);
+  format.color = ConvertSoftToModuleColor(eChromaMode);
   format.bitdepth = AL_GET_BITDEPTH(channel.ePicFormat);
   return format;
 }
@@ -786,5 +787,21 @@ bool UpdateLog2CodingUnit(AL_TEncSettings& settings, MinMax<int> log2CodingUnit)
   auto& channel = settings.tChParam[0];
   channel.uLog2MinCuSize = log2CodingUnit.min;
   channel.uLog2MaxCuSize = log2CodingUnit.max;
+  return true;
+}
+
+StartCodeBytesAlignmentType CreateStartCodeBytesAlignment(AL_TEncSettings settings)
+{
+  auto channel = settings.tChParam[0];
+  return ConvertSoftToModuleStartCodeBytesAlignment(channel.eStartCodeBytesAligned);
+}
+
+bool UpdateStartCodeBytesAlignment(AL_TEncSettings& settings, StartCodeBytesAlignmentType startCodeBytesAlignment)
+{
+  if(!CheckStartCodeBytesAlignment(startCodeBytesAlignment))
+    return false;
+
+  auto& channel = settings.tChParam[0];
+  channel.eStartCodeBytesAligned = ConvertModuleToSoftStartCodeBytesAlignment(startCodeBytesAlignment);
   return true;
 }

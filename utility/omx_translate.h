@@ -436,6 +436,7 @@ static std::map<OMX_INDEXTYPE, std::string> OMXIndexInStringMap =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoCrop), "OMX_ALG_IndexParamVideoCrop" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoUniformSliceType), "OMX_ALG_IndexParamVideoUniformSliceType" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoOutputPosition), "OMX_ALG_IndexParamVideoOutputPosition" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoStartCodeBytesAlignment), "OMX_ALG_IndexParamVideoStartCodeBytesAlignment" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVendorVideoStartUnused), "OMX_ALG_IndexConfigVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), "OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh" },

@@ -1598,3 +1598,31 @@ QPTableType ConvertOMXToMediaQpTable(OMX_ALG_EQpTableMode mode)
 
   return QPTableType::QP_TABLE_MAX_ENUM;
 }
+
+OMX_ALG_EStartCodeBytesAligment ConvertMediaToOMXStartCodeBytesAlignment(StartCodeBytesAlignmentType mode)
+{
+  switch(mode)
+  {
+  case StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_AUTO: return OMX_ALG_START_CODE_BYTES_ALIGNMENT_AUTO;
+  case StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_3_BYTES: return OMX_ALG_START_CODE_BYTES_ALIGNMENT_3_BYTES;
+  case StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_4_BYTES: return OMX_ALG_START_CODE_BYTES_ALIGNMENT_4_BYTES;
+  case StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_MAX_ENUM: return OMX_ALG_START_CODE_BYTES_ALIGNMENT_MAX_ENUM;
+  default: return OMX_ALG_START_CODE_BYTES_ALIGNMENT_MAX_ENUM;
+  }
+
+  return OMX_ALG_START_CODE_BYTES_ALIGNMENT_MAX_ENUM;
+}
+
+StartCodeBytesAlignmentType ConvertOMXToMediaStartCodeBytesAlignment(OMX_ALG_EStartCodeBytesAligment mode)
+{
+  switch(mode)
+  {
+  case OMX_ALG_START_CODE_BYTES_ALIGNMENT_AUTO: return StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_AUTO;
+  case OMX_ALG_START_CODE_BYTES_ALIGNMENT_3_BYTES: return StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_3_BYTES;
+  case OMX_ALG_START_CODE_BYTES_ALIGNMENT_4_BYTES: return StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_4_BYTES;
+  case OMX_ALG_START_CODE_BYTES_ALIGNMENT_MAX_ENUM: return StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_MAX_ENUM;
+  default: return StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_MAX_ENUM;
+  }
+
+  return StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_MAX_ENUM;
+}

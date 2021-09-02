@@ -535,6 +535,12 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Get(std::string index, void* sett
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT")
+  {
+    *static_cast<StartCodeBytesAlignmentType*>(settings) = CreateStartCodeBytesAlignment(this->settings);
+    return SUCCESS;
+  }
+
   return BAD_INDEX;
 }
 
@@ -1005,7 +1011,15 @@ MediatypeInterface::ErrorType EncMediatypeAVC::Set(std::string index, void const
 
     if(!UpdateLog2CodingUnit(this->settings, log2CodingUnit))
       return BAD_PARAMETER;
+    return SUCCESS;
+  }
 
+  if(index == "SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT")
+  {
+    auto startCodeBytesAlignment = *(static_cast<StartCodeBytesAlignmentType const*>(settings));
+
+    if(!UpdateStartCodeBytesAlignment(this->settings, startCodeBytesAlignment))
+      return BAD_PARAMETER;
     return SUCCESS;
   }
 

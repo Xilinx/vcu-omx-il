@@ -110,6 +110,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamVideoUniformSliceType,                      /**< reference: OMX_ALG_VIDEO_PARAM_UNIFORM_SLICE_TYPE */
   OMX_ALG_IndexParamVideoCrop,                                  /**< reference: OMX_CONFIG_RECTTYPE */
   OMX_ALG_IndexParamVideoOutputPosition,                        /**< reference: OMX_CONFIG_POINTTYPE */
+  OMX_ALG_IndexParamVideoStartCodeBytesAlignment,               /**< reference: OMX_ALG_VIDEO_PARAM_START_CODE_BYTES_ALIGNMENT */
 
   /* Vendor Video configurations */
   OMX_ALG_IndexConfigVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00380000,

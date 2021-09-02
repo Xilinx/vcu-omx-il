@@ -872,6 +872,12 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto position = static_cast<OMX_CONFIG_POINTTYPE*>(param);
     return ConstructVideoOutputPosition(*position, *port, media);
   }
+  case OMX_ALG_IndexParamVideoStartCodeBytesAlignment:
+  {
+    auto port = getCurrentPort(param);
+    auto scba = static_cast<OMX_ALG_VIDEO_PARAM_START_CODE_BYTES_ALIGNMENT*>(param);
+    return ConstructVideoStartCodeBytesAlignment(*scba, *port, media);
+  }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
@@ -1203,6 +1209,11 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
   {
     auto position = static_cast<OMX_CONFIG_POINTTYPE*>(param);
     return SetVideoOutputPosition(*position, *port, media);
+  }
+  case OMX_ALG_IndexParamVideoStartCodeBytesAlignment:
+  {
+    auto scba = static_cast<OMX_ALG_VIDEO_PARAM_START_CODE_BYTES_ALIGNMENT*>(param);
+    return SetVideoStartCodeBytesAlignment(*scba, *port, media);
   }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });

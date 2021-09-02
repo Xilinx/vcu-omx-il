@@ -2178,3 +2178,37 @@ OMX_ERRORTYPE ConstructVideoOutputPosition(OMX_CONFIG_POINTTYPE& position, Port 
   position.nY = point.y;
   return OMX_ErrorNone;
 }
+
+static OMX_ERRORTYPE SetStartCodeBytesAlignmet(OMX_ALG_EStartCodeBytesAligment eStartCodeBytesAlignment, shared_ptr<MediatypeInterface> media)
+{
+  auto startCodeBytesAlignment = ConvertOMXToMediaStartCodeBytesAlignment(eStartCodeBytesAlignment);
+  auto ret = media->Set(SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT, &startCodeBytesAlignment);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoStartCodeBytesAlignment(OMX_ALG_VIDEO_PARAM_START_CODE_BYTES_ALIGNMENT const& scba, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_START_CODE_BYTES_ALIGNMENT rollback;
+  ConstructVideoStartCodeBytesAlignment(rollback, port, media);
+  auto ret = SetStartCodeBytesAlignmet(scba.eStartCodeBytesAlignment, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoStartCodeBytesAlignment(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoStartCodeBytesAlignment(OMX_ALG_VIDEO_PARAM_START_CODE_BYTES_ALIGNMENT& scba, Port const& port, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(scba);
+  scba.nPortIndex = port.index;
+  StartCodeBytesAlignmentType startCodeBytesAligment;
+  auto ret = media->Get(SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT, &startCodeBytesAligment);
+  OMX_CHECK_MEDIA_GET(ret);
+  scba.eStartCodeBytesAlignment = ConvertMediaToOMXStartCodeBytesAlignment(startCodeBytesAligment);
+  return OMX_ErrorNone;
+}

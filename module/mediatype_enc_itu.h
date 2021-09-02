@@ -161,3 +161,6 @@ bool UpdateUniformeSliceType(AL_TEncSettings& settings, bool isUniformSliceTypeE
 
 MinMax<int> CreateLog2CodingUnit(AL_TEncSettings settings);
 bool UpdateLog2CodingUnit(AL_TEncSettings& settings, MinMax<int> log2CodingUnit);
+
+StartCodeBytesAlignmentType CreateStartCodeBytesAlignment(AL_TEncSettings settings);
+bool UpdateStartCodeBytesAlignment(AL_TEncSettings& settings, StartCodeBytesAlignmentType startCodeBytesAlignment);
