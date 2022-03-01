@@ -76,7 +76,7 @@ private:
   void TreatEmptyBufferCommand(Task* task) override;
   std::list<PropagatedData> transmit;
   std::mutex mutex;
-  bool shouldPropagateData;
   OMX_TICKS oldTimeStamp;
+  bool dataHasBeenPropagated;
 };
 
