@@ -58,7 +58,8 @@ static DecModule& ToDecModule(ModuleInterface& module)
 
 DecComponent::DecComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<DecModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise) :
   Component{component, media, std::move(module), std::move(expertise), name, role},
-  shouldPropagateData{true}, oldTimeStamp{-1}
+  oldTimeStamp{-1},
+  dataHasBeenPropagated{false}
 {
 }
 
@@ -77,8 +78,9 @@ void DecComponent::FlushComponent()
   FlushFillEmptyBuffers(true, true);
   std::unique_lock<std::mutex> lock(mutex);
   transmit.clear();
+  oldTimeStamp = -1;
+  dataHasBeenPropagated = false;
   lock.unlock();
-  shouldPropagateData = true;
 }
 
 void DecComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandleInterface* fill_)
@@ -104,8 +106,8 @@ void DecComponent::AssociateCallBack(BufferHandleInterface* empty_, BufferHandle
     {
       callbacks.EventHandler(component, app, OMX_EventBufferFlag, output.index, emptyHeader.nFlags, nullptr);
       transmit.clear();
-      shouldPropagateData = true;
       oldTimeStamp = -1;
+      dataHasBeenPropagated = false;
     }
 
     if(IsCompMarked(emptyHeader.hMarkTargetComponent, component))
@@ -351,22 +353,26 @@ void DecComponent::TreatEmptyBufferCommand(Task* task)
 
   if(!isInputParsed || isEarlyCallbackUsed)
   {
-    bool isEndOfFrameFlagRaised = (header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME);
+    /* we suppose that a timestamp changes is a frame changes [concealment] */
+    bool const transmitTimeStamp = (oldTimeStamp != header->nTimeStamp);
 
-    if(isEndOfFrameFlagRaised && !isEarlyCallbackUsed)
+    if(transmitTimeStamp)
+    {
       transmit.push_back(PropagatedData { header->hMarkTargetComponent, header->pMarkData, header->nTickCount, header->nTimeStamp, header->nFlags });
+      oldTimeStamp = header->nTimeStamp;
+      dataHasBeenPropagated = true;
+    }
     else
     {
-      /* Concealment case(header->nFlags EndOfFrame is missing): propagate data if timestamps differ */
-      shouldPropagateData |= (oldTimeStamp != header->nTimeStamp);
-
-      if(shouldPropagateData)
+      bool isEndOfFrameFlagRaised = (header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME);
+      if(isEndOfFrameFlagRaised)
       {
-        transmit.push_back(PropagatedData { header->hMarkTargetComponent, header->pMarkData, header->nTickCount, header->nTimeStamp, header->nFlags });
-        oldTimeStamp = header->nTimeStamp;
+        if(!dataHasBeenPropagated)
+        {
+          transmit.push_back(PropagatedData { header->hMarkTargetComponent, header->pMarkData, header->nTickCount, header->nTimeStamp, header->nFlags });
+        }
+        dataHasBeenPropagated = false;
       }
-
-      shouldPropagateData = isEndOfFrameFlagRaised;
     }
   }
 
