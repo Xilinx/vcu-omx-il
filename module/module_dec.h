@@ -149,6 +149,13 @@ private:
   void ParsedPrefixSei(int type, uint8_t* payload, int size);
   void ParsedSuffixSei(int type, uint8_t* payload, int size);
 
+  static void RedirectionError(AL_ERR error, void* userParam)
+  {
+    auto pThis = static_cast<DecModule*>(userParam);
+    pThis->Error(error);
+  };
+  void Error(AL_ERR error);
+
   static void RedirectionInputBufferDestroy(AL_TBuffer* input)
   {
     auto pThis = static_cast<DecModule*>(AL_Buffer_GetUserData(input));

@@ -145,15 +145,13 @@ private:
   void ReleaseBuf(AL_TBuffer const* buf, bool isDma, bool isSrc);
   bool isEndOfFrame(AL_TBuffer* stream);
 
-  void AddFifo(GenericEncoder& encoder, AL_TBuffer* src);
-  void EmptyFifo(GenericEncoder& encoder, bool isEOS);
-
   static void RedirectionEndEncoding(void* userParam, AL_TBuffer* pStream, AL_TBuffer const* pSource, int)
   {
     auto pThis = static_cast<EncModule*>(userParam);
     pThis->EndEncoding(pStream, pSource);
   };
   void EndEncoding(AL_TBuffer* pStream, AL_TBuffer const* pSource);
+
   static void RedirectionEndEncodingLookAhead(void* userParam, AL_TBuffer* pStream, AL_TBuffer const* pSource, int)
   {
     auto params = static_cast<LookAheadCallBackParam*>(userParam);
@@ -162,6 +160,8 @@ private:
   };
   void EndEncodingLookAhead(AL_TBuffer* pStream, AL_TBuffer const* pSource, int index);
   void _ProcessEmptyFifo(EmptyFifoParam param);
+  void AddFifo(GenericEncoder& encoder, AL_TBuffer* src);
+  void EmptyFifo(GenericEncoder& encoder, bool isEOS);
 
   ThreadSafeMap<AL_TBuffer const*, BufferHandleInterface*> handles;
   ThreadSafeMap<void*, AL_HANDLE> allocated;

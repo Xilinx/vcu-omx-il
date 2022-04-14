@@ -365,6 +365,7 @@ void DecComponent::TreatEmptyBufferCommand(Task* task)
     else
     {
       bool isEndOfFrameFlagRaised = (header->nFlags & OMX_BUFFERFLAG_ENDOFFRAME);
+
       if(isEndOfFrameFlagRaised)
       {
         if(!dataHasBeenPropagated)

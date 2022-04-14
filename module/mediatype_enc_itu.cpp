@@ -84,6 +84,7 @@ Gop CreateGroupOfPictures(AL_TEncSettings settings)
   gop.b = gopParam.uNumB;
   gop.length = gopParam.uGopLength;
   gop.idrFrequency = gopParam.uFreqIDR;
+  gop.rpFrequency = gopParam.uFreqRP;
   gop.mode = ConvertSoftToModuleGopControl(gopParam.eMode);
   gop.gdr = ConvertSoftToModuleGdr(gopParam.eGdrMode);
   gop.isLongTermEnabled = gopParam.bEnableLT;
@@ -106,6 +107,7 @@ bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop gop)
   gopParam.uNumB = gop.b;
   gopParam.uGopLength = gop.length;
   gopParam.uFreqIDR = gop.idrFrequency;
+  gopParam.uFreqRP = gop.rpFrequency;
   gopParam.eMode = ConvertModuleToSoftGopControl(gop.mode);
   gopParam.eGdrMode = ConvertModuleToSoftGdr(gop.gdr);
 
@@ -296,8 +298,14 @@ QPs CreateQuantizationParameter(AL_TEncSettings settings)
   qps.initial = rateControl.iInitialQP;
   qps.deltaIP = rateControl.uIPDelta;
   qps.deltaPB = rateControl.uPBDelta;
-  qps.min = rateControl.iMinQP;
-  qps.max = rateControl.iMaxQP;
+
+  for(int frame_type = 0; frame_type < QPs::MAX_FRAME_TYPE; frame_type++)
+  {
+    assert(QPs::MAX_FRAME_TYPE <= AL_MAX_FRAME_TYPE);
+    qps.min[frame_type] = rateControl.iMinQP[frame_type];
+    qps.max[frame_type] = rateControl.iMaxQP[frame_type];
+  }
+
   return qps;
 }
 
@@ -318,8 +326,13 @@ bool UpdateQuantizationParameter(AL_TEncSettings& settings, QPs qps)
   rateControl.iInitialQP = qps.initial;
   rateControl.uIPDelta = qps.deltaIP;
   rateControl.uPBDelta = qps.deltaPB;
-  rateControl.iMinQP = qps.min;
-  rateControl.iMaxQP = qps.max;
+
+  for(int frame_type = 0; frame_type < AL_MAX_FRAME_TYPE; frame_type++)
+  {
+    assert(AL_MAX_FRAME_TYPE <= QPs::MAX_FRAME_TYPE);
+    rateControl.iMinQP[frame_type] = qps.min[frame_type];
+    rateControl.iMaxQP[frame_type] = qps.max[frame_type];
+  }
 
   return true;
 }

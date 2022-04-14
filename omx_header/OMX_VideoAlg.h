@@ -746,6 +746,25 @@ typedef struct OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH
 }OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH;
 
 /**
+ * Recovery Point parameters
+ *
+ * Minimum number of frames between two recovery points
+ *
+ * STRUCT MEMBERS:
+ *  nSize                   : Size of the structure in bytes
+ *  nVersion                : OMX specification version information
+ *  nPortIndex              : Port that this structure applies to
+ *  nRecoveryPointFrequency : Number of frame between 2 RP
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_RECOVERY_POINT
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_U32 nRecoveryPointFrequency;
+}OMX_ALG_VIDEO_PARAM_RECOVERY_POINT;
+
+/**
  * Max bitrate parameters
  *
  * This parameters is only effective when eControlRate = OMX_Video_ControlRateVariable or OMX_ALG_Video_ControlRateVariableCapped

@@ -103,6 +103,9 @@ OMX_ERRORTYPE SetVideoSkipFrame(OMX_ALG_VIDEO_PARAM_SKIP_FRAME const& skipFrame,
 OMX_ERRORTYPE ConstructVideoInstantaneousDecodingRefresh(OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH& idr, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoInstantaneousDecodingRefresh(OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH const& instantaneousDecodingRefresh, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
+OMX_ERRORTYPE ConstructVideoRecoveryPoint(OMX_ALG_VIDEO_PARAM_RECOVERY_POINT& rp, Port const& port, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetVideoRecoveryPoint(OMX_ALG_VIDEO_PARAM_RECOVERY_POINT const& recoveryPoint, Port const& port, std::shared_ptr<MediatypeInterface> media);
+
 OMX_ERRORTYPE ConstructVideoPrefetchBuffer(OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER& pb, Port const& port, std::shared_ptr<MediatypeInterface> media);
 OMX_ERRORTYPE SetVideoPrefetchBuffer(OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER const& prefetchBuffer, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
@@ -160,8 +163,10 @@ OMX_ERRORTYPE ConstructVideoLoopFilterTc(OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC& loo
 OMX_ERRORTYPE SetVideoLoopFilterTc(OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC const& loopFilterTc, Port const& port, std::shared_ptr<MediatypeInterface> media);
 
 // Decoder
-
 OMX_ERRORTYPE ConstructPreallocation(OMX_ALG_PARAM_PREALLOCATION& prealloc, bool isPreallocationEnabled);
+
+OMX_ERRORTYPE ConstructInstanceId(OMX_ALG_PARAM_INSTANCE_ID& instance, std::shared_ptr<MediatypeInterface> media);
+OMX_ERRORTYPE SetInstanceId(OMX_ALG_PARAM_INSTANCE_ID const& instance, std::shared_ptr<MediatypeInterface> media);
 
 OMX_ERRORTYPE ConstructCommonSequencePictureModesSupported(OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE* mode, std::shared_ptr<MediatypeInterface> media);
 

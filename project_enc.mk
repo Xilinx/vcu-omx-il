@@ -31,11 +31,11 @@ $(LIB_ENCODE):
 ifndef EXTERNAL_SRC
 	$(error EXTERNAL_SRC must be set to build $(EXTERNAL_ENCODE_LIB_NAME))
 endif
+	$(MAKE) -j$(shell nproc) -C $(EXTERNAL_SRC) liballegro_encode_dll \
 	ENABLE_64BIT=$(ENABLE_64BIT) \
 	CROSS_COMPILE=$(CROSS_COMPILE) \
 	CONFIG=$(EXTERNAL_CONFIG) \
-	BIN=$(EXTERNAL_LIB) \
-	$(MAKE) -C $(EXTERNAL_SRC) liballegro_encode_dll
+	BIN=$(EXTERNAL_LIB)
 
 OMX_ENC_LDFLAGS+=-L$(EXTERNAL_LIB)
 endif

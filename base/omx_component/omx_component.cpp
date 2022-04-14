@@ -277,13 +277,13 @@ Component::~Component()
 void Component::CreateName(OMX_STRING name)
 {
   this->name = (OMX_STRING)malloc(OMX_MAX_STRINGNAME_SIZE * sizeof(char));
-  strncpy(this->name, name, OMX_MAX_STRINGNAME_SIZE);
+  strncpy(this->name, name, OMX_MAX_STRINGNAME_SIZE - 1);
 }
 
 void Component::CreateRole(OMX_STRING role)
 {
   this->role = (OMX_STRING)malloc(OMX_MAX_STRINGNAME_SIZE * sizeof(char));
-  strncpy(this->role, role, OMX_MAX_STRINGNAME_SIZE);
+  strncpy(this->role, role, OMX_MAX_STRINGNAME_SIZE - 1);
 }
 
 static TransientState GetTransientState(OMX_STATETYPE const& curState, OMX_STATETYPE const& nextState)
@@ -516,7 +516,7 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
   case OMX_IndexParamStandardComponentRole:
   {
     auto p = (OMX_PARAM_COMPONENTROLETYPE*)param;
-    strncpy((char*)p->cRole, (char*)role, OMX_MAX_STRINGNAME_SIZE);
+    strncpy((char*)p->cRole, (char*)role, OMX_MAX_STRINGNAME_SIZE - 1);
     return OMX_ErrorNone;
   }
   case OMX_IndexParamPortDefinition:
@@ -646,6 +646,12 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto idr = static_cast<OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH*>(param);
     return ConstructVideoInstantaneousDecodingRefresh(*idr, *port, media);
   }
+  case OMX_ALG_IndexParamVideoRecoveryPoint:
+  {
+    auto port = getCurrentPort(param);
+    auto rp = static_cast<OMX_ALG_VIDEO_PARAM_RECOVERY_POINT*>(param);
+    return ConstructVideoRecoveryPoint(*rp, *port, media);
+  }
   case OMX_ALG_IndexParamVideoCodedPictureBuffer:
   {
     auto port = getCurrentPort(param);
@@ -746,6 +752,11 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
   {
     auto prealloc = static_cast<OMX_ALG_PARAM_PREALLOCATION*>(param);
     return ConstructPreallocation(*prealloc, this->shouldPrealloc);
+  }
+  case OMX_ALG_IndexParamInstanceId:
+  {
+    auto instance = static_cast<OMX_ALG_PARAM_INSTANCE_ID*>(param);
+    return ConstructInstanceId(*instance, media);
   }
   case OMX_ALG_IndexParamVideoDecodedPictureBuffer:
   {
@@ -1022,6 +1033,11 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     auto instantaneousDecodingRefresh = static_cast<OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH*>(param);
     return SetVideoInstantaneousDecodingRefresh(*instantaneousDecodingRefresh, *port, media);
   }
+  case OMX_ALG_IndexParamVideoRecoveryPoint:
+  {
+    auto recoveryPoint = static_cast<OMX_ALG_VIDEO_PARAM_RECOVERY_POINT*>(param);
+    return SetVideoRecoveryPoint(*recoveryPoint, *port, media);
+  }
   case OMX_ALG_IndexParamVideoCodedPictureBuffer:
   {
     auto codedPictureBuffer = static_cast<OMX_ALG_VIDEO_PARAM_CODED_PICTURE_BUFFER*>(param);
@@ -1115,9 +1131,14 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
   }
   case OMX_ALG_IndexParamPreallocation:
   {
-    auto p = (OMX_ALG_PARAM_PREALLOCATION*)param;
+    auto p = static_cast<OMX_ALG_PARAM_PREALLOCATION*>(param);
     this->shouldPrealloc = (p->bDisablePreallocation == OMX_FALSE);
     return OMX_ErrorNone;
+  }
+  case OMX_ALG_IndexParamInstanceId:
+  {
+    auto instance = static_cast<OMX_ALG_PARAM_INSTANCE_ID*>(param);
+    return SetInstanceId(*instance, media);
   }
   case OMX_ALG_IndexParamVideoDecodedPictureBuffer:
   {

@@ -133,13 +133,12 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_ComponentNameEnum(OMX_OUT OMX_STRING cComponentNa
   return OMX_ErrorNone;
 }
 
-using CreateComponentFuncPtr = add_pointer<OMX_ERRORTYPE(OMX_IN OMX_HANDLETYPE, OMX_IN OMX_STRING, OMX_IN OMX_STRING, OMX_IN OMX_PTR, OMX_IN OMX_CALLBACKTYPE*)>::type;
-
 static OMX_HANDLETYPE CreateComponent(const omx_comp_type* pComponent, char const* cFunctionName, OMX_PTR pAppData, OMX_CALLBACKTYPE* pCallBacks)
 {
   dlerror();
 
-  auto createFunction = (CreateComponentFuncPtr)dlsym(pComponent->pLibHandle, cFunctionName);
+  using CreateComponentFuncPtr = add_pointer<OMX_ERRORTYPE(OMX_IN OMX_HANDLETYPE, OMX_IN OMX_STRING, OMX_IN OMX_STRING, OMX_IN OMX_PTR, OMX_IN OMX_CALLBACKTYPE*)>::type;
+  auto createFunction = reinterpret_cast<CreateComponentFuncPtr>(reinterpret_cast<uintptr_t>(dlsym(pComponent->pLibHandle, cFunctionName)));
   auto pErr = dlerror();
 
   if(pErr)

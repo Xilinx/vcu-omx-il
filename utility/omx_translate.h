@@ -384,6 +384,7 @@ static std::map<OMX_INDEXTYPE, std::string> OMXIndexInStringMap =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexVendorComponentStartUnused), "OMX_ALG_IndexVendorComponentStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamReportedLatency), "OMX_ALG_IndexParamReportedLatency" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamPreallocation), "OMX_ALG_IndexParamPreallocation" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamInstanceId), "OMX_ALG_IndexParamInstanceId" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexVendorPortStartUnused), "OMX_ALG_IndexVendorPortStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexPortParamBufferMode), "OMX_ALG_IndexPortParamBufferMode" },
@@ -437,6 +438,7 @@ static std::map<OMX_INDEXTYPE, std::string> OMXIndexInStringMap =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoUniformSliceType), "OMX_ALG_IndexParamVideoUniformSliceType" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoOutputPosition), "OMX_ALG_IndexParamVideoOutputPosition" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoStartCodeBytesAlignment), "OMX_ALG_IndexParamVideoStartCodeBytesAlignment" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoRecoveryPoint), "OMX_ALG_IndexParamVideoRecoveryPoint" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVendorVideoStartUnused), "OMX_ALG_IndexConfigVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), "OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh" },

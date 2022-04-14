@@ -573,12 +573,12 @@ OMX_U32 ConvertMediaToOMXQpB(QPs qps)
 
 OMX_S32 ConvertMediaToOMXQpMin(QPs qps)
 {
-  return qps.min;
+  return qps.min[0];
 }
 
 OMX_S32 ConvertMediaToOMXQpMax(QPs qps)
 {
-  return qps.max;
+  return qps.max[0];
 }
 
 OMX_ALG_EQpCtrlMode ConvertMediaToOMXQpCtrlMode(QPControlType mode)

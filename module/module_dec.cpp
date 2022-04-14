@@ -172,13 +172,7 @@ void DecModule::EndDecoding(AL_TBuffer* decodedFrame)
 {
   if(!decodedFrame)
   {
-    auto error = AL_Decoder_GetLastError(decoder);
-
-    LOG_ERROR(ToStringDecodeError(error));
-
-    if(AL_IS_ERROR_CODE(error))
-      callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(error));
-
+    Error(AL_Decoder_GetLastError(decoder));
     return;
   }
 
@@ -336,6 +330,14 @@ void DecModule::ParsedSuffixSei(int type, uint8_t* payload, int size)
   callbacks.event(Callbacks::Event::SEI_SUFFIX_PARSED, &sei);
 }
 
+void DecModule::Error(AL_ERR error)
+{
+  LOG_ERROR(ToStringDecodeError(error));
+
+  if(AL_IS_ERROR_CODE(error))
+    callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(error));
+}
+
 ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
 {
   if(decoder)
@@ -351,6 +353,7 @@ ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
   decCallbacks.displayCB = { RedirectionDisplay, this };
   decCallbacks.resolutionFoundCB = { RedirectionResolutionFound, this };
   decCallbacks.parsedSeiCB = { RedirectionParsedSei, this };
+  decCallbacks.errorCB = { RedirectionError, this };
 
   bool inputParsed;
   media->Get(SETTINGS_INDEX_INPUT_PARSED, &inputParsed);

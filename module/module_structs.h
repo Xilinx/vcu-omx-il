@@ -140,6 +140,7 @@ struct Gop
   int b;
   int length;
   int idrFrequency;
+  int rpFrequency;
   GopControlType mode;
   GdrType gdr;
   bool isLongTermEnabled;
@@ -154,11 +155,14 @@ struct QPMode
 
 struct QPs
 {
+  static int constexpr MAX_FRAME_TYPE {
+    3
+  };
   int initial;
   int deltaIP;
   int deltaPB;
-  int min;
-  int max;
+  int min[MAX_FRAME_TYPE];
+  int max[MAX_FRAME_TYPE];
   QPMode mode;
 };
 

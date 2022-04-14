@@ -222,6 +222,9 @@ static std::string const SETTINGS_INDEX_OUTPUT_POSITION {
 static std::string const SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT {
   "SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT"
 };
+static std::string const SETTINGS_INDEX_INSTANCE_ID {
+  "SETTINGS_INDEX_INSTANCE_ID"
+};
 
 struct MediatypeInterface
 {

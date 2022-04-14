@@ -210,7 +210,10 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
   media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
   initialDimension = { resolution.dimension.horizontal, resolution.dimension.vertical };
   currentDimension = { resolution.dimension.horizontal, resolution.dimension.vertical };
-  roiCtx = AL_RoiMngr_Create(resolution.dimension.horizontal, resolution.dimension.vertical, media->settings.tChParam[0].eProfile, AL_ROI_QUALITY_MEDIUM, AL_ROI_INCOMING_ORDER);
+  MinMax<int> log2CodingUnit {};
+  auto ret = media->Get(SETTINGS_INDEX_LOG2_CODING_UNIT, &log2CodingUnit);
+  assert(ret == MediatypeInterface::SUCCESS);
+  roiCtx = AL_RoiMngr_Create(resolution.dimension.horizontal, resolution.dimension.vertical, media->settings.tChParam[0].eProfile, log2CodingUnit.max, AL_ROI_QUALITY_MEDIUM, AL_ROI_INCOMING_ORDER);
 
   if(!roiCtx)
   {
@@ -233,11 +236,11 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
     AL_CB_EndEncoding callback = { EncModule::RedirectionEndEncoding, this };
 
     if(twoPassMngr && twoPassMngr->iPass == 1)
-      AL_TwoPassMngr_SetPass1Settings(settingsPass, nullptr);
+      AL_TwoPassMngr_SetPass1Settings(settingsPass);
 
     if((pass < (numPass - 1)) && (AL_TwoPassMngr_HasLookAhead(settings)))
     {
-      AL_TwoPassMngr_SetPass1Settings(settingsPass, nullptr);
+      AL_TwoPassMngr_SetPass1Settings(settingsPass);
       callback = { EncModule::RedirectionEndEncodingLookAhead, &(encoderPass.callbackParam) };
       LookAhead la;
       media->Get(SETTINGS_INDEX_LOOKAHEAD, &la);

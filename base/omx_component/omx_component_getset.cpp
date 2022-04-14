@@ -436,7 +436,7 @@ OMX_ERRORTYPE ConstructVideoTwoPass(OMX_ALG_VIDEO_PARAM_TWOPASS& tp, Port const&
   auto ret = media->Get(SETTINGS_INDEX_TWOPASS, &twopass);
   OMX_CHECK_MEDIA_GET(ret);
   tp.nPass = twopass.nPass;
-  strncpy((char*)tp.cLogFile, twopass.sLogFile.c_str(), OMX_MAX_STRINGNAME_SIZE);
+  strncpy((char*)tp.cLogFile, twopass.sLogFile.c_str(), OMX_MAX_STRINGNAME_SIZE - 1);
   return OMX_ErrorNone;
 }
 
@@ -611,8 +611,13 @@ static OMX_ERRORTYPE SetQuantizationExtension(OMX_S32 qpMin, OMX_S32 qpMax, shar
   QPs curQPs;
   auto ret = media->Get(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
   OMX_CHECK_MEDIA_GET(ret);
-  curQPs.min = ConvertOMXToMediaQpMin(qpMin);
-  curQPs.max = ConvertOMXToMediaQpMax(qpMax);
+
+  for(int frame_type = 0; frame_type < QPs::MAX_FRAME_TYPE; frame_type++)
+  {
+    curQPs.min[frame_type] = ConvertOMXToMediaQpMin(qpMin);
+    curQPs.max[frame_type] = ConvertOMXToMediaQpMax(qpMax);
+  }
+
   ret = media->Set(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
@@ -892,6 +897,43 @@ OMX_ERRORTYPE SetVideoInstantaneousDecodingRefresh(OMX_ALG_VIDEO_PARAM_INSTANTAN
   if(ret != OMX_ErrorNone)
   {
     SetVideoInstantaneousDecodingRefresh(rollback, port, media);
+    throw ret;
+  }
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoRecoveryPoint(OMX_ALG_VIDEO_PARAM_RECOVERY_POINT& rp, Port const& port, shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(rp);
+  rp.nPortIndex = port.index;
+  Gop gop;
+  auto ret = media->Get(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop);
+  OMX_CHECK_MEDIA_GET(ret);
+  rp.nRecoveryPointFrequency = gop.rpFrequency;
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetRecoveryPoint(OMX_U32 recoveryPointFrequency, shared_ptr<MediatypeInterface> media)
+{
+  Gop gop;
+  auto ret = media->Get(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop);
+  OMX_CHECK_MEDIA_GET(ret);
+  gop.rpFrequency = recoveryPointFrequency;
+  ret = media->Set(SETTINGS_INDEX_GROUP_OF_PICTURES, &gop);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoRecoveryPoint(OMX_ALG_VIDEO_PARAM_RECOVERY_POINT const& recoveryPoint, Port const& port, shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_RECOVERY_POINT rollback;
+  ConstructVideoRecoveryPoint(rollback, port, media);
+
+  auto ret = SetRecoveryPoint(recoveryPoint.nRecoveryPointFrequency, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoRecoveryPoint(rollback, port, media);
     throw ret;
   }
   return OMX_ErrorNone;
@@ -1487,6 +1529,38 @@ OMX_ERRORTYPE ConstructPreallocation(OMX_ALG_PARAM_PREALLOCATION& prealloc, bool
 {
   OMXChecker::SetHeaderVersion(prealloc);
   prealloc.bDisablePreallocation = ConvertMediaToOMXBool(!isPreallocationEnabled);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructInstanceId(OMX_ALG_PARAM_INSTANCE_ID& instance, std::shared_ptr<MediatypeInterface> media)
+{
+  OMXChecker::SetHeaderVersion(instance);
+  int id;
+  auto ret = media->Get(SETTINGS_INDEX_INSTANCE_ID, &id);
+  OMX_CHECK_MEDIA_GET(ret)
+  instance.nInstanceId = id;
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetModuleInstanceId(OMX_S8 id, shared_ptr<MediatypeInterface> media)
+{
+  auto ret = media->Set(SETTINGS_INDEX_INSTANCE_ID, &id);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetInstanceId(OMX_ALG_PARAM_INSTANCE_ID const& instance, std::shared_ptr<MediatypeInterface> media)
+{
+  OMX_ALG_PARAM_INSTANCE_ID rollback;
+  ConstructInstanceId(rollback, media);
+
+  auto ret = SetModuleInstanceId(instance.nInstanceId, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetInstanceId(rollback, media);
+    throw ret;
+  }
   return OMX_ErrorNone;
 }
 

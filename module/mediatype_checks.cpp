@@ -61,6 +61,9 @@ bool CheckGroupOfPictures(Gop gop)
   if(gop.idrFrequency < 0)
     return false;
 
+  if(gop.rpFrequency < 0)
+    return false;
+
   if(gop.mode == GopControlType::GOP_CONTROL_MAX_ENUM)
     return false;
 
@@ -143,11 +146,14 @@ bool CheckQuantizationParameter(QPs qps)
   if(qps.mode.table == QPTableType::QP_TABLE_MAX_ENUM)
     return false;
 
-  if(qps.max < qps.min)
-    return false;
+  for(int frame_type = 0; frame_type < QPs::MAX_FRAME_TYPE; frame_type++)
+  {
+    if(qps.max[frame_type] < qps.min[frame_type])
+      return false;
 
-  if(qps.min < 0)
-    return false;
+    if(qps.min[frame_type] < 0)
+      return false;
+  }
 
   if(qps.initial < 0)
     return false;

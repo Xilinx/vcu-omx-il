@@ -94,6 +94,11 @@ void CommandsSender::restartGop()
   assert(error == OMX_ErrorNone);
 }
 
+void CommandsSender::restartGopRecoveryPoint()
+{
+  assert(0 && "restartGopRecoveryPoint is not supported");
+}
+
 void CommandsSender::setGopLength(int gopLength)
 {
   OMX_ALG_VIDEO_CONFIG_GROUP_OF_PICTURES gop;
@@ -154,6 +159,13 @@ void CommandsSender::setBitRate(int bitRate)
   assert(error == OMX_ErrorNone);
 }
 
+void CommandsSender::setMaxBitRate(int iTargetBitRate, int iMaxBitRate)
+{
+  (void)iTargetBitRate;
+  (void)iMaxBitRate;
+  assert(0 && "setMaxBitRate is not supported");
+}
+
 void CommandsSender::setQP(int qp)
 {
   (void)qp;
@@ -165,6 +177,27 @@ void CommandsSender::setQPBounds(int iMinQP, int iMaxQP)
   (void)iMinQP;
   (void)iMaxQP;
   assert(0 && "setQPBounds is not supported");
+}
+
+void CommandsSender::setQPBounds_I(int iMinQP_I, int iMaxQP_I)
+{
+  (void)iMinQP_I;
+  (void)iMaxQP_I;
+  assert(0 && "setQPBounds_I is not supported");
+}
+
+void CommandsSender::setQPBounds_P(int iMinQP_P, int iMaxQP_P)
+{
+  (void)iMinQP_P;
+  (void)iMaxQP_P;
+  assert(0 && "setQPBounds_P is not supported");
+}
+
+void CommandsSender::setQPBounds_B(int iMinQP_B, int iMaxQP_B)
+{
+  (void)iMinQP_B;
+  (void)iMaxQP_B;
+  assert(0 && "setQPBounds_B is not supported");
 }
 
 void CommandsSender::setQPIPDelta(int iQPDelta)
@@ -195,6 +228,25 @@ void CommandsSender::setLFTcOffset(int iTcOffset)
 {
   (void)iTcOffset;
   assert(0 && "setLFTcOffset is not supported");
+}
+
+void CommandsSender::setCostMode(bool bCostMode)
+{
+  (void)bCostMode;
+  assert(0 && "setCostMode is not supported");
+}
+
+void CommandsSender::setQPChromaOffsets(int iQp1Offset, int iQp2Offset)
+{
+  (void)iQp1Offset;
+  (void)iQp2Offset;
+  assert(0 && "setQPChromaOffsets is not supported");
+}
+
+void CommandsSender::setAutoQP(bool bUseAutoQP)
+{
+  (void)bUseAutoQP;
+  assert(0 && "setAutoQP is not supported");
 }
 
 void CommandsSender::setHDRIndex(int iHDRIdx)
