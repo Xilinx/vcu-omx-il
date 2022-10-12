@@ -600,11 +600,16 @@ bool EncModule::Empty(BufferHandleInterface* handle)
   BufferHandles bufferHandles {};
   media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
 
+  BufferSizes bufferSizes {};
+  media->Get(SETTINGS_INDEX_BUFFER_SIZES, &bufferSizes);
+
+  auto const input_size = max(bufferSizes.input, handle->payload);
+
   if(isFd(bufferHandles.input))
-    UseDMA(handle, static_cast<int>((intptr_t)buffer), handle->payload);
+    UseDMA(handle, static_cast<int>((intptr_t)buffer), input_size);
 
   if(isCharPtr(bufferHandles.input))
-    Use(handle, buffer, handle->payload);
+    Use(handle, buffer, input_size);
 
   auto input = pool.Get(handle);
 
