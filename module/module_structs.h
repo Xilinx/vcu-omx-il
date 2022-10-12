@@ -139,12 +139,12 @@ struct Gop
 {
   int b;
   int length;
-  int idrFrequency;
-  int rpFrequency;
+  long long int idrFrequency;
+  long long int rpFrequency;
+  long long int ltFrequency;
+  bool isLongTermEnabled;
   GopControlType mode;
   GdrType gdr;
-  bool isLongTermEnabled;
-  int ltFrequency;
 };
 
 struct QPMode
@@ -161,8 +161,7 @@ struct QPs
   int initial;
   int deltaIP;
   int deltaPB;
-  int min[MAX_FRAME_TYPE];
-  int max[MAX_FRAME_TYPE];
+  MinMax<int> range[MAX_FRAME_TYPE];
   QPMode mode;
 };
 
@@ -325,12 +324,12 @@ struct DynamicMeta_ST2094_10
 };
 
 /*  --------- ST2094_40 --------- */
-#define MIN_WINDOW_ST2094_40 1
-#define MAX_WINDOW_ST2094_40 3
-#define MAX_MAXRGB_PERCENTILES_ST2094_40 15
-#define MAX_BEZIER_CURVE_ANCHORS_ST2094_40 15
-#define MAX_ROW_ACTUAL_PEAK_LUMINANCE_ST2094_40 25
-#define MAX_COL_ACTUAL_PEAK_LUMINANCE_ST2094_40 25
+static int constexpr MIN_WINDOW_ST2094_40(1);
+static int constexpr MAX_WINDOW_ST2094_40(3);
+static int constexpr MAX_MAXRGB_PERCENTILES_ST2094_40(15);
+static int constexpr MAX_BEZIER_CURVE_ANCHORS_ST2094_40(15);
+static int constexpr MAX_ROW_ACTUAL_PEAK_LUMINANCE_ST2094_40(25);
+static int constexpr MAX_COL_ACTUAL_PEAK_LUMINANCE_ST2094_40(25);
 
 struct ProcessingWindow_ST2094_1
 {
@@ -398,18 +397,20 @@ struct DynamicMeta_ST2094_40
   ProcessingWindowTransform_ST2094_40 processingWindowTransforms[MAX_WINDOW_ST2094_40];
 };
 
+template<class F>
+struct Feature
+{
+  bool enabled;
+  F feature;
+};
+
 struct HighDynamicRangeSeis
 {
-  bool hasMDCV;
-  MasteringDisplayColourVolume masteringDisplayColourVolume;
-  bool hasCLL;
-  ContentLightLevel contentLightLevel;
-  bool hasATC;
-  AlternativeTransferCharacteristics alternativeTransferCharacteristics;
-  bool hasST2094_10;
-  DynamicMeta_ST2094_10 st2094_10;
-  bool hasST2094_40;
-  DynamicMeta_ST2094_40 st2094_40;
+  Feature<MasteringDisplayColourVolume> mdcv;
+  Feature<ContentLightLevel> cll;
+  Feature<AlternativeTransferCharacteristics> atc;
+  Feature<DynamicMeta_ST2094_10> st2094_10;
+  Feature<DynamicMeta_ST2094_40> st2094_40;
 };
 
 struct RateControlPlugin

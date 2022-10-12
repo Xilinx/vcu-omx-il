@@ -148,10 +148,10 @@ bool CheckQuantizationParameter(QPs qps)
 
   for(int frame_type = 0; frame_type < QPs::MAX_FRAME_TYPE; frame_type++)
   {
-    if(qps.max[frame_type] < qps.min[frame_type])
+    if(qps.range[frame_type].max < qps.range[frame_type].min)
       return false;
 
-    if(qps.min[frame_type] < 0)
+    if(qps.range[frame_type].min < 0)
       return false;
   }
 

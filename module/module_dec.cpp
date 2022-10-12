@@ -82,10 +82,10 @@ void DecModule::ResetHDR()
   currentTransferCharacteristics = TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_UNSPECIFIED;
   currentColourMatrix = ColourMatrixType::COLOUR_MATRIX_UNSPECIFIED;
   currentColorPrimaries = ColorPrimariesType::COLOR_PRIMARIES_UNSPECIFIED;
-  currentHDRSEIs.hasMDCV = false;
-  currentHDRSEIs.hasCLL = false;
-  currentHDRSEIs.hasST2094_10 = false;
-  currentHDRSEIs.hasST2094_40 = false;
+  currentHDRSEIs.mdcv.enabled = false;
+  currentHDRSEIs.cll.enabled = false;
+  currentHDRSEIs.st2094_10.enabled = false;
+  currentHDRSEIs.st2094_40.enabled = false;
 }
 
 DecModule::~DecModule() = default;
@@ -119,7 +119,8 @@ static ModuleInterface::ErrorType ToModuleError(int errorCode)
   case AL_SUCCESS: return ModuleInterface::SUCCESS;
   case AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE: return ModuleInterface::CHANNEL_CREATION_NO_CHANNEL_AVAILABLE;
   case AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE: return ModuleInterface::CHANNEL_CREATION_RESOURCE_UNAVAILABLE;
-  case AL_ERR_CHAN_CREATION_NOT_ENOUGH_CORES: return ModuleInterface::CHANNEL_CREATION_RESOURCE_FRAGMENTED;
+  case AL_ERR_CHAN_CREATION_LOAD_DISTRIBUTION: return ModuleInterface::CHANNEL_CREATION_LOAD_DISTRIBUTION;
+  case AL_ERR_CHAN_CREATION_HW_CAPACITY_EXCEEDED: return ModuleInterface::CHANNEL_CREATION_HARDWARE_CAPACITY_EXCEDEED;
   case AL_ERR_REQUEST_MALFORMED: // fallthrough
   case AL_ERR_CMD_NOT_ALLOWED: // fallthrough
   case AL_ERR_INVALID_CMD_VALUE: return ModuleInterface::BAD_PARAMETER;

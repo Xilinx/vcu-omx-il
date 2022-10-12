@@ -208,14 +208,13 @@ static int RawAllocationSize(Stride stride, AL_EChromaMode eChromaMode)
   auto IP_HEIGHT_ALIGNMENT = 8;
   assert(stride.horizontal % IP_WIDTH_ALIGNMENT == 0); // IP requirements
   assert(stride.vertical % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
-  auto size = stride.horizontal * stride.vertical;
-  switch(eChromaMode)
-  {
-  case AL_CHROMA_MONO: return size;
-  case AL_CHROMA_4_2_0: return (3 * size) / 2;
-  case AL_CHROMA_4_2_2: return 2 * size;
-  default: return -1;
-  }
+  auto const lumaSize = AL_GetAllocSizeSrc_PixPlane(AL_SRC_RASTER, stride.horizontal, stride.vertical, eChromaMode, AL_PLANE_Y);
+
+  if(eChromaMode == AL_CHROMA_MONO)
+    return lumaSize;
+
+  auto const size = lumaSize + AL_GetAllocSizeSrc_PixPlane(AL_SRC_RASTER, stride.horizontal, stride.vertical, eChromaMode, AL_PLANE_UV);
+  return size;
 }
 
 BufferSizes CreateBufferSizes(AL_TEncSettings settings, Stride stride)
@@ -302,8 +301,8 @@ QPs CreateQuantizationParameter(AL_TEncSettings settings)
   for(int frame_type = 0; frame_type < QPs::MAX_FRAME_TYPE; frame_type++)
   {
     assert(QPs::MAX_FRAME_TYPE <= AL_MAX_FRAME_TYPE);
-    qps.min[frame_type] = rateControl.iMinQP[frame_type];
-    qps.max[frame_type] = rateControl.iMaxQP[frame_type];
+    qps.range[frame_type].min = rateControl.iMinQP[frame_type];
+    qps.range[frame_type].max = rateControl.iMaxQP[frame_type];
   }
 
   return qps;
@@ -330,8 +329,8 @@ bool UpdateQuantizationParameter(AL_TEncSettings& settings, QPs qps)
   for(int frame_type = 0; frame_type < AL_MAX_FRAME_TYPE; frame_type++)
   {
     assert(AL_MAX_FRAME_TYPE <= QPs::MAX_FRAME_TYPE);
-    rateControl.iMinQP[frame_type] = qps.min[frame_type];
-    rateControl.iMaxQP[frame_type] = qps.max[frame_type];
+    rateControl.iMinQP[frame_type] = qps.range[frame_type].min;
+    rateControl.iMaxQP[frame_type] = qps.range[frame_type].max;
   }
 
   return true;

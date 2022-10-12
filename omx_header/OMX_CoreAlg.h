@@ -61,7 +61,8 @@ typedef enum OMX_ALG_ERRORTYPE
 
   OMX_ALG_ErrorNoChannelLeft = (OMX_S32) OMX_ErrorVendorStartUnused + 0x1000,
   OMX_ALG_ErrorChannelResourceUnavailable = (OMX_S32) OMX_ErrorVendorStartUnused + 0x1001,
-  OMX_ALG_ErrorChannelResourceFragmented = (OMX_S32) OMX_ErrorVendorStartUnused + 0x1002,
+  OMX_ALG_ErrorChannelLoadDistribution = (OMX_S32) OMX_ErrorVendorStartUnused + 0x1002,
+  OMX_ALG_ErrorChannelHardwareCapacityExceeded = (OMX_S32) OMX_ErrorVendorStartUnused + 0x1003,
 
   OMX_ALG_ErrorMax = (OMX_S32) 0x9000FFFF,
 }OMX_ALG_ERRORTYPE;

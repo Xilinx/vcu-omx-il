@@ -90,7 +90,8 @@ static std::map<OMX_ERRORTYPE, std::string> OMXErrorInStringMap =
   { OMX_ErrorVendorStartUnused, "OMX_ErrorVendorStartUnused" },
   { static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorNoChannelLeft), "OMX_ALG_ErrorNoChannelLeft" },
   { static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelResourceUnavailable), "OMX_ALG_ErrorChannelResourceUnavailable" },
-  { static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelResourceFragmented), "OMX_ALG_ErrorChannelResourceFragmented" },
+  { static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelLoadDistribution), "OMX_ALG_ErrorChannelLoadDistribution" },
+  { static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelHardwareCapacityExceeded), "OMX_ALG_ErrorChannelHardwareCapacityExceeded" },
 
   { OMX_ErrorMax, "OMX_ErrorMax" },
 };

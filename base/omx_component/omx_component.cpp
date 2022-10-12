@@ -151,7 +151,8 @@ static OMX_ERRORTYPE ToOmxError(ModuleInterface::ErrorType error)
   {
   case ModuleInterface::CHANNEL_CREATION_NO_CHANNEL_AVAILABLE: return static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorNoChannelLeft);
   case ModuleInterface::CHANNEL_CREATION_RESOURCE_UNAVAILABLE: return static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelResourceUnavailable);
-  case ModuleInterface::CHANNEL_CREATION_RESOURCE_FRAGMENTED: return static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelResourceFragmented);
+  case ModuleInterface::CHANNEL_CREATION_LOAD_DISTRIBUTION: return static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelLoadDistribution);
+  case ModuleInterface::CHANNEL_CREATION_HARDWARE_CAPACITY_EXCEDEED: return static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelHardwareCapacityExceeded);
   case ModuleInterface::NO_MEMORY: return OMX_ErrorInsufficientResources;
   case ModuleInterface::BAD_PARAMETER: return OMX_ErrorBadParameter;
   default: return OMX_ErrorUndefined;

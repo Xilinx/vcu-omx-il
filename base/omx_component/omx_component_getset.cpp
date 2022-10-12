@@ -614,8 +614,8 @@ static OMX_ERRORTYPE SetQuantizationExtension(OMX_S32 qpMin, OMX_S32 qpMax, shar
 
   for(int frame_type = 0; frame_type < QPs::MAX_FRAME_TYPE; frame_type++)
   {
-    curQPs.min[frame_type] = ConvertOMXToMediaQpMin(qpMin);
-    curQPs.max[frame_type] = ConvertOMXToMediaQpMax(qpMax);
+    curQPs.range[frame_type].min = ConvertOMXToMediaQpMin(qpMin);
+    curQPs.range[frame_type].max = ConvertOMXToMediaQpMax(qpMax);
   }
 
   ret = media->Set(SETTINGS_INDEX_QUANTIZATION_PARAMETER, &curQPs);

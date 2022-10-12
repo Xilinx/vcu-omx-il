@@ -74,7 +74,8 @@ static ModuleInterface::ErrorType ToModuleError(int errorCode)
   case AL_SUCCESS: return ModuleInterface::SUCCESS;
   case AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE: return ModuleInterface::CHANNEL_CREATION_NO_CHANNEL_AVAILABLE;
   case AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE: return ModuleInterface::CHANNEL_CREATION_RESOURCE_UNAVAILABLE;
-  case AL_ERR_CHAN_CREATION_NOT_ENOUGH_CORES: return ModuleInterface::CHANNEL_CREATION_RESOURCE_FRAGMENTED;
+  case AL_ERR_CHAN_CREATION_LOAD_DISTRIBUTION: return ModuleInterface::CHANNEL_CREATION_LOAD_DISTRIBUTION;
+  case AL_ERR_CHAN_CREATION_HW_CAPACITY_EXCEEDED: return ModuleInterface::CHANNEL_CREATION_HARDWARE_CAPACITY_EXCEDEED;
   case AL_ERR_REQUEST_MALFORMED: // fallthrough
   case AL_ERR_CMD_NOT_ALLOWED: // fallthrough
   case AL_ERR_INVALID_CMD_VALUE: return ModuleInterface::BAD_PARAMETER;
@@ -690,8 +691,7 @@ bool EncModule::Fill(BufferHandleInterface* handle)
 
   auto output = pool.Get(handle);
 
-  if(!output)
-    return false;
+  assert(output);
 
   if(!AL_Buffer_GetMetaData(output, AL_META_TYPE_STREAM))
   {
@@ -711,7 +711,20 @@ bool EncModule::Fill(BufferHandleInterface* handle)
   media->Get(SETTINGS_INDEX_SEPARATE_CONFIGURATION_FROM_DATA, &isSeparateConfigurationFromDataEnabled);
 
   if(!isSeparateConfigurationFromDataEnabled)
-    return AL_Encoder_PutStreamBuffer(encoder, output);
+  {
+    if(!AL_Encoder_PutStreamBuffer(encoder, output))
+    {
+      handles.Remove(output);
+
+      if(isFd(bufferHandles.output))
+        UnuseDMA(handle);
+
+      if(isCharPtr(bufferHandles.output))
+        Unuse(handle);
+      return false;
+    }
+    return true;
+  }
 
   unique_lock<std::mutex> lock(mutex);
 
@@ -723,7 +736,20 @@ bool EncModule::Fill(BufferHandleInterface* handle)
   }
   lock.unlock();
 
-  return AL_Encoder_PutStreamBuffer(encoder, output);
+  if(!AL_Encoder_PutStreamBuffer(encoder, output))
+  {
+    handles.Remove(output);
+
+    if(isFd(bufferHandles.output))
+      UnuseDMA(handle);
+
+    if(isCharPtr(bufferHandles.output))
+      Unuse(handle);
+
+    return false;
+  }
+
+  return true;
 }
 
 static int WriteFillerDataSection(shared_ptr<MemoryInterface> memory, AL_TBuffer* source, AL_TBuffer* destination, int offset, int numSection)

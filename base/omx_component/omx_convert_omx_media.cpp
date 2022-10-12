@@ -573,12 +573,12 @@ OMX_U32 ConvertMediaToOMXQpB(QPs qps)
 
 OMX_S32 ConvertMediaToOMXQpMin(QPs qps)
 {
-  return qps.min[0];
+  return qps.range[0].min;
 }
 
 OMX_S32 ConvertMediaToOMXQpMax(QPs qps)
 {
-  return qps.max[0];
+  return qps.range[0].max;
 }
 
 OMX_ALG_EQpCtrlMode ConvertMediaToOMXQpCtrlMode(QPControlType mode)
@@ -1276,83 +1276,82 @@ OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI ConvertMediaToOMXHDRSEI(HighDynamicR
 {
   OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI omxHDRSEIs;
 
-  omxHDRSEIs.bHasMDCV = ConvertMediaToOMXBool(hdrSEIs.hasMDCV);
+  omxHDRSEIs.bHasMDCV = ConvertMediaToOMXBool(hdrSEIs.mdcv.enabled);
 
-  if(hdrSEIs.hasMDCV)
+  if(hdrSEIs.mdcv.enabled)
   {
     for(int i = 0; i < 3; i++)
     {
-      omxHDRSEIs.masteringDisplayColourVolume.displayPrimaries[i].nX = hdrSEIs.masteringDisplayColourVolume.displayPrimaries[i].x;
-      omxHDRSEIs.masteringDisplayColourVolume.displayPrimaries[i].nY = hdrSEIs.masteringDisplayColourVolume.displayPrimaries[i].y;
+      omxHDRSEIs.masteringDisplayColourVolume.displayPrimaries[i].nX = hdrSEIs.mdcv.feature.displayPrimaries[i].x;
+      omxHDRSEIs.masteringDisplayColourVolume.displayPrimaries[i].nY = hdrSEIs.mdcv.feature.displayPrimaries[i].y;
     }
 
-    omxHDRSEIs.masteringDisplayColourVolume.whitePoint.nX = hdrSEIs.masteringDisplayColourVolume.whitePoint.x;
-    omxHDRSEIs.masteringDisplayColourVolume.whitePoint.nY = hdrSEIs.masteringDisplayColourVolume.whitePoint.y;
-    omxHDRSEIs.masteringDisplayColourVolume.nMaxDisplayMasteringLuminance = hdrSEIs.masteringDisplayColourVolume.maxDisplayMasteringLuminance;
-    omxHDRSEIs.masteringDisplayColourVolume.nMinDisplayMasteringLuminance = hdrSEIs.masteringDisplayColourVolume.minDisplayMasteringLuminance;
+    omxHDRSEIs.masteringDisplayColourVolume.whitePoint.nX = hdrSEIs.mdcv.feature.whitePoint.x;
+    omxHDRSEIs.masteringDisplayColourVolume.whitePoint.nY = hdrSEIs.mdcv.feature.whitePoint.y;
+    omxHDRSEIs.masteringDisplayColourVolume.nMaxDisplayMasteringLuminance = hdrSEIs.mdcv.feature.maxDisplayMasteringLuminance;
+    omxHDRSEIs.masteringDisplayColourVolume.nMinDisplayMasteringLuminance = hdrSEIs.mdcv.feature.minDisplayMasteringLuminance;
   }
 
-  omxHDRSEIs.bHasCLL = ConvertMediaToOMXBool(hdrSEIs.hasCLL);
+  omxHDRSEIs.bHasCLL = ConvertMediaToOMXBool(hdrSEIs.cll.enabled);
 
-  if(hdrSEIs.hasCLL)
+  if(hdrSEIs.cll.enabled)
   {
-    omxHDRSEIs.contentLightLevel.nMaxContentLightLevel = hdrSEIs.contentLightLevel.maxContentLightLevel;
-    omxHDRSEIs.contentLightLevel.nMaxPicAverageLightLevel = hdrSEIs.contentLightLevel.maxPicAverageLightLevel;
+    omxHDRSEIs.contentLightLevel.nMaxContentLightLevel = hdrSEIs.cll.feature.maxContentLightLevel;
+    omxHDRSEIs.contentLightLevel.nMaxPicAverageLightLevel = hdrSEIs.cll.feature.maxPicAverageLightLevel;
   }
 
-  omxHDRSEIs.bHasATC = ConvertMediaToOMXBool(hdrSEIs.hasATC);
+  omxHDRSEIs.bHasATC = ConvertMediaToOMXBool(hdrSEIs.atc.enabled);
 
-  if(omxHDRSEIs.bHasATC)
+  if(hdrSEIs.atc.enabled)
   {
     omxHDRSEIs.alternativeTransferCharacteristics.preferredTransferCharacteristics =
-      ConvertMediaToOMXTransferCharacteristics(hdrSEIs.alternativeTransferCharacteristics.preferredTransferCharacteristics);
+      ConvertMediaToOMXTransferCharacteristics(hdrSEIs.atc.feature.preferredTransferCharacteristics);
   }
 
-  omxHDRSEIs.bHasST2094_10 = ConvertMediaToOMXBool(hdrSEIs.hasST2094_10);
+  omxHDRSEIs.bHasST2094_10 = ConvertMediaToOMXBool(hdrSEIs.st2094_10.enabled);
 
-  if(hdrSEIs.hasST2094_10)
+  if(hdrSEIs.st2094_10.enabled)
   {
-    omxHDRSEIs.st2094_10.nApplicationVersion = hdrSEIs.st2094_10.applicationVersion;
+    omxHDRSEIs.st2094_10.nApplicationVersion = hdrSEIs.st2094_10.feature.applicationVersion;
+    omxHDRSEIs.st2094_10.bProcessingWindowFlag = ConvertMediaToOMXBool(hdrSEIs.st2094_10.feature.processingWindowFlag);
 
-    omxHDRSEIs.st2094_10.bProcessingWindowFlag = ConvertMediaToOMXBool(hdrSEIs.st2094_10.processingWindowFlag);
-
-    if(hdrSEIs.st2094_10.processingWindowFlag)
+    if(hdrSEIs.st2094_10.feature.processingWindowFlag)
     {
-      omxHDRSEIs.st2094_10.processingWindow.nActiveAreaLeftOffset = hdrSEIs.st2094_10.processingWindow.activeAreaLeftOffset;
-      omxHDRSEIs.st2094_10.processingWindow.nActiveAreaRightOffset = hdrSEIs.st2094_10.processingWindow.activeAreaRightOffset;
-      omxHDRSEIs.st2094_10.processingWindow.nActiveAreaTopOffset = hdrSEIs.st2094_10.processingWindow.activeAreaTopOffset;
-      omxHDRSEIs.st2094_10.processingWindow.nActiveAreaBottomOffset = hdrSEIs.st2094_10.processingWindow.activeAreaBottomOffset;
+      omxHDRSEIs.st2094_10.processingWindow.nActiveAreaLeftOffset = hdrSEIs.st2094_10.feature.processingWindow.activeAreaLeftOffset;
+      omxHDRSEIs.st2094_10.processingWindow.nActiveAreaRightOffset = hdrSEIs.st2094_10.feature.processingWindow.activeAreaRightOffset;
+      omxHDRSEIs.st2094_10.processingWindow.nActiveAreaTopOffset = hdrSEIs.st2094_10.feature.processingWindow.activeAreaTopOffset;
+      omxHDRSEIs.st2094_10.processingWindow.nActiveAreaBottomOffset = hdrSEIs.st2094_10.feature.processingWindow.activeAreaBottomOffset;
     }
 
-    omxHDRSEIs.st2094_10.imageCharacteristics.nMinPQ = hdrSEIs.st2094_10.imageCharacteristics.minPQ;
-    omxHDRSEIs.st2094_10.imageCharacteristics.nMaxPQ = hdrSEIs.st2094_10.imageCharacteristics.maxPQ;
-    omxHDRSEIs.st2094_10.imageCharacteristics.nAvgPQ = hdrSEIs.st2094_10.imageCharacteristics.avgPQ;
+    omxHDRSEIs.st2094_10.imageCharacteristics.nMinPQ = hdrSEIs.st2094_10.feature.imageCharacteristics.minPQ;
+    omxHDRSEIs.st2094_10.imageCharacteristics.nMaxPQ = hdrSEIs.st2094_10.feature.imageCharacteristics.maxPQ;
+    omxHDRSEIs.st2094_10.imageCharacteristics.nAvgPQ = hdrSEIs.st2094_10.feature.imageCharacteristics.avgPQ;
 
-    omxHDRSEIs.st2094_10.nNumManualAdjustments = hdrSEIs.st2094_10.numManualAdjustments;
+    omxHDRSEIs.st2094_10.nNumManualAdjustments = hdrSEIs.st2094_10.feature.numManualAdjustments;
 
-    for(int i = 0; i < hdrSEIs.st2094_10.numManualAdjustments; i++)
+    for(int i = 0; i < hdrSEIs.st2094_10.feature.numManualAdjustments; i++)
     {
-      omxHDRSEIs.st2094_10.manualAdjustments[i].nTargetMaxPQ = hdrSEIs.st2094_10.manualAdjustments[i].targetMaxPQ;
-      omxHDRSEIs.st2094_10.manualAdjustments[i].nTrimSlope = hdrSEIs.st2094_10.manualAdjustments[i].trimSlope;
-      omxHDRSEIs.st2094_10.manualAdjustments[i].nTrimOffset = hdrSEIs.st2094_10.manualAdjustments[i].trimOffset;
-      omxHDRSEIs.st2094_10.manualAdjustments[i].nTrimPower = hdrSEIs.st2094_10.manualAdjustments[i].trimPower;
-      omxHDRSEIs.st2094_10.manualAdjustments[i].nTrimChromaWeight = hdrSEIs.st2094_10.manualAdjustments[i].trimChromaWeight;
-      omxHDRSEIs.st2094_10.manualAdjustments[i].nTrimSaturationGain = hdrSEIs.st2094_10.manualAdjustments[i].trimSaturationGain;
-      omxHDRSEIs.st2094_10.manualAdjustments[i].nMSWeight = hdrSEIs.st2094_10.manualAdjustments[i].msWeight;
+      omxHDRSEIs.st2094_10.manualAdjustments[i].nTargetMaxPQ = hdrSEIs.st2094_10.feature.manualAdjustments[i].targetMaxPQ;
+      omxHDRSEIs.st2094_10.manualAdjustments[i].nTrimSlope = hdrSEIs.st2094_10.feature.manualAdjustments[i].trimSlope;
+      omxHDRSEIs.st2094_10.manualAdjustments[i].nTrimOffset = hdrSEIs.st2094_10.feature.manualAdjustments[i].trimOffset;
+      omxHDRSEIs.st2094_10.manualAdjustments[i].nTrimPower = hdrSEIs.st2094_10.feature.manualAdjustments[i].trimPower;
+      omxHDRSEIs.st2094_10.manualAdjustments[i].nTrimChromaWeight = hdrSEIs.st2094_10.feature.manualAdjustments[i].trimChromaWeight;
+      omxHDRSEIs.st2094_10.manualAdjustments[i].nTrimSaturationGain = hdrSEIs.st2094_10.feature.manualAdjustments[i].trimSaturationGain;
+      omxHDRSEIs.st2094_10.manualAdjustments[i].nMSWeight = hdrSEIs.st2094_10.feature.manualAdjustments[i].msWeight;
     }
   }
 
-  omxHDRSEIs.bHasST2094_40 = ConvertMediaToOMXBool(hdrSEIs.hasST2094_40);
+  omxHDRSEIs.bHasST2094_40 = ConvertMediaToOMXBool(hdrSEIs.st2094_40.enabled);
 
-  if(hdrSEIs.hasST2094_40)
+  if(hdrSEIs.st2094_40.enabled)
   {
-    omxHDRSEIs.st2094_40.nApplicationVersion = hdrSEIs.st2094_40.applicationVersion;
-    omxHDRSEIs.st2094_40.nNumWindows = hdrSEIs.st2094_40.numWindows;
+    omxHDRSEIs.st2094_40.nApplicationVersion = hdrSEIs.st2094_40.feature.applicationVersion;
+    omxHDRSEIs.st2094_40.nNumWindows = hdrSEIs.st2094_40.feature.numWindows;
 
-    for(int i = 0; i < hdrSEIs.st2094_40.numWindows - 1; i++)
+    for(int i = 0; i < hdrSEIs.st2094_40.feature.numWindows - 1; i++)
     {
       OMX_ALG_PROCESSING_WINDOW_ST2094_40* pOmxPW = &omxHDRSEIs.st2094_40.processingWindows[i];
-      const ProcessingWindow_ST2094_40* pPW = &hdrSEIs.st2094_40.processingWindows[i];
+      const ProcessingWindow_ST2094_40* pPW = &hdrSEIs.st2094_40.feature.processingWindows[i];
 
       pOmxPW->baseProcessingWindow.nUpperLeftCornerX = pPW->baseProcessingWindow.upperLeftCornerX;
       pOmxPW->baseProcessingWindow.nUpperLeftCornerY = pPW->baseProcessingWindow.upperLeftCornerY;
@@ -1368,15 +1367,15 @@ OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_RANGE_SEI ConvertMediaToOMXHDRSEI(HighDynamicR
       pOmxPW->nOverlapProcessOption = pPW->overlapProcessOption;
     }
 
-    omxHDRSEIs.st2094_40.targetedSystemDisplay.nMaximumLuminance = hdrSEIs.st2094_40.targetedSystemDisplay.maximumLuminance;
-    ConvertMediaToOMX_DPL_ST2094_40(omxHDRSEIs.st2094_40.targetedSystemDisplay.peakLuminance, hdrSEIs.st2094_40.targetedSystemDisplay.peakLuminance);
+    omxHDRSEIs.st2094_40.targetedSystemDisplay.nMaximumLuminance = hdrSEIs.st2094_40.feature.targetedSystemDisplay.maximumLuminance;
+    ConvertMediaToOMX_DPL_ST2094_40(omxHDRSEIs.st2094_40.targetedSystemDisplay.peakLuminance, hdrSEIs.st2094_40.feature.targetedSystemDisplay.peakLuminance);
 
-    ConvertMediaToOMX_DPL_ST2094_40(omxHDRSEIs.st2094_40.masteringDisplayPeakLuminance, hdrSEIs.st2094_40.masteringDisplayPeakLuminance);
+    ConvertMediaToOMX_DPL_ST2094_40(omxHDRSEIs.st2094_40.masteringDisplayPeakLuminance, hdrSEIs.st2094_40.feature.masteringDisplayPeakLuminance);
 
-    for(int i = 0; i < hdrSEIs.st2094_40.numWindows; i++)
+    for(int i = 0; i < hdrSEIs.st2094_40.feature.numWindows; i++)
     {
       OMX_ALG_PROCESSING_WINDOW_TRANSFORM_ST2094_40* pOmxPWT = &omxHDRSEIs.st2094_40.processingWindowTransforms[i];
-      const ProcessingWindowTransform_ST2094_40* pPWT = &hdrSEIs.st2094_40.processingWindowTransforms[i];
+      const ProcessingWindowTransform_ST2094_40* pPWT = &hdrSEIs.st2094_40.feature.processingWindowTransforms[i];
 
       for(int j = 0; j < 3; j++)
         pOmxPWT->nMaxScl[j] = pPWT->maxscl[j];
@@ -1433,83 +1432,83 @@ HighDynamicRangeSeis ConvertOMXToMediaHDRSEI(OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_R
 {
   HighDynamicRangeSeis modHDRSEIs;
 
-  modHDRSEIs.hasMDCV = ConvertOMXToMediaBool(hdrSEIs.bHasMDCV);
+  modHDRSEIs.mdcv.enabled = ConvertOMXToMediaBool(hdrSEIs.bHasMDCV);
 
-  if(modHDRSEIs.hasMDCV)
+  if(modHDRSEIs.mdcv.enabled)
   {
     for(int i = 0; i < 3; i++)
     {
-      modHDRSEIs.masteringDisplayColourVolume.displayPrimaries[i].x = hdrSEIs.masteringDisplayColourVolume.displayPrimaries[i].nX;
-      modHDRSEIs.masteringDisplayColourVolume.displayPrimaries[i].y = hdrSEIs.masteringDisplayColourVolume.displayPrimaries[i].nY;
+      modHDRSEIs.mdcv.feature.displayPrimaries[i].x = hdrSEIs.masteringDisplayColourVolume.displayPrimaries[i].nX;
+      modHDRSEIs.mdcv.feature.displayPrimaries[i].y = hdrSEIs.masteringDisplayColourVolume.displayPrimaries[i].nY;
     }
 
-    modHDRSEIs.masteringDisplayColourVolume.whitePoint.x = hdrSEIs.masteringDisplayColourVolume.whitePoint.nX;
-    modHDRSEIs.masteringDisplayColourVolume.whitePoint.y = hdrSEIs.masteringDisplayColourVolume.whitePoint.nY;
-    modHDRSEIs.masteringDisplayColourVolume.maxDisplayMasteringLuminance = hdrSEIs.masteringDisplayColourVolume.nMaxDisplayMasteringLuminance;
-    modHDRSEIs.masteringDisplayColourVolume.minDisplayMasteringLuminance = hdrSEIs.masteringDisplayColourVolume.nMinDisplayMasteringLuminance;
+    modHDRSEIs.mdcv.feature.whitePoint.x = hdrSEIs.masteringDisplayColourVolume.whitePoint.nX;
+    modHDRSEIs.mdcv.feature.whitePoint.y = hdrSEIs.masteringDisplayColourVolume.whitePoint.nY;
+    modHDRSEIs.mdcv.feature.maxDisplayMasteringLuminance = hdrSEIs.masteringDisplayColourVolume.nMaxDisplayMasteringLuminance;
+    modHDRSEIs.mdcv.feature.minDisplayMasteringLuminance = hdrSEIs.masteringDisplayColourVolume.nMinDisplayMasteringLuminance;
   }
 
-  modHDRSEIs.hasCLL = ConvertOMXToMediaBool(hdrSEIs.bHasCLL);
+  modHDRSEIs.cll.enabled = ConvertOMXToMediaBool(hdrSEIs.bHasCLL);
 
-  if(modHDRSEIs.hasCLL)
+  if(modHDRSEIs.cll.enabled)
   {
-    modHDRSEIs.contentLightLevel.maxContentLightLevel = hdrSEIs.contentLightLevel.nMaxContentLightLevel;
-    modHDRSEIs.contentLightLevel.maxPicAverageLightLevel = hdrSEIs.contentLightLevel.nMaxPicAverageLightLevel;
+    modHDRSEIs.cll.feature.maxContentLightLevel = hdrSEIs.contentLightLevel.nMaxContentLightLevel;
+    modHDRSEIs.cll.feature.maxPicAverageLightLevel = hdrSEIs.contentLightLevel.nMaxPicAverageLightLevel;
   }
 
-  modHDRSEIs.hasATC = ConvertOMXToMediaBool(hdrSEIs.bHasATC);
+  modHDRSEIs.atc.enabled = ConvertOMXToMediaBool(hdrSEIs.bHasATC);
 
-  if(modHDRSEIs.hasATC)
+  if(modHDRSEIs.atc.enabled)
   {
-    modHDRSEIs.alternativeTransferCharacteristics.preferredTransferCharacteristics =
+    modHDRSEIs.atc.feature.preferredTransferCharacteristics =
       ConvertOMXToMediaTransferCharacteristics(hdrSEIs.alternativeTransferCharacteristics.preferredTransferCharacteristics);
   }
 
-  modHDRSEIs.hasST2094_10 = ConvertOMXToMediaBool(hdrSEIs.bHasST2094_10);
+  modHDRSEIs.st2094_10.enabled = ConvertOMXToMediaBool(hdrSEIs.bHasST2094_10);
 
-  if(modHDRSEIs.hasST2094_10)
+  if(modHDRSEIs.st2094_10.enabled)
   {
-    modHDRSEIs.st2094_10.applicationVersion = hdrSEIs.st2094_10.nApplicationVersion;
+    modHDRSEIs.st2094_10.feature.applicationVersion = hdrSEIs.st2094_10.nApplicationVersion;
 
-    modHDRSEIs.st2094_10.processingWindowFlag = ConvertOMXToMediaBool(hdrSEIs.st2094_10.bProcessingWindowFlag);
+    modHDRSEIs.st2094_10.feature.processingWindowFlag = ConvertOMXToMediaBool(hdrSEIs.st2094_10.bProcessingWindowFlag);
 
-    if(modHDRSEIs.st2094_10.processingWindowFlag)
+    if(modHDRSEIs.st2094_10.feature.processingWindowFlag)
     {
-      modHDRSEIs.st2094_10.processingWindow.activeAreaLeftOffset = hdrSEIs.st2094_10.processingWindow.nActiveAreaLeftOffset;
-      modHDRSEIs.st2094_10.processingWindow.activeAreaRightOffset = hdrSEIs.st2094_10.processingWindow.nActiveAreaRightOffset;
-      modHDRSEIs.st2094_10.processingWindow.activeAreaTopOffset = hdrSEIs.st2094_10.processingWindow.nActiveAreaTopOffset;
-      modHDRSEIs.st2094_10.processingWindow.activeAreaBottomOffset = hdrSEIs.st2094_10.processingWindow.nActiveAreaBottomOffset;
+      modHDRSEIs.st2094_10.feature.processingWindow.activeAreaLeftOffset = hdrSEIs.st2094_10.processingWindow.nActiveAreaLeftOffset;
+      modHDRSEIs.st2094_10.feature.processingWindow.activeAreaRightOffset = hdrSEIs.st2094_10.processingWindow.nActiveAreaRightOffset;
+      modHDRSEIs.st2094_10.feature.processingWindow.activeAreaTopOffset = hdrSEIs.st2094_10.processingWindow.nActiveAreaTopOffset;
+      modHDRSEIs.st2094_10.feature.processingWindow.activeAreaBottomOffset = hdrSEIs.st2094_10.processingWindow.nActiveAreaBottomOffset;
     }
 
-    modHDRSEIs.st2094_10.imageCharacteristics.minPQ = hdrSEIs.st2094_10.imageCharacteristics.nMinPQ;
-    modHDRSEIs.st2094_10.imageCharacteristics.maxPQ = hdrSEIs.st2094_10.imageCharacteristics.nMaxPQ;
-    modHDRSEIs.st2094_10.imageCharacteristics.avgPQ = hdrSEIs.st2094_10.imageCharacteristics.nAvgPQ;
+    modHDRSEIs.st2094_10.feature.imageCharacteristics.minPQ = hdrSEIs.st2094_10.imageCharacteristics.nMinPQ;
+    modHDRSEIs.st2094_10.feature.imageCharacteristics.maxPQ = hdrSEIs.st2094_10.imageCharacteristics.nMaxPQ;
+    modHDRSEIs.st2094_10.feature.imageCharacteristics.avgPQ = hdrSEIs.st2094_10.imageCharacteristics.nAvgPQ;
 
-    modHDRSEIs.st2094_10.numManualAdjustments = hdrSEIs.st2094_10.nNumManualAdjustments;
+    modHDRSEIs.st2094_10.feature.numManualAdjustments = hdrSEIs.st2094_10.nNumManualAdjustments;
 
-    for(int i = 0; i < modHDRSEIs.st2094_10.numManualAdjustments; i++)
+    for(int i = 0; i < modHDRSEIs.st2094_10.feature.numManualAdjustments; i++)
     {
-      modHDRSEIs.st2094_10.manualAdjustments[i].targetMaxPQ = hdrSEIs.st2094_10.manualAdjustments[i].nTargetMaxPQ;
-      modHDRSEIs.st2094_10.manualAdjustments[i].trimSlope = hdrSEIs.st2094_10.manualAdjustments[i].nTrimSlope;
-      modHDRSEIs.st2094_10.manualAdjustments[i].trimOffset = hdrSEIs.st2094_10.manualAdjustments[i].nTrimOffset;
-      modHDRSEIs.st2094_10.manualAdjustments[i].trimPower = hdrSEIs.st2094_10.manualAdjustments[i].nTrimPower;
-      modHDRSEIs.st2094_10.manualAdjustments[i].trimChromaWeight = hdrSEIs.st2094_10.manualAdjustments[i].nTrimChromaWeight;
-      modHDRSEIs.st2094_10.manualAdjustments[i].trimSaturationGain = hdrSEIs.st2094_10.manualAdjustments[i].nTrimSaturationGain;
-      modHDRSEIs.st2094_10.manualAdjustments[i].msWeight = hdrSEIs.st2094_10.manualAdjustments[i].nMSWeight;
+      modHDRSEIs.st2094_10.feature.manualAdjustments[i].targetMaxPQ = hdrSEIs.st2094_10.manualAdjustments[i].nTargetMaxPQ;
+      modHDRSEIs.st2094_10.feature.manualAdjustments[i].trimSlope = hdrSEIs.st2094_10.manualAdjustments[i].nTrimSlope;
+      modHDRSEIs.st2094_10.feature.manualAdjustments[i].trimOffset = hdrSEIs.st2094_10.manualAdjustments[i].nTrimOffset;
+      modHDRSEIs.st2094_10.feature.manualAdjustments[i].trimPower = hdrSEIs.st2094_10.manualAdjustments[i].nTrimPower;
+      modHDRSEIs.st2094_10.feature.manualAdjustments[i].trimChromaWeight = hdrSEIs.st2094_10.manualAdjustments[i].nTrimChromaWeight;
+      modHDRSEIs.st2094_10.feature.manualAdjustments[i].trimSaturationGain = hdrSEIs.st2094_10.manualAdjustments[i].nTrimSaturationGain;
+      modHDRSEIs.st2094_10.feature.manualAdjustments[i].msWeight = hdrSEIs.st2094_10.manualAdjustments[i].nMSWeight;
     }
   }
 
-  modHDRSEIs.hasST2094_40 = ConvertOMXToMediaBool(hdrSEIs.bHasST2094_40);
+  modHDRSEIs.st2094_40.enabled = ConvertOMXToMediaBool(hdrSEIs.bHasST2094_40);
 
-  if(modHDRSEIs.hasST2094_40)
+  if(modHDRSEIs.st2094_40.enabled)
   {
-    modHDRSEIs.st2094_40.applicationVersion = hdrSEIs.st2094_40.nApplicationVersion;
-    modHDRSEIs.st2094_40.numWindows = hdrSEIs.st2094_40.nNumWindows;
+    modHDRSEIs.st2094_40.feature.applicationVersion = hdrSEIs.st2094_40.nApplicationVersion;
+    modHDRSEIs.st2094_40.feature.numWindows = hdrSEIs.st2094_40.nNumWindows;
 
-    for(int i = 0; i < modHDRSEIs.st2094_40.numWindows - 1; i++)
+    for(int i = 0; i < modHDRSEIs.st2094_40.feature.numWindows - 1; i++)
     {
       const OMX_ALG_PROCESSING_WINDOW_ST2094_40* pOmxPW = &hdrSEIs.st2094_40.processingWindows[i];
-      ProcessingWindow_ST2094_40* pPW = &modHDRSEIs.st2094_40.processingWindows[i];
+      ProcessingWindow_ST2094_40* pPW = &modHDRSEIs.st2094_40.feature.processingWindows[i];
 
       pPW->baseProcessingWindow.upperLeftCornerX = pOmxPW->baseProcessingWindow.nUpperLeftCornerX;
       pPW->baseProcessingWindow.upperLeftCornerY = pOmxPW->baseProcessingWindow.nUpperLeftCornerY;
@@ -1525,15 +1524,15 @@ HighDynamicRangeSeis ConvertOMXToMediaHDRSEI(OMX_ALG_VIDEO_CONFIG_HIGH_DYNAMIC_R
       pPW->overlapProcessOption = pOmxPW->nOverlapProcessOption;
     }
 
-    modHDRSEIs.st2094_40.targetedSystemDisplay.maximumLuminance = hdrSEIs.st2094_40.targetedSystemDisplay.nMaximumLuminance;
-    ConvertOMXToMedia_DPL_ST2094_40(modHDRSEIs.st2094_40.targetedSystemDisplay.peakLuminance, hdrSEIs.st2094_40.targetedSystemDisplay.peakLuminance);
+    modHDRSEIs.st2094_40.feature.targetedSystemDisplay.maximumLuminance = hdrSEIs.st2094_40.targetedSystemDisplay.nMaximumLuminance;
+    ConvertOMXToMedia_DPL_ST2094_40(modHDRSEIs.st2094_40.feature.targetedSystemDisplay.peakLuminance, hdrSEIs.st2094_40.targetedSystemDisplay.peakLuminance);
 
-    ConvertOMXToMedia_DPL_ST2094_40(modHDRSEIs.st2094_40.masteringDisplayPeakLuminance, hdrSEIs.st2094_40.masteringDisplayPeakLuminance);
+    ConvertOMXToMedia_DPL_ST2094_40(modHDRSEIs.st2094_40.feature.masteringDisplayPeakLuminance, hdrSEIs.st2094_40.masteringDisplayPeakLuminance);
 
-    for(int i = 0; i < modHDRSEIs.st2094_40.numWindows; i++)
+    for(int i = 0; i < modHDRSEIs.st2094_40.feature.numWindows; i++)
     {
       const OMX_ALG_PROCESSING_WINDOW_TRANSFORM_ST2094_40* pOmxPWT = &hdrSEIs.st2094_40.processingWindowTransforms[i];
-      ProcessingWindowTransform_ST2094_40* pPWT = &modHDRSEIs.st2094_40.processingWindowTransforms[i];
+      ProcessingWindowTransform_ST2094_40* pPWT = &modHDRSEIs.st2094_40.feature.processingWindowTransforms[i];
 
       for(int j = 0; j < 3; j++)
         pPWT->maxscl[j] = pOmxPWT->nMaxScl[j];
