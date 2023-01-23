@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <vector>
+#include "module_enums.h"
 #include "module_structs.h"
 
 extern "C"
@@ -31,6 +33,6 @@ extern "C"
 #include <lib_common/SliceConsts.h>
 }
 
-HEVCProfileType ConvertSoftToModuleHEVCMainTierProfile(AL_EProfile const& profile);
-HEVCProfileType ConvertSoftToModuleHEVCHighTierProfile(AL_EProfile const& profile);
-AL_EProfile ConvertModuleToSoftHEVCProfile(HEVCProfileType const& profile);
+std::vector<ProfileLevel> CreateAVCProfileLevelSupported(std::vector<AVCProfileType> profiles, std::vector<int> levels);
+
+ProfileLevel CreateAVCProfileLevel(AL_EProfile profile, int level);

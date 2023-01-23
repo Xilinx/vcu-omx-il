@@ -24,13 +24,15 @@
 
 #pragma once
 
-#include "module_structs.h"
+#include "settings_interface.h"
 
-extern "C"
+struct DummySettings final : SettingsInterface
 {
-#include <lib_common/SliceConsts.h>
-}
+  DummySettings();
+  ~DummySettings() override;
 
-HEVCProfileType ConvertSoftToModuleHEVCMainTierProfile(AL_EProfile const& profile);
-HEVCProfileType ConvertSoftToModuleHEVCHighTierProfile(AL_EProfile const& profile);
-AL_EProfile ConvertModuleToSoftHEVCProfile(HEVCProfileType const& profile);
+  void Reset() override;
+  ErrorType Get(std::string, void*) const override;
+  ErrorType Set(std::string, void const*) override;
+  bool Check() override;
+};

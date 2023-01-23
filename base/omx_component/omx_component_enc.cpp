@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2015-2022 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -9,29 +9,16 @@
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
 *
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* Use of the Software is limited solely to applications:
-* (a) running on a Xilinx device, or
-* (b) that interact with a Xilinx device through a bus or interconnect.
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
 *
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
-* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-*
-* Except as contained in this notice, the name of  Xilinx shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Xilinx.
-*
-*
-* Except as contained in this notice, the name of Allegro DVT2 shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Allegro DVT2.
 *
 ******************************************************************************/
 
@@ -55,7 +42,7 @@ static EncModule& ToEncModule(ModuleInterface& module)
   return dynamic_cast<EncModule &>(module);
 }
 
-static BufferHandleType GetBufferHandlePort(shared_ptr<MediatypeInterface> media, OMX_IN OMX_U32 index)
+static BufferHandleType GetBufferHandlePort(shared_ptr<SettingsInterface> media, OMX_IN OMX_U32 index)
 {
   BufferHandles handles;
   media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &handles);
@@ -63,7 +50,7 @@ static BufferHandleType GetBufferHandlePort(shared_ptr<MediatypeInterface> media
   return bufferHandlePort;
 }
 
-EncComponent::EncComponent(OMX_HANDLETYPE component, shared_ptr<MediatypeInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise) :
+EncComponent::EncComponent(OMX_HANDLETYPE component, shared_ptr<SettingsInterface> media, std::unique_ptr<EncModule>&& module, OMX_STRING name, OMX_STRING role, std::unique_ptr<ExpertiseInterface>&& expertise) :
   Component{component, media, std::move(module), std::move(expertise), name, role}
 {
 }
@@ -85,7 +72,7 @@ void EncComponent::EmptyThisBufferCallBack(BufferHandleInterface* handle)
   ReturnEmptiedBuffer(header);
 }
 
-static void AddEncoderFlags(OMX_BUFFERHEADERTYPE* header, shared_ptr<MediatypeInterface> media, EncModule& module)
+static void AddEncoderFlags(OMX_BUFFERHEADERTYPE* header, shared_ptr<SettingsInterface> media, EncModule& module)
 {
   Flags flags;
   auto success = module.GetDynamic(DYNAMIC_INDEX_STREAM_FLAGS, &flags);
@@ -99,7 +86,7 @@ static void AddEncoderFlags(OMX_BUFFERHEADERTYPE* header, shared_ptr<MediatypeIn
 
   bool isSeparateConfigurationFromDataEnabled;
   auto ret = media->Get(SETTINGS_INDEX_SEPARATE_CONFIGURATION_FROM_DATA, &isSeparateConfigurationFromDataEnabled);
-  assert(ret == MediatypeInterface::SUCCESS);
+  assert(ret == SettingsInterface::SUCCESS);
 
   if(flags.isConfig && isSeparateConfigurationFromDataEnabled)
   {

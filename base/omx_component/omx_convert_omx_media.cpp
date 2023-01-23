@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2015-2022 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -9,29 +9,16 @@
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
 *
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* Use of the Software is limited solely to applications:
-* (a) running on a Xilinx device, or
-* (b) that interact with a Xilinx device through a bus or interconnect.
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
 *
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
-* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-*
-* Except as contained in this notice, the name of  Xilinx shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Xilinx.
-*
-*
-* Except as contained in this notice, the name of Allegro DVT2 shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Allegro DVT2.
 *
 ******************************************************************************/
 
@@ -95,6 +82,7 @@ OMX_VIDEO_CODINGTYPE ConvertMediaToOMXCompression(CompressionType compression)
   case CompressionType::COMPRESSION_UNUSED: return OMX_VIDEO_CodingUnused;
   case CompressionType::COMPRESSION_MAX_ENUM: return OMX_VIDEO_CodingMax;
   case CompressionType::COMPRESSION_AVC: return OMX_VIDEO_CodingAVC;
+  case CompressionType::COMPRESSION_MJPEG: return OMX_VIDEO_CodingMJPEG;
   case CompressionType::COMPRESSION_VP9: return static_cast<OMX_VIDEO_CODINGTYPE>(OMX_ALG_VIDEO_CodingVP9);
   case CompressionType::COMPRESSION_HEVC: return static_cast<OMX_VIDEO_CODINGTYPE>(OMX_ALG_VIDEO_CodingHEVC);
   default:
@@ -130,6 +118,7 @@ CompressionType ConvertOMXToMediaCompression(OMX_VIDEO_CODINGTYPE coding)
   {
   case OMX_VIDEO_CodingUnused: return CompressionType::COMPRESSION_UNUSED;
   case OMX_VIDEO_CodingAVC: return CompressionType::COMPRESSION_AVC;
+  case OMX_VIDEO_CodingMJPEG: return CompressionType::COMPRESSION_MJPEG;
   case OMX_ALG_VIDEO_CodingHEVC: return CompressionType::COMPRESSION_HEVC;
   case OMX_ALG_VIDEO_CodingVP9: return CompressionType::COMPRESSION_VP9;
   case OMX_VIDEO_CodingMax: return CompressionType::COMPRESSION_MAX_ENUM;

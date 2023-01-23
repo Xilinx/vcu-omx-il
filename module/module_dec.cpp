@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2015-2022 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -9,29 +9,16 @@
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
 *
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* Use of the Software is limited solely to applications:
-* (a) running on a Xilinx device, or
-* (b) that interact with a Xilinx device through a bus or interconnect.
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
 *
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
-* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-*
-* Except as contained in this notice, the name of  Xilinx shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Xilinx.
-*
-*
-* Except as contained in this notice, the name of Allegro DVT2 shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Allegro DVT2.
 *
 ******************************************************************************/
 
@@ -60,12 +47,12 @@ extern "C"
 
 using namespace std;
 
-DecModule::DecModule(shared_ptr<DecMediatypeInterface> media, shared_ptr<DecDeviceInterface> device, shared_ptr<AL_TAllocator> allocator) :
+DecModule::DecModule(shared_ptr<DecSettingsInterface> media, shared_ptr<DecDeviceInterface> device, shared_ptr<AL_TAllocator> allocator) :
   media{media},
   device{device},
   allocator{allocator},
   decoder{nullptr},
-  resolutionFoundAsBeenCalled{false},
+  resolutionFoundHasBeenCalled{false},
   initialDimension{-1, -1}
 {
   assert(this->media);
@@ -298,10 +285,10 @@ void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSett
 {
   (void)bufferNumber, (void)bufferSize, (void)crop;
 
-  if(resolutionFoundAsBeenCalled)
+  if(resolutionFoundHasBeenCalled)
     return;
 
-  resolutionFoundAsBeenCalled = true;
+  resolutionFoundHasBeenCalled = true;
   initialDimension.horizontal = settings.tDim.iWidth;
   initialDimension.vertical = settings.tDim.iHeight;
   media->settings.tStream = settings;
@@ -362,14 +349,6 @@ ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
   if(inputParsed)
     decCallbacks.parsedSeiCB = { nullptr, nullptr };
 
-  // Fix: remove this line and below block when a better fix is found
-  // This is a Gstreamer issue (not OMX) for allocation!
-  int tmp_height = media->settings.tStream.tDim.iHeight;
-  {
-    if(shouldPrealloc)
-      media->settings.tStream.tDim.iHeight = RoundUp(media->settings.tStream.tDim.iHeight, 16);
-  }
-
   auto errorCode = AL_Decoder_Create(&decoder, channel, allocator.get(), &media->settings, &decCallbacks);
 
   if(AL_IS_ERROR_CODE(errorCode))
@@ -386,12 +365,14 @@ ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
       DestroyDecoder();
       return ToModuleError(errorCode);
     }
-
-    // Fix remove this line when a better fix is found
-    // This is a Gstreamer issue (not OMX) for allocation!
-    media->settings.tStream.tDim.iHeight = tmp_height;
   }
 
+  if((media->initialDisplayResolution.vertical != -1) && (media->initialDisplayResolution.horizontal != -1))
+  {
+    // After the decoder has been created, configure initial resolution expected by GST again.
+    media->settings.tStream.tDim.iHeight = media->initialDisplayResolution.vertical;
+    media->settings.tStream.tDim.iWidth = media->initialDisplayResolution.horizontal;
+  }
   return SUCCESS;
 }
 
@@ -406,10 +387,25 @@ bool DecModule::DestroyDecoder()
   AL_Decoder_Destroy(decoder);
   device->Deinit();
   decoder = nullptr;
-  resolutionFoundAsBeenCalled = false;
+  resolutionFoundHasBeenCalled = false;
   initialDimension = { -1, -1 };
 
   return true;
+}
+
+ModuleInterface::ErrorType DecModule::Restart()
+{
+  if(!decoder)
+  {
+    LOG_ERROR("Decoder isn't created");
+    return UNDEFINED;
+  }
+
+  AL_Decoder_Destroy(decoder);
+  device->Deinit();
+  decoder = nullptr;
+
+  return CreateDecoder(true);
 }
 
 void DecModule::Free(void* buffer)

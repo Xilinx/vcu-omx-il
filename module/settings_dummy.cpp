@@ -22,15 +22,28 @@
 *
 ******************************************************************************/
 
-#pragma once
+#include "settings_dummy.h"
 
-#include "module_structs.h"
+using namespace std;
 
-extern "C"
+DummySettings::DummySettings() = default;
+DummySettings::~DummySettings() = default;
+
+void DummySettings::Reset()
 {
-#include <lib_common/SliceConsts.h>
 }
 
-HEVCProfileType ConvertSoftToModuleHEVCMainTierProfile(AL_EProfile const& profile);
-HEVCProfileType ConvertSoftToModuleHEVCHighTierProfile(AL_EProfile const& profile);
-AL_EProfile ConvertModuleToSoftHEVCProfile(HEVCProfileType const& profile);
+SettingsInterface::ErrorType DummySettings::Get(string, void*) const
+{
+  return ErrorType::SUCCESS;
+}
+
+SettingsInterface::ErrorType DummySettings::Set(string, void const*)
+{
+  return ErrorType::SUCCESS;
+}
+
+bool DummySettings::Check()
+{
+  return true;
+}

@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2015-2022 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -9,29 +9,16 @@
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
 *
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* Use of the Software is limited solely to applications:
-* (a) running on a Xilinx device, or
-* (b) that interact with a Xilinx device through a bus or interconnect.
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
 *
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
-* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-*
-* Except as contained in this notice, the name of  Xilinx shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Xilinx.
-*
-*
-* Except as contained in this notice, the name of Allegro DVT2 shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Allegro DVT2.
 *
 ******************************************************************************/
 
@@ -338,8 +325,9 @@ void parseCommandLine(int argc, char** argv, Application& app)
   opt.addFlag("--help", &help, "Show this help");
   opt.addFlag("--hevc,-hevc", &settings.codecImplem, "load HEVC decoder (default)", Codec::HEVC);
   opt.addFlag("--avc,-avc", &settings.codecImplem, "load AVC decoder", Codec::AVC);
+
   opt.addFlag("--hevc-hard,-hevc-hard", &settings.codecImplem, "Use hard hevc decoder", Codec::HEVC_HARD);
-  opt.addFlag("--avc-hard,-hevc-hard", &settings.codecImplem, "Use hard avc decoder", Codec::AVC_HARD);
+  opt.addFlag("--avc-hard,-avc-hard", &settings.codecImplem, "Use hard avc decoder", Codec::AVC_HARD);
   opt.addString("--out,-o", &output_file, "Output compressed file name");
   opt.addOption("--dma-in,-dma-in", [&](string) {
     settings.bDMAIn = true;
@@ -368,13 +356,15 @@ void parseCommandLine(int argc, char** argv, Application& app)
     exit(0);
   }
 
-  bool isHevc = settings.codecImplem == Codec::HEVC;
-  isHevc = isHevc || settings.codecImplem == Codec::HEVC_HARD;
+  Codec codec = Codec::HEVC;
 
-  if(isHevc)
-    settings.codec = Codec::HEVC;
-  else
-    settings.codec = Codec::AVC;
+  if(settings.codecImplem == Codec::AVC)
+    codec = Codec::AVC;
+
+  if(settings.codecImplem == Codec::AVC_HARD)
+    codec = Codec::AVC;
+
+  settings.codec = codec;
 
   if(!prealloc_args.empty())
   {
@@ -821,7 +811,11 @@ OMX_ERRORTYPE setSequencePicture(Application& app)
 
 OMX_ERRORTYPE setPreallocParameters(Application& app)
 {
-  OMX_ERRORTYPE error = setProfileAndLevel(app);
+  OMX_ERRORTYPE error = OMX_ErrorNone;
+
+  {
+    error = setProfileAndLevel(app);
+  }
 
   if(error != OMX_ErrorNone)
     return error;
@@ -847,13 +841,13 @@ OMX_ERRORTYPE setPreallocParameters(Application& app)
 OMX_ERRORTYPE setWorstCaseParameters(Application& app)
 {
   Settings& settings = app.settings;
-  settings.width = 7680;
-  settings.height = 4320;
+  settings.width = 3840;
+  settings.height = 2160;
 
   if(settings.codec == Codec::HEVC)
   {
     settings.profile = static_cast<OMX_VIDEO_HEVCPROFILETYPE>(OMX_ALG_VIDEO_HEVCProfileMain422_10);
-    settings.level = static_cast<OMX_VIDEO_HEVCLEVELTYPE>(OMX_ALG_VIDEO_HEVCHighTierLevel6);
+    settings.level = static_cast<OMX_VIDEO_HEVCLEVELTYPE>(OMX_ALG_VIDEO_HEVCMainTierLevel62);
   }
   else
   {

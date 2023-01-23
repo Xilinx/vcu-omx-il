@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2015-2022 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -9,37 +9,24 @@
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
 *
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* Use of the Software is limited solely to applications:
-* (a) running on a Xilinx device, or
-* (b) that interact with a Xilinx device through a bus or interconnect.
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
 *
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
-* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-*
-* Except as contained in this notice, the name of  Xilinx shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Xilinx.
-*
-*
-* Except as contained in this notice, the name of Allegro DVT2 shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Allegro DVT2.
 *
 ******************************************************************************/
 
-#include "mediatype_enc_hevc.h"
-#include "mediatype_enc_itu.h"
-#include "mediatype_codec_hevc.h"
-#include "mediatype_codec_itu.h"
-#include "mediatype_checks.h"
+#include "settings_enc_hevc.h"
+#include "settings_enc_itu.h"
+#include "settings_codec_hevc.h"
+#include "settings_codec_itu.h"
+#include "settings_checks.h"
 #include "convert_module_soft_hevc.h"
 #include "convert_module_soft_enc.h"
 #include <utility/round.h>
@@ -57,7 +44,7 @@ extern "C"
 
 using namespace std;
 
-EncMediatypeHEVC::EncMediatypeHEVC(BufferContiguities bufferContiguities, BufferBytesAlignments bufferBytesAlignments, StrideAlignments strideAlignments, bool isSeparateConfigurationFromDataEnabled, std::shared_ptr<AL_TAllocator> const& allocator)
+EncSettingsHEVC::EncSettingsHEVC(BufferContiguities bufferContiguities, BufferBytesAlignments bufferBytesAlignments, StrideAlignments strideAlignments, bool isSeparateConfigurationFromDataEnabled, std::shared_ptr<AL_TAllocator> const& allocator)
 {
   this->bufferContiguities.input = bufferContiguities.input;
   this->bufferContiguities.output = bufferContiguities.output;
@@ -71,12 +58,12 @@ EncMediatypeHEVC::EncMediatypeHEVC(BufferContiguities bufferContiguities, Buffer
   Reset();
 }
 
-EncMediatypeHEVC::~EncMediatypeHEVC()
+EncSettingsHEVC::~EncSettingsHEVC()
 {
   ResetRcPluginContext(this->allocator.get(), &this->settings);
 }
 
-void EncMediatypeHEVC::Reset()
+void EncSettingsHEVC::Reset()
 {
   bufferHandles.input = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
   bufferHandles.output = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
@@ -201,7 +188,7 @@ static ProfileLevel CreateProfileLevel(AL_TEncSettings settings)
   return IsHighTier(channel.uTier) ? CreateHEVCHighTierProfileLevel(channel.eProfile, channel.uLevel) : CreateHEVCMainTierProfileLevel(channel.eProfile, channel.uLevel);
 }
 
-MediatypeInterface::ErrorType EncMediatypeHEVC::Get(std::string index, void* settings) const
+SettingsInterface::ErrorType EncSettingsHEVC::Get(std::string index, void* settings) const
 {
   if(!settings)
     return BAD_PARAMETER;
@@ -579,7 +566,7 @@ static bool UpdateProfileLevel(AL_TEncSettings& settings, ProfileLevel profilele
   return true;
 }
 
-MediatypeInterface::ErrorType EncMediatypeHEVC::Set(std::string index, void const* settings)
+SettingsInterface::ErrorType EncSettingsHEVC::Set(std::string index, void const* settings)
 {
   if(!settings)
     return BAD_PARAMETER;
@@ -968,7 +955,7 @@ MediatypeInterface::ErrorType EncMediatypeHEVC::Set(std::string index, void cons
   return BAD_INDEX;
 }
 
-bool EncMediatypeHEVC::Check()
+bool EncSettingsHEVC::Check()
 {
   if(AL_Settings_CheckValidity(&settings, &settings.tChParam[0], stderr) != 0)
     return false;

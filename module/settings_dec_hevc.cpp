@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2015-2022 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -9,29 +9,16 @@
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
 *
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* Use of the Software is limited solely to applications:
-* (a) running on a Xilinx device, or
-* (b) that interact with a Xilinx device through a bus or interconnect.
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
 *
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
-* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-*
-* Except as contained in this notice, the name of  Xilinx shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Xilinx.
-*
-*
-* Except as contained in this notice, the name of Allegro DVT2 shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Allegro DVT2.
 *
 ******************************************************************************/
 
@@ -39,16 +26,16 @@
 #include <cmath>
 #include <cassert>
 #include <utility/round.h>
-#include "mediatype_dec_hevc.h"
-#include "mediatype_dec_itu.h"
-#include "mediatype_codec_hevc.h"
-#include "mediatype_codec_itu.h"
-#include "mediatype_checks.h"
+#include "settings_dec_hevc.h"
+#include "settings_dec_itu.h"
+#include "settings_codec_hevc.h"
+#include "settings_codec_itu.h"
+#include "settings_checks.h"
 #include "convert_module_soft_hevc.h"
 
 using namespace std;
 
-DecMediatypeHEVC::DecMediatypeHEVC(BufferContiguities bufferContiguities, BufferBytesAlignments bufferBytesAlignments, StrideAlignments strideAlignments)
+DecSettingsHEVC::DecSettingsHEVC(BufferContiguities bufferContiguities, BufferBytesAlignments bufferBytesAlignments, StrideAlignments strideAlignments)
 {
   this->bufferContiguities.input = bufferContiguities.input;
   this->bufferContiguities.output = bufferContiguities.output;
@@ -60,9 +47,9 @@ DecMediatypeHEVC::DecMediatypeHEVC(BufferContiguities bufferContiguities, Buffer
   Reset();
 }
 
-DecMediatypeHEVC::~DecMediatypeHEVC() = default;
+DecSettingsHEVC::~DecSettingsHEVC() = default;
 
-void DecMediatypeHEVC::Reset()
+void DecSettingsHEVC::Reset()
 {
   bufferHandles.input = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
   bufferHandles.output = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
@@ -87,6 +74,8 @@ void DecMediatypeHEVC::Reset()
   stream.iLevel = 10;
   stream.eProfile = AL_PROFILE_HEVC_MAIN;
   stream.eSequenceMode = AL_SM_PROGRESSIVE;
+
+  initialDisplayResolution = { -1, -1 };
 
   tier = 0;
   this->stride.horizontal = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode)), strideAlignments.horizontal);
@@ -153,7 +142,7 @@ static ProfileLevel CreateProfileLevel(AL_TDecSettings settings, int tier)
   return IsHighTier(tier) ? CreateHEVCHighTierProfileLevel(stream.eProfile, stream.iLevel) : CreateHEVCMainTierProfileLevel(stream.eProfile, stream.iLevel);
 }
 
-MediatypeInterface::ErrorType DecMediatypeHEVC::Get(std::string index, void* settings) const
+SettingsInterface::ErrorType DecSettingsHEVC::Get(std::string index, void* settings) const
 {
   if(!settings)
     return BAD_PARAMETER;
@@ -325,7 +314,7 @@ static bool UpdateProfileLevel(AL_TDecSettings& settings, int& tier, ProfileLeve
   return true;
 }
 
-MediatypeInterface::ErrorType DecMediatypeHEVC::Set(std::string index, void const* settings)
+SettingsInterface::ErrorType DecSettingsHEVC::Set(std::string index, void const* settings)
 {
   if(!settings)
     return BAD_PARAMETER;
@@ -399,6 +388,10 @@ MediatypeInterface::ErrorType DecMediatypeHEVC::Set(std::string index, void cons
 
     if(!UpdateResolution(this->settings, this->stride, this->strideAlignments, resolution))
       return BAD_PARAMETER;
+
+    this->initialDisplayResolution.horizontal = resolution.dimension.horizontal;
+    this->initialDisplayResolution.vertical = resolution.dimension.vertical;
+
     return SUCCESS;
   }
 
@@ -435,21 +428,12 @@ MediatypeInterface::ErrorType DecMediatypeHEVC::Set(std::string index, void cons
   return BAD_INDEX;
 }
 
-bool DecMediatypeHEVC::Check()
+bool DecSettingsHEVC::Check()
 {
-  // Fix: remove this line and below block when a better fix is found
-  // This is a Gstreamer issue (not OMX) for allocation!
-  int tmp_height = settings.tStream.tDim.iHeight;
-  settings.tStream.tDim.iHeight = RoundUp(settings.tStream.tDim.iHeight, 16);
-
   if(AL_DecSettings_CheckValidity(&settings, stderr) != 0)
     return false;
 
   AL_DecSettings_CheckCoherency(&settings, stdout);
-
-  // Fix: remove this line and below block when a better fix is found
-  // This is a Gstreamer issue (not OMX) for allocation!
-  settings.tStream.tDim.iHeight = tmp_height;
 
   return true;
 }

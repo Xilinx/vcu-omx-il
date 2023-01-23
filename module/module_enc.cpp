@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2015-2022 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -9,29 +9,16 @@
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
 *
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* Use of the Software is limited solely to applications:
-* (a) running on a Xilinx device, or
-* (b) that interact with a Xilinx device through a bus or interconnect.
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
 *
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
-* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-*
-* Except as contained in this notice, the name of  Xilinx shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Xilinx.
-*
-*
-* Except as contained in this notice, the name of Allegro DVT2 shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Allegro DVT2.
 *
 ******************************************************************************/
 
@@ -86,7 +73,7 @@ static ModuleInterface::ErrorType ToModuleError(int errorCode)
   return ModuleInterface::UNDEFINED;
 }
 
-EncModule::EncModule(shared_ptr<EncMediatypeInterface> media, shared_ptr<EncDeviceInterface> device, shared_ptr<AL_TAllocator> allocator, shared_ptr<MemoryInterface> memory) :
+EncModule::EncModule(shared_ptr<EncSettingsInterface> media, shared_ptr<EncDeviceInterface> device, shared_ptr<AL_TAllocator> allocator, shared_ptr<MemoryInterface> memory) :
   media{media},
   device{device},
   allocator{allocator},
@@ -169,7 +156,7 @@ void EncModule::InitEncoders(int numPass)
   }
 }
 
-static TwoPassMngr* createTwoPassManager(shared_ptr<MediatypeInterface> media)
+static TwoPassMngr* createTwoPassManager(shared_ptr<SettingsInterface> media)
 {
   TwoPass tp;
   media->Get(SETTINGS_INDEX_TWOPASS, &tp);
@@ -213,7 +200,7 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
   currentDimension = { resolution.dimension.horizontal, resolution.dimension.vertical };
   MinMax<int> log2CodingUnit {};
   auto ret = media->Get(SETTINGS_INDEX_LOG2_CODING_UNIT, &log2CodingUnit);
-  assert(ret == MediatypeInterface::SUCCESS);
+  assert(ret == SettingsInterface::SUCCESS);
   roiCtx = AL_RoiMngr_Create(resolution.dimension.horizontal, resolution.dimension.vertical, media->settings.tChParam[0].eProfile, log2CodingUnit.max, AL_ROI_QUALITY_MEDIUM, AL_ROI_INCOMING_ORDER);
 
   if(!roiCtx)
@@ -373,6 +360,22 @@ bool EncModule::Stop()
   return true;
 }
 
+ModuleInterface::ErrorType EncModule::Restart()
+{
+  if(nextQPBuffer)
+  {
+    AL_Buffer_Unref(nextQPBuffer);
+    nextQPBuffer = nullptr;
+  }
+
+  if(!encoders.size())
+    return UNDEFINED;
+
+  DestroyEncoder();
+
+  return CreateEncoder();
+}
+
 static void StubCallbackEvent(Callbacks::Event, void*)
 {
 }
@@ -529,16 +532,16 @@ void EncModule::UnuseDMA(BufferHandleInterface* handle)
   AL_Buffer_Unref(encoderBuffer);
 }
 
-static void UpdatePixMapMetaResolution(shared_ptr<MediatypeInterface> media, AL_TPixMapMetaData* pMeta)
+static void UpdatePixMapMetaResolution(shared_ptr<SettingsInterface> media, AL_TPixMapMetaData* pMeta)
 {
   Resolution resolution;
   auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
-  assert(ret == MediatypeInterface::SUCCESS);
+  assert(ret == SettingsInterface::SUCCESS);
   pMeta->tDim.iWidth = resolution.dimension.horizontal;
   pMeta->tDim.iHeight = resolution.dimension.vertical;
 }
 
-static AL_TMetaData* CreatePixMapMeta(shared_ptr<MediatypeInterface> media)
+static AL_TMetaData* CreatePixMapMeta(shared_ptr<SettingsInterface> media)
 {
   Format format {};
   media->Get(SETTINGS_INDEX_FORMAT, &format);
@@ -546,7 +549,7 @@ static AL_TMetaData* CreatePixMapMeta(shared_ptr<MediatypeInterface> media)
   auto fourCC = AL_EncGetSrcFourCC(picFormat);
   Resolution resolution;
   auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
-  assert(ret == MediatypeInterface::SUCCESS);
+  assert(ret == SettingsInterface::SUCCESS);
   auto stride = resolution.stride.horizontal;
   auto sliceHeight = resolution.stride.vertical;
   auto meta = AL_PixMapMetaData_CreateEmpty(fourCC);
@@ -564,7 +567,7 @@ static AL_TMetaData* CreatePixMapMeta(shared_ptr<MediatypeInterface> media)
   return (AL_TMetaData*)meta;
 }
 
-static bool CreateAndAttachPixMapMeta(AL_TBuffer& buf, shared_ptr<MediatypeInterface> media)
+static bool CreateAndAttachPixMapMeta(AL_TBuffer& buf, shared_ptr<SettingsInterface> media)
 {
   auto meta = CreatePixMapMeta(media);
 
@@ -600,16 +603,11 @@ bool EncModule::Empty(BufferHandleInterface* handle)
   BufferHandles bufferHandles {};
   media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
 
-  BufferSizes bufferSizes {};
-  media->Get(SETTINGS_INDEX_BUFFER_SIZES, &bufferSizes);
-
-  auto const input_size = max(bufferSizes.input, handle->payload);
-
   if(isFd(bufferHandles.input))
-    UseDMA(handle, static_cast<int>((intptr_t)buffer), input_size);
+    UseDMA(handle, static_cast<int>((intptr_t)buffer), handle->payload);
 
   if(isCharPtr(bufferHandles.input))
-    Use(handle, buffer, input_size);
+    Use(handle, buffer, handle->payload);
 
   auto input = pool.Get(handle);
 
@@ -1176,13 +1174,13 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
                        {
                          Resolution resolution;
                          auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
-                         assert(ret == MediatypeInterface::SUCCESS);
+                         assert(ret == SettingsInterface::SUCCESS);
                          AL_TDimension tDim {
                            resolution.dimension.horizontal, resolution.dimension.vertical
                          };
                          MinMax<int> log2CodingUnit {};
                          ret = media->Get(SETTINGS_INDEX_LOG2_CODING_UNIT, &log2CodingUnit);
-                         assert(ret == MediatypeInterface::SUCCESS);
+                         assert(ret == SettingsInterface::SUCCESS);
                          auto size = AL_GetAllocSizeEP2(tDim, static_cast<AL_ECodec>(AL_GET_CODEC(media->settings.tChParam[0].eProfile)), log2CodingUnit.max);
                          auto qpTable = AL_Buffer_Create_And_Allocate(allocator.get(), size, AL_Buffer_Destroy);
                          copy(bufferToCopy, bufferToCopy + size, AL_Buffer_GetData(qpTable));
@@ -1242,7 +1240,7 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
       return BAD_PARAMETER;
     }
     auto ret = media->Set(SETTINGS_INDEX_CLOCK, clock);
-    assert(ret == MediatypeInterface::SUCCESS);
+    assert(ret == SettingsInterface::SUCCESS);
     return SUCCESS;
   }
 
@@ -1270,7 +1268,7 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
   {
     auto gop = static_cast<Gop const*>(param);
     auto ret = media->Set(SETTINGS_INDEX_GROUP_OF_PICTURES, gop);
-    assert(ret == MediatypeInterface::SUCCESS);
+    assert(ret == SettingsInterface::SUCCESS);
     AL_Encoder_SetGopNumB(encoder, gop->b);
     AL_Encoder_SetGopLength(encoder, gop->length);
     return SUCCESS;
@@ -1369,7 +1367,7 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
       return BAD_PARAMETER;
     }
     auto ret = media->Set(SETTINGS_INDEX_RESOLUTION, resolution);
-    assert(ret == MediatypeInterface::SUCCESS);
+    assert(ret == SettingsInterface::SUCCESS);
     return SUCCESS;
   }
 
@@ -1428,13 +1426,13 @@ ModuleInterface::ErrorType EncModule::GetDynamic(std::string index, void* param)
   {
     Resolution resolution {};
     auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
-    assert(ret == MediatypeInterface::SUCCESS);
+    assert(ret == SettingsInterface::SUCCESS);
     AL_TDimension tDim {
       resolution.dimension.horizontal, resolution.dimension.vertical
     };
     MinMax<int> log2CodingUnit {};
     ret = media->Get(SETTINGS_INDEX_LOG2_CODING_UNIT, &log2CodingUnit);
-    assert(ret == MediatypeInterface::SUCCESS);
+    assert(ret == SettingsInterface::SUCCESS);
     *static_cast<int*>(param) = AL_GetAllocSizeEP2(tDim, static_cast<AL_ECodec>(AL_GET_CODEC(media->settings.tChParam[0].eProfile)), log2CodingUnit.max);
     return SUCCESS;
   }

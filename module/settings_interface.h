@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2015-2022 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -9,29 +9,16 @@
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
 *
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* Use of the Software is limited solely to applications:
-* (a) running on a Xilinx device, or
-* (b) that interact with a Xilinx device through a bus or interconnect.
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
 *
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
-* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-*
-* Except as contained in this notice, the name of  Xilinx shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Xilinx.
-*
-*
-* Except as contained in this notice, the name of Allegro DVT2 shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Allegro DVT2.
 *
 ******************************************************************************/
 
@@ -222,11 +209,8 @@ static std::string const SETTINGS_INDEX_OUTPUT_POSITION {
 static std::string const SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT {
   "SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT"
 };
-static std::string const SETTINGS_INDEX_INSTANCE_ID {
-  "SETTINGS_INDEX_INSTANCE_ID"
-};
 
-struct MediatypeInterface
+struct SettingsInterface
 {
   enum ErrorType
   {
@@ -238,7 +222,7 @@ struct MediatypeInterface
     MAX,
   };
 
-  virtual ~MediatypeInterface() = 0;
+  virtual ~SettingsInterface() = 0;
   virtual ErrorType Get(std::string index, void* settings) const = 0;
   virtual ErrorType Set(std::string index, void const* settings) = 0;
   virtual void Reset() = 0;
@@ -246,24 +230,24 @@ struct MediatypeInterface
 };
 
 #include <map>
-static std::map<MediatypeInterface::ErrorType, std::string> ToStringErrorSettings
+static std::map<SettingsInterface::ErrorType, std::string> ToStringErrorSettings
 {
   {
-    MediatypeInterface::SUCCESS, "SUCCESS"
+    SettingsInterface::SUCCESS, "SUCCESS"
   },
   {
-    MediatypeInterface::BAD_INDEX, "BAD_INDEX"
+    SettingsInterface::BAD_INDEX, "BAD_INDEX"
   },
   {
-    MediatypeInterface::BAD_PARAMETER, "BAD_PARAMETER"
+    SettingsInterface::BAD_PARAMETER, "BAD_PARAMETER"
   },
   {
-    MediatypeInterface::NOT_IMPLEMENTED, "NOT_IMPLEMENTED"
+    SettingsInterface::NOT_IMPLEMENTED, "NOT_IMPLEMENTED"
   },
   {
-    MediatypeInterface::UNDEFINED, "UNDEFINED"
+    SettingsInterface::UNDEFINED, "UNDEFINED"
   },
   {
-    MediatypeInterface::MAX, "MAX"
+    SettingsInterface::MAX, "MAX"
   },
 };

@@ -114,13 +114,6 @@ typedef struct OMX_ALG_PARAM_PREALLOCATION
   OMX_BOOL bDisablePreallocation;
 }OMX_ALG_PARAM_PREALLOCATION;
 
-typedef struct OMX_ALG_PARAM_INSTANCE_ID
-{
-  OMX_U32 nSize;
-  OMX_VERSIONTYPE nVersion;
-  OMX_S8 nInstanceId;
-}OMX_ALG_PARAM_PARAM_INSTANCE_ID;
-
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

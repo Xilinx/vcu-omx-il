@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+* Copyright (C) 2015-2022 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -9,29 +9,16 @@
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
 *
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* Use of the Software is limited solely to applications:
-* (a) running on a Xilinx device, or
-* (b) that interact with a Xilinx device through a bus or interconnect.
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
 *
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-* XILINX OR ALLEGRO DVT2 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
-* OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
-*
-* Except as contained in this notice, the name of  Xilinx shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Xilinx.
-*
-*
-* Except as contained in this notice, the name of Allegro DVT2 shall not be used
-* in advertising or otherwise to promote the sale, use or other dealings in
-* this Software without prior written authorization from Allegro DVT2.
 *
 ******************************************************************************/
 
@@ -40,29 +27,29 @@
 #include <OMX_Types.h>
 #include <cassert>
 
-#include "module/mediatype_interface.h"
+#include "module/settings_interface.h"
 #include "omx_component_structs.h"
 
 #define OMX_CHECK_MEDIA_GET(ret) \
-  if(ret == MediatypeInterface::BAD_INDEX) \
+  if(ret == SettingsInterface::BAD_INDEX) \
     throw OMX_ErrorUnsupportedIndex; \
-  assert(ret == MediatypeInterface::SUCCESS);
+  assert(ret == SettingsInterface::SUCCESS);
 
 #define OMX_CHECK_MEDIA_SET(ret) \
-  if(ret == MediatypeInterface::BAD_INDEX) \
+  if(ret == SettingsInterface::BAD_INDEX) \
     return OMX_ErrorUnsupportedIndex; \
-  if(ret == MediatypeInterface::BAD_PARAMETER) \
+  if(ret == SettingsInterface::BAD_PARAMETER) \
     return OMX_ErrorBadParameter; \
-  assert(ret == MediatypeInterface::SUCCESS);
+  assert(ret == SettingsInterface::SUCCESS);
 
 struct ExpertiseInterface
 {
   virtual ~ExpertiseInterface() = 0;
 
-  virtual OMX_ERRORTYPE GetProfileLevelSupported(OMX_PTR param, std::shared_ptr<MediatypeInterface> media) = 0;
-  virtual OMX_ERRORTYPE GetProfileLevel(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media) = 0;
-  virtual OMX_ERRORTYPE SetProfileLevel(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media) = 0;
-  virtual OMX_ERRORTYPE GetExpertise(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media) = 0;
-  virtual OMX_ERRORTYPE SetExpertise(OMX_PTR param, Port const& port, std::shared_ptr<MediatypeInterface> media) = 0;
+  virtual OMX_ERRORTYPE GetProfileLevelSupported(OMX_PTR param, std::shared_ptr<SettingsInterface> media) = 0;
+  virtual OMX_ERRORTYPE GetProfileLevel(OMX_PTR param, Port const& port, std::shared_ptr<SettingsInterface> media) = 0;
+  virtual OMX_ERRORTYPE SetProfileLevel(OMX_PTR param, Port const& port, std::shared_ptr<SettingsInterface> media) = 0;
+  virtual OMX_ERRORTYPE GetExpertise(OMX_PTR param, Port const& port, std::shared_ptr<SettingsInterface> media) = 0;
+  virtual OMX_ERRORTYPE SetExpertise(OMX_PTR param, Port const& port, std::shared_ptr<SettingsInterface> media) = 0;
 };
 

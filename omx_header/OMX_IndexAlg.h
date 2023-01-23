@@ -54,7 +54,6 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexVendorComponentStartUnused = OMX_IndexVendorStartUnused + 0x00100000,
   OMX_ALG_IndexParamReportedLatency, /**< reference: OMX_ALG_PARAM_REPORTED_LATENCY */
   OMX_ALG_IndexParamPreallocation,   /**< reference: OMX_ALG_PARAM_PREALLOCATION */
-  OMX_ALG_IndexParamInstanceId, /**< reference: OMX_ALG_PARAM_INSTANCE_ID */
 
   /* Port parameters and configurations */
   OMX_ALG_IndexVendorPortStartUnused = OMX_IndexVendorStartUnused + 0x00200000,
