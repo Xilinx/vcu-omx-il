@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015-2022 Allegro DVT2
+* Copyright (C) 2015-2023 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +39,7 @@ struct ICommandsSender
   virtual void setBitRate(int bitRate) = 0;
   virtual void setMaxBitRate(int iTargetBitRate, int iMaxBitRate) = 0;
   virtual void setQP(int qp) = 0;
+  virtual void setQPOffset(int iQpOffset) = 0;
   virtual void setQPBounds(int iMinQP, int iMaxQP) = 0;
   virtual void setQPBounds_I(int iMinQP_I, int iMaxQP_I) = 0;
   virtual void setQPBounds_P(int iMinQP_P, int iMaxQP_P) = 0;

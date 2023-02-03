@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015-2022 Allegro DVT2
+* Copyright (C) 2015-2023 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,7 @@
 #include "omx_wrapper_enc.h"
 
 #include <OMX_Core.h>
+#include <OMX_CoreAlg.h>
 #include <OMX_Component.h>
 #include <string>
 
@@ -52,12 +53,12 @@ static OMX_ERRORTYPE ComponentDeInit(OMX_IN OMX_HANDLETYPE hComponent)
 
 extern "C"
 {
-OMX_API OMX_ERRORTYPE CreateComponent(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_STRING cRole, OMX_IN OMX_PTR pAppPrivate, OMX_IN OMX_CALLBACKTYPE* pCallbacks)
+OMX_API OMX_ERRORTYPE CreateComponent(OMX_IN OMX_HANDLETYPE hComponent, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_STRING cRole, OMX_IN OMX_PTR pAppPrivate, OMX_IN OMX_CALLBACKTYPE* pCallbacks, OMX_IN OMX_ALG_COREINDEXTYPE nCoreParamIndex, OMX_IN OMX_PTR pSettings)
 {
   if(!hComponent)
     return OMX_ErrorBadParameter;
 
-  OMX_PTR pThis = CreateEncComponentPrivate(hComponent, cComponentName, cRole);
+  OMX_PTR pThis = CreateEncComponentPrivate(hComponent, cComponentName, cRole, nCoreParamIndex, pSettings);
 
   if(!pThis)
     return OMX_ErrorBadParameter;

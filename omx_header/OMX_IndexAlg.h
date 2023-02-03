@@ -140,7 +140,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamCommonSequencePictureModeQuerySupported, /**< reference: OMX_ALG_COMMON_PARAM_SEQUENCE_PICTURE_MODE */
 
   OMX_ALG_IndexMaxEnum = 0x7FFFFFFF,
-} OMX_ALG_INDEXTYPE;
+}OMX_ALG_INDEXTYPE;
 
 #ifdef __cplusplus
 }

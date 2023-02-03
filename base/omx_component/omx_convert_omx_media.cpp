@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015-2022 Allegro DVT2
+* Copyright (C) 2015-2023 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -37,41 +37,63 @@ OMX_BOOL ConvertMediaToOMXBool(bool boolean)
 
 OMX_COLOR_FORMATTYPE ConvertMediaToOMXColor(ColorType color, int bitdepth)
 {
-  switch(color)
+  switch(bitdepth)
   {
-  case ColorType::COLOR_400:
-  {
-    if(bitdepth == 8)
+  case 8:
+    switch(color)
+    {
+    case ColorType::COLOR_400:
       return OMX_COLOR_FormatL8;
-
-    if(bitdepth == 10)
-      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitPacked);
-
-    throw invalid_argument("bitdepth");
-  }
-  case ColorType::COLOR_420:
-  {
-    if(bitdepth == 8)
+    case ColorType::COLOR_420:
       return OMX_COLOR_FormatYUV420SemiPlanar;
-
-    if(bitdepth == 10)
-      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked);
-
-    throw invalid_argument("bitdepth");
-  }
-  case ColorType::COLOR_422:
-  {
-    if(bitdepth == 8)
+    case ColorType::COLOR_422:
       return OMX_COLOR_FormatYUV422SemiPlanar;
+    case ColorType::COLOR_444:
+      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar8bit);
+    case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+    default:
+      throw invalid_argument("color");
+    }
 
-    if(bitdepth == 10)
+    break;
+
+  case 10:
+    switch(color)
+    {
+    case ColorType::COLOR_400:
+      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitPacked);
+    case ColorType::COLOR_420:
+      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked);
+    case ColorType::COLOR_422:
       return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked);
+    case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+    default:
+      throw invalid_argument("color");
+    }
 
-    throw invalid_argument("bitdepth");
-  }
-  case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+    break;
+
+  case 12:
+    switch(color)
+    {
+    case ColorType::COLOR_400:
+      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL12bit);
+    case ColorType::COLOR_420:
+      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit);
+    case ColorType::COLOR_422:
+      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit);
+    case ColorType::COLOR_444:
+      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar12bit);
+    case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+    default:
+      throw invalid_argument("color");
+    }
+
+    break;
+
   default:
-    throw invalid_argument("color");
+    throw invalid_argument("bitdepth");
+    break;
   }
 }
 
@@ -135,13 +157,27 @@ ColorType ConvertOMXToMediaColor(OMX_COLOR_FORMATTYPE format)
   {
   case OMX_COLOR_FormatL8:
   case OMX_ALG_COLOR_FormatL10bitPacked:
+  case OMX_ALG_COLOR_FormatL10bit:
+  case OMX_ALG_COLOR_FormatL12bit:
     return ColorType::COLOR_400;
+
   case OMX_COLOR_FormatYUV420SemiPlanar:
   case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bit:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit:
     return ColorType::COLOR_420;
+
   case OMX_COLOR_FormatYUV422SemiPlanar:
   case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bit:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit:
     return ColorType::COLOR_422;
+
+  case OMX_ALG_COLOR_FormatYUV444Planar8bit:
+  case OMX_ALG_COLOR_FormatYUV444Planar10bit:
+  case OMX_ALG_COLOR_FormatYUV444Planar12bit:
+    return ColorType::COLOR_444;
+
   case OMX_COLOR_FormatMax: return ColorType::COLOR_MAX_ENUM;
   default:
     throw invalid_argument("format");
@@ -157,11 +193,21 @@ int ConvertOMXToMediaBitdepth(OMX_COLOR_FORMATTYPE format)
   case OMX_COLOR_FormatL8:
   case OMX_COLOR_FormatYUV420SemiPlanar:
   case OMX_COLOR_FormatYUV422SemiPlanar:
+  case OMX_ALG_COLOR_FormatYUV444Planar8bit:
     return 8;
   case OMX_ALG_COLOR_FormatL10bitPacked:
   case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked:
   case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked:
+  case OMX_ALG_COLOR_FormatL10bit:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bit:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bit:
+  case OMX_ALG_COLOR_FormatYUV444Planar10bit:
     return 10;
+  case OMX_ALG_COLOR_FormatL12bit:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit:
+  case OMX_ALG_COLOR_FormatYUV444Planar12bit:
+    return 12;
   case OMX_COLOR_FormatUnused: return 0; // XXX
   default:
     throw invalid_argument("color");

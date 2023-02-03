@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015-2022 Allegro DVT2
+* Copyright (C) 2015-2023 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <type_traits>
 #include <utility/logger.h>
+#include <utility/omx_translate.h>
 
 #include "omx_core.h"
 #include <OMX_Component.h>
@@ -120,11 +121,11 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_ComponentNameEnum(OMX_OUT OMX_STRING cComponentNa
   return OMX_ErrorNone;
 }
 
-static OMX_HANDLETYPE CreateComponent(const omx_comp_type* pComponent, char const* cFunctionName, OMX_PTR pAppData, OMX_CALLBACKTYPE* pCallBacks)
+static OMX_HANDLETYPE CreateComponent(const omx_comp_type* pComponent, char const* cFunctionName, OMX_PTR pAppData, OMX_CALLBACKTYPE* pCallBacks, OMX_ALG_COREINDEXTYPE nCoreParamIndex, OMX_PTR pSettings)
 {
   dlerror();
 
-  using CreateComponentFuncPtr = add_pointer<OMX_ERRORTYPE(OMX_IN OMX_HANDLETYPE, OMX_IN OMX_STRING, OMX_IN OMX_STRING, OMX_IN OMX_PTR, OMX_IN OMX_CALLBACKTYPE*)>::type;
+  using CreateComponentFuncPtr = add_pointer<OMX_ERRORTYPE(OMX_IN OMX_HANDLETYPE, OMX_IN OMX_STRING, OMX_IN OMX_STRING, OMX_IN OMX_PTR, OMX_IN OMX_CALLBACKTYPE*, OMX_IN OMX_ALG_COREINDEXTYPE, OMX_IN OMX_PTR)>::type;
   auto createFunction = reinterpret_cast<CreateComponentFuncPtr>(reinterpret_cast<uintptr_t>(::dlsym(pComponent->pLibHandle, cFunctionName)));
   auto pErr = dlerror();
 
@@ -135,7 +136,7 @@ static OMX_HANDLETYPE CreateComponent(const omx_comp_type* pComponent, char cons
   }
 
   auto pMyComponent = new OMX_COMPONENTTYPE;
-  auto eRet = createFunction(pMyComponent, (OMX_STRING)pComponent->name, (OMX_STRING)pComponent->role, pAppData, pCallBacks);
+  auto eRet = createFunction(pMyComponent, (OMX_STRING)pComponent->name, (OMX_STRING)pComponent->role, pAppData, pCallBacks, nCoreParamIndex, pSettings);
 
   if(eRet != OMX_ErrorNone)
   {
@@ -148,7 +149,18 @@ static OMX_HANDLETYPE CreateComponent(const omx_comp_type* pComponent, char cons
 
 OMX_ERRORTYPE OMX_APIENTRY OMX_GetHandle(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_PTR pAppData, OMX_IN OMX_CALLBACKTYPE* pCallBacks)
 {
-  LOG_IMPORTANT(string { "pHandle: " } +ToStringAddr(pHandle) + string { ", cComponentName: " } +cComponentName + string { ", pAppData: " } +ToStringAddr(pAppData) + string { ", pCallBacks: " } +ToStringAddr(pCallBacks));
+  return OMX_ALG_GetHandle(pHandle, cComponentName, pAppData, pCallBacks, OMX_ALG_CoreIndexUnused, NULL);
+}
+
+OMX_ERRORTYPE OMX_APIENTRY OMX_ALG_GetHandle(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN OMX_STRING cComponentName, OMX_IN OMX_PTR pAppData, OMX_IN OMX_CALLBACKTYPE* pCallBacks, OMX_IN OMX_ALG_COREINDEXTYPE nCoreParamIndex, OMX_IN OMX_PTR pSettings)
+{
+  LOG_IMPORTANT(
+    string("pHandle: ") + ToStringAddr(pHandle) +
+    string(", cComponentName: ") + cComponentName +
+    string(", pAppData: ") + ToStringAddr(pAppData) +
+    string(", pCallBacks: ") + ToStringAddr(pCallBacks) +
+    string(", nCoreParamIndex: ") + ToStringOMXALGCoreIndex(nCoreParamIndex) +
+    string(", pSettings: ") + ToStringAddr(pSettings));
 
   if(!pHandle)
     return OMX_ErrorBadParameter;
@@ -160,7 +172,7 @@ OMX_ERRORTYPE OMX_APIENTRY OMX_GetHandle(OMX_OUT OMX_HANDLETYPE* pHandle, OMX_IN
 
   try
   {
-    *pHandle = CreateComponent(pComponent, "CreateComponent", pAppData, pCallBacks);
+    *pHandle = CreateComponent(pComponent, "CreateComponent", pAppData, pCallBacks, nCoreParamIndex, pSettings);
   }
   catch(runtime_error const& e)
   {

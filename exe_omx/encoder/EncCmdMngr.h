@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015-2022 Allegro DVT2
+* Copyright (C) 2015-2023 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -68,6 +68,8 @@ private:
     int iClkRatio = 0;
     bool bChangeQP = false;
     int iQP = 0;
+    bool bChangeQPOffset = false;
+    int iQPOffset = 0;
     bool bChangeQPBounds = false;
     int iMinQP = 0;
     int iMaxQP = 0;

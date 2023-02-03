@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015-2022 Allegro DVT2
+* Copyright (C) 2015-2023 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -157,6 +157,12 @@ void CommandsSender::setQP(int qp)
 {
   (void)qp;
   assert(0 && "setQP is not supported");
+}
+
+void CommandsSender::setQPOffset(int iQpOffset)
+{
+  (void)iQpOffset;
+  assert(0 && "setQPOffset is not supported");
 }
 
 void CommandsSender::setQPBounds(int iMinQP, int iMaxQP)

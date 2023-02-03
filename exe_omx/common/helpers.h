@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015-2022 Allegro DVT2
+* Copyright (C) 2015-2023 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -51,30 +51,70 @@
 static inline bool is400(OMX_COLOR_FORMATTYPE format)
 {
   OMX_U32 extendedFormat = format;
-  return extendedFormat == OMX_COLOR_FormatL8 || extendedFormat == OMX_ALG_COLOR_FormatL10bitPacked;
+  return extendedFormat == OMX_COLOR_FormatL8 ||
+         extendedFormat == OMX_ALG_COLOR_FormatL10bitPacked ||
+         extendedFormat == OMX_ALG_COLOR_FormatL12bit;
 }
 
 static inline bool is420(OMX_COLOR_FORMATTYPE format)
 {
   OMX_U32 extendedFormat = format;
-  return extendedFormat == OMX_COLOR_FormatYUV420SemiPlanar || extendedFormat == OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked;
+  return extendedFormat == OMX_COLOR_FormatYUV420SemiPlanar ||
+         extendedFormat == OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked ||
+         extendedFormat == OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit;
 }
 
 static inline bool is422(OMX_COLOR_FORMATTYPE format)
 {
   OMX_U32 extendedFormat = format;
-  return extendedFormat == OMX_COLOR_FormatYUV422SemiPlanar || extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
+  return extendedFormat == OMX_COLOR_FormatYUV422SemiPlanar ||
+         extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked ||
+         extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit;
+}
+
+static inline bool is444(OMX_COLOR_FORMATTYPE format)
+{
+  OMX_U32 extendedFormat = format;
+  return extendedFormat == OMX_ALG_COLOR_FormatYUV444Planar8bit ||
+         extendedFormat == OMX_ALG_COLOR_FormatYUV444Planar10bit ||
+         extendedFormat == OMX_ALG_COLOR_FormatYUV444Planar12bit;
 }
 
 static inline bool is8bits(OMX_COLOR_FORMATTYPE format)
 {
-  return format == OMX_COLOR_FormatL8 || format == OMX_COLOR_FormatYUV420SemiPlanar || format == OMX_COLOR_FormatYUV422SemiPlanar;
+  OMX_U32 extendedFormat = format;
+  return extendedFormat == OMX_COLOR_FormatL8 ||
+         extendedFormat == OMX_COLOR_FormatYUV420SemiPlanar ||
+         extendedFormat == OMX_COLOR_FormatYUV422SemiPlanar ||
+         extendedFormat == OMX_ALG_COLOR_FormatYUV444Planar8bit;
 }
 
 static inline bool is10bits(OMX_COLOR_FORMATTYPE format)
 {
   OMX_U32 extendedFormat = format;
-  return extendedFormat == OMX_ALG_COLOR_FormatL10bitPacked || extendedFormat == OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked || extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
+  return extendedFormat == OMX_ALG_COLOR_FormatL10bitPacked ||
+         extendedFormat == OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked ||
+         extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked;
+  return false;
+}
+
+static inline bool is12bits(OMX_COLOR_FORMATTYPE format)
+{
+  OMX_U32 extendedFormat = format;
+  return extendedFormat == OMX_ALG_COLOR_FormatL12bit ||
+         extendedFormat == OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit ||
+         extendedFormat == OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit ||
+         extendedFormat == OMX_ALG_COLOR_FormatYUV444Planar12bit;
+}
+
+static inline bool isFormatSupported(OMX_COLOR_FORMATTYPE format)
+{
+  return (is8bits(format)
+          || is10bits(format)
+          ) &&
+         (is400(format) || is420(format)
+          || is422(format)
+         );
 }
 
 static inline OMX_ERRORTYPE showComponentVersion(OMX_HANDLETYPE* handle)
@@ -106,6 +146,9 @@ void InitHeader(T& header)
 void Buffer_FreeData(char* data, bool use_dmabuf);
 char* Buffer_MapData(char* data, size_t offset, size_t size, bool use_dmabuf);
 void Buffer_UnmapData(char* data, size_t size, bool use_dmabuf);
+
+bool setChroma(std::string user_chroma, OMX_COLOR_FORMATTYPE* chroma);
+extern "C" bool setChromaWrapper(char* user_chroma, OMX_COLOR_FORMATTYPE* chroma);
 
 template<typename T>
 static OMX_ERRORTYPE PortSetup(OMX_HANDLETYPE handle, OMX_INDEXTYPE index, std::function<void(T &)> modification, int port)

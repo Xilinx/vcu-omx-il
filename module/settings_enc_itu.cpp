@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015-2022 Allegro DVT2
+* Copyright (C) 2015-2023 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -200,7 +200,12 @@ static int RawAllocationSize(Stride stride, AL_EChromaMode eChromaMode)
   if(eChromaMode == AL_CHROMA_MONO)
     return lumaSize;
 
-  auto const size = lumaSize + AL_GetAllocSizeSrc_PixPlane(AL_SRC_RASTER, stride.horizontal, stride.vertical, eChromaMode, AL_PLANE_UV);
+  auto const chromaSize = eChromaMode == AL_CHROMA_4_4_4 ?
+                          AL_GetAllocSizeSrc_PixPlane(AL_SRC_RASTER, stride.horizontal, stride.vertical, eChromaMode, AL_PLANE_U) +
+                          AL_GetAllocSizeSrc_PixPlane(AL_SRC_RASTER, stride.horizontal, stride.vertical, eChromaMode, AL_PLANE_V) :
+                          AL_GetAllocSizeSrc_PixPlane(AL_SRC_RASTER, stride.horizontal, stride.vertical, eChromaMode, AL_PLANE_UV);
+
+  auto const size = lumaSize + chromaSize;
   return size;
 }
 
@@ -408,7 +413,7 @@ bool UpdateResolution(AL_TEncSettings& settings, Stride& stride, StrideAlignment
 
 ColorPrimariesType CreateColorPrimaries(AL_TEncSettings settings)
 {
-  return ConvertSoftToModuleColorPrimaries(settings.eColourDescription);
+  return ConvertSoftToModuleColorPrimaries(settings.tColorConfig.eColourDescription);
 }
 
 bool UpdateColorPrimaries(AL_TEncSettings& settings, ColorPrimariesType colorPrimaries)
@@ -416,13 +421,13 @@ bool UpdateColorPrimaries(AL_TEncSettings& settings, ColorPrimariesType colorPri
   if(!CheckColorPrimaries(colorPrimaries))
     return false;
 
-  settings.eColourDescription = ConvertModuleToSoftColorPrimaries(colorPrimaries);
+  settings.tColorConfig.eColourDescription = ConvertModuleToSoftColorPrimaries(colorPrimaries);
   return true;
 }
 
 TransferCharacteristicsType CreateTransferCharacteristics(AL_TEncSettings settings)
 {
-  return ConvertSoftToModuleTransferCharacteristics(settings.eTransferCharacteristics);
+  return ConvertSoftToModuleTransferCharacteristics(settings.tColorConfig.eTransferCharacteristics);
 }
 
 bool UpdateTransferCharacteristics(AL_TEncSettings& settings, TransferCharacteristicsType transferCharacteristics)
@@ -430,13 +435,13 @@ bool UpdateTransferCharacteristics(AL_TEncSettings& settings, TransferCharacteri
   if(!CheckTransferCharacteristics(transferCharacteristics))
     return false;
 
-  settings.eTransferCharacteristics = ConvertModuleToSoftTransferCharacteristics(transferCharacteristics);
+  settings.tColorConfig.eTransferCharacteristics = ConvertModuleToSoftTransferCharacteristics(transferCharacteristics);
   return true;
 }
 
 ColourMatrixType CreateColourMatrix(AL_TEncSettings settings)
 {
-  return ConvertSoftToModuleColourMatrix(settings.eColourMatrixCoeffs);
+  return ConvertSoftToModuleColourMatrix(settings.tColorConfig.eColourMatrixCoeffs);
 }
 
 bool UpdateColourMatrix(AL_TEncSettings& settings, ColourMatrixType colourMatrix)
@@ -444,7 +449,7 @@ bool UpdateColourMatrix(AL_TEncSettings& settings, ColourMatrixType colourMatrix
   if(!CheckColourMatrix(colourMatrix))
     return false;
 
-  settings.eColourMatrixCoeffs = ConvertModuleToSoftColourMatrix(colourMatrix);
+  settings.tColorConfig.eColourMatrixCoeffs = ConvertModuleToSoftColourMatrix(colourMatrix);
   return true;
 }
 

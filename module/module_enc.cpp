@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015-2022 Allegro DVT2
+* Copyright (C) 2015-2023 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,6 @@
 #include "ROIMngr.h"
 #include <cassert>
 #include <cmath>
-#include <unistd.h> // close fd
 #include <algorithm>
 #include <future>
 #include <utility/logger.h>
@@ -409,7 +408,6 @@ void EncModule::FreeDMA(int fd)
 
   auto handle = allocatedDMA.Pop(fd);
   AL_Allocator_Free(allocator.get(), handle);
-  close(fd);
 }
 
 void* EncModule::Allocate(size_t size)
@@ -560,10 +558,25 @@ static AL_TMetaData* CreatePixMapMeta(shared_ptr<SettingsInterface> media)
 
   if(AL_IsMonochrome(fourCC))
     return (AL_TMetaData*)meta;
-  assert(AL_IsSemiPlanar(fourCC) && "Unsupported chroma format");
-  AL_TPlane planeUV = { 0, stride * sliceHeight, stride };
-  success = AL_PixMapMetaData_AddPlane(meta, planeUV, AL_PLANE_UV);
-  assert(success);
+  assert((AL_IsSemiPlanar(fourCC) || (AL_GetChromaMode(fourCC) == AL_CHROMA_4_4_4 && AL_GetChromaOrder(fourCC) == AL_C_ORDER_U_V))
+         && "Unsupported chroma format");
+
+  if(AL_IsSemiPlanar(fourCC))
+  {
+    AL_TPlane planeUV = { 0, stride * sliceHeight, stride };
+    success = AL_PixMapMetaData_AddPlane(meta, planeUV, AL_PLANE_UV);
+    assert(success);
+  }
+  else
+  {
+    // Only 4_4_4 with U_V order as asserted before
+    AL_TPlane planeU = { 0, stride * sliceHeight, stride };
+    success = AL_PixMapMetaData_AddPlane(meta, planeU, AL_PLANE_U);
+    assert(success);
+    AL_TPlane planeV = { 0, stride * sliceHeight * 2, stride };
+    success = AL_PixMapMetaData_AddPlane(meta, planeV, AL_PLANE_V);
+    assert(success);
+  }
   return (AL_TMetaData*)meta;
 }
 

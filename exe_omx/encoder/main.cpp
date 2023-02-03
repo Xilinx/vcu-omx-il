@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015-2022 Allegro DVT2
+* Copyright (C) 2015-2023 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -165,6 +165,7 @@ static inline void SetDefaultApplication(Application& app)
 static string input_file;
 static string output_file;
 static string cmd_file;
+static const string deviceName = string("/dev/allegroIP");
 
 static ifstream infile;
 static ofstream outfile;
@@ -223,7 +224,9 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   OMX_CALL(OMX_GetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPort));
   paramPort.format.video.nFrameWidth = app.settings.width;
   paramPort.format.video.nFrameHeight = app.settings.height;
-  paramPort.format.video.nStride = is10bits(app.settings.format) ? ((app.settings.width + 2) / 3) * 4 : app.settings.width;
+  paramPort.format.video.nStride = is8bits(app.settings.format) ? app.settings.width :
+                                   (((app.settings.width + 2) / 3) * 4);
+
   paramPort.format.video.nSliceHeight = RoundUp(app.settings.height, 8);
 
   OMX_CALL(OMX_SetParameter(app.hEncoder, OMX_IndexParamPortDefinition, &paramPort));
@@ -349,11 +352,6 @@ static void Usage(CommandLineParser& opt, char* ExeName)
     cerr << "  " << opt.descs[command] << endl;
 }
 
-static bool isFourCCExist(string const& fourcc)
-{
-  return fourcc == "y800" || fourcc == "xv10" || fourcc == "nv12" || fourcc == "xv15" || fourcc == "nv16" || fourcc == "xv20";
-}
-
 static OMX_VIDEO_CONTROLRATETYPE parseControlRate(std::string const& cr)
 {
   if(cr == "CBR")
@@ -382,7 +380,13 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addInt("--height", &settings.height, "Input height ('144')");
   opt.addInt("--framerate", &settings.framerate, "Input fps ('1')");
   opt.addString("--out", &output_file, "Output compressed file name");
-  opt.addString("--fourcc", &fourcc, "Input file fourcc <y800 || xv10 || nv12 || xv15 || nv16 || xv20> ('nv12')");
+  opt.addString("--fourcc", &fourcc, "Input file fourcc <y800 || nv12 "
+                "|| nv16 "
+                "|| xv10 "
+                "|| xv15 "
+                "|| xv20 "
+                "> ('nv12')");
+
   opt.addFlag("--hevc", &settings.codec, "Use the default hevc encoder", Codec::HEVC);
   opt.addFlag("--avc", &settings.codec, "Use the default avc encoder", Codec::AVC);
   opt.addFlag("--hevc-hard", &settings.codec, "Use hard hevc encoder", Codec::HEVC_HARD);
@@ -409,30 +413,12 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   if(!controlRate.empty())
     settings.eControlRate = parseControlRate(controlRate);
 
-  if(!isFourCCExist(fourcc))
+  if(!setChroma(fourcc, &settings.format) || !isFormatSupported(settings.format))
   {
-    cerr << "[Error] fourcc doesn't exist" << endl;
+    cerr << "[Error] format not supported" << endl;
     Usage(opt, argv[0]);
     exit(1);
   }
-
-  if(fourcc == "y800")
-    settings.format = OMX_COLOR_FormatL8;
-
-  if(fourcc == "xv10")
-    settings.format = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitPacked);
-
-  if(fourcc == "nv12")
-    settings.format = OMX_COLOR_FormatYUV420SemiPlanar;
-
-  if(fourcc == "xv15")
-    settings.format = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked);
-
-  if(fourcc == "nv16")
-    settings.format = OMX_COLOR_FormatYUV422SemiPlanar;
-
-  if(fourcc == "xv20")
-    settings.format = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked);
 
   if(!(user_slice == 0 || user_slice == 4 || user_slice == 8 || user_slice == 16))
   {
@@ -489,9 +475,13 @@ static bool readOneYuvFrame(OMX_BUFFERHEADERTYPE* pBufferHdr, Application const&
   input_frame_count++;
 
   auto color = app.settings.format;
-  auto row_size = is10bits(color) ? (((width + 2) / 3) * 4) : width;
-  auto coef = is422(color) ? 1 : 2;
-  auto column_size = is400(color) ? height : height + height / coef;
+  auto row_size = is8bits(color) ? width :
+                  (((width + 2) / 3) * 4);
+
+  auto div_coef = is420(color) ? 2 : 1;
+  auto mul_coef = is444(color) ? 2 : 1;
+
+  auto column_size = is400(color) ? height : height + height * mul_coef / div_coef;
   auto size = row_size * column_size;
   vector<uint8_t> frame(size);
 
@@ -506,7 +496,7 @@ static bool readOneYuvFrame(OMX_BUFFERHEADERTYPE* pBufferHdr, Application const&
   /* chroma */
   if(!is400(color))
   {
-    for(struct { long unsigned int sh; long unsigned int h; } v { sliceHeight, height }; v.sh < sliceHeight + height / coef; v.sh++, v.h++)
+    for(struct { long unsigned int sh; long unsigned int h; } v { sliceHeight, height }; v.sh < sliceHeight + height / div_coef * mul_coef; v.sh++, v.h++)
       memcpy(&dst[v.sh * stride], &frame.data()[v.h * row_size], row_size);
   }
 
@@ -752,17 +742,6 @@ static string chooseComponent(Codec codec)
   }
 }
 
-static bool isFormatSupported(OMX_COLOR_FORMATTYPE format)
-{
-  return (format == OMX_COLOR_FormatL8) ||
-         (format == OMX_COLOR_FormatYUV420SemiPlanar) ||
-         (format == OMX_COLOR_FormatYUV422SemiPlanar) ||
-         (format == static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitPacked)) ||
-         (format == static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked)) ||
-         (format == static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked))
-  ;
-}
-
 static OMX_ERRORTYPE safeMain(int argc, char** argv)
 {
   Application app;
@@ -812,7 +791,19 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
   videoEncoderCallbacks.EmptyBufferDone = onInputBufferAvailable;
   videoEncoderCallbacks.FillBufferDone = onOutputBufferAvailable;
 
-  OMX_CALL(OMX_GetHandle(&app.hEncoder, (OMX_STRING)component.c_str(), &app, const_cast<OMX_CALLBACKTYPE*>(&videoEncoderCallbacks)));
+  OMX_ALG_COREINDEXTYPE coreType = OMX_ALG_CoreIndexUnused;
+  OMX_PTR coreSettings;
+
+  struct OMX_ALG_CORE_DEVICE device;
+  InitHeader(device);
+  device.cDevice = strdup(deviceName.c_str());
+  auto freecDevice = scopeExit([&]() {
+    free(device.cDevice);
+  });
+  coreSettings = &device;
+  coreType = OMX_ALG_CoreIndexDevice;
+
+  OMX_CALL(OMX_ALG_GetHandle(&app.hEncoder, (OMX_STRING)component.c_str(), &app, const_cast<OMX_CALLBACKTYPE*>(&videoEncoderCallbacks), coreType, coreSettings));
   auto scopeHandle = scopeExit([&]() {
     OMX_FreeHandle(app.hEncoder);
   });
@@ -823,8 +814,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   if(app.input.isDMA || app.output.isDMA)
   {
-    auto constexpr deviceName = "/dev/allegroIP";
-    app.pAllocator = AL_DmaAlloc_Create(deviceName);
+    app.pAllocator = AL_DmaAlloc_Create(deviceName.c_str());
 
     if(!app.pAllocator)
       throw runtime_error(string("Couldn't create dma allocator (using ") + deviceName + string(")"));

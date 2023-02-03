@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015-2022 Allegro DVT2
+* Copyright (C) 2015-2023 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -139,6 +139,7 @@ static int RawAllocationSize(Stride stride, AL_EChromaMode eChromaMode)
   case AL_CHROMA_MONO: return size;
   case AL_CHROMA_4_2_0: return (3 * size) / 2;
   case AL_CHROMA_4_2_2: return 2 * size;
+  case AL_CHROMA_4_4_4: return 3 * size;
   default: return -1;
   }
 }

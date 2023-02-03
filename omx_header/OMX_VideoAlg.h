@@ -127,7 +127,7 @@ typedef enum OMX_ALG_VIDEO_HEVCLEVELTYPE
 typedef struct OMX_ALG_VIDEO_PARAM_HEVCTYPE
 {
   OMX_U32 nSize;  /**< Size of the structure in bytes */
-  OMX_VERSIONTYPE nVersion; /**< OMX speicification version information */
+  OMX_VERSIONTYPE nVersion; /**< OMX specification version information */
   OMX_U32 nPortIndex; /**< Port that this structure applies to */
   OMX_U32 nPFrames; /**< Number of P frames between each I frame */
   OMX_U32 nBFrames; /**< Number of B frames between each I frame */
@@ -558,14 +558,14 @@ typedef struct OMX_ALG_VIDEO_PARAM_ALTERNATIVE_TRANSFER_CHARACTERISTICS_SEI
 }OMX_ALG_VIDEO_PARAM_ALTERNATIVE_TRANSFER_CHARACTERISTICS_SEI;
 
 /**
-* ST2094-10 SEI parameters
-*
-* STRUCT MEMBERS:
-*  nSize                : Size of the structure in bytes
-*  nVersion             : OMX specification version information
-*  nPortIndex           : Port that this structure applies to
-*  bEnableST209410SEI  : Indicate if st2094-10 sei should be enabled
-*/
+ * ST2094-10 SEI parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                : Size of the structure in bytes
+ *  nVersion             : OMX specification version information
+ *  nPortIndex           : Port that this structure applies to
+ *  bEnableST209410SEI   : Indicate if st2094-10 sei should be enabled
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_ST2094_10_SEI
 {
   OMX_U32 nSize;
@@ -575,14 +575,14 @@ typedef struct OMX_ALG_VIDEO_PARAM_ST2094_10_SEI
 }OMX_ALG_VIDEO_PARAM_ST2094_10_SEI;
 
 /**
-* ST2094-40 SEI parameters
-*
-* STRUCT MEMBERS:
-*  nSize                : Size of the structure in bytes
-*  nVersion             : OMX specification version information
-*  nPortIndex           : Port that this structure applies to
-*  bEnableST209440SEI  : Indicate if st2094-40 sei should be enabled
-*/
+ * ST2094-40 SEI parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                : Size of the structure in bytes
+ *  nVersion             : OMX specification version information
+ *  nPortIndex           : Port that this structure applies to
+ *  bEnableST209440SEI  : Indicate if st2094-40 sei should be enabled
+ */
 typedef struct OMX_ALG_VIDEO_PARAM_ST2094_40_SEI
 {
   OMX_U32 nSize;
@@ -1079,7 +1079,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_LOOP_FILTER_BETA
  *
  * STRUCT MEMBERS:
  *  nSize         : Size of the structure in bytes
- *  nVersion      : OMX specification version information
+ *  nVersion      : OMXcation version information
  *  nPortIndex    : Port that this structure applies to
  *  nLoopFilterTc : Loop filter tc offset value
  */
@@ -1095,9 +1095,18 @@ typedef struct OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC
 typedef enum OMX_ALG_COLOR_FORMATTYPE
 {
   OMX_ALG_COLOR_FormatUnused = OMX_COLOR_FormatVendorStartUnused,
-  OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked,
-  OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked,
   OMX_ALG_COLOR_FormatL10bitPacked,
+  OMX_ALG_COLOR_FormatL10bit,
+  OMX_ALG_COLOR_FormatL12bit,
+  OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked,
+  OMX_ALG_COLOR_FormatYUV420SemiPlanar10bit,
+  OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit,
+  OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked,
+  OMX_ALG_COLOR_FormatYUV422SemiPlanar10bit,
+  OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit,
+  OMX_ALG_COLOR_FormatYUV444Planar8bit,
+  OMX_ALG_COLOR_FormatYUV444Planar10bit,
+  OMX_ALG_COLOR_FormatYUV444Planar12bit,
   OMX_ALG_COLOR_FormatMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_COLOR_FORMATTYPE;
 
@@ -1394,14 +1403,14 @@ typedef struct OMX_ALG_VIDEO_ALTERNATIVE_TRANSFER_CHARACTERISTICS
 #define OMX_ALG_MAX_MANUAL_ADJUSTMENT_ST2094_10 16
 
 /**
-*  Processing Window for ST2094_10 SEI (Dynamic HDR)
-*
-* STRUCT MEMBERS:
-*  nActiveAreaLeftOffset : The X choordinate of the UpperLeftCorner defined in SMPTE ST 2094-1 and stored as in ETSI TS 103 572
-*  nActiveAreaRightOffset : The X choordinate of the LowerRightCorner defined in SMPTE ST 2094-1 and stored as in ETSI TS 103 572
-*  nActiveAreaTopOffset : The Y choordinate of the UpperLeftCorner defined in SMPTE ST 2094-1 and stored as in ETSI TS 103 572
-*  nActiveAreaBottomOffset : The Y choordinate of the LowerRightCorner defined in SMPTE ST 2094-1 and stored as in ETSI TS 103 572
-*/
+ *  Processing Window for ST2094_10 SEI (Dynamic HDR)
+ *
+ * STRUCT MEMBERS:
+ *  nActiveAreaLeftOffset : The X choordinate of the UpperLeftCorner defined in SMPTE ST 2094-1 and stored as in ETSI TS 103 572
+ *  nActiveAreaRightOffset : The X choordinate of the LowerRightCorner defined in SMPTE ST 2094-1 and stored as in ETSI TS 103 572
+ *  nActiveAreaTopOffset : The Y choordinate of the UpperLeftCorner defined in SMPTE ST 2094-1 and stored as in ETSI TS 103 572
+ *  nActiveAreaBottomOffset : The Y choordinate of the LowerRightCorner defined in SMPTE ST 2094-1 and stored as in ETSI TS 103 572
+ */
 typedef struct OMX_ALG_PROCESSING_WINDOW_ST2094_10
 {
   OMX_U16 nActiveAreaLeftOffset;
@@ -1411,13 +1420,13 @@ typedef struct OMX_ALG_PROCESSING_WINDOW_ST2094_10
 }OMX_ALG_PROCESSING_WINDOW_ST2094_10;
 
 /**
-*  Image characteristics for ST2094_10 SEI (Dynamic HDR)
-*
-* STRUCT MEMBERS:
-*  nMinPQ : The MinimumPqencodedMaxrgb defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
-*  nMaxPQ : The MaximumPqencodedMaxrgb defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
-*  nAvgPQ : The AveragePqencodedMaxrgb defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
-*/
+ *  Image characteristics for ST2094_10 SEI (Dynamic HDR)
+ *
+ * STRUCT MEMBERS:
+ *  nMinPQ : The MinimumPqencodedMaxrgb defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
+ *  nMaxPQ : The MaximumPqencodedMaxrgb defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
+ *  nAvgPQ : The AveragePqencodedMaxrgb defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
+ */
 typedef struct OMX_ALG_IMAGE_CHARACTERISTICS_ST2094_10
 {
   OMX_U16 nMinPQ;
@@ -1426,17 +1435,17 @@ typedef struct OMX_ALG_IMAGE_CHARACTERISTICS_ST2094_10
 }OMX_ALG_IMAGE_CHARACTERISTICS_ST2094_10;
 
 /**
-*  Manual adjustment for ST2094_10 SEI (Dynamic HDR)
-*
-* STRUCT MEMBERS:
-*  nTargetMaxPQ : The TargetedSystemDisplayMaximumLuminance defined in SMPTE ST 2094-1 and stored as in ETSI TS 103 572
-*  nTrimSlope : The ToneMappingGain defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
-*  nTrimOffset : The ToneMappingOffset defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
-*  nTrimPower : The ToneMappingGamma defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
-*  nTrimChromaWeight : The ChromaCompensationWeight defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
-*  nTrimSaturationGain : The SaturationGain defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
-*  nMSWeight : Field reserved for future specification. This 13-bit signed integer shall be 0x1fff.
-*/
+ *  Manual adjustment for ST2094_10 SEI (Dynamic HDR)
+ *
+ * STRUCT MEMBERS:
+ *  nTargetMaxPQ : The TargetedSystemDisplayMaximumLuminance defined in SMPTE ST 2094-1 and stored as in ETSI TS 103 572
+ *  nTrimSlope : The ToneMappingGain defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
+ *  nTrimOffset : The ToneMappingOffset defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
+ *  nTrimPower : The ToneMappingGamma defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
+ *  nTrimChromaWeight : The ChromaCompensationWeight defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
+ *  nTrimSaturationGain : The SaturationGain defined in SMPTE ST 2094-10 and stored as in ETSI TS 103 572
+ *  nMSWeight : Field reserved for future specification. This 13-bit signed integer shall be 0x1fff.
+ */
 typedef struct OMX_ALG_MANUAL_ADJUSTMENT_ST2094_10
 {
   OMX_U16 nTargetMaxPQ;
@@ -1449,16 +1458,16 @@ typedef struct OMX_ALG_MANUAL_ADJUSTMENT_ST2094_10
 }OMX_ALG_MANUAL_ADJUSTMENT_ST2094_10;
 
 /**
-*  Struct for ST2094_10 SEI (Dynamic HDR)
-*
-* STRUCT MEMBERS:
-*  nApplicationVersion : version of the SEI, shall be 0.
-*  nProcessingWindowFlag : Indicates if a processing window is specified
-*  processingWindow : The processing window description
-*  imageCharacteristics : The image characteristics description
-*  uNumManualAdjustments : The number of manual adjustments
-*  manualAdjustments : The manual adjustment descriptions
-*/
+ *  Struct for ST2094_10 SEI (Dynamic HDR)
+ *
+ * STRUCT MEMBERS:
+ *  nApplicationVersion : version of the SEI, shall be 0.
+ *  nProcessingWindowFlag : Indicates if a processing window is specified
+ *  processingWindow : The processing window description
+ *  imageCharacteristics : The image characteristics description
+ *  uNumManualAdjustments : The number of manual adjustments
+ *  manualAdjustments : The manual adjustment descriptions
+ */
 typedef struct OMX_ALG_DYNAMIC_META_ST2094_10
 {
   OMX_U8 nApplicationVersion;
@@ -1477,14 +1486,14 @@ typedef struct OMX_ALG_DYNAMIC_META_ST2094_10
 #define OMX_ALG_MAX_COL_ACTUAL_PEAK_LUMINANCE_ST2094_40 25
 
 /**
-*  ProcessingWindow as described in ST2094_1
-*
-* STRUCT MEMBERS:
-*  nUpperLeftCornerX : The X coordinate of the top left pixel of the window
-*  nUpperLeftCornerY : The Y coordinate of the top left pixel of the window
-*  nLowerRightCornerX : The X coordinate of the bottom right pixel of the window
-*  nLowerRightCornerY : The Y coordinate of the bottom right pixel of the window
-*/
+ *  ProcessingWindow as described in ST2094_1
+ *
+ * STRUCT MEMBERS:
+ *  nUpperLeftCornerX : The X coordinate of the top left pixel of the window
+ *  nUpperLeftCornerY : The Y coordinate of the top left pixel of the window
+ *  nLowerRightCornerX : The X coordinate of the bottom right pixel of the window
+ *  nLowerRightCornerY : The Y coordinate of the bottom right pixel of the window
+ */
 typedef struct OMX_ALG_PROCESSING_WINDOW_ST2094_1
 {
   OMX_U16 nUpperLeftCornerX;
@@ -1494,18 +1503,18 @@ typedef struct OMX_ALG_PROCESSING_WINDOW_ST2094_1
 }OMX_ALG_PROCESSING_WINDOW_ST2094_1;
 
 /**
-*  ProcessingWindow for ST2094_40 SEI (Dynamic HDR)
-*
-* STRUCT MEMBERS:
-*  baseProcessingWindow : Processing window as described in ST2094_1
-*  nCenterOfEllipseX : The X coordinate of the ellipses center of the elliptical pixel selector
-*  nCenterOfEllipseY : The Y coordinate of the ellipses center of the elliptical pixel selector
-*  nRotationAngle : The clockwise rotation angle of the concentric internal and external ellipses of the elliptical pixel selector
-*  nSemimajorAxisInternalEllipse : The semi-major axis value of the internal ellipse of the elliptical pixel selector
-*  nSemimajorAxisExternalEllipse : The semi-major axis value of the external ellipse of the elliptical pixel selector
-*  nSemiminorAxisExternalEllipse : The semi-minor axis value of the external ellipse of the elliptical pixel selector
-*  nOverlapProcessOption : Mode for combination of two processing windows (allowed values: 0 or 1)
-*/
+ *  ProcessingWindow for ST2094_40 SEI (Dynamic HDR)
+ *
+ * STRUCT MEMBERS:
+ *  baseProcessingWindow : Processing window as described in ST2094_1
+ *  nCenterOfEllipseX : The X coordinate of the ellipses center of the elliptical pixel selector
+ *  nCenterOfEllipseY : The Y coordinate of the ellipses center of the elliptical pixel selector
+ *  nRotationAngle : The clockwise rotation angle of the concentric internal and external ellipses of the elliptical pixel selector
+ *  nSemimajorAxisInternalEllipse : The semi-major axis value of the internal ellipse of the elliptical pixel selector
+ *  nSemimajorAxisExternalEllipse : The semi-major axis value of the external ellipse of the elliptical pixel selector
+ *  nSemiminorAxisExternalEllipse : The semi-minor axis value of the external ellipse of the elliptical pixel selector
+ *  nOverlapProcessOption : Mode for combination of two processing windows (allowed values: 0 or 1)
+ */
 typedef struct OMX_ALG_PROCESSING_WINDOW_ST2094_40
 {
   OMX_ALG_PROCESSING_WINDOW_ST2094_1 baseProcessingWindow;
@@ -1519,14 +1528,14 @@ typedef struct OMX_ALG_PROCESSING_WINDOW_ST2094_40
 }OMX_ALG_PROCESSING_WINDOW_ST2094_40;
 
 /**
-*  Display Peak Luminance for ST2094_40 SEI (Dynamic HDR)
-*
-* STRUCT MEMBERS:
-*  bActualPeakLuminanceFlag : Indicates if the actual peak luminance is specified for the display
-*  nNumRowsActualPeakLuminance : Number of rows in the peak lumimance array
-*  nNumColsActualPeakLuminance : Number of columns in the peak lumimance array
-*  nActualPeakLuminance : Normalized actual peak luminance array
-*/
+ *  Display Peak Luminance for ST2094_40 SEI (Dynamic HDR)
+ *
+ * STRUCT MEMBERS:
+ *  bActualPeakLuminanceFlag : Indicates if the actual peak luminance is specified for the display
+ *  nNumRowsActualPeakLuminance : Number of rows in the peak lumimance array
+ *  nNumColsActualPeakLuminance : Number of columns in the peak lumimance array
+ *  nActualPeakLuminance : Normalized actual peak luminance array
+ */
 typedef struct OMX_ALG_DISPLAY_PEAK_LUMINANCE_ST2094_40
 {
   OMX_BOOL bActualPeakLuminanceFlag;
@@ -1536,12 +1545,12 @@ typedef struct OMX_ALG_DISPLAY_PEAK_LUMINANCE_ST2094_40
 }OMX_ALG_DISPLAY_PEAK_LUMINANCE_ST2094_40;
 
 /**
-*  TargetedSystemDisplay for ST2094_40 SEI (Dynamic HDR)
-*
-* STRUCT MEMBERS:
-*  uMaximumLuminance : Maximum luminance of the targeted system display
-*  peakLuminance : Description of the actual peak luminance of the targeted system display
-*/
+ *  TargetedSystemDisplay for ST2094_40 SEI (Dynamic HDR)
+ *
+ * STRUCT MEMBERS:
+ *  uMaximumLuminance : Maximum luminance of the targeted system display
+ *  peakLuminance : Description of the actual peak luminance of the targeted system display
+ */
 typedef struct OMX_ALG_TARGETED_SYSTEM_DISPLAY_ST2094_40
 {
   OMX_U32 nMaximumLuminance;
@@ -1549,15 +1558,15 @@ typedef struct OMX_ALG_TARGETED_SYSTEM_DISPLAY_ST2094_40
 }OMX_ALG_TARGETED_SYSTEM_DISPLAY_ST2094_40;
 
 /**
-*  ToneMapping for ST2094_40 SEI (Dynamic HDR)
-*
-* STRUCT MEMBERS:
-*  bToneMappingFlag : Indicates the presence of the tone mapping metadata
-*  bKneePointX : The X coordinate of the separation point between the linear and the curved part of the tone mapping function
-*  bKneePointY : The Y coordinate of the separation point between the linear and the curved part of the tone mapping function
-*  nNumBezierCurveAnchors : The number of the intermediate anchor parameters of the tone mapping function (max 15)
-*  nBezierCurveAnchors : The i-th intermediate anchor parameter of the tone mapping function
-*/
+ *  ToneMapping for ST2094_40 SEI (Dynamic HDR)
+ *
+ * STRUCT MEMBERS:
+ *  bToneMappingFlag : Indicates the presence of the tone mapping metadata
+ *  bKneePointX : The X coordinate of the separation point between the linear and the curved part of the tone mapping function
+ *  bKneePointY : The Y coordinate of the separation point between the linear and the curved part of the tone mapping function
+ *  nNumBezierCurveAnchors : The number of the intermediate anchor parameters of the tone mapping function (max 15)
+ *  nBezierCurveAnchors : The i-th intermediate anchor parameter of the tone mapping function
+ */
 typedef struct OMX_ALG_TONE_MAPPING_ST2094_40
 {
   OMX_BOOL bToneMappingFlag;
@@ -1568,19 +1577,19 @@ typedef struct OMX_ALG_TONE_MAPPING_ST2094_40
 }OMX_ALG_TONE_MAPPING_ST2094_40;
 
 /**
-*  ColorVolumeTransform associated to a ProcessingWindow, for ST2094_40 SEI (Dynamic HDR)
-*
-* STRUCT MEMBERS:
-*  nMaxScl : Maximum of color components of linearized RGB values in the window
-*  nAverageMaxrgb : Average of linearized maxRGB values in the window
-*  nNumDistributionMaxrgbPercentiles : Number of values for the maxRGB distribution
-*  nDistributionMaxrgbPercentages : Percentages of linearized maxRGB values at given percentiles in the window
-*  nDistributionMaxrgbPercentiles : Linearized maxRGB value at the i-th percentile in the window
-*  nFractionBrightPixels : The fraction of selected pixels in the image that contains the brightest pixel
-*  toneMapping : The tone mapping specification
-*  bColorSaturationMappingFlag : Indicates the presence of the color saturation weight. Shall be false.
-*  nColorSaturationWeight : Specify the color saturation gain is adjusted
-*/
+ *  ColorVolumeTransform associated to a ProcessingWindow, for ST2094_40 SEI (Dynamic HDR)
+ *
+ * STRUCT MEMBERS:
+ *  nMaxScl : Maximum of color components of linearized RGB values in the window
+ *  nAverageMaxrgb : Average of linearized maxRGB values in the window
+ *  nNumDistributionMaxrgbPercentiles : Number of values for the maxRGB distribution
+ *  nDistributionMaxrgbPercentages : Percentages of linearized maxRGB values at given percentiles in the window
+ *  nDistributionMaxrgbPercentiles : Linearized maxRGB value at the i-th percentile in the window
+ *  nFractionBrightPixels : The fraction of selected pixels in the image that contains the brightest pixel
+ *  toneMapping : The tone mapping specification
+ *  bColorSaturationMappingFlag : Indicates the presence of the color saturation weight. Shall be false.
+ *  nColorSaturationWeight : Specify the color saturation gain is adjusted
+ */
 typedef struct OMX_ALG_PROCESSING_WINDOW_TRANSFORM_ST2094_40
 {
   OMX_U32 nMaxScl[3];
@@ -1595,16 +1604,16 @@ typedef struct OMX_ALG_PROCESSING_WINDOW_TRANSFORM_ST2094_40
 }OMX_ALG_PROCESSING_WINDOW_TRANSFORM_ST2094_40;
 
 /**
-*  Struct for ST2094_40 SEI (Dynamic HDR)
-*
-* STRUCT MEMBERS:
-*  nApplicationVersion : version of the SEI, shall be 0.
-*  nNumWindows : Number of processing window, must be in [ 1 ; 3 ]
-*  processingWindows : Description of the two optionnal processing windows
-*  targetedSystemDisplay : Description of the targeted system display
-*  masteringDisplayPeakLuminance : The mastering display peak luminance
-*  processingWindowTransforms : Colour Volume transforms for each processing windows
-*/
+ *  Struct for ST2094_40 SEI (Dynamic HDR)
+ *
+ * STRUCT MEMBERS:
+ *  nApplicationVersion : version of the SEI, shall be 0.
+ *  nNumWindows : Number of processing window, must be in [ 1 ; 3 ]
+ *  processingWindows : Description of the two optionnal processing windows
+ *  targetedSystemDisplay : Description of the targeted system display
+ *  masteringDisplayPeakLuminance : The mastering display peak luminance
+ *  processingWindowTransforms : Colour Volume transforms for each processing windows
+ */
 typedef struct OMX_ALG_DYNAMIC_META_ST2094_40
 {
   OMX_U8 nApplicationVersion;
@@ -1613,7 +1622,7 @@ typedef struct OMX_ALG_DYNAMIC_META_ST2094_40
   OMX_ALG_TARGETED_SYSTEM_DISPLAY_ST2094_40 targetedSystemDisplay;
   OMX_ALG_DISPLAY_PEAK_LUMINANCE_ST2094_40 masteringDisplayPeakLuminance;
   OMX_ALG_PROCESSING_WINDOW_TRANSFORM_ST2094_40 processingWindowTransforms[OMX_ALG_MAX_WINDOW_ST2094_40];
-} OMX_ALG_DYNAMIC_META_ST2094_40;
+}OMX_ALG_DYNAMIC_META_ST2094_40;
 
 /**
  * Struct for all High Dynamic Range related SEI
@@ -1708,7 +1717,6 @@ typedef enum
   OMX_ALG_START_CODE_BYTES_ALIGNMENT_4_BYTES,
   OMX_ALG_START_CODE_BYTES_ALIGNMENT_MAX_ENUM = 0x7FFFFFFF,
 }OMX_ALG_EStartCodeBytesAligment;
-
 
 /**
  * Start Code Bytes Alignment parameters

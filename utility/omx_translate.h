@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2015-2022 Allegro DVT2
+* Copyright (C) 2015-2023 Allegro DVT2
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -468,3 +468,24 @@ static inline std::string ToStringOMXIndex(OMX_INDEXTYPE index)
   }
 }
 
+static std::map<OMX_ALG_COREINDEXTYPE, std::string> OMXALGCoreIndexInStringMap =
+{
+  { OMX_ALG_CoreIndexStartUnused, "OMX_ALG_CoreIndexStartUnused" },
+  { OMX_ALG_CoreIndexExtensions, "OMX_ALG_CoreIndexExtensions" },
+  { OMX_ALG_CoreIndexCustomerStartUnused, "OMX_ALG_CoreIndexStartUnused" },
+  { OMX_ALG_CoreIndexMax, "OMX_ALG_CoreIndexMax" },
+};
+
+static inline std::string ToStringOMXALGCoreIndex(OMX_ALG_COREINDEXTYPE index)
+{
+  try
+  {
+    return OMXALGCoreIndexInStringMap.at(index);
+  }
+  catch(std::out_of_range const &)
+  {
+    return std::string {
+             "Out-of-bound index"
+    };
+  }
+}
