@@ -331,6 +331,12 @@ ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
   if(inputParsed)
     decCallbacks.parsedSeiCB = { nullptr, nullptr };
 
+  if(shouldPrealloc)
+  {
+    media->settings.tStream.tDim.iHeight = RoundUp(media->settings.tStream.tDim.iHeight, 16);
+    media->settings.tStream.tDim.iWidth = RoundUp(media->settings.tStream.tDim.iWidth, 16);
+  }
+
   auto errorCode = AL_Decoder_Create(&decoder, channel, allocator.get(), &media->settings, &decCallbacks);
 
   if(AL_IS_ERROR_CODE(errorCode))
