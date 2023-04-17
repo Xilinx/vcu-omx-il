@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+ * Copyright (C) 2016-2020 Allegro DVT.  All rights reserved.
  * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -45,7 +45,7 @@ extern "C" {
 
 /**
  * Vendor standard extension indices.
- * This enum lists the current AllegroDVT2 extension indices to OpenMAX IL.
+ * This enum lists the current AllegroDVT extension indices to OpenMAX IL.
  */
 
 typedef enum OMX_ALG_INDEXTYPE
@@ -112,6 +112,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamVideoOutputPosition,                        /**< reference: OMX_CONFIG_POINTTYPE */
   OMX_ALG_IndexParamVideoStartCodeBytesAlignment,               /**< reference: OMX_ALG_VIDEO_PARAM_START_CODE_BYTES_ALIGNMENT */
   OMX_ALG_IndexParamVideoRecoveryPoint,                         /**< reference: OMX_ALG_VIDEO_PARAM_RECOVERY_POINT */
+  OMX_ALG_IndexParamVideoFullRange,                             /**< reference: OMX_ALG_VIDEO_PARAM_VIDEO_FULL_RANGE */
 
   /* Vendor Video configurations */
   OMX_ALG_IndexConfigVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00380000,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 Allegro DVT2.  All rights reserved.
+ * Copyright (C) 2016-2020 Allegro DVT.  All rights reserved.
  * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -994,6 +994,23 @@ typedef struct OMX_ALG_VIDEO_PARAM_INPUT_PARSED
   OMX_U32 nPortIndex;
   OMX_BOOL bDisableInputParsed;
 }OMX_ALG_VIDEO_PARAM_INPUT_PARSED;
+
+/**
+ * Video Full Range parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize               : Size of the structure in bytes
+ *  nVersion            : OMX specification version information
+ *  nPortIndex          : Port that this structure applies to
+ *  bVideoFullRangeEnabled     : Indicate if the full range YUV or the reduced (CCIR601)
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_VIDEO_FULL_RANGE
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bVideoFullRangeEnabled;
+}OMX_ALG_VIDEO_PARAM_VIDEO_FULL_RANGE;
 
 /**
  * Max picture size in kbits parameter

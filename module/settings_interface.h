@@ -188,6 +188,9 @@ static std::string const SETTINGS_INDEX_OUTPUT_POSITION {
 static std::string const SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT {
   "SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT"
 };
+static std::string const SETTINGS_INDEX_VIDEO_FULL_RANGE {
+  "SETTINGS_INDEX_VIDEO_FULL_RANGE"
+};
 
 struct SettingsInterface
 {

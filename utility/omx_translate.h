@@ -405,6 +405,7 @@ static std::map<OMX_INDEXTYPE, std::string> OMXIndexInStringMap =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoOutputPosition), "OMX_ALG_IndexParamVideoOutputPosition" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoStartCodeBytesAlignment), "OMX_ALG_IndexParamVideoStartCodeBytesAlignment" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoRecoveryPoint), "OMX_ALG_IndexParamVideoRecoveryPoint" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoFullRange), "OMX_ALG_IndexParamVideoFullRange" },
 
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVendorVideoStartUnused), "OMX_ALG_IndexConfigVendorVideoStartUnused" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh), "OMX_ALG_IndexConfigVideoInsertInstantaneousDecodingRefresh" },

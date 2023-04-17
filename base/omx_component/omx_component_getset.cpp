@@ -831,6 +831,42 @@ OMX_ERRORTYPE SetVideoSkipFrame(OMX_ALG_VIDEO_PARAM_SKIP_FRAME const& skipFrame,
   return OMX_ErrorNone;
 }
 
+OMX_ERRORTYPE ConstructVideoFullRange(OMX_ALG_VIDEO_PARAM_VIDEO_FULL_RANGE& videoFullRange, Port const& port, std::shared_ptr<SettingsInterface> media)
+{
+  OMXChecker::SetHeaderVersion(videoFullRange);
+  videoFullRange.nPortIndex = port.index;
+  bool bvideoFullRange {
+    false
+  };
+  auto ret = media->Get(SETTINGS_INDEX_VIDEO_FULL_RANGE, &bvideoFullRange);
+  OMX_CHECK_MEDIA_GET(ret);
+  videoFullRange.bVideoFullRangeEnabled = ConvertMediaToOMXBool(bvideoFullRange);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetFullRange(OMX_BOOL bVideoFullRangeEnabled, shared_ptr<SettingsInterface> media)
+{
+  auto isVideoFullRangeEnabled = ConvertOMXToMediaBool(bVideoFullRangeEnabled);
+  auto ret = media->Set(SETTINGS_INDEX_VIDEO_FULL_RANGE, &isVideoFullRangeEnabled);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoFullRange(OMX_ALG_VIDEO_PARAM_VIDEO_FULL_RANGE const& videoFullRange, Port const& port, std::shared_ptr<SettingsInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_VIDEO_FULL_RANGE rollback;
+  ConstructVideoFullRange(rollback, port, media);
+  auto ret = SetFullRange(videoFullRange.bVideoFullRangeEnabled, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoFullRange(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
 OMX_ERRORTYPE ConstructVideoInstantaneousDecodingRefresh(OMX_ALG_VIDEO_PARAM_INSTANTANEOUS_DECODING_REFRESH& idr, Port const& port, shared_ptr<SettingsInterface> media)
 {
   OMXChecker::SetHeaderVersion(idr);

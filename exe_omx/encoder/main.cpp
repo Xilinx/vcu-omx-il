@@ -88,6 +88,7 @@ struct Settings
 
   OMX_VIDEO_CONTROLRATETYPE eControlRate;
   int targetBitrate;
+  bool isVideoFullRangeEnabled;
 };
 
 struct Application
@@ -124,6 +125,7 @@ static inline void SetDefaultSettings(Settings& settings)
   settings.isDummySeiEnabled = false;
   settings.targetBitrate = 64000;
   settings.eControlRate = OMX_Video_ControlRateConstant;
+  settings.isVideoFullRangeEnabled = false;
 }
 
 static inline void SetDefaultApplication(Application& app)
@@ -240,6 +242,12 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   skip.bEnableSkipFrame = OMX_FALSE;
   skip.nMaxConsecutiveSkipFrame = 1;
   OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSkipFrame), &skip);
+
+  OMX_ALG_VIDEO_PARAM_VIDEO_FULL_RANGE yuv_range;
+  InitHeader(yuv_range);
+  OMX_GetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoFullRange), &yuv_range);
+  yuv_range.bVideoFullRangeEnabled = static_cast<OMX_BOOL>(app.settings.isVideoFullRangeEnabled);
+  OMX_SetParameter(app.hEncoder, static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoFullRange), &yuv_range);
 
   OMX_VIDEO_PARAM_BITRATETYPE bitrate;
   InitHeader(bitrate);
@@ -380,6 +388,7 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addFlag("--dummy-sei", &settings.isDummySeiEnabled, "Enable dummy seis on firsts frames");
   opt.addString("--rate-control-type", &controlRate, "Available rate control mode: CONST_QP, CBR, VBR and PLUGIN");
   opt.addInt("--target-bitrate", &settings.targetBitrate, "Targeted bitrate (Not applicable in CONST_QP)");
+  opt.addFlag("--video-full-range", &settings.isVideoFullRangeEnabled, "Enable Video Full Range");
 
   opt.parse(argc, argv);
 

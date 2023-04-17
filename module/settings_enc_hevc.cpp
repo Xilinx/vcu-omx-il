@@ -454,6 +454,12 @@ SettingsInterface::ErrorType EncSettingsHEVC::Get(std::string index, void* setti
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_VIDEO_FULL_RANGE")
+  {
+    *static_cast<bool*>(settings) = CreateVideoFullRange(this->settings);
+    return SUCCESS;
+  }
+
   if(index == "SETTINGS_INDEX_RATE_CONTROL_PLUGIN")
   {
     *(static_cast<RateControlPlugin*>(settings)) = CreateRateControlPlugin(this->allocator.get(), this->settings);
@@ -871,6 +877,15 @@ SettingsInterface::ErrorType EncSettingsHEVC::Set(std::string index, void const*
     auto st2094_40 = *(static_cast<bool const*>(settings));
 
     if(!UpdateST209440SEI(this->settings, st2094_40))
+      return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_VIDEO_FULL_RANGE")
+  {
+    auto videoFullRange = *(static_cast<bool const*>(settings));
+
+    if(!UpdateVideoFullRange(this->settings, videoFullRange))
       return BAD_PARAMETER;
     return SUCCESS;
   }

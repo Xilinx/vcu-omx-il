@@ -649,6 +649,20 @@ bool UpdateST209440SEI(AL_TEncSettings& settings, bool isST209440Enabled)
   return true;
 }
 
+bool CreateVideoFullRange(AL_TEncSettings settings)
+{
+  auto channel = settings.tChParam[0];
+  return channel.bVideoFullRange;
+}
+
+bool UpdateVideoFullRange(AL_TEncSettings& settings, bool isVideoFullRangeEnabled)
+{
+  auto& channel = settings.tChParam[0];
+  channel.bVideoFullRange = isVideoFullRangeEnabled;
+
+  return true;
+}
+
 RateControlPlugin CreateRateControlPlugin(AL_TAllocator* allocator, AL_TEncSettings const& settings)
 {
   RateControlPlugin rcp;

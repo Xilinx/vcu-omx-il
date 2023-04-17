@@ -17,6 +17,11 @@ ifneq ($(findstring mingw,$(TARGET)),mingw)
     LINK_COMPAT+=-Wl,--hash-style=both
 endif
 
+
+define filter_out_dyn_lib
+	$(filter %.o %.a, $^)
+endef
+
 $(BIN)/%.cpp.o: %.cpp
 	@mkdir -p $(dir $@)
 	$(Q)$(CXX) $(CFLAGS) $(INCLUDES) -std=gnu++11 -o $@ -c $<
@@ -40,7 +45,7 @@ $(BIN)/%:
 	@echo "CXX $@"
 
 $(BIN)/%.so:
-	$(Q)$(CXX) $(CFLAGS) -shared -Wl,-soname,$(notdir $@).$(MAJOR) -o "$@.$(VERSION)" $^ $(LDFLAGS)
+	$(Q)$(CXX) $(CFLAGS) -shared -Wl,-soname,$(notdir $@).$(MAJOR) -o "$@.$(VERSION)" $(call filter_out_dyn_lib, $^) $(LDFLAGS)
 	@echo "LD $@"
 	@ln -fs "$(@:$(BIN)/%=%).$(VERSION)" $@.$(MAJOR)
 	@ln -fs "$(@:$(BIN)/%=%).$(VERSION)" $@

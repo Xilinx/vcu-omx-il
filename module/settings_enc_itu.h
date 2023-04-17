@@ -109,6 +109,9 @@ bool UpdateST209410SEI(AL_TEncSettings& settings, bool isST209410Enabled);
 bool CreateST209440SEI(AL_TEncSettings settings);
 bool UpdateST209440SEI(AL_TEncSettings& settings, bool isST209440Enabled);
 
+bool CreateVideoFullRange(AL_TEncSettings settings);
+bool UpdateVideoFullRange(AL_TEncSettings& settings, bool isVideoFullRangeEnabled);
+
 RateControlPlugin CreateRateControlPlugin(AL_TAllocator* allocator, AL_TEncSettings const& settings);
 bool SetRcPluginContext(AL_TAllocator* allocator, AL_TEncSettings* settings, RateControlPlugin const& rcp);
 void ResetRcPluginContext(AL_TAllocator* allocator, AL_TEncSettings* settings);
