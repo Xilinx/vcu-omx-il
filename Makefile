@@ -108,7 +108,7 @@ include $(THIS)/exe_omx/project_codec.mk
 -include $(THIS)/conformance/project.mk
 -include $(THIS)/unittests.mk
 
-
+INSTALL_PATH ?= /usr/bin
 
 .PHONY: clean
 clean:
@@ -119,6 +119,11 @@ clean:
 distclean: clean
 	@echo "CLEAN $(EXTERNAL_LIB)"
 	$(Q)rm -rf $(EXTERNAL_LIB)
+
+install:
+	mkdir -p ${INSTALL_PATH}
+	install -Dm 0755 bin/omx_encoder.exe ${INSTALL_PATH}/omx_encoder
+	install -Dm 0755 bin/omx_decoder.exe ${INSTALL_PATH}/omx_decoder
 
 TARGETS: $(externals)
 true_all: $(TARGETS)
