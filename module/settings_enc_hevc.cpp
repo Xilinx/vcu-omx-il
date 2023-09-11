@@ -241,6 +241,12 @@ SettingsInterface::ErrorType EncSettingsHEVC::Get(std::string index, void* setti
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_CACHE_LEVEL2_REDUCED_RANGE")
+  {
+    *(static_cast<bool*>(settings)) = CreateCacheLevel2ReducedRange(this->settings);
+    return SUCCESS;
+  }
+
   if(index == "SETTINGS_INDEX_BUFFER_HANDLES")
   {
     *(static_cast<BufferHandles*>(settings)) = this->bufferHandles;
@@ -624,6 +630,15 @@ SettingsInterface::ErrorType EncSettingsHEVC::Set(std::string index, void const*
     auto isCacheLevel2Enabled = *(static_cast<bool const*>(settings));
 
     if(!UpdateCacheLevel2(this->settings, isCacheLevel2Enabled))
+      return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_CACHE_LEVEL2_REDUCED_RANGE")
+  {
+    auto isCacheLevel2ReducedRangeEnabled = *(static_cast<bool const*>(settings));
+
+    if(!UpdateCacheLevel2ReducedRange(this->settings, isCacheLevel2ReducedRangeEnabled))
       return BAD_PARAMETER;
     return SUCCESS;
   }
