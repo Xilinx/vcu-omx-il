@@ -85,6 +85,7 @@ struct Settings
   int pass;
   string twoPassLogFile;
   bool isDummySeiEnabled;
+  string deviceName = string("/dev/allegroIP");
 
   OMX_VIDEO_CONTROLRATETYPE eControlRate;
   int targetBitrate;
@@ -146,7 +147,6 @@ static inline void SetDefaultApplication(Application& app)
 static string input_file;
 static string output_file;
 static string cmd_file;
-static const string deviceName = string("/dev/allegroIP");
 
 static ifstream infile;
 static ofstream outfile;
@@ -366,6 +366,7 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addInt("--width", &settings.width, "Input width ('176')");
   opt.addInt("--height", &settings.height, "Input height ('144')");
   opt.addInt("--framerate", &settings.framerate, "Input fps ('1')");
+  opt.addString("--device", &settings.deviceName, "Device's name");
   opt.addString("--out", &output_file, "Output compressed file name");
   opt.addString("--fourcc", &fourcc, "Input file fourcc <y800 || nv12 "
                 "|| nv16 "
@@ -784,7 +785,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   struct OMX_ALG_CORE_DEVICE device;
   InitHeader(device);
-  device.cDevice = strdup(deviceName.c_str());
+  device.cDevice = strdup(app.settings.deviceName.c_str());
   auto freecDevice = scopeExit([&]() {
     free(device.cDevice);
   });
@@ -802,10 +803,10 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   if(app.input.isDMA || app.output.isDMA)
   {
-    app.pAllocator = AL_DmaAlloc_Create(deviceName.c_str());
+    app.pAllocator = AL_DmaAlloc_Create(app.settings.deviceName.c_str());
 
     if(!app.pAllocator)
-      throw runtime_error(string("Couldn't create dma allocator (using ") + deviceName + string(")"));
+      throw runtime_error(string("Couldn't create dma allocator (using ") + app.settings.deviceName + string(")"));
   }
 
   auto scopeAlloc = scopeExit([&]() {
