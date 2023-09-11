@@ -256,6 +256,12 @@ SettingsInterface::ErrorType EncSettingsAVC::Get(std::string index, void* settin
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_CACHE_LEVEL2_REDUCED_RANGE")
+  {
+    *(static_cast<bool*>(settings)) = CreateCacheLevel2ReducedRange(this->settings);
+    return SUCCESS;
+  }
+
   if(index == "SETTINGS_INDEX_BUFFER_HANDLES")
   {
     *(static_cast<BufferHandles*>(settings)) = this->bufferHandles;
@@ -517,6 +523,12 @@ SettingsInterface::ErrorType EncSettingsAVC::Get(std::string index, void* settin
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_REALTIME")
+  {
+    *static_cast<bool*>(settings) = CreateRealtime(this->settings);
+    return SUCCESS;
+  }
+
   return BAD_INDEX;
 }
 
@@ -668,6 +680,15 @@ SettingsInterface::ErrorType EncSettingsAVC::Set(std::string index, void const* 
     auto isCacheLevel2Enabled = *(static_cast<bool const*>(settings));
 
     if(!UpdateCacheLevel2(this->settings, isCacheLevel2Enabled))
+      return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_CACHE_LEVEL2_REDUCED_RANGE")
+  {
+    auto isCacheLevel2ReducedRangeEnabled = *(static_cast<bool const*>(settings));
+
+    if(!UpdateCacheLevel2ReducedRange(this->settings, isCacheLevel2ReducedRangeEnabled))
       return BAD_PARAMETER;
     return SUCCESS;
   }
@@ -1004,6 +1025,15 @@ SettingsInterface::ErrorType EncSettingsAVC::Set(std::string index, void const* 
     auto startCodeBytesAlignment = *(static_cast<StartCodeBytesAlignmentType const*>(settings));
 
     if(!UpdateStartCodeBytesAlignment(this->settings, startCodeBytesAlignment))
+      return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_REALTIME")
+  {
+    auto isRealtimeDisabled = *(static_cast<bool const*>(settings));
+
+    if(!UpdateRealtime(this->settings, isRealtimeDisabled))
       return BAD_PARAMETER;
     return SUCCESS;
   }

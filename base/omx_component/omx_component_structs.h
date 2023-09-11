@@ -74,7 +74,7 @@ struct Port
     error = false;
   }
 
-  void ErrorOccured()
+  void ErrorOccurred()
   {
     std::lock_guard<std::mutex> lock(mutex);
     error = true;

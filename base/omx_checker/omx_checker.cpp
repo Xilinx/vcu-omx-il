@@ -271,7 +271,7 @@ void OMXChecker::CheckStateTransition(OMX_STATETYPE curState, OMX_STATETYPE newS
   }
 }
 
-void OMXChecker::CheckStateExistance(OMX_STATETYPE state)
+void OMXChecker::CheckStateExistence(OMX_STATETYPE state)
 {
   switch(state)
   {

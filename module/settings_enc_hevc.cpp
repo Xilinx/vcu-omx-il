@@ -496,6 +496,12 @@ SettingsInterface::ErrorType EncSettingsHEVC::Get(std::string index, void* setti
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_REALTIME")
+  {
+    *static_cast<bool*>(settings) = CreateRealtime(this->settings);
+    return SUCCESS;
+  }
+
   return BAD_INDEX;
 }
 
@@ -945,6 +951,15 @@ SettingsInterface::ErrorType EncSettingsHEVC::Set(std::string index, void const*
     auto startCodeBytesAlignment = *(static_cast<StartCodeBytesAlignmentType const*>(settings));
 
     if(!UpdateStartCodeBytesAlignment(this->settings, startCodeBytesAlignment))
+      return BAD_PARAMETER;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_REALTIME")
+  {
+    auto isRealtimeDisabled = *(static_cast<bool const*>(settings));
+
+    if(!UpdateRealtime(this->settings, isRealtimeDisabled))
       return BAD_PARAMETER;
     return SUCCESS;
   }

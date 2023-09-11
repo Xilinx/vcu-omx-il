@@ -196,3 +196,5 @@ OMX_ERRORTYPE ConstructVideoOutputPosition(OMX_CONFIG_POINTTYPE& position, Port 
 OMX_ERRORTYPE SetVideoStartCodeBytesAlignment(OMX_ALG_VIDEO_PARAM_START_CODE_BYTES_ALIGNMENT const& scba, Port const& port, std::shared_ptr<SettingsInterface> media);
 OMX_ERRORTYPE ConstructVideoStartCodeBytesAlignment(OMX_ALG_VIDEO_PARAM_START_CODE_BYTES_ALIGNMENT& scba, Port const& port, std::shared_ptr<SettingsInterface> media);
 
+OMX_ERRORTYPE SetVideoRealtime(OMX_ALG_VIDEO_PARAM_REALTIME const& rt, Port const& port, std::shared_ptr<SettingsInterface> media);
+OMX_ERRORTYPE ConstructVideoRealtime(OMX_ALG_VIDEO_PARAM_REALTIME& rt, Port const& port, std::shared_ptr<SettingsInterface> media);

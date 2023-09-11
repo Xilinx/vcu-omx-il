@@ -168,6 +168,19 @@ bool UpdateCacheLevel2(AL_TEncSettings& settings, bool isCacheLevel2Enabled)
   return true;
 }
 
+bool CreateCacheLevel2ReducedRange(AL_TEncSettings settings)
+{
+  auto const& channel = settings.tChParam[0];
+  return channel.bEnableL2PReducedRange;
+}
+
+bool UpdateCacheLevel2ReducedRange(AL_TEncSettings& settings, bool isCacheLevel2ReducedRangeEnabled)
+{
+  auto& channel = settings.tChParam[0];
+  channel.bEnableL2PReducedRange = isCacheLevel2ReducedRangeEnabled;
+  return true;
+}
+
 static int RawAllocationSize(Stride stride, AL_EChromaMode eChromaMode)
 {
   auto IP_WIDTH_ALIGNMENT = 32;
@@ -800,5 +813,18 @@ bool UpdateStartCodeBytesAlignment(AL_TEncSettings& settings, StartCodeBytesAlig
 
   auto& channel = settings.tChParam[0];
   channel.eStartCodeBytesAligned = ConvertModuleToSoftStartCodeBytesAlignment(startCodeBytesAlignment);
+  return true;
+}
+
+bool CreateRealtime(AL_TEncSettings settings)
+{
+  auto channel = settings.tChParam[0];
+  return channel.bNonRealtime;
+}
+
+bool UpdateRealtime(AL_TEncSettings& settings, bool isRealtimeDisabled)
+{
+  auto& channel = settings.tChParam[0];
+  channel.bNonRealtime = isRealtimeDisabled;
   return true;
 }

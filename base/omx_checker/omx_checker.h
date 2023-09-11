@@ -43,11 +43,11 @@ struct OMXChecker
   static void CheckStateOperation(ComponentMethods methodName, OMX_STATETYPE curState);
 
   /*************************************************************************//*!
-     \brief  The CheckStateExistance method test if the state exist
+     \brief  The CheckStateExistence method test if the state exist
      \param[in]  state
      \throw  OMX_ErrorBadParameter if the state doesn't exist
   *****************************************************************************/
-  static void CheckStateExistance(OMX_STATETYPE state);
+  static void CheckStateExistence(OMX_STATETYPE state);
 
   /*************************************************************************//*!
      \brief  The CheckStateTransition method test if the transition between old state

@@ -30,6 +30,9 @@ bool UpdateBitrate(AL_TEncSettings& settings, Bitrate bitrate);
 bool CreateCacheLevel2(AL_TEncSettings settings);
 bool UpdateCacheLevel2(AL_TEncSettings& settings, bool isCacheLevel2Enabled);
 
+bool CreateCacheLevel2ReducedRange(AL_TEncSettings settings);
+bool UpdateCacheLevel2ReducedRange(AL_TEncSettings& settings, bool isCacheLevel2ReduceRangeEnabled);
+
 BufferSizes CreateBufferSizes(AL_TEncSettings settings, Stride stride);
 
 bool CreateFillerData(AL_TEncSettings settings);
@@ -111,6 +114,9 @@ bool UpdateST209440SEI(AL_TEncSettings& settings, bool isST209440Enabled);
 
 bool CreateVideoFullRange(AL_TEncSettings settings);
 bool UpdateVideoFullRange(AL_TEncSettings& settings, bool isVideoFullRangeEnabled);
+
+bool CreateRealtime(AL_TEncSettings settings);
+bool UpdateRealtime(AL_TEncSettings& settings, bool isRealtimeDisabled);
 
 RateControlPlugin CreateRateControlPlugin(AL_TAllocator* allocator, AL_TEncSettings const& settings);
 bool SetRcPluginContext(AL_TAllocator* allocator, AL_TEncSettings* settings, RateControlPlugin const& rcp);

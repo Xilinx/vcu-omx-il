@@ -113,6 +113,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexParamVideoStartCodeBytesAlignment,               /**< reference: OMX_ALG_VIDEO_PARAM_START_CODE_BYTES_ALIGNMENT */
   OMX_ALG_IndexParamVideoRecoveryPoint,                         /**< reference: OMX_ALG_VIDEO_PARAM_RECOVERY_POINT */
   OMX_ALG_IndexParamVideoFullRange,                             /**< reference: OMX_ALG_VIDEO_PARAM_VIDEO_FULL_RANGE */
+  OMX_ALG_IndexParamVideoRealtime,                              /**< reference: OMX_ALG_VIDEO_PARAM_REALTIME */
 
   /* Vendor Video configurations */
   OMX_ALG_IndexConfigVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00380000,

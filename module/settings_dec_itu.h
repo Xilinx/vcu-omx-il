@@ -30,10 +30,12 @@ bool UpdateResolution(AL_TDecSettings& settings, Stride& stride, StrideAlignment
 BufferSizes CreateBufferSizes(AL_TDecSettings settings, Stride stride);
 
 DecodedPictureBufferType CreateDecodedPictureBuffer(AL_TDecSettings settings);
+bool UpdateDecodedPictureBuffer(AL_TDecSettings& settings, DecodedPictureBufferType decodedPictureBuffer);
 
 bool UpdateIsEnabledSubframe(AL_TDecSettings& settings, bool isSubframeEnabled);
 
-bool UpdateDecodedPictureBuffer(AL_TDecSettings& settings, DecodedPictureBufferType decodedPictureBuffer);
+bool CreateRealtime(AL_TDecSettings settings);
+bool UpdateRealtime(AL_TDecSettings& settings, bool isSubframeDisabled);
 
 Point<int> CreateOutputPosition(AL_TDecSettings settings);
 bool UpdateOutputPosition(AL_TDecSettings& settings, Point<int> position);

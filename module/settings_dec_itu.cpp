@@ -167,6 +167,17 @@ bool UpdateResolution(AL_TDecSettings& settings, Stride& stride, StrideAlignment
   return true;
 }
 
+bool CreateRealtime(AL_TDecSettings settings)
+{
+  return settings.bNonRealtime;
+}
+
+bool UpdateRealtime(AL_TDecSettings& settings, bool isSubframeDisabled)
+{
+  settings.bNonRealtime = isSubframeDisabled;
+  return true;
+}
+
 Point<int> CreateOutputPosition(AL_TDecSettings settings)
 {
   Point<int> position {};

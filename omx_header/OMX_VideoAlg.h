@@ -91,7 +91,7 @@ typedef enum OMX_ALG_VIDEO_HEVCPROFILETYPE
   OMX_ALG_VIDEO_HEVCProfileMain444_16_Intra,
   OMX_ALG_VIDEO_HEVCProfileMain444_Still,
   OMX_ALG_VIDEO_HEVCProfileMain444_16_Still,
-  OMX_ALG_VIDEO_HEVCProfileHighThroughtPut444_16_Intra,
+  OMX_ALG_VIDEO_HEVCProfileHighThroughPut444_16_Intra,
   OMX_ALG_VIDEO_HEVCProfileMaxEnum = 0x7FFFFFFF,
 }OMX_ALG_VIDEO_HEVCPROFILETYPE;
 
@@ -335,6 +335,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_SCENE_CHANGE_RESILIENCE
  *  nVersion              : OMX specification version information
  *  nPortIndex            : Port that this structure applies to
  *  bEnablePrefetchBuffer : Indicate if prefetch buffer should be enabled
+ *  bEnableReducedRange   : Indicate if prefetch buffer reduced range should be enabled
  */
 typedef struct OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER
 {
@@ -342,6 +343,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
   OMX_BOOL bEnablePrefetchBuffer;
+  OMX_BOOL bEnableReducedRange;
 }OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER;
 
 /**
@@ -1108,7 +1110,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC
   OMX_S8 nLoopFilterTc;
 }OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC;
 
-/** Extented enumeration of video formats */
+/** Extended enumeration of video formats */
 typedef enum OMX_ALG_COLOR_FORMATTYPE
 {
   OMX_ALG_COLOR_FormatUnused = OMX_COLOR_FormatVendorStartUnused,
@@ -1259,7 +1261,7 @@ typedef struct OMX_ALG_VIDEO_CONFIG_NOTIFY_SCENE_CHANGE
  *  nVersion   : OMX specification version information
  *  nPortIndex : Port that this structure applies to
  *  nWidth     : Width of the resolution
- *  nHeight    : Height of the resoluton
+ *  nHeight    : Height of the resolution
  */
 typedef struct OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE
 {
@@ -1278,7 +1280,7 @@ typedef struct OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE
  *  nVersion   : OMX specification version information
  *  nPortIndex : Port that this structure applies to
  *  nWidth     : Width of the resolution
- *  nHeight    : Height of the resoluton
+ *  nHeight    : Height of the resolution
  */
 typedef OMX_ALG_VIDEO_CONFIG_NOTIFY_RESOLUTION_CHANGE OMX_ALG_VIDEO_CONFIG_MAX_RESOLUTION_CHANGE;
 
@@ -1626,7 +1628,7 @@ typedef struct OMX_ALG_PROCESSING_WINDOW_TRANSFORM_ST2094_40
  * STRUCT MEMBERS:
  *  nApplicationVersion : version of the SEI, shall be 0.
  *  nNumWindows : Number of processing window, must be in [ 1 ; 3 ]
- *  processingWindows : Description of the two optionnal processing windows
+ *  processingWindows : Description of the two optional processing windows
  *  targetedSystemDisplay : Description of the targeted system display
  *  masteringDisplayPeakLuminance : The mastering display peak luminance
  *  processingWindowTransforms : Colour Volume transforms for each processing windows
@@ -1733,7 +1735,7 @@ typedef enum
   OMX_ALG_START_CODE_BYTES_ALIGNMENT_3_BYTES,
   OMX_ALG_START_CODE_BYTES_ALIGNMENT_4_BYTES,
   OMX_ALG_START_CODE_BYTES_ALIGNMENT_MAX_ENUM = 0x7FFFFFFF,
-}OMX_ALG_EStartCodeBytesAligment;
+}OMX_ALG_EStartCodeBytesAlignment;
 
 /**
  * Start Code Bytes Alignment parameters
@@ -1749,8 +1751,25 @@ typedef struct OMX_ALG_VIDEO_START_CODE_BYTES_ALIGNMENT
   OMX_U32 nSize;
   OMX_VERSIONTYPE nVersion;
   OMX_U32 nPortIndex;
-  OMX_ALG_EStartCodeBytesAligment eStartCodeBytesAlignment;
+  OMX_ALG_EStartCodeBytesAlignment eStartCodeBytesAlignment;
 }OMX_ALG_VIDEO_PARAM_START_CODE_BYTES_ALIGNMENT;
+
+/**
+ * Realtime parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize            : Size of the structure in bytes
+ *  nVersion         : OMX specification version information
+ *  nPortIndex       : Port that this structure applies to
+ *  bDisableRealtime : Indicate if realtime processing should be disabled
+ */
+typedef struct OMX_ALG_VIDEO_PARAM_REALTIME
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bDisableRealtime;
+}OMX_ALG_VIDEO_PARAM_REALTIME;
 
 #ifdef __cplusplus
 }

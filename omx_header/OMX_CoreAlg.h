@@ -154,7 +154,7 @@ typedef enum OMX_ALG_COREINDEXTYPE
         Index of the core structure to be sent. This value is from the
         OMX_ALG_COREINDEXTYPE enumeration.
     @param [in] pSettings
-        pointer to a specified strucutre defined by nCoreSettingsIndex
+        pointer to a specified structure defined by nCoreSettingsIndex
     @return OMX_ERRORTYPE
         If the command successfully executes, the return code will be
         OMX_ErrorNone.  Otherwise the appropriate OMX error will be returned.

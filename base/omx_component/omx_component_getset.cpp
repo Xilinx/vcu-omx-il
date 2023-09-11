@@ -3,6 +3,7 @@
 
 #include "omx_component_getset.h"
 #include "base/omx_checker/omx_checker.h"
+#include "omx_convert_omx_media.h"
 #include <algorithm> // max
 
 using namespace std;
@@ -949,13 +950,20 @@ OMX_ERRORTYPE ConstructVideoPrefetchBuffer(OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER& 
   auto ret = media->Get(SETTINGS_INDEX_CACHE_LEVEL2, &isCacheLevel2Enabled);
   OMX_CHECK_MEDIA_GET(ret);
   pb.bEnablePrefetchBuffer = ConvertMediaToOMXBool(isCacheLevel2Enabled);
+  bool isCacheLevel2ReducedRangeEnabled;
+  ret = media->Get(SETTINGS_INDEX_CACHE_LEVEL2_REDUCED_RANGE, &isCacheLevel2ReducedRangeEnabled);
+  OMX_CHECK_MEDIA_GET(ret);
+  pb.bEnableReducedRange = ConvertMediaToOMXBool(isCacheLevel2ReducedRangeEnabled);
   return OMX_ErrorNone;
 }
 
-static OMX_ERRORTYPE SetPrefetchBuffer(OMX_BOOL enablePrefetchBuffer, shared_ptr<SettingsInterface> media)
+static OMX_ERRORTYPE SetPrefetchBuffer(OMX_BOOL enablePrefetchBuffer, OMX_BOOL enableReducedRanged, shared_ptr<SettingsInterface> media)
 {
   auto enabled = ConvertOMXToMediaBool(enablePrefetchBuffer);
   auto ret = media->Set(SETTINGS_INDEX_CACHE_LEVEL2, &enabled);
+  OMX_CHECK_MEDIA_SET(ret);
+  enabled = ConvertOMXToMediaBool(enableReducedRanged);
+  ret = media->Set(SETTINGS_INDEX_CACHE_LEVEL2_REDUCED_RANGE, &enabled);
   OMX_CHECK_MEDIA_SET(ret);
   return OMX_ErrorNone;
 }
@@ -965,7 +973,7 @@ OMX_ERRORTYPE SetVideoPrefetchBuffer(OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER const& 
   OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER rollback;
   ConstructVideoPrefetchBuffer(rollback, port, media);
 
-  auto ret = SetPrefetchBuffer(prefetchBuffer.bEnablePrefetchBuffer, media);
+  auto ret = SetPrefetchBuffer(prefetchBuffer.bEnablePrefetchBuffer, prefetchBuffer.bEnableReducedRange, media);
 
   if(ret != OMX_ErrorNone)
   {
@@ -2223,7 +2231,7 @@ OMX_ERRORTYPE ConstructVideoOutputPosition(OMX_CONFIG_POINTTYPE& position, Port 
   return OMX_ErrorNone;
 }
 
-static OMX_ERRORTYPE SetStartCodeBytesAlignmet(OMX_ALG_EStartCodeBytesAligment eStartCodeBytesAlignment, shared_ptr<SettingsInterface> media)
+static OMX_ERRORTYPE SetStartCodeBytesAlignment(OMX_ALG_EStartCodeBytesAlignment eStartCodeBytesAlignment, shared_ptr<SettingsInterface> media)
 {
   auto startCodeBytesAlignment = ConvertOMXToMediaStartCodeBytesAlignment(eStartCodeBytesAlignment);
   auto ret = media->Set(SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT, &startCodeBytesAlignment);
@@ -2235,7 +2243,7 @@ OMX_ERRORTYPE SetVideoStartCodeBytesAlignment(OMX_ALG_VIDEO_PARAM_START_CODE_BYT
 {
   OMX_ALG_VIDEO_PARAM_START_CODE_BYTES_ALIGNMENT rollback;
   ConstructVideoStartCodeBytesAlignment(rollback, port, media);
-  auto ret = SetStartCodeBytesAlignmet(scba.eStartCodeBytesAlignment, media);
+  auto ret = SetStartCodeBytesAlignment(scba.eStartCodeBytesAlignment, media);
 
   if(ret != OMX_ErrorNone)
   {
@@ -2250,9 +2258,43 @@ OMX_ERRORTYPE ConstructVideoStartCodeBytesAlignment(OMX_ALG_VIDEO_PARAM_START_CO
 {
   OMXChecker::SetHeaderVersion(scba);
   scba.nPortIndex = port.index;
-  StartCodeBytesAlignmentType startCodeBytesAligment;
-  auto ret = media->Get(SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT, &startCodeBytesAligment);
+  StartCodeBytesAlignmentType startCodeBytesAlignment;
+  auto ret = media->Get(SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT, &startCodeBytesAlignment);
   OMX_CHECK_MEDIA_GET(ret);
-  scba.eStartCodeBytesAlignment = ConvertMediaToOMXStartCodeBytesAlignment(startCodeBytesAligment);
+  scba.eStartCodeBytesAlignment = ConvertMediaToOMXStartCodeBytesAlignment(startCodeBytesAlignment);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetRealtime(OMX_BOOL bDisableRealtime, shared_ptr<SettingsInterface> media)
+{
+  auto disabled = ConvertOMXToMediaBool(bDisableRealtime);
+  auto ret = media->Set(SETTINGS_INDEX_REALTIME, &disabled);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetVideoRealtime(OMX_ALG_VIDEO_PARAM_REALTIME const& rt, Port const& port, std::shared_ptr<SettingsInterface> media)
+{
+  OMX_ALG_VIDEO_PARAM_REALTIME rollback;
+  ConstructVideoRealtime(rollback, port, media);
+  auto ret = SetRealtime(rt.bDisableRealtime, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetVideoRealtime(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConstructVideoRealtime(OMX_ALG_VIDEO_PARAM_REALTIME& rt, Port const& port, std::shared_ptr<SettingsInterface> media)
+{
+  OMXChecker::SetHeaderVersion(rt);
+  rt.nPortIndex = port.index;
+  bool disableRealtime;
+  auto ret = media->Get(SETTINGS_INDEX_REALTIME, &disableRealtime);
+  OMX_CHECK_MEDIA_GET(ret);
+  rt.bDisableRealtime = ConvertMediaToOMXBool(disableRealtime);
   return OMX_ErrorNone;
 }

@@ -50,6 +50,9 @@ static std::string const SETTINGS_INDEX_BITRATE {
 static std::string const SETTINGS_INDEX_CACHE_LEVEL2 {
   "SETTINGS_INDEX_CACHE_LEVEL2"
 };
+static std::string const SETTINGS_INDEX_CACHE_LEVEL2_REDUCED_RANGE {
+  "SETTINGS_INDEX_CACHE_LEVEL2"
+};
 static std::string const SETTINGS_INDEX_BUFFER_HANDLES {
   "SETTINGS_INDEX_BUFFER_HANDLES"
 };
@@ -190,6 +193,9 @@ static std::string const SETTINGS_INDEX_START_CODE_BYTES_ALIGNMENT {
 };
 static std::string const SETTINGS_INDEX_VIDEO_FULL_RANGE {
   "SETTINGS_INDEX_VIDEO_FULL_RANGE"
+};
+static std::string const SETTINGS_INDEX_REALTIME {
+  "SETTINGS_INDEX_REALTIME"
 };
 
 struct SettingsInterface

@@ -8,6 +8,7 @@
 extern "C"
 {
 #include "lib_rtos/lib_rtos.h"
+#include "lib_common/RoundUp.h"
 }
 
 using namespace std;
@@ -24,12 +25,6 @@ struct AL_TRoiNode
 
   int16_t iDeltaQP;
 };
-
-/****************************************************************************/
-static inline int RoundUp(int iVal, int iRnd)
-{
-  return (iVal + iRnd - 1) & (~(iRnd - 1));
-}
 
 /***************************************************************************/
 static inline int Clip3(int iVal, int iMin, int iMax)
@@ -332,8 +327,8 @@ AL_TRoiMngrCtx* AL_RoiMngr_Create(int iPicWidth, int iPicHeight, AL_EProfile ePr
   pCtx->pFirstNode = nullptr;
   pCtx->pLastNode = nullptr;
 
-  pCtx->iLcuPicWidth = RoundUp(pCtx->iPicWidth, 1 << pCtx->uLog2MaxCuSize) >> pCtx->uLog2MaxCuSize;
-  pCtx->iLcuPicHeight = RoundUp(pCtx->iPicHeight, 1 << pCtx->uLog2MaxCuSize) >> pCtx->uLog2MaxCuSize;
+  pCtx->iLcuPicWidth = AL_RoundUp(pCtx->iPicWidth, 1 << pCtx->uLog2MaxCuSize) >> pCtx->uLog2MaxCuSize;
+  pCtx->iLcuPicHeight = AL_RoundUp(pCtx->iPicHeight, 1 << pCtx->uLog2MaxCuSize) >> pCtx->uLog2MaxCuSize;
   pCtx->iNumLCUs = pCtx->iLcuPicWidth * pCtx->iLcuPicHeight;
 
   return pCtx;
@@ -370,8 +365,8 @@ bool AL_RoiMngr_AddROI(AL_TRoiMngrCtx* pCtx, int iPosX, int iPosY, int iWidth, i
 
   iPosX = iPosX >> pCtx->uLog2MaxCuSize;
   iPosY = iPosY >> pCtx->uLog2MaxCuSize;
-  iWidth = RoundUp(iWidth, 1 << pCtx->uLog2MaxCuSize) >> pCtx->uLog2MaxCuSize;
-  iHeight = RoundUp(iHeight, 1 << pCtx->uLog2MaxCuSize) >> pCtx->uLog2MaxCuSize;
+  iWidth = AL_RoundUp(iWidth, 1 << pCtx->uLog2MaxCuSize) >> pCtx->uLog2MaxCuSize;
+  iHeight = AL_RoundUp(iHeight, 1 << pCtx->uLog2MaxCuSize) >> pCtx->uLog2MaxCuSize;
 
   AL_TRoiNode* pNode = (AL_TRoiNode*)Rtos_Malloc(sizeof(AL_TRoiNode));
 

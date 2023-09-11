@@ -232,7 +232,7 @@ OMX_ERRORTYPE DecComponent::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** head
   OMX_CATCH_L([&](OMX_ERRORTYPE& e)
   {
     if(e != OMX_ErrorBadPortIndex)
-      GetPort(index)->ErrorOccured();
+      GetPort(index)->ErrorOccurred();
   });
 }
 
@@ -260,7 +260,7 @@ OMX_ERRORTYPE DecComponent::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHE
   OMX_CATCH_L([&](OMX_ERRORTYPE& e)
   {
     if(e != OMX_ErrorBadPortIndex)
-      GetPort(index)->ErrorOccured();
+      GetPort(index)->ErrorOccurred();
   });
 }
 

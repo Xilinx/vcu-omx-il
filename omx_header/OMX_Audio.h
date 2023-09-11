@@ -310,7 +310,7 @@ typedef struct OMX_AUDIO_PARAM_VORBISTYPE
   OMX_U32 nAudioBandWidth;    /**< Audio band width (in Hz) to which an encoder should
                                    limit the audio signal. Use 0 to let encoder decide */
   OMX_S32 nQuality;           /**< Sets encoding quality to n, between -1 (low) and 10 (high).
-                                   In the default mode of operation, teh quality level is 3.
+                                   In the default mode of operation, the quality level is 3.
                                    Normal quality range is 0 - 10. */
   OMX_BOOL bManaged;          /**< Set  bitrate  management  mode. This turns off the
                                    normal VBR encoding, but allows hard or soft bitrate
@@ -459,7 +459,7 @@ typedef struct OMX_AUDIO_PARAM_G723TYPE
   OMX_U32 nChannels;              /**< Number of channels in the data stream (not
                                        necessarily the same as the number of channels
                                        to be rendered. */
-  OMX_BOOL bDTX;                /**< Enable Discontinuous Transmisssion */
+  OMX_BOOL bDTX;                /**< Enable Discontinuous Transmissions */
   OMX_AUDIO_G723RATE eBitRate;  /**< todo: Should this be moved to a config? */
   OMX_BOOL bHiPassFilter;       /**< Enable High Pass Filter */
   OMX_BOOL bPostFilter;         /**< Enable Post Filter */
@@ -511,7 +511,7 @@ typedef struct OMX_AUDIO_PARAM_G729TYPE
   OMX_U32 nChannels;          /**< Number of channels in the data stream (not
                                    necessarily the same as the number of channels
                                    to be rendered. */
-  OMX_BOOL bDTX;            /**< Enable Discontinuous Transmisssion */
+  OMX_BOOL bDTX;            /**< Enable Discontinuous Transmissions */
   OMX_AUDIO_G729TYPE eBitType;
 }OMX_AUDIO_PARAM_G729TYPE;
 
@@ -597,7 +597,7 @@ typedef struct OMX_AUDIO_PARAM_GSMFRTYPE
   OMX_U32 nSize;            /**< size of the structure in bytes */
   OMX_VERSIONTYPE nVersion; /**< OMX specification version information */
   OMX_U32 nPortIndex;       /**< port that this structure applies to */
-  OMX_BOOL bDTX;            /**< Enable Discontinuous Transmisssion */
+  OMX_BOOL bDTX;            /**< Enable Discontinuous Transmissions */
   OMX_BOOL bHiPassFilter;   /**< Enable High Pass Filter */
 }OMX_AUDIO_PARAM_GSMFRTYPE;
 
@@ -607,7 +607,7 @@ typedef struct OMX_AUDIO_PARAM_GSMHRTYPE
   OMX_U32 nSize;            /**< size of the structure in bytes */
   OMX_VERSIONTYPE nVersion; /**< OMX specification version information */
   OMX_U32 nPortIndex;       /**< port that this structure applies to */
-  OMX_BOOL bDTX;            /**< Enable Discontinuous Transmisssion */
+  OMX_BOOL bDTX;            /**< Enable Discontinuous Transmissions */
   OMX_BOOL bHiPassFilter;   /**< Enable High Pass Filter */
 }OMX_AUDIO_PARAM_GSMHRTYPE;
 
@@ -617,7 +617,7 @@ typedef struct OMX_AUDIO_PARAM_GSMEFRTYPE
   OMX_U32 nSize;            /**< size of the structure in bytes */
   OMX_VERSIONTYPE nVersion; /**< OMX specification version information */
   OMX_U32 nPortIndex;       /**< port that this structure applies to */
-  OMX_BOOL bDTX;            /**< Enable Discontinuous Transmisssion */
+  OMX_BOOL bDTX;            /**< Enable Discontinuous Transmissions */
   OMX_BOOL bHiPassFilter;   /**< Enable High Pass Filter */
 }OMX_AUDIO_PARAM_GSMEFRTYPE;
 
@@ -630,7 +630,7 @@ typedef struct OMX_AUDIO_PARAM_TDMAFRTYPE
   OMX_U32 nChannels;              /**< Number of channels in the data stream (not
                                        necessarily the same as the number of channels
                                        to be rendered. */
-  OMX_BOOL bDTX;                /**< Enable Discontinuous Transmisssion */
+  OMX_BOOL bDTX;                /**< Enable Discontinuous Transmissions */
   OMX_BOOL bHiPassFilter;       /**< Enable High Pass Filter */
 }OMX_AUDIO_PARAM_TDMAFRTYPE;
 
@@ -643,7 +643,7 @@ typedef struct OMX_AUDIO_PARAM_TDMAEFRTYPE
   OMX_U32 nChannels;              /**< Number of channels in the data stream (not
                                        necessarily the same as the number of channels
                                        to be rendered. */
-  OMX_BOOL bDTX;                /**< Enable Discontinuous Transmisssion */
+  OMX_BOOL bDTX;                /**< Enable Discontinuous Transmissions */
   OMX_BOOL bHiPassFilter;       /**< Enable High Pass Filter */
 }OMX_AUDIO_PARAM_TDMAEFRTYPE;
 
@@ -656,7 +656,7 @@ typedef struct OMX_AUDIO_PARAM_PDCFRTYPE
   OMX_U32 nChannels;              /**< Number of channels in the data stream (not
                                        necessarily the same as the number of channels
                                        to be rendered. */
-  OMX_BOOL bDTX;                /**< Enable Discontinuous Transmisssion */
+  OMX_BOOL bDTX;                /**< Enable Discontinuous Transmissions */
   OMX_BOOL bHiPassFilter;       /**< Enable High Pass Filter */
 }OMX_AUDIO_PARAM_PDCFRTYPE;
 
@@ -669,7 +669,7 @@ typedef struct OMX_AUDIO_PARAM_PDCEFRTYPE
   OMX_U32 nChannels;              /**< Number of channels in the data stream (not
                                        necessarily the same as the number of channels
                                        to be rendered. */
-  OMX_BOOL bDTX;                /**< Enable Discontinuous Transmisssion */
+  OMX_BOOL bDTX;                /**< Enable Discontinuous Transmissions */
   OMX_BOOL bHiPassFilter;       /**< Enable High Pass Filter */
 }OMX_AUDIO_PARAM_PDCEFRTYPE;
 
@@ -682,7 +682,7 @@ typedef struct OMX_AUDIO_PARAM_PDCHRTYPE
   OMX_U32 nChannels;              /**< Number of channels in the data stream (not
                                        necessarily the same as the number of channels
                                        to be rendered. */
-  OMX_BOOL bDTX;                /**< Enable Discontinuous Transmisssion */
+  OMX_BOOL bDTX;                /**< Enable Discontinuous Transmissions */
   OMX_BOOL bHiPassFilter;       /**< Enable High Pass Filter */
 }OMX_AUDIO_PARAM_PDCHRTYPE;
 
@@ -712,7 +712,7 @@ typedef struct OMX_AUDIO_PARAM_QCELP8TYPE
   OMX_U32 nBitRate;               /**< Bit rate of the input data.  Use 0 for variable
                                        rate or unknown bit rates */
   OMX_AUDIO_CDMARATETYPE eCDMARate; /**< Frame rate */
-  OMX_U32 nMinBitRate;          /**< minmal rate for the encoder = 1,2,3,4, default = 1 */
+  OMX_U32 nMinBitRate;          /**< minimal rate for the encoder = 1,2,3,4, default = 1 */
   OMX_U32 nMaxBitRate;          /**< maximal rate for the encoder = 1,2,3,4, default = 4 */
 }OMX_AUDIO_PARAM_QCELP8TYPE;
 
@@ -726,7 +726,7 @@ typedef struct OMX_AUDIO_PARAM_QCELP13TYPE
                                        necessarily the same as the number of channels
                                        to be rendered. */
   OMX_AUDIO_CDMARATETYPE eCDMARate; /**< Frame rate */
-  OMX_U32 nMinBitRate;          /**< minmal rate for the encoder = 1,2,3,4, default = 1 */
+  OMX_U32 nMinBitRate;          /**< minimal rate for the encoder = 1,2,3,4, default = 1 */
   OMX_U32 nMaxBitRate;          /**< maximal rate for the encoder = 1,2,3,4, default = 4 */
 }OMX_AUDIO_PARAM_QCELP13TYPE;
 
@@ -741,7 +741,7 @@ typedef struct OMX_AUDIO_PARAM_EVRCTYPE
                                        to be rendered. */
   OMX_AUDIO_CDMARATETYPE eCDMARate; /**< actual Frame rate */
   OMX_BOOL bRATE_REDUCon;       /**< RATE_REDUCtion is requested for this frame */
-  OMX_U32 nMinBitRate;          /**< minmal rate for the encoder = 1,2,3,4, default = 1 */
+  OMX_U32 nMinBitRate;          /**< minimal rate for the encoder = 1,2,3,4, default = 1 */
   OMX_U32 nMaxBitRate;          /**< maximal rate for the encoder = 1,2,3,4, default = 4 */
   OMX_BOOL bHiPassFilter;       /**< Enable encoder's High Pass Filter */
   OMX_BOOL bNoiseSuppressor;    /**< Enable encoder's noise suppressor pre-processing */
@@ -759,7 +759,7 @@ typedef struct OMX_AUDIO_PARAM_SMVTYPE
                                        to be rendered. */
   OMX_AUDIO_CDMARATETYPE eCDMARate; /**< Frame rate */
   OMX_BOOL bRATE_REDUCon;           /**< RATE_REDUCtion is requested for this frame */
-  OMX_U32 nMinBitRate;          /**< minmal rate for the encoder = 1,2,3,4, default = 1 ??*/
+  OMX_U32 nMinBitRate;          /**< minimal rate for the encoder = 1,2,3,4, default = 1 ??*/
   OMX_U32 nMaxBitRate;          /**< maximal rate for the encoder = 1,2,3,4, default = 4 ??*/
   OMX_BOOL bHiPassFilter;       /**< Enable encoder's High Pass Filter ??*/
   OMX_BOOL bNoiseSuppressor;    /**< Enable encoder's noise suppressor pre-processing */

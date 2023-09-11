@@ -22,13 +22,13 @@
  */
 
 /** OMX_VideoHEVCAndroid.h - OpenMax IL version 1.1.2
- * This header contains an API compatiblity layer defining a subset of the
+ * This header contains an API compatibility layer defining a subset of the
  * OMX HEVC video API defined by Android:
  * https://android.googlesource.com/platform/frameworks/native/+/master/include/media/openmax/
  *
  * It's aimed to ease porting or code sharing of applications wishing to support
  * the Allegro and Android OMX stack.
- * Note that ABI compatiblity is NOT guaranteed. The actual values of the enums
+ * Note that ABI compatibility is NOT guaranteed. The actual values of the enums
  * may differ from Android.
  */
 

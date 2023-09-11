@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 #include "omx_component.h"
+#include "OMX_ComponentAlg.h"
+#include "OMX_IndexAlg.h"
 #include "base/omx_checker/omx_checker.h"
 #include <cassert>
 #include <cstring>
@@ -118,7 +120,7 @@ static OMX_ERRORTYPE ToOmxError(ModuleInterface::ErrorType error)
   case ModuleInterface::CHANNEL_CREATION_NO_CHANNEL_AVAILABLE: return static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorNoChannelLeft);
   case ModuleInterface::CHANNEL_CREATION_RESOURCE_UNAVAILABLE: return static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelResourceUnavailable);
   case ModuleInterface::CHANNEL_CREATION_LOAD_DISTRIBUTION: return static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelLoadDistribution);
-  case ModuleInterface::CHANNEL_CREATION_HARDWARE_CAPACITY_EXCEDEED: return static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelHardwareCapacityExceeded);
+  case ModuleInterface::CHANNEL_CREATION_HARDWARE_CAPACITY_EXCEEDED: return static_cast<OMX_ERRORTYPE>(OMX_ALG_ErrorChannelHardwareCapacityExceeded);
   case ModuleInterface::NO_MEMORY: return OMX_ErrorInsufficientResources;
   case ModuleInterface::BAD_PARAMETER: return OMX_ErrorBadParameter;
   default: return OMX_ErrorUndefined;
@@ -292,7 +294,7 @@ void Component::CreateCommand(OMX_COMMANDTYPE command, OMX_U32 param, OMX_PTR da
     OMXChecker::CheckNull(data);
 
     auto nextState = static_cast<OMX_STATETYPE>(param);
-    OMXChecker::CheckStateExistance(nextState);
+    OMXChecker::CheckStateExistence(nextState);
 
     TransientState NewtransientState = GetTransientState(state, nextState);
 
@@ -444,7 +446,7 @@ OMX_ERRORTYPE Component::SetCallbacks(OMX_IN OMX_CALLBACKTYPE* callbacks, OMX_IN
   OMX_CATCH();
 }
 
-static void CheckVersionExistance(OMX_PTR ptr)
+static void CheckVersionExistence(OMX_PTR ptr)
 {
   auto size = *static_cast<OMX_U32*>(ptr);
 
@@ -454,7 +456,7 @@ static void CheckVersionExistance(OMX_PTR ptr)
 
 static OMX_VERSIONTYPE GetVersion(OMX_PTR ptr)
 {
-  CheckVersionExistance(ptr);
+  CheckVersionExistence(ptr);
   auto tmp = ptr;
   tmp = static_cast<OMX_U32*>(tmp) + 1; // nVersion is always after nSize
 
@@ -857,6 +859,12 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto videoFullRange = static_cast<OMX_ALG_VIDEO_PARAM_VIDEO_FULL_RANGE*>(param);
     return ConstructVideoFullRange(*videoFullRange, *port, media);
   }
+  case OMX_ALG_IndexParamVideoRealtime:
+  {
+    auto port = getCurrentPort(param);
+    auto realtime = static_cast<OMX_ALG_VIDEO_PARAM_REALTIME*>(param);
+    return ConstructVideoRealtime(*realtime, *port, media);
+  }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
@@ -1204,6 +1212,11 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
     auto videoFullRange = static_cast<OMX_ALG_VIDEO_PARAM_VIDEO_FULL_RANGE*>(param);
     return SetVideoFullRange(*videoFullRange, *port, media);
   }
+  case OMX_ALG_IndexParamVideoRealtime:
+  {
+    auto rt = static_cast<OMX_ALG_VIDEO_PARAM_REALTIME*>(param);
+    return SetVideoRealtime(*rt, *port, media);
+  }
   default:
     LOG_ERROR(ToStringOMXIndex(index) + string { " is unsupported" });
     return OMX_ErrorUnsupportedIndex;
@@ -1267,7 +1280,7 @@ OMX_ERRORTYPE Component::UseBuffer(OMX_OUT OMX_BUFFERHEADERTYPE** header, OMX_IN
   OMX_CATCH_L([&](OMX_ERRORTYPE& e)
   {
     if(e != OMX_ErrorBadPortIndex)
-      GetPort(index)->ErrorOccured();
+      GetPort(index)->ErrorOccurred();
   });
 }
 
@@ -1296,7 +1309,7 @@ OMX_ERRORTYPE Component::AllocateBuffer(OMX_INOUT OMX_BUFFERHEADERTYPE** header,
   OMX_CATCH_L([&](OMX_ERRORTYPE& e)
   {
     if(e != OMX_ErrorBadPortIndex)
-      GetPort(index)->ErrorOccured();
+      GetPort(index)->ErrorOccurred();
   });
 }
 
@@ -1321,7 +1334,7 @@ OMX_ERRORTYPE Component::FreeBuffer(OMX_IN OMX_U32 index, OMX_IN OMX_BUFFERHEADE
   OMX_CATCH_L([&](OMX_ERRORTYPE& e)
   {
     if(e != OMX_ErrorBadPortIndex)
-      GetPort(index)->ErrorOccured();
+      GetPort(index)->ErrorOccurred();
   });
 }
 
@@ -1675,7 +1688,7 @@ OMX_ERRORTYPE Component::ComponentRoleEnum(OMX_OUT OMX_U8* role, OMX_IN OMX_U32 
   OMX_CATCH();
 }
 
-static inline bool isTransitionToIdleFromLoadedOrWaitRessource(OMX_STATETYPE previousState, OMX_STATETYPE state)
+static inline bool isTransitionToIdleFromLoadedOrWaitResource(OMX_STATETYPE previousState, OMX_STATETYPE state)
 {
   if(state != OMX_StateIdle)
     return false;
@@ -1852,8 +1865,8 @@ static bool isFlushingRequired(OMX_STATETYPE prevState, OMX_STATETYPE newState)
 {
   try
   {
-    OMXChecker::CheckStateExistance(prevState);
-    OMXChecker::CheckStateExistance(newState);
+    OMXChecker::CheckStateExistence(prevState);
+    OMXChecker::CheckStateExistence(newState);
     OMXChecker::CheckStateTransition(prevState, newState);
     auto transientState = GetTransientState(prevState, newState);
 
@@ -1874,7 +1887,7 @@ void Component::TreatSetStateCommand(Task task)
     LOG_IMPORTANT(string { "Set State: " } +ToStringOMXState(newState));
     OMXChecker::CheckStateTransition(state, newState);
 
-    if(isTransitionToIdleFromLoadedOrWaitRessource(state, newState))
+    if(isTransitionToIdleFromLoadedOrWaitResource(state, newState))
       PopulatingPorts();
 
     if(isTransitionToLoaded(state, newState) && (state != OMX_StateWaitForResources))

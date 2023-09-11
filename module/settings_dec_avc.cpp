@@ -248,6 +248,12 @@ SettingsInterface::ErrorType DecSettingsAVC::Get(std::string index, void* settin
     return SUCCESS;
   }
 
+  if(index == "SETTINGS_INDEX_REALTIME")
+  {
+    *(static_cast<bool*>(settings)) = CreateRealtime(this->settings);
+    return SUCCESS;
+  }
+
   if(index == "SETTINGS_INDEX_OUTPUT_POSITION")
   {
     *(static_cast<Point<int>*>(settings)) = CreateOutputPosition(this->settings);
@@ -383,6 +389,15 @@ SettingsInterface::ErrorType DecSettingsAVC::Set(std::string index, void const* 
   if(index == "SETTINGS_INDEX_INPUT_PARSED")
   {
     this->settings.eInputMode = *(static_cast<bool const*>(settings)) ? AL_DEC_SPLIT_INPUT : AL_DEC_UNSPLIT_INPUT;
+    return SUCCESS;
+  }
+
+  if(index == "SETTINGS_INDEX_REALTIME")
+  {
+    auto isRealtimeDisabled = *(static_cast<bool const*>(settings));
+
+    if(!UpdateRealtime(this->settings, isRealtimeDisabled))
+      return BAD_PARAMETER;
     return SUCCESS;
   }
 

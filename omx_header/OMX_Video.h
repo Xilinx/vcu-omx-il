@@ -720,7 +720,7 @@ typedef enum OMX_VIDEO_RVFORMATTYPE
 /**
  * Real Video Params
  *
- * STUCT MEMBERS:
+ * STRUCT MEMBERS:
  *  nSize              : Size of the structure in bytes
  *  nVersion           : OMX specification version information
  *  nPortIndex         : Port that this structure applies to

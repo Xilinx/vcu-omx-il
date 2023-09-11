@@ -167,7 +167,7 @@ typedef enum OMX_ERRORTYPE
       lost resulting in the component returning to the loaded state */
   OMX_ErrorResourcesLost = (OMX_S32) 0x8000100D,
 
-  /** No more indicies can be enumerated */
+  /** No more indices can be enumerated */
   OMX_ErrorNoMore = (OMX_S32) 0x8000100E,
 
   /** The component detected a version mismatch */
@@ -204,7 +204,7 @@ typedef enum OMX_ERRORTYPE
       the non-supplier to return a buffer via an EmptyThisBuffer or FillThisBuffer call. */
   OMX_ErrorPortUnresponsiveDuringStop = (OMX_S32) 0x80001016,
 
-  /** Attempting a state transtion that is not allowed */
+  /** Attempting a state transition that is not allowed */
   OMX_ErrorIncorrectStateTransition = (OMX_S32) 0x80001017,
 
   /* Attempting a command that is not allowed during the present state. */
@@ -290,7 +290,7 @@ typedef struct OMX_PARAM_COMPONENTROLETYPE
  * A component sets EOS when it has no more data to emit on a particular
  * output port. Thus an output port shall set EOS on the last buffer it
  * emits. A component's determination of when an output port should
- * cease sending data is implemenation specific.
+ * cease sending data is implementation specific.
  * @ingroup buf
  */
 
@@ -472,7 +472,7 @@ typedef struct OMX_PORT_PARAM_TYPE
 /** @ingroup comp */
 typedef enum OMX_EVENTTYPE
 {
-  OMX_EventCmdComplete,         /**< component has sucessfully completed a command */
+  OMX_EventCmdComplete,         /**< component has successfully completed a command */
   OMX_EventError,               /**< component has detected an error condition */
   OMX_EventMark,                /**< component has detected a buffer mark */
   OMX_EventPortSettingsChanged, /**< component is reported a port settings change */
@@ -681,7 +681,7 @@ typedef struct OMX_TUNNELSETUPTYPE
     a core macro).  The component will return from this call within 5 msec.
 
     When the command is "OMX_CommandStateSet" the component will queue a
-    state transition to the new state idenfied in nParam.
+    state transition to the new state identified in nParam.
 
     When the command is "OMX_CommandFlush", to flush a port's buffer queues,
     the command will force the component to return all buffers NOT CURRENTLY
@@ -1142,7 +1142,7 @@ typedef struct OMX_TUNNELSETUPTYPE
 
 /** The OMX_Init method is used to initialize the OMX core.  It shall be the
     first call made into OMX and it should only be executed one time without
-    an interviening OMX_Deinit call.
+    an interviewing OMX_Deinit call.
 
     The core should return from this call within 20 msec.
 
@@ -1155,7 +1155,7 @@ OMX_API OMX_ERRORTYPE OMX_APIENTRY OMX_Init(void);
 
 /** The OMX_Deinit method is used to deinitialize the OMX core.  It shall be
     the last call made into OMX. In the event that the core determines that
-    thare are components loaded when this call is made, the core may return
+    there are components loaded when this call is made, the core may return
     with an error rather than try to unload the components.
 
     The core should return from this call within 20 msec.
@@ -1172,7 +1172,7 @@ OMX_API OMX_ERRORTYPE OMX_APIENTRY OMX_Deinit(void);
     as a means to detect all the components in the system run-time. There is
     no strict ordering to the enumeration order of component names, although
     each name will only be enumerated once.  If the OMX core supports run-time
-    installation of new components, it is only requried to detect newly
+    installation of new components, it is only required to detect newly
     installed components when the first call to enumerate component names
     is made (i.e. when nIndex is 0x0).
 
@@ -1188,7 +1188,7 @@ OMX_API OMX_ERRORTYPE OMX_APIENTRY OMX_Deinit(void);
     @param [in] nNameLength
         number of characters in the cComponentName string.  With all
         component name strings restricted to less than 128 characters
-        (including the trailing null) it is recomended that the caller
+        (including the trailing null) it is recommended that the caller
         provide a input string for the cComponentName of 128 characters.
     @param [in] nIndex
         number containing the enumeration index for the component.
@@ -1272,7 +1272,7 @@ OMX_API OMX_ERRORTYPE OMX_APIENTRY OMX_FreeHandle(OMX_IN OMX_HANDLETYPE hCompone
         will be used the source for the tunnel. This is the component handle
         returned by the call to the OMX_GetHandle function.  There is a
         requirement that hOutput be the source for the data when
-        tunelling (i.e. nPortOutput is an output port).  If 0x0, the component
+        tunnelling (i.e. nPortOutput is an output port).  If 0x0, the component
         specified in hInput will have it's port specified in nPortInput
         setup for communication with the application / IL client.
     @param [in] nPortOutput
@@ -1284,7 +1284,7 @@ OMX_API OMX_ERRORTYPE OMX_APIENTRY OMX_FreeHandle(OMX_IN OMX_HANDLETYPE hCompone
         will be used the destination for the tunnel. This is the component handle
         returned by the call to the OMX_GetHandle function.  There is a
         requirement that hInput be the destination for the data when
-        tunelling (i.e. nPortInut is an input port).   If 0x0, the component
+        tunnelling (i.e. nPortInput is an input port).   If 0x0, the component
         specified in hOutput will have it's port specified in nPortPOutput
         setup for communication with the application / IL client.
     @param [in] nPortInput

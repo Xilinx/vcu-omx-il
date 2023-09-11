@@ -85,7 +85,7 @@ static ModuleInterface::ErrorType ToModuleError(int errorCode)
   case AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE: return ModuleInterface::CHANNEL_CREATION_NO_CHANNEL_AVAILABLE;
   case AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE: return ModuleInterface::CHANNEL_CREATION_RESOURCE_UNAVAILABLE;
   case AL_ERR_CHAN_CREATION_LOAD_DISTRIBUTION: return ModuleInterface::CHANNEL_CREATION_LOAD_DISTRIBUTION;
-  case AL_ERR_CHAN_CREATION_HW_CAPACITY_EXCEEDED: return ModuleInterface::CHANNEL_CREATION_HARDWARE_CAPACITY_EXCEDEED;
+  case AL_ERR_CHAN_CREATION_HW_CAPACITY_EXCEEDED: return ModuleInterface::CHANNEL_CREATION_HARDWARE_CAPACITY_EXCEEDED;
   case AL_ERR_REQUEST_MALFORMED: // fallthrough
   case AL_ERR_CMD_NOT_ALLOWED: // fallthrough
   case AL_ERR_INVALID_CMD_VALUE: return ModuleInterface::BAD_PARAMETER;
@@ -233,7 +233,8 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
   auto size = bufferSizes.output;
   CopyIfRequired(frameToDisplay, size);
   currentDisplayPictureInfo.type = info->ePicStruct;
-  currentDisplayPictureInfo.concealed = (AL_Decoder_GetFrameError(decoder, frameToDisplay) == AL_WARN_CONCEAL_DETECT);
+  auto const frame_error = AL_Decoder_GetFrameError(decoder, frameToDisplay);
+  currentDisplayPictureInfo.concealed = (frame_error == AL_WARN_CONCEAL_DETECT || frame_error == AL_WARN_HW_CONCEAL_DETECT || frame_error == AL_WARN_INVALID_ACCESS_UNIT_STRUCTURE);
   auto handleOut = handles.Pop(frameToDisplay);
   handleOut->offset = 0;
   handleOut->payload = size;
@@ -480,25 +481,25 @@ bool DecModule::SetCallbacks(Callbacks callbacks)
 
 void DecModule::InputBufferDestroy(AL_TBuffer* input)
 {
-  auto hanleIn = handles.Pop(input);
+  auto handleIn = handles.Pop(input);
 
   AL_Buffer_Destroy(input);
 
-  hanleIn->offset = 0;
-  hanleIn->payload = 0;
-  callbacks.emptied(hanleIn);
+  handleIn->offset = 0;
+  handleIn->payload = 0;
+  callbacks.emptied(handleIn);
 }
 
 void DecModule::InputBufferFreeWithoutDestroyingMemory(AL_TBuffer* input)
 {
-  auto hanleIn = handles.Pop(input);
+  auto handleIn = handles.Pop(input);
 
   input->iChunkCnt = 0;
   AL_Buffer_Destroy(input);
 
-  hanleIn->offset = 0;
-  hanleIn->payload = 0;
-  callbacks.emptied(hanleIn);
+  handleIn->offset = 0;
+  handleIn->payload = 0;
+  callbacks.emptied(handleIn);
 }
 
 static bool isFd(BufferHandleType type)

@@ -747,7 +747,7 @@ static inline HEVCProfileType ConvertOMXToMediaHEVCMainTierProfile(OMX_ALG_VIDEO
   case OMX_ALG_VIDEO_HEVCProfileMain444_16_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_444_16_INTRA;
   case OMX_ALG_VIDEO_HEVCProfileMain444_Still: return HEVCProfileType::HEVC_PROFILE_MAIN_444_STILL;
   case OMX_ALG_VIDEO_HEVCProfileMain444_16_Still: return HEVCProfileType::HEVC_PROFILE_MAIN_444_16_STILL;
-  case OMX_ALG_VIDEO_HEVCProfileHighThroughtPut444_16_Intra: return HEVCProfileType::HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA;
+  case OMX_ALG_VIDEO_HEVCProfileHighThroughPut444_16_Intra: return HEVCProfileType::HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA;
   case OMX_ALG_VIDEO_HEVCProfileMaxEnum: return HEVCProfileType::HEVC_PROFILE_MAX_ENUM;
   default: return HEVCProfileType::HEVC_PROFILE_MAX_ENUM;
   }
@@ -785,7 +785,7 @@ static inline HEVCProfileType ConvertOMXToMediaHEVCHighTierProfile(OMX_ALG_VIDEO
   case OMX_ALG_VIDEO_HEVCProfileMain444_16_Intra: return HEVCProfileType::HEVC_PROFILE_MAIN_444_16_INTRA_HIGH_TIER;
   case OMX_ALG_VIDEO_HEVCProfileMain444_Still: return HEVCProfileType::HEVC_PROFILE_MAIN_444_STILL_HIGH_TIER;
   case OMX_ALG_VIDEO_HEVCProfileMain444_16_Still: return HEVCProfileType::HEVC_PROFILE_MAIN_444_16_STILL_HIGH_TIER;
-  case OMX_ALG_VIDEO_HEVCProfileHighThroughtPut444_16_Intra: return HEVCProfileType::HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA_HIGH_TIER;
+  case OMX_ALG_VIDEO_HEVCProfileHighThroughPut444_16_Intra: return HEVCProfileType::HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA_HIGH_TIER;
   case OMX_ALG_VIDEO_HEVCProfileMaxEnum: return HEVCProfileType::HEVC_PROFILE_MAX_ENUM;
   default: return HEVCProfileType::HEVC_PROFILE_MAX_ENUM;
   }
@@ -914,7 +914,7 @@ OMX_ALG_VIDEO_HEVCPROFILETYPE ConvertMediaToOMXHEVCProfile(ProfileLevel profileL
   case HEVCProfileType::HEVC_PROFILE_MAIN_444_16_STILL:
   case HEVCProfileType::HEVC_PROFILE_MAIN_444_16_STILL_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileMain444_Still;
   case HEVCProfileType::HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA:
-  case HEVCProfileType::HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileHighThroughtPut444_16_Intra;
+  case HEVCProfileType::HEVC_PROFILE_HIGH_THROUGHPUT_444_16_INTRA_HIGH_TIER: return OMX_ALG_VIDEO_HEVCProfileHighThroughPut444_16_Intra;
   default: return OMX_ALG_VIDEO_HEVCProfileMaxEnum;
   }
 
@@ -1612,7 +1612,7 @@ QPTableType ConvertOMXToMediaQpTable(OMX_ALG_EQpTableMode mode)
   return QPTableType::QP_TABLE_MAX_ENUM;
 }
 
-OMX_ALG_EStartCodeBytesAligment ConvertMediaToOMXStartCodeBytesAlignment(StartCodeBytesAlignmentType mode)
+OMX_ALG_EStartCodeBytesAlignment ConvertMediaToOMXStartCodeBytesAlignment(StartCodeBytesAlignmentType mode)
 {
   switch(mode)
   {
@@ -1626,7 +1626,7 @@ OMX_ALG_EStartCodeBytesAligment ConvertMediaToOMXStartCodeBytesAlignment(StartCo
   return OMX_ALG_START_CODE_BYTES_ALIGNMENT_MAX_ENUM;
 }
 
-StartCodeBytesAlignmentType ConvertOMXToMediaStartCodeBytesAlignment(OMX_ALG_EStartCodeBytesAligment mode)
+StartCodeBytesAlignmentType ConvertOMXToMediaStartCodeBytesAlignment(OMX_ALG_EStartCodeBytesAlignment mode)
 {
   switch(mode)
   {

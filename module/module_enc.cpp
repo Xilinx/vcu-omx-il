@@ -40,7 +40,7 @@ static ModuleInterface::ErrorType ToModuleError(int errorCode)
   case AL_ERR_CHAN_CREATION_NO_CHANNEL_AVAILABLE: return ModuleInterface::CHANNEL_CREATION_NO_CHANNEL_AVAILABLE;
   case AL_ERR_CHAN_CREATION_RESOURCE_UNAVAILABLE: return ModuleInterface::CHANNEL_CREATION_RESOURCE_UNAVAILABLE;
   case AL_ERR_CHAN_CREATION_LOAD_DISTRIBUTION: return ModuleInterface::CHANNEL_CREATION_LOAD_DISTRIBUTION;
-  case AL_ERR_CHAN_CREATION_HW_CAPACITY_EXCEEDED: return ModuleInterface::CHANNEL_CREATION_HARDWARE_CAPACITY_EXCEDEED;
+  case AL_ERR_CHAN_CREATION_HW_CAPACITY_EXCEEDED: return ModuleInterface::CHANNEL_CREATION_HARDWARE_CAPACITY_EXCEEDED;
   case AL_ERR_REQUEST_MALFORMED: // fallthrough
   case AL_ERR_CMD_NOT_ALLOWED: // fallthrough
   case AL_ERR_INVALID_CMD_VALUE: return ModuleInterface::BAD_PARAMETER;
@@ -222,7 +222,7 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
     }
 
     if(AL_IS_WARNING_CODE(errorCode))
-      LOG_WARNING(string { "Warining: " } +ToStringEncodeError(errorCode));
+      LOG_WARNING(string { "Warning: " } +ToStringEncodeError(errorCode));
 
     for(int i = 0; i < (int)encoderPass.streamBuffers.size(); i++)
     {
@@ -935,19 +935,19 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
   AL_TPixMapMetaData* pixMapMeta = (AL_TPixMapMetaData*)AL_Buffer_GetMetaData(source, AL_META_TYPE_PIXMAP);
 
   int frameWidth = pixMapMeta->tDim.iWidth;
-  int frameHeigth = pixMapMeta->tDim.iHeight;
+  int frameHeight = pixMapMeta->tDim.iHeight;
 
-  if((frameWidth != currentDimension.horizontal) || (frameHeigth != currentDimension.vertical))
+  if((frameWidth != currentDimension.horizontal) || (frameHeight != currentDimension.vertical))
   {
     Dimension<int> dimension {};
     dimension.horizontal = frameWidth;
-    dimension.vertical = frameHeigth;
+    dimension.vertical = frameHeight;
 
     callbacks.event(Callbacks::Event::RESOLUTION_CHANGED, &dimension);
   }
 
   currentDimension.horizontal = frameWidth;
-  currentDimension.vertical = frameHeigth;
+  currentDimension.vertical = frameHeight;
 
   auto rhandleIn = handles.Get(source);
   assert(rhandleIn->data);
@@ -955,7 +955,7 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
   auto rhandleOut = handles.Get(stream);
   assert(rhandleOut->data);
 
-  currentOutputedStreamForSei = stream;
+  currentOutputtedStreamForSei = stream;
   AL_TStreamMetaData* streamMeta = (AL_TStreamMetaData*)AL_Buffer_GetMetaData(stream, AL_META_TYPE_STREAM);
   assert(streamMeta);
   currentTemporalId = streamMeta->uTemporalID;
@@ -1314,7 +1314,7 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
   {
     auto sei = static_cast<Sei const*>(param);
 
-    if(AL_Encoder_AddSei(encoder, currentOutputedStreamForSei, true, sei->type, sei->data, sei->payload, currentTemporalId) < 0)
+    if(AL_Encoder_AddSei(encoder, currentOutputtedStreamForSei, true, sei->type, sei->data, sei->payload, currentTemporalId) < 0)
     {
       assert(0);
       return BAD_PARAMETER;
@@ -1326,7 +1326,7 @@ ModuleInterface::ErrorType EncModule::SetDynamic(std::string index, void const* 
   {
     auto sei = static_cast<Sei const*>(param);
 
-    if(AL_Encoder_AddSei(encoder, currentOutputedStreamForSei, false, sei->type, sei->data, sei->payload, currentTemporalId) < 0)
+    if(AL_Encoder_AddSei(encoder, currentOutputtedStreamForSei, false, sei->type, sei->data, sei->payload, currentTemporalId) < 0)
     {
       assert(0);
       return BAD_PARAMETER;
