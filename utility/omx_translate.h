@@ -453,6 +453,8 @@ static inline std::string ToStringOMXIndex(OMX_INDEXTYPE index)
 static std::map<OMX_ALG_COREINDEXTYPE, std::string> OMXALGCoreIndexInStringMap =
 {
   { OMX_ALG_CoreIndexStartUnused, "OMX_ALG_CoreIndexStartUnused" },
+  { OMX_ALG_CoreIndexUnused, "OMX_ALG_CoreIndexUnused" },
+  { OMX_ALG_CoreIndexDevice, "OMX_ALG_CoreIndexDevice" },
   { OMX_ALG_CoreIndexExtensions, "OMX_ALG_CoreIndexExtensions" },
   { OMX_ALG_CoreIndexCustomerStartUnused, "OMX_ALG_CoreIndexStartUnused" },
   { OMX_ALG_CoreIndexMax, "OMX_ALG_CoreIndexMax" },
