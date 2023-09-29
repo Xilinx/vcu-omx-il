@@ -6,6 +6,7 @@
 #include "module_enums.h"
 #include <string>
 #include <vector>
+#include <cstdint>
 
 template<typename T>
 struct InputOutput
