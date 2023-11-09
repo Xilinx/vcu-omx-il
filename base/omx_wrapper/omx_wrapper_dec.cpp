@@ -93,7 +93,7 @@ static DecComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
     new ExpertiseAVC {}
   };
   return new DecComponent {
-           hComponent, media, move(module), cComponentName, cRole, move(expertise)
+           hComponent, media, std::move(module), cComponentName, cRole, std::move(expertise)
   };
 }
 
@@ -130,7 +130,7 @@ static DecComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
     new ExpertiseHEVC {}
   };
   return new DecComponent {
-           hComponent, media, move(module), cComponentName, cRole, move(expertise)
+           hComponent, media, std::move(module), cComponentName, cRole, std::move(expertise)
   };
 }
 

@@ -314,10 +314,7 @@ void DecComponent::TreatEmptyBufferCommand(Task* task)
   bool isInputParsed;
   media->Get(SETTINGS_INDEX_INPUT_PARSED, &isInputParsed);
 
-  bool isEarlyCallbackUsed;
-  media->Get(SETTINGS_INDEX_LLP2_EARLY_CB, &isEarlyCallbackUsed);
-
-  if(!isInputParsed || isEarlyCallbackUsed)
+  if(!isInputParsed)
   {
     /* we suppose that a timestamp changes is a frame changes [concealment] */
     bool const transmitTimeStamp = (oldTimeStamp != header->nTimeStamp);

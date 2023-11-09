@@ -109,10 +109,23 @@ void DecModule::EndParsing(AL_TBuffer* parsedFrame, int parsingID)
 
   AL_TDecMetaHandle* pDecMetaHandle = (AL_TDecMetaHandle*)AL_HandleMetaData_GetHandle(handlesMeta, parsingID);
 
+  bool isEarlyCallbackEnabled;
+  media->Get(SETTINGS_INDEX_LLP2_EARLY_CB, &isEarlyCallbackEnabled);
+
+  bool const frameStillExists = handles.Exist(parsedFrame);
+
+  if(isEarlyCallbackEnabled && (!frameStillExists))
+  {
+    // On LLP2, we display the frame on the first slice due to bEarlyCallback
+    // We do not attach other metadata than the first slice one
+    return;
+  }
+
   if(pDecMetaHandle->eState == AL_DEC_HANDLE_STATE_PROCESSED)
   {
     AL_TBuffer* stream = pDecMetaHandle->pHandle;
     assert(stream);
+    AL_Buffer_Ref(stream);
     auto seiMeta = (AL_TSeiMetaData*)AL_Buffer_GetMetaData(stream, AL_META_TYPE_SEI);
 
     if(seiMeta != nullptr)
@@ -631,7 +644,10 @@ bool DecModule::Empty(BufferHandleInterface* handle)
     if(!AL_Buffer_GetMetaData(input, AL_META_TYPE_STREAM))
     {
       if(!CreateAndAttachStreamMeta(*input))
+      {
+        AL_Buffer_Unref(input);
         return false;
+      }
     }
     auto streamMeta = (AL_TStreamMetaData*)(AL_Buffer_GetMetaData(input, AL_META_TYPE_STREAM));
     AL_StreamMetaData_ClearAllSections(streamMeta);
@@ -644,7 +660,10 @@ bool DecModule::Empty(BufferHandleInterface* handle)
       auto pSeiMeta = AL_SeiMetaData_Create(maxSei, maxSeiBuf);
 
       if(!pSeiMeta)
+      {
+        AL_Buffer_Unref(input);
         return false;
+      }
       AL_Buffer_AddMetaData(input, (AL_TMetaData*)pSeiMeta);
     }
   }
@@ -653,8 +672,7 @@ bool DecModule::Empty(BufferHandleInterface* handle)
 
   auto pushed = AL_Decoder_PushStreamBuffer(decoder, input, handle->payload, ConvertModuleToSoftStreamBufFlag(currentFlags));
 
-  if(!inputParsed)
-    AL_Buffer_Unref(input);
+  AL_Buffer_Unref(input);
 
   return pushed;
 }
