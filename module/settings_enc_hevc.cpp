@@ -17,6 +17,8 @@ extern "C"
 {
 #include <lib_common/SEI.h>
 #include <lib_common/Profiles.h>
+#include <lib_common/FourCC.h>
+#include <lib_common/PicFormat.h>
 #include <lib_common_enc/EncBuffers.h>
 #include <lib_common_enc/IpEncFourCC.h>
 }
@@ -33,7 +35,6 @@ EncSettingsHEVC::EncSettingsHEVC(BufferContiguities bufferContiguities, BufferBy
   this->strideAlignments.vertical = strideAlignments.vertical;
   this->isSeparateConfigurationFromDataEnabled = isSeparateConfigurationFromDataEnabled;
   this->allocator = allocator;
-  CreateFormatsSupportedMap(this->colors, this->bitdepths, this->supportedFormatsMap);
   Reset();
 }
 
@@ -47,7 +48,7 @@ void EncSettingsHEVC::Reset()
   bufferHandles.input = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
   bufferHandles.output = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
 
-  memset(&settings, 0, sizeof(settings));
+  ::memset(&settings, 0, sizeof(settings));
   AL_Settings_SetDefaults(&settings);
   auto& channel = settings.tChParam[0];
   channel.eProfile = AL_PROFILE_HEVC_MAIN;
@@ -59,6 +60,7 @@ void EncSettingsHEVC::Reset()
   channel.uSrcWidth = 176;
   channel.uSrcHeight = 144;
   channel.uSrcBitDepth = 8;
+  channel.eSrcMode = AL_SRC_RASTER;
   auto& rateControl = channel.tRCParam;
   rateControl.eRCMode = AL_RC_CBR;
   rateControl.iInitialQP = 30;
@@ -74,7 +76,7 @@ void EncSettingsHEVC::Reset()
   settings.TwoPass = 0;
   settings.uEnableSEI = AL_SEI_NONE;
 
-  stride.horizontal = RoundUp(AL_EncGetMinPitch(channel.uEncWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignments.horizontal);
+  stride.horizontal = RoundUp(AL_EncGetMinPitch(channel.uEncWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_GetSrcStorageMode(channel.eSrcMode)), strideAlignments.horizontal);
   stride.vertical = RoundUp(static_cast<int>(channel.uEncHeight), strideAlignments.vertical);
 
   ResetRcPluginContext(this->allocator.get(), &this->settings);
@@ -328,8 +330,8 @@ SettingsInterface::ErrorType EncSettingsHEVC::Get(std::string index, void* setti
   if(index == "SETTINGS_INDEX_FORMATS_SUPPORTED")
   {
     SupportedFormats supported {};
-    supported.input = CreateFormatsSupported(this->colors, this->bitdepths);
-    supported.output = CreateFormatsSupportedByCurrent(CreateFormat(this->settings), this->supportedFormatsMap);
+    supported.input = CreateFormatsSupported(this->colors, this->bitdepths, this->storages);
+    supported.output = vector<Format>({ CreateFormat(this->settings) });
     *(static_cast<SupportedFormats*>(settings)) = supported;
     return SUCCESS;
   }
@@ -702,7 +704,7 @@ SettingsInterface::ErrorType EncSettingsHEVC::Set(std::string index, void const*
   {
     auto format = *(static_cast<Format const*>(settings));
 
-    if(!UpdateFormat(this->settings, format, this->colors, this->bitdepths, this->stride, this->strideAlignments))
+    if(!UpdateFormat(this->settings, format, this->colors, this->bitdepths, this->storages, this->stride, this->strideAlignments))
       return BAD_PARAMETER;
     return SUCCESS;
   }

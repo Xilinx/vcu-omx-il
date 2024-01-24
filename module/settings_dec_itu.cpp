@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <utility/round.h>
+#include "module/module_enums.h"
 #include "settings_dec_itu.h"
 #include "settings_checks.h"
 #include "convert_module_soft.h"
@@ -75,18 +76,20 @@ Format CreateFormat(AL_TDecSettings settings)
 
   format.color = ConvertSoftToModuleColor(stream.eChroma);
   format.bitdepth = stream.iBitDepth;
+  format.storage = ConvertSoftToModuleStorage(settings.eFBStorageMode);
 
   return format;
 }
 
-bool UpdateFormat(AL_TDecSettings& settings, Format format, vector<ColorType> colors, vector<int> bitdepths, Stride& stride, StrideAlignments strideAlignments)
+bool UpdateFormat(AL_TDecSettings& settings, Format format, vector<ColorType> colors, vector<int> bitdepths, vector<StorageType> storages, Stride& stride, StrideAlignments strideAlignments)
 {
-  if(!CheckFormat(format, colors, bitdepths))
+  if(!CheckFormat(format, colors, bitdepths, storages))
     return false;
 
   auto& stream = settings.tStream;
   stream.eChroma = ConvertModuleToSoftChroma(format.color);
   stream.iBitDepth = format.bitdepth;
+  settings.eFBStorageMode = ConvertModuleToSoftStorage(format.storage);
 
   int minHorizontalStride = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode)), strideAlignments.horizontal);
   stride.horizontal = max(minHorizontalStride, stride.horizontal);

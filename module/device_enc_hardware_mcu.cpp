@@ -40,7 +40,12 @@ BufferContiguities EncDeviceHardwareMcu::GetBufferContiguities() const
 BufferBytesAlignments EncDeviceHardwareMcu::GetBufferBytesAlignments() const
 {
   BufferBytesAlignments bufferBytesAlignments;
-  bufferBytesAlignments.input = 32;
-  bufferBytesAlignments.output = 32;
+  bufferBytesAlignments.input = 64;
+  bufferBytesAlignments.output = 64;
   return bufferBytesAlignments;
+}
+
+void* EncDeviceHardwareMcu::GetDeviceContext()
+{
+  return nullptr;
 }

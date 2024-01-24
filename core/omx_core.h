@@ -15,6 +15,7 @@ typedef struct
 
 static omx_comp_type AL_COMP_LIST[] =
 {
+
   {
     "OMX.allegro.h265.encoder",
     nullptr,
@@ -27,6 +28,7 @@ static omx_comp_type AL_COMP_LIST[] =
     "libOMX.allegro.video_encoder.so",
     "video_encoder.hevc",
   },
+
   {
     "OMX.allegro.h264.encoder",
     nullptr,
@@ -39,6 +41,7 @@ static omx_comp_type AL_COMP_LIST[] =
     "libOMX.allegro.video_encoder.so",
     "video_encoder.avc",
   },
+
   {
     "OMX.allegro.h265.decoder",
     nullptr,
@@ -51,6 +54,7 @@ static omx_comp_type AL_COMP_LIST[] =
     "libOMX.allegro.video_decoder.so",
     "video_decoder.hevc",
   },
+
   {
     "OMX.allegro.h264.decoder",
     nullptr,
@@ -63,5 +67,6 @@ static omx_comp_type AL_COMP_LIST[] =
     "libOMX.allegro.video_decoder.so",
     "video_decoder.avc",
   },
+
 };
 

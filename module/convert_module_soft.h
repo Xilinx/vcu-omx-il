@@ -16,6 +16,9 @@ extern "C"
 AL_EChromaMode ConvertModuleToSoftChroma(ColorType color);
 ColorType ConvertSoftToModuleColor(AL_EChromaMode chroma);
 
+AL_EFbStorageMode ConvertModuleToSoftStorage(StorageType storage);
+StorageType ConvertSoftToModuleStorage(AL_EFbStorageMode storage);
+
 AL_EEntropyMode ConvertModuleToSoftEntropyCoding(EntropyCodingType entropy);
 EntropyCodingType ConvertSoftToModuleEntropyCoding(AL_EEntropyMode entropy);
 

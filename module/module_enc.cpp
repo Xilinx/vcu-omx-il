@@ -213,7 +213,8 @@ ModuleInterface::ErrorType EncModule::CreateEncoder()
       encoderPass.lookAheadMngr.reset(new LookAheadMngr(la.lookAhead, la.isFirstPassSceneChangeDetectionEnabled));
     }
 
-    auto errorCode = AL_Encoder_Create(&encoderPass.enc, scheduler, allocator.get(), &settingsPass, callback);
+    AL_ERR errorCode;
+    errorCode = AL_Encoder_Create(&encoderPass.enc, scheduler, allocator.get(), &settingsPass, callback);
 
     if(AL_IS_ERROR_CODE(errorCode))
     {
@@ -522,7 +523,7 @@ static AL_TMetaData* CreatePixMapMeta(shared_ptr<SettingsInterface> media)
 {
   Format format {};
   media->Get(SETTINGS_INDEX_FORMAT, &format);
-  auto picFormat = AL_EncGetSrcPicFormat(ConvertModuleToSoftChroma(format.color), static_cast<uint8_t>(format.bitdepth), AL_FB_RASTER, false);
+  auto picFormat = AL_EncGetSrcPicFormat(ConvertModuleToSoftChroma(format.color), static_cast<uint8_t>(format.bitdepth), ConvertModuleToSoftStorage(format.storage), false);
   auto fourCC = AL_EncGetSrcFourCC(picFormat);
   Resolution resolution;
   auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "settings_enc_avc.h"
+#include "module/module_structs.h"
 #include "settings_enc_itu.h"
 #include "settings_codec_avc.h"
 #include "settings_codec_itu.h"
@@ -20,6 +21,8 @@ extern "C"
 #include <lib_common/Profiles.h>
 #include <lib_common_enc/EncBuffers.h>
 #include <lib_common_enc/IpEncFourCC.h>
+#include <lib_common/PicFormat.h>
+#include <lib_common_enc/EncChanParam.h>
 #include <lib_fpga/DmaAllocLinux.h>
 }
 
@@ -35,7 +38,6 @@ EncSettingsAVC::EncSettingsAVC(BufferContiguities bufferContiguities, BufferByte
   this->strideAlignments.vertical = strideAlignments.vertical;
   this->isSeparateConfigurationFromDataEnabled = isSeparateConfigurationFromDataEnabled;
   this->allocator = allocator;
-  CreateFormatsSupportedMap(this->colors, this->bitdepths, this->supportedFormatsMap);
   Reset();
 }
 
@@ -49,7 +51,7 @@ void EncSettingsAVC::Reset()
   bufferHandles.input = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
   bufferHandles.output = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
 
-  memset(&settings, 0, sizeof(settings));
+  ::memset(&settings, 0, sizeof(settings));
   AL_Settings_SetDefaults(&settings);
   auto& channel = settings.tChParam[0];
   channel.eProfile = AL_PROFILE_AVC_C_BASELINE;
@@ -61,6 +63,7 @@ void EncSettingsAVC::Reset()
   channel.uSrcWidth = 176;
   channel.uSrcHeight = 144;
   channel.uSrcBitDepth = 8;
+  channel.eSrcMode = AL_SRC_RASTER;
   channel.bVideoFullRange = false;
   channel.eEncTools = static_cast<AL_EChEncTool>(channel.eEncTools & ~(AL_OPT_LF_X_TILE));
   auto& rateControl = channel.tRCParam;
@@ -78,7 +81,7 @@ void EncSettingsAVC::Reset()
   settings.TwoPass = 0;
   settings.uEnableSEI = AL_SEI_NONE;
 
-  stride.horizontal = RoundUp(AL_EncGetMinPitch(channel.uEncWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignments.horizontal);
+  stride.horizontal = RoundUp(AL_EncGetMinPitch(channel.uEncWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_GetSrcStorageMode(channel.eSrcMode)), strideAlignments.horizontal);
   stride.vertical = RoundUp(static_cast<int>(channel.uEncHeight), strideAlignments.vertical);
 
   ResetRcPluginContext(this->allocator.get(), &this->settings);
@@ -343,8 +346,8 @@ SettingsInterface::ErrorType EncSettingsAVC::Get(std::string index, void* settin
   if(index == "SETTINGS_INDEX_FORMATS_SUPPORTED")
   {
     SupportedFormats supported {};
-    supported.input = CreateFormatsSupported(this->colors, this->bitdepths);
-    supported.output = CreateFormatsSupportedByCurrent(CreateFormat(this->settings), this->supportedFormatsMap);
+    supported.input = CreateFormatsSupported(this->colors, this->bitdepths, this->storages);
+    supported.output = vector<Format>({ CreateFormat(this->settings) });
     *(static_cast<SupportedFormats*>(settings)) = supported;
     return SUCCESS;
   }
@@ -752,7 +755,7 @@ SettingsInterface::ErrorType EncSettingsAVC::Set(std::string index, void const* 
   {
     auto format = *(static_cast<Format const*>(settings));
 
-    if(!UpdateFormat(this->settings, format, this->colors, this->bitdepths, this->stride, this->strideAlignments))
+    if(!UpdateFormat(this->settings, format, this->colors, this->bitdepths, this->storages, this->stride, this->strideAlignments))
       return BAD_PARAMETER;
     return SUCCESS;
   }
@@ -1047,12 +1050,12 @@ bool EncSettingsAVC::Check()
     return false;
 
   auto& channel = settings.tChParam[0];
-  auto picFormat = AL_EncGetSrcPicFormat(AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER, false);
+  auto picFormat = AL_EncGetSrcPicFormat(AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), AL_GetSrcStorageMode(channel.eSrcMode), AL_IsSrcCompressed(channel.eSrcMode));
   auto fourCC = AL_EncGetSrcFourCC(picFormat);
   assert(AL_GET_BITDEPTH(channel.ePicFormat) == channel.uSrcBitDepth);
   AL_Settings_CheckCoherency(&settings, &channel, fourCC, stdout);
 
-  stride.horizontal = max(stride.horizontal, RoundUp(AL_EncGetMinPitch(channel.uEncWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignments.horizontal));
+  stride.horizontal = max(stride.horizontal, RoundUp(AL_EncGetMinPitch(channel.uEncWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_GetSrcStorageMode(channel.eSrcMode)), strideAlignments.horizontal));
   stride.vertical = max(stride.vertical, RoundUp(static_cast<int>(channel.uEncHeight), strideAlignments.vertical));
 
   return true;

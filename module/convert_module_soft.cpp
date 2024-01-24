@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 #include "convert_module_soft.h"
+#include "lib_common/PicFormat.h"
+#include "module_enums.h"
 
 AL_EChromaMode ConvertModuleToSoftChroma(ColorType color)
 {
@@ -32,6 +34,33 @@ ColorType ConvertSoftToModuleColor(AL_EChromaMode chroma)
 
   return ColorType::COLOR_MAX_ENUM;
 }
+
+
+AL_EFbStorageMode ConvertModuleToSoftStorage(StorageType storage)
+{
+  switch(storage)
+  {
+    case StorageType::STORAGE_RASTER: return AL_FB_RASTER;
+    case StorageType::STORAGE_TILE_32x4: return AL_FB_TILE_32x4;
+    case StorageType::STORAGE_TILE_64x4: return AL_FB_TILE_64x4;
+    default: return AL_FB_MAX_ENUM;
+  }
+  return AL_FB_MAX_ENUM;
+}
+
+StorageType ConvertSoftToModuleStorage(AL_EFbStorageMode storage)
+{
+  switch(storage)
+  {
+    case AL_FB_RASTER: return StorageType::STORAGE_RASTER;
+    case AL_FB_TILE_32x4: return StorageType::STORAGE_TILE_32x4;
+    case AL_FB_TILE_64x4: return StorageType::STORAGE_TILE_64x4;
+    default: return StorageType::STORAGE_MAX_ENUM;
+  }
+
+  return StorageType::STORAGE_MAX_ENUM;
+}
+
 
 AL_EEntropyMode ConvertModuleToSoftEntropyCoding(EntropyCodingType entropy)
 {

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "settings_enc_itu.h"
+#include "module/module_enums.h"
 #include "settings_checks.h"
 #include "convert_module_soft.h"
 #include "convert_module_soft_enc.h"
@@ -10,8 +11,10 @@
 extern "C"
 {
 #include <lib_common_enc/EncBuffers.h>
+#include <lib_common/PicFormat.h>
 #include <lib_common/StreamBuffer.h>
 #include <lib_common/SEI.h>
+#include <lib_common_enc/EncChanParam.h>
 #include <lib_fpga/DmaAllocLinux.h>
 }
 
@@ -350,20 +353,22 @@ Format CreateFormat(AL_TEncSettings settings)
   AL_EChromaMode eChromaMode = AL_GET_CHROMA_MODE(channel.ePicFormat);
   format.color = ConvertSoftToModuleColor(eChromaMode);
   format.bitdepth = AL_GET_BITDEPTH(channel.ePicFormat);
+  format.storage = ConvertSoftToModuleStorage(ConvertSoftSrcToSoftStorage(channel.eSrcMode));
   return format;
 }
 
-bool UpdateFormat(AL_TEncSettings& settings, Format format, vector<ColorType> colors, vector<int> bitdepths, Stride& stride, StrideAlignments strideAlignments)
+bool UpdateFormat(AL_TEncSettings& settings, Format format, vector<ColorType> colors, vector<int> bitdepths, vector<StorageType> storages, Stride& stride, StrideAlignments strideAlignments)
 {
-  if(!CheckFormat(format, colors, bitdepths))
+  if(!CheckFormat(format, colors, bitdepths, storages))
     return false;
 
   auto& channel = settings.tChParam[0];
   AL_SET_CHROMA_MODE(&channel.ePicFormat, ConvertModuleToSoftChroma(format.color));
   AL_SET_BITDEPTH(&channel.ePicFormat, format.bitdepth);
   channel.uSrcBitDepth = AL_GET_BITDEPTH(channel.ePicFormat);
+  channel.eSrcMode = ConvertSoftStorageToSoftSrc(ConvertModuleToSoftStorage(format.storage));
 
-  int minStride = static_cast<int>(RoundUp(AL_EncGetMinPitch(channel.uEncWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignments.horizontal));
+  int minStride = static_cast<int>(RoundUp(AL_EncGetMinPitch(channel.uEncWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_GetSrcStorageMode(channel.eSrcMode)), strideAlignments.horizontal));
   stride.horizontal = max(minStride, stride.horizontal);
 
   return true;

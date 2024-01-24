@@ -15,6 +15,7 @@ struct DecDeviceHardwareMcu final : DecDeviceInterface
   void Deinit() override;
   BufferContiguities GetBufferContiguities() const override;
   BufferBytesAlignments GetBufferBytesAlignments() const override;
+  void* GetDeviceContext() override;
 
 private:
   std::string const device;

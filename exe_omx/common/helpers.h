@@ -5,7 +5,7 @@
 
 #include <cstring>
 #include <string>
-#include <OMX_IVCommon.h>
+#include <OMX_IVCommonAlg.h>
 #include <OMX_VideoExt.h>
 #include <OMX_Types.h>
 #include <OMX_Core.h>

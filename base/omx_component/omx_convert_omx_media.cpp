@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 #include "omx_convert_omx_media.h"
+#include "OMX_Types.h"
+#include "OMX_VideoAlg.h"
+#include "module/module_enums.h"
 
 #include <stdexcept>
 #include <cassert>
@@ -14,65 +17,188 @@ OMX_BOOL ConvertMediaToOMXBool(bool boolean)
   return (!boolean) ? OMX_FALSE : OMX_TRUE;
 }
 
-OMX_COLOR_FORMATTYPE ConvertMediaToOMXColor(ColorType color, int bitdepth)
+OMX_COLOR_FORMATTYPE ConvertMediaToOMXFormat(Format format)
 {
-  switch(bitdepth)
+  switch(format.storage)
   {
-  case 8:
-    switch(color)
+  case StorageType::STORAGE_RASTER:
+  {
+    switch(format.bitdepth)
     {
-    case ColorType::COLOR_400:
-      return OMX_COLOR_FormatL8;
-    case ColorType::COLOR_420:
-      return OMX_COLOR_FormatYUV420SemiPlanar;
-    case ColorType::COLOR_422:
-      return OMX_COLOR_FormatYUV422SemiPlanar;
-    case ColorType::COLOR_444:
-      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar8bit);
-    case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+    case 8:
+    {
+      switch(format.color)
+      {
+      case ColorType::COLOR_400: return OMX_COLOR_FormatL8;
+      case ColorType::COLOR_420: return OMX_COLOR_FormatYUV420SemiPlanar;
+      case ColorType::COLOR_422: return OMX_COLOR_FormatYUV422SemiPlanar;
+      case ColorType::COLOR_444: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar8bit);
+      case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+      default:
+        throw invalid_argument("format.color");
+      }
+
+      break;
+    }
+
+    case 10:
+    {
+      switch(format.color)
+      {
+      case ColorType::COLOR_400: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitPacked);
+      case ColorType::COLOR_420: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked);
+      case ColorType::COLOR_422: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked);
+      case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+      default:
+        throw invalid_argument("format.color");
+      }
+
+      break;
+    }
+
+    case 12:
+    {
+      switch(format.color)
+      {
+      case ColorType::COLOR_400: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL12bit);
+      case ColorType::COLOR_420: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit);
+      case ColorType::COLOR_422: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit);
+      case ColorType::COLOR_444: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar12bit);
+      case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+      default:
+        throw invalid_argument("format.color");
+      }
+
+      break;
+    }
+
     default:
-      throw invalid_argument("color");
+      throw invalid_argument("format.bitdepth");
+      break;
     }
 
     break;
-
-  case 10:
-    switch(color)
+  }
+  case StorageType::STORAGE_TILE_32x4:
+  {
+    switch(format.bitdepth)
     {
-    case ColorType::COLOR_400:
-      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitPacked);
-    case ColorType::COLOR_420:
-      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked);
-    case ColorType::COLOR_422:
-      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked);
-    case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+    case 8:
+    {
+      switch(format.color)
+      {
+      case ColorType::COLOR_400: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL8bitTiled32x4);
+      case ColorType::COLOR_420: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar8bitTiled32x4);
+      case ColorType::COLOR_422: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar8bitTiled32x4);
+      case ColorType::COLOR_444: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar8bitTiled32x4);
+      case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+      default:
+        throw invalid_argument("format.color");
+      }
+
+      break;
+    }
+
+    case 10:
+    {
+      switch(format.color)
+      {
+      case ColorType::COLOR_400: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitTiled32x4);
+      case ColorType::COLOR_420: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitTiled32x4);
+      case ColorType::COLOR_422: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitTiled32x4);
+      case ColorType::COLOR_444: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar10bitTiled32x4);
+      case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+      default:
+        throw invalid_argument("format.color");
+      }
+
+      break;
+    }
+
+    case 12:
+    {
+      switch(format.color)
+      {
+      case ColorType::COLOR_400: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL12bitTiled32x4);
+      case ColorType::COLOR_420: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar12bitTiled32x4);
+      case ColorType::COLOR_422: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar12bitTiled32x4);
+      case ColorType::COLOR_444: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar12bitTiled32x4);
+      case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+      default:
+        throw invalid_argument("format.color");
+      }
+
+      break;
+    }
+
     default:
-      throw invalid_argument("color");
+      throw invalid_argument("format.bitdepth");
+      break;
     }
 
     break;
-
-  case 12:
-    switch(color)
+  }
+  case StorageType::STORAGE_TILE_64x4:
+  {
+    switch(format.bitdepth)
     {
-    case ColorType::COLOR_400:
-      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL12bit);
-    case ColorType::COLOR_420:
-      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit);
-    case ColorType::COLOR_422:
-      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit);
-    case ColorType::COLOR_444:
-      return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar12bit);
-    case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+    case 8:
+    {
+      switch(format.color)
+      {
+      case ColorType::COLOR_400: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL8bitTiled64x4);
+      case ColorType::COLOR_420: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar8bitTiled64x4);
+      case ColorType::COLOR_422: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar8bitTiled64x4);
+      case ColorType::COLOR_444: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar8bitTiled64x4);
+      case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+      default:
+        throw invalid_argument("format.color");
+      }
+
+      break;
+    }
+
+    case 10:
+    {
+      switch(format.color)
+      {
+      case ColorType::COLOR_400: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitTiled64x4);
+      case ColorType::COLOR_420: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitTiled64x4);
+      case ColorType::COLOR_422: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitTiled64x4);
+      case ColorType::COLOR_444: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar10bitTiled64x4);
+      case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+      default:
+        throw invalid_argument("format.color");
+      }
+
+      break;
+    }
+
+    case 12:
+    {
+      switch(format.color)
+      {
+      case ColorType::COLOR_400: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL12bitTiled64x4);
+      case ColorType::COLOR_420: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar12bitTiled64x4);
+      case ColorType::COLOR_422: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar12bitTiled64x4);
+      case ColorType::COLOR_444: return static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar12bitTiled64x4);
+      case ColorType::COLOR_MAX_ENUM: return OMX_COLOR_FormatMax;
+      default:
+        throw invalid_argument("format.color");
+      }
+
+      break;
+    }
+
     default:
-      throw invalid_argument("color");
+      throw invalid_argument("format.bitdepth");
+      break;
     }
 
     break;
-
+  }
   default:
-    throw invalid_argument("bitdepth");
-    break;
+    throw invalid_argument("format.storage");
   }
 }
 
@@ -100,17 +226,24 @@ OMX_U32 ConvertMediaToOMXFramerate(Clock clock)
 
 OMX_ALG_BUFFER_MODE ConvertMediaToOMXBufferHandle(BufferHandleType handle)
 {
-  if(handle == BufferHandleType::BUFFER_HANDLE_FD)
-    return OMX_ALG_BUF_DMA;
-  else
-    return OMX_ALG_BUF_NORMAL;
+  switch(handle)
+  {
+  case BufferHandleType::BUFFER_HANDLE_FD: return OMX_ALG_BUF_DMA;
+  case BufferHandleType::BUFFER_HANDLE_CHAR_PTR: return OMX_ALG_BUF_NORMAL;
+  default:
+    throw invalid_argument("handle");
+  }
 }
 
 bool ConvertOMXToMediaBool(OMX_BOOL boolean)
 {
-  if(boolean == OMX_FALSE)
-    return false;
-  return true;
+  switch(boolean)
+  {
+  case OMX_FALSE: return false;
+  case OMX_TRUE: return true;
+  default:
+    throw invalid_argument("boolean");
+  }
 }
 
 CompressionType ConvertOMXToMediaCompression(OMX_VIDEO_CODINGTYPE coding)
@@ -130,69 +263,143 @@ CompressionType ConvertOMXToMediaCompression(OMX_VIDEO_CODINGTYPE coding)
   throw invalid_argument("coding");
 }
 
-ColorType ConvertOMXToMediaColor(OMX_COLOR_FORMATTYPE format)
+Format ConvertOMXToMediaFormat(OMX_COLOR_FORMATTYPE format)
 {
   switch(static_cast<OMX_U32>(format))
   {
-  case OMX_COLOR_FormatL8:
-  case OMX_ALG_COLOR_FormatL10bitPacked:
-  case OMX_ALG_COLOR_FormatL10bit:
-  case OMX_ALG_COLOR_FormatL12bit:
-    return ColorType::COLOR_400;
+  case OMX_COLOR_FormatL8: return {
+             ColorType::COLOR_400, 8, StorageType::STORAGE_RASTER
+    };
+  case OMX_ALG_COLOR_FormatL8bitTiled32x4: return {
+             ColorType::COLOR_400, 8, StorageType::STORAGE_TILE_32x4
+    };
+  case OMX_ALG_COLOR_FormatL8bitTiled64x4: return {
+             ColorType::COLOR_400, 8, StorageType::STORAGE_TILE_64x4
+    };
+  case OMX_ALG_COLOR_FormatL10bitPacked: return {
+             ColorType::COLOR_400, 10, StorageType::STORAGE_RASTER
+    };
+  case OMX_ALG_COLOR_FormatL10bit: return {
+             ColorType::COLOR_400, 10, StorageType::STORAGE_RASTER
+    };
+  case OMX_ALG_COLOR_FormatL10bitTiled32x4: return {
+             ColorType::COLOR_400, 10, StorageType::STORAGE_TILE_32x4
+    };
+  case OMX_ALG_COLOR_FormatL10bitTiled64x4: return {
+             ColorType::COLOR_400, 10, StorageType::STORAGE_TILE_64x4
+    };
+  case OMX_ALG_COLOR_FormatL12bit: return {
+             ColorType::COLOR_400, 12, StorageType::STORAGE_RASTER
+    };
+  case OMX_ALG_COLOR_FormatL12bitTiled32x4: return {
+             ColorType::COLOR_400, 12, StorageType::STORAGE_TILE_32x4
+    };
+  case OMX_ALG_COLOR_FormatL12bitTiled64x4: return {
+             ColorType::COLOR_400, 12, StorageType::STORAGE_TILE_64x4
+    };
 
-  case OMX_COLOR_FormatYUV420SemiPlanar:
-  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked:
-  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bit:
-  case OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit:
-    return ColorType::COLOR_420;
+  case OMX_COLOR_FormatYUV420SemiPlanar: return {
+             ColorType::COLOR_420, 8, StorageType::STORAGE_RASTER
+    };
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar8bitTiled32x4: return {
+             ColorType::COLOR_420, 8, StorageType::STORAGE_TILE_32x4
+    };
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar8bitTiled64x4: return {
+             ColorType::COLOR_420, 8, StorageType::STORAGE_TILE_64x4
+    };
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked: return {
+             ColorType::COLOR_420, 10, StorageType::STORAGE_RASTER
+    };
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bit: return {
+             ColorType::COLOR_420, 10, StorageType::STORAGE_RASTER
+    };
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitTiled32x4: return {
+             ColorType::COLOR_420, 10, StorageType::STORAGE_TILE_32x4
+    };
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitTiled64x4: return {
+             ColorType::COLOR_420, 10, StorageType::STORAGE_TILE_64x4
+    };
 
-  case OMX_COLOR_FormatYUV422SemiPlanar:
-  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked:
-  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bit:
-  case OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit:
-    return ColorType::COLOR_422;
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit: return {
+             ColorType::COLOR_420, 12, StorageType::STORAGE_RASTER
+    };
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar12bitTiled32x4: return {
+             ColorType::COLOR_420, 12, StorageType::STORAGE_TILE_32x4
+    };
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar12bitTiled64x4: return {
+             ColorType::COLOR_420, 12, StorageType::STORAGE_TILE_64x4
+    };
 
-  case OMX_ALG_COLOR_FormatYUV444Planar8bit:
-  case OMX_ALG_COLOR_FormatYUV444Planar10bit:
-  case OMX_ALG_COLOR_FormatYUV444Planar12bit:
-    return ColorType::COLOR_444;
+  case OMX_COLOR_FormatYUV422SemiPlanar: return {
+             ColorType::COLOR_422, 8, StorageType::STORAGE_RASTER
+    };
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar8bitTiled32x4: return {
+             ColorType::COLOR_422, 8, StorageType::STORAGE_TILE_32x4
+    };
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar8bitTiled64x4: return {
+             ColorType::COLOR_422, 8, StorageType::STORAGE_TILE_64x4
+    };
 
-  case OMX_COLOR_FormatMax: return ColorType::COLOR_MAX_ENUM;
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked: return {
+             ColorType::COLOR_422, 10, StorageType::STORAGE_RASTER
+    };
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bit: return {
+             ColorType::COLOR_422, 10, StorageType::STORAGE_RASTER
+    };
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitTiled32x4: return {
+             ColorType::COLOR_422, 10, StorageType::STORAGE_TILE_32x4
+    };
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitTiled64x4: return {
+             ColorType::COLOR_422, 10, StorageType::STORAGE_TILE_64x4
+    };
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit: return {
+             ColorType::COLOR_422, 12, StorageType::STORAGE_RASTER
+    };
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar12bitTiled32x4: return {
+             ColorType::COLOR_422, 12, StorageType::STORAGE_TILE_32x4
+    };
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar12bitTiled64x4: return {
+             ColorType::COLOR_422, 12, StorageType::STORAGE_TILE_64x4
+    };
+
+  case OMX_ALG_COLOR_FormatYUV444Planar8bit: return {
+             ColorType::COLOR_444, 8, StorageType::STORAGE_RASTER
+    };
+  case OMX_ALG_COLOR_FormatYUV444Planar8bitTiled32x4: return {
+             ColorType::COLOR_444, 8, StorageType::STORAGE_TILE_32x4
+    };
+  case OMX_ALG_COLOR_FormatYUV444Planar8bitTiled64x4: return {
+             ColorType::COLOR_444, 8, StorageType::STORAGE_TILE_64x4
+    };
+  case OMX_ALG_COLOR_FormatYUV444Planar10bit: return {
+             ColorType::COLOR_444, 10, StorageType::STORAGE_RASTER
+    };
+
+  case OMX_ALG_COLOR_FormatYUV444Planar10bitTiled32x4: return {
+             ColorType::COLOR_444, 10, StorageType::STORAGE_TILE_32x4
+    };
+  case OMX_ALG_COLOR_FormatYUV444Planar10bitTiled64x4: return {
+             ColorType::COLOR_444, 10, StorageType::STORAGE_TILE_64x4
+    };
+
+  case OMX_ALG_COLOR_FormatYUV444Planar12bit: return {
+             ColorType::COLOR_444, 12, StorageType::STORAGE_RASTER
+    };
+  case OMX_ALG_COLOR_FormatYUV444Planar12bitTiled32x4: return {
+             ColorType::COLOR_444, 12, StorageType::STORAGE_TILE_32x4
+    };
+  case OMX_ALG_COLOR_FormatYUV444Planar12bitTiled64x4: return {
+             ColorType::COLOR_444, 12, StorageType::STORAGE_TILE_64x4
+    };
+
+  case OMX_COLOR_FormatMax: return {
+             ColorType::COLOR_MAX_ENUM, 0, StorageType::STORAGE_MAX_ENUM
+    };
   default:
     throw invalid_argument("format");
   }
 
   throw invalid_argument("format");
-}
-
-int ConvertOMXToMediaBitdepth(OMX_COLOR_FORMATTYPE format)
-{
-  switch(static_cast<OMX_U32>(format))
-  {
-  case OMX_COLOR_FormatL8:
-  case OMX_COLOR_FormatYUV420SemiPlanar:
-  case OMX_COLOR_FormatYUV422SemiPlanar:
-  case OMX_ALG_COLOR_FormatYUV444Planar8bit:
-    return 8;
-  case OMX_ALG_COLOR_FormatL10bitPacked:
-  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked:
-  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked:
-  case OMX_ALG_COLOR_FormatL10bit:
-  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bit:
-  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bit:
-  case OMX_ALG_COLOR_FormatYUV444Planar10bit:
-    return 10;
-  case OMX_ALG_COLOR_FormatL12bit:
-  case OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit:
-  case OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit:
-  case OMX_ALG_COLOR_FormatYUV444Planar12bit:
-    return 12;
-  case OMX_COLOR_FormatUnused: return 0; // XXX
-  default:
-    throw invalid_argument("color");
-  }
-
-  throw invalid_argument("color");
 }
 
 Clock ConvertOMXToMediaClock(OMX_U32 framerateInQ16)
@@ -1638,4 +1845,58 @@ StartCodeBytesAlignmentType ConvertOMXToMediaStartCodeBytesAlignment(OMX_ALG_ESt
   }
 
   return StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_MAX_ENUM;
+}
+
+int ConvertOMXToMediaBitdepth(OMX_COLOR_FORMATTYPE format)
+{
+  switch(static_cast<OMX_U32>(format))
+  {
+  case OMX_COLOR_FormatL8:
+  case OMX_ALG_COLOR_FormatL8bitTiled32x4:
+  case OMX_ALG_COLOR_FormatL8bitTiled64x4:
+  case OMX_COLOR_FormatYUV420SemiPlanar:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar8bitTiled32x4:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar8bitTiled64x4:
+  case OMX_COLOR_FormatYUV422SemiPlanar:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar8bitTiled32x4:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar8bitTiled64x4:
+  case OMX_ALG_COLOR_FormatYUV444Planar8bit:
+  case OMX_ALG_COLOR_FormatYUV444Planar8bitTiled32x4:
+  case OMX_ALG_COLOR_FormatYUV444Planar8bitTiled64x4:
+    return 8;
+  case OMX_ALG_COLOR_FormatL10bit:
+  case OMX_ALG_COLOR_FormatL10bitPacked:
+  case OMX_ALG_COLOR_FormatL10bitTiled32x4:
+  case OMX_ALG_COLOR_FormatL10bitTiled64x4:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bit:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitTiled32x4:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitTiled64x4:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bit:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitTiled32x4:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitTiled64x4:
+  case OMX_ALG_COLOR_FormatYUV444Planar10bit:
+  case OMX_ALG_COLOR_FormatYUV444Planar10bitTiled32x4:
+  case OMX_ALG_COLOR_FormatYUV444Planar10bitTiled64x4:
+    return 10;
+  case OMX_ALG_COLOR_FormatL12bit:
+  case OMX_ALG_COLOR_FormatL12bitTiled32x4:
+  case OMX_ALG_COLOR_FormatL12bitTiled64x4:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar12bitTiled32x4:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar12bitTiled64x4:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar12bitTiled32x4:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar12bitTiled64x4:
+  case OMX_ALG_COLOR_FormatYUV444Planar12bit:
+  case OMX_ALG_COLOR_FormatYUV444Planar12bitTiled32x4:
+  case OMX_ALG_COLOR_FormatYUV444Planar12bitTiled64x4:
+    return 12;
+  case OMX_COLOR_FormatUnused: return 0; // XXX
+  default:
+    throw invalid_argument("color");
+  }
+
+  throw invalid_argument("color");
 }

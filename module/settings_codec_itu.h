@@ -8,7 +8,5 @@
 #include "module_enums.h"
 #include "module_structs.h"
 
-std::vector<Format> CreateFormatsSupported(std::vector<ColorType> colors, std::vector<int> bitdepths);
-void CreateFormatsSupportedMap(std::vector<ColorType> colors, std::vector<int> bitdepths, std::map<Format, std::vector<Format>>& mapFormats);
-std::vector<Format> CreateFormatsSupportedByCurrent(Format current, std::map<Format, std::vector<Format>> formats);
+std::vector<Format> CreateFormatsSupported(std::vector<ColorType> colors, std::vector<int> bitdepths, std::vector<StorageType> storages);
 bool UpdateBufferHandles(BufferHandles& current, BufferHandles bufferHandles);

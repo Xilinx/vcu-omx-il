@@ -18,4 +18,5 @@ struct EncDeviceInterface
   virtual void Deinit() = 0;
   virtual BufferContiguities GetBufferContiguities() const = 0;
   virtual BufferBytesAlignments GetBufferBytesAlignments() const = 0;
+  virtual void* GetDeviceContext() = 0;
 };

@@ -22,7 +22,6 @@ DecSettingsAVC::DecSettingsAVC(BufferContiguities bufferContiguities, BufferByte
   this->bufferBytesAlignments.output = bufferBytesAlignments.output;
   this->strideAlignments.horizontal = strideAlignments.horizontal;
   this->strideAlignments.vertical = strideAlignments.vertical;
-  CreateFormatsSupportedMap(this->colors, this->bitdepths, this->supportedFormatsMap);
   Reset();
 }
 
@@ -34,6 +33,8 @@ void DecSettingsAVC::Reset()
   bufferHandles.output = BufferHandleType::BUFFER_HANDLE_CHAR_PTR;
 
   ::memset(&settings, 0, sizeof(settings));
+  AL_DecSettings_SetDefaults(&settings);
+
   settings.iStackSize = 5;
   settings.uFrameRate = 60000;
   settings.uClkRatio = 1000;
@@ -212,8 +213,8 @@ SettingsInterface::ErrorType DecSettingsAVC::Get(std::string index, void* settin
   if(index == "SETTINGS_INDEX_FORMATS_SUPPORTED")
   {
     SupportedFormats supported {};
-    supported.input = CreateFormatsSupported(this->colors, this->bitdepths);
-    supported.output = CreateFormatsSupportedByCurrent(CreateFormat(this->settings), this->supportedFormatsMap);
+    supported.input = CreateFormatsSupported(this->colors, this->bitdepths, this->storages);
+    supported.output = vector<Format>({ CreateFormat(this->settings) });
     *(static_cast<SupportedFormats*>(settings)) = supported;
     return SUCCESS;
   }
@@ -326,7 +327,7 @@ SettingsInterface::ErrorType DecSettingsAVC::Set(std::string index, void const* 
   {
     auto format = *(static_cast<Format const*>(settings));
 
-    if(!UpdateFormat(this->settings, format, this->colors, this->bitdepths, this->stride, this->strideAlignments))
+    if(!UpdateFormat(this->settings, format, this->colors, this->bitdepths, this->storages, this->stride, this->strideAlignments))
       return BAD_PARAMETER;
     return SUCCESS;
   }

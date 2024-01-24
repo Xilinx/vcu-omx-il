@@ -144,7 +144,7 @@ OMX_ERRORTYPE GetVideoPortFormatSupported(OMX_VIDEO_PARAM_PORTFORMATTYPE& format
   OMX_CHECK_MEDIA_GET(ret);
   Mime mime = IsInputPort(format.nPortIndex) ? mimes.input : mimes.output;
   format.eCompressionFormat = ConvertMediaToOMXCompression(mime.compression);
-  format.eColorFormat = ConvertMediaToOMXColor(supported[format.nIndex].color, supported[format.nIndex].bitdepth);
+  format.eColorFormat = ConvertMediaToOMXFormat(supported[format.nIndex]);
   format.xFramerate = ConvertMediaToOMXFramerate(clock);
 
   return OMX_ErrorNone;
@@ -166,18 +166,17 @@ OMX_ERRORTYPE ConstructVideoPortCurrentFormat(OMX_VIDEO_PARAM_PORTFORMATTYPE& f,
   OMX_CHECK_MEDIA_GET(ret);
   Mime mime = IsInputPort(f.nPortIndex) ? mimes.input : mimes.output;
   f.eCompressionFormat = ConvertMediaToOMXCompression(mime.compression);
-  f.eColorFormat = ConvertMediaToOMXColor(format.color, format.bitdepth);
+  f.eColorFormat = ConvertMediaToOMXFormat(format);
   f.xFramerate = ConvertMediaToOMXFramerate(clock);
   return OMX_ErrorNone;
 }
 
-static OMX_ERRORTYPE SetFormat(OMX_COLOR_FORMATTYPE const& color, shared_ptr<SettingsInterface> media)
+static OMX_ERRORTYPE SetFormat(OMX_COLOR_FORMATTYPE const& colorFormat, shared_ptr<SettingsInterface> media)
 {
   Format format;
   auto ret = media->Get(SETTINGS_INDEX_FORMAT, &format);
   OMX_CHECK_MEDIA_GET(ret);
-  format.color = ConvertOMXToMediaColor(color);
-  format.bitdepth = ConvertOMXToMediaBitdepth(color);
+  format = ConvertOMXToMediaFormat(colorFormat);
   ret = media->Set(SETTINGS_INDEX_FORMAT, &format);
   OMX_CHECK_MEDIA_SET(ret)
   return OMX_ErrorNone;
@@ -291,7 +290,7 @@ OMX_ERRORTYPE ConstructPortDefinition(OMX_PARAM_PORTDEFINITIONTYPE& def, Port& p
   v.xFramerate = ConvertMediaToOMXFramerate(clock);
   v.bFlagErrorConcealment = ConvertMediaToOMXBool(false); // XXX
   v.eCompressionFormat = ConvertMediaToOMXCompression(mime.compression);
-  v.eColorFormat = ConvertMediaToOMXColor(format.color, format.bitdepth);
+  v.eColorFormat = ConvertMediaToOMXFormat(format);
   v.cMIMEType = const_cast<char*>(mime.mime.c_str());
   v.pNativeWindow = 0; // XXX
   return OMX_ErrorNone;

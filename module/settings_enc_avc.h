@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "module/module_enums.h"
 #include "settings_enc_interface.h"
 
 #include <vector>
@@ -91,11 +92,13 @@ private:
     8,
     10,
   };
+  std::vector<StorageType> const storages
+  {
+    StorageType::STORAGE_RASTER,
+  };
 
   std::vector<VideoModeType> const videoModes
   {
     VideoModeType::VIDEO_MODE_PROGRESSIVE,
   };
-
-  std::map<Format, std::vector<Format>> supportedFormatsMap;
 };

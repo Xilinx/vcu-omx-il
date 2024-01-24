@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "module/module_enums.h"
 #include "module_structs.h"
 #include <vector>
 
@@ -51,7 +52,7 @@ Slices CreateSlicesParameter(AL_TEncSettings settings);
 bool UpdateSlicesParameter(AL_TEncSettings& settings, Slices slices);
 
 Format CreateFormat(AL_TEncSettings settings);
-bool UpdateFormat(AL_TEncSettings& settings, Format format, std::vector<ColorType> colors, std::vector<int> bitdepths, Stride& stride, StrideAlignments strideAlignments);
+bool UpdateFormat(AL_TEncSettings& settings, Format format, std::vector<ColorType> colors, std::vector<int> bitdepths, std::vector<StorageType> storages, Stride& stride, StrideAlignments strideAlignments);
 
 bool UpdateIsEnabledSubframe(AL_TEncSettings& settings, bool isSubframeEnabled);
 

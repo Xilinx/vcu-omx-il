@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "module/module_enums.h"
 #include "module_structs.h"
 #include <vector>
 #include <algorithm>
@@ -23,7 +24,7 @@ bool CheckAspectRatio(AspectRatioType aspectRatio);
 bool CheckScalingList(ScalingListType scalingList);
 bool CheckQuantizationParameter(QPs qps);
 bool CheckSlicesParameter(Slices slices);
-bool CheckFormat(Format format, std::vector<ColorType> colors, std::vector<int> bitdepths);
+bool CheckFormat(Format format, std::vector<ColorType> colors, std::vector<int> bitdepths, std::vector<StorageType> storages);
 bool CheckBufferHandles(BufferHandles bufferHandles);
 bool CheckColorPrimaries(ColorPrimariesType colorPrimaries);
 bool CheckTransferCharacteristics(TransferCharacteristicsType transferCharacteristics);

@@ -22,6 +22,14 @@ enum class ColorType
   COLOR_MAX_ENUM,
 };
 
+enum class StorageType
+{
+  STORAGE_RASTER,
+  STORAGE_TILE_32x4,
+  STORAGE_TILE_64x4,
+  STORAGE_MAX_ENUM,
+};
+
 enum class AVCProfileType
 {
   AVC_PROFILE_BASELINE,

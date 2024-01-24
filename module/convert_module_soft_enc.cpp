@@ -287,3 +287,27 @@ AL_EChEncTool ConvertModuleToSoftLoopFilter(LoopFilterType loopFilter)
 
   return static_cast<AL_EChEncTool>(0);
 }
+
+/* Soft to Soft conversion because the API isn't clean enough */
+extern "C"
+{
+#include "lib_common_enc/EncBuffers.h"
+}
+
+AL_EFbStorageMode ConvertSoftSrcToSoftStorage(AL_ESrcMode srcMode)
+{
+  return AL_GetSrcStorageMode(srcMode);
+}
+
+AL_ESrcMode ConvertSoftStorageToSoftSrc(AL_EFbStorageMode storage)
+{
+  switch(storage)
+  {
+  case AL_FB_RASTER: return AL_SRC_RASTER;
+  case AL_FB_TILE_64x4: return AL_SRC_TILE_64x4;
+  case AL_FB_TILE_32x4: return AL_SRC_TILE_32x4;
+  default: return AL_SRC_MAX_ENUM;
+  }
+
+  return AL_SRC_MAX_ENUM;
+}

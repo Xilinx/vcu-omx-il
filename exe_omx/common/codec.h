@@ -7,7 +7,9 @@ enum class Codec
 {
   HEVC,
   HEVC_HARD,
+
   AVC,
   AVC_HARD,
+
 };
 

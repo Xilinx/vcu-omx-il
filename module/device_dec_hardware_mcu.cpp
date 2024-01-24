@@ -45,3 +45,8 @@ BufferBytesAlignments DecDeviceHardwareMcu::GetBufferBytesAlignments() const
   bufferBytesAlignments.output = 32;
   return bufferBytesAlignments;
 }
+
+void* DecDeviceHardwareMcu::GetDeviceContext()
+{
+  return nullptr;
+}

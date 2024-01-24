@@ -31,3 +31,7 @@ AL_ERateCtrlOption ConvertModuleToSoftRateControlOption(RateControlOptions optio
 AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType mode);
 AL_EQpTableMode ConvertModuleToSoftQPTable(QPTableType mode);
 AL_EChEncTool ConvertModuleToSoftLoopFilter(LoopFilterType loopFilter);
+
+
+AL_EFbStorageMode ConvertSoftSrcToSoftStorage(AL_ESrcMode srcMode);
+AL_ESrcMode ConvertSoftStorageToSoftSrc(AL_EFbStorageMode storage);

@@ -10,15 +10,14 @@
 #include "module/module_enums.h"
 #include "module/module_structs.h"
 
-ColorType ConvertOMXToMediaColor(OMX_COLOR_FORMATTYPE format);
-OMX_COLOR_FORMATTYPE ConvertMediaToOMXColor(ColorType color, int bitdepth);
+Format ConvertOMXToMediaFormat(OMX_COLOR_FORMATTYPE format);
+OMX_COLOR_FORMATTYPE ConvertMediaToOMXFormat(Format format);
 
 CompressionType ConvertOMXToMediaCompression(OMX_VIDEO_CODINGTYPE coding);
 OMX_VIDEO_CODINGTYPE ConvertMediaToOMXCompression(CompressionType compression);
 
 OMX_U32 ConvertMediaToOMXFramerate(Clock clock);
 
-int ConvertOMXToMediaBitdepth(OMX_COLOR_FORMATTYPE format);
 Clock ConvertOMXToMediaClock(OMX_U32 framerateInQ16);
 
 bool ConvertOMXToMediaBool(OMX_BOOL boolean);
@@ -114,3 +113,5 @@ QPTableType ConvertOMXToMediaQpTable(OMX_ALG_EQpTableMode mode);
 
 OMX_ALG_EStartCodeBytesAlignment ConvertMediaToOMXStartCodeBytesAlignment(StartCodeBytesAlignmentType mode);
 StartCodeBytesAlignmentType ConvertOMXToMediaStartCodeBytesAlignment(OMX_ALG_EStartCodeBytesAlignment mode);
+
+int ConvertOMXToMediaBitdepth(OMX_COLOR_FORMATTYPE format);

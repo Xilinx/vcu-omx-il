@@ -33,16 +33,7 @@ struct Format
 {
   ColorType color;
   int bitdepth;
-
-  bool operator == (const Format& o) const
-  {
-    return color == o.color && bitdepth == o.bitdepth;
-  }
-
-  bool operator < (const Format& o) const
-  {
-    return color < o.color || (color == o.color && bitdepth < o.bitdepth);
-  }
+  StorageType storage;
 };
 
 typedef InputOutput<std::vector<Format>> SupportedFormats;

@@ -20,6 +20,8 @@ ifeq ($(ENABLE_OMX_MCU), 1)
  MODULE_ENC_SRCS+=$(THIS.module_enc)/device_enc_hardware_mcu.cpp
 endif
 
+# TODO: SINCE THE UNIFDEF DOESN'T EXIST, THIS ifeq SHOULD NOT BE REMOVED NOR ITS CONTENT
+
 ifeq ($(ENABLE_VCU),0)
 endif
 

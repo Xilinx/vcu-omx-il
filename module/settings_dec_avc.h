@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "module/module_enums.h"
 #include "settings_dec_interface.h"
 
 #include <vector>
@@ -83,11 +84,14 @@ private:
     10,
   };
 
+  std::vector<StorageType> const storages
+  {
+    StorageType::STORAGE_RASTER,
+  };
+
   std::vector<SequencePictureModeType> const sequenceModes
   {
     SequencePictureModeType::SEQUENCE_PICTURE_MODE_UNKNOWN,
     SequencePictureModeType::SEQUENCE_PICTURE_MODE_FRAME,
   };
-
-  std::map<Format, std::vector<Format>> supportedFormatsMap;
 };

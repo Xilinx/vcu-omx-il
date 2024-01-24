@@ -16,6 +16,7 @@ extern "C"
 #include <lib_common/BufferStreamMeta.h>
 #include <lib_common/BufferHandleMeta.h>
 #include <lib_common/Error.h>
+#include "lib_common/PicFormat.h"
 
 #include <lib_common_dec/HDRMeta.h>
 #include <lib_common_dec/IpDecFourCC.h>
@@ -330,7 +331,6 @@ ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
     return UNDEFINED;
   }
 
-  auto channel = device->Init();
   AL_TDecCallBacks decCallbacks {};
   decCallbacks.endParsingCB = { RedirectionEndParsing, this };
   decCallbacks.endDecodingCB = { RedirectionEndDecoding, this };
@@ -345,7 +345,17 @@ ModuleInterface::ErrorType DecModule::CreateDecoder(bool shouldPrealloc)
   if(inputParsed)
     decCallbacks.parsedSeiCB = { nullptr, nullptr };
 
-  auto errorCode = AL_Decoder_Create(&decoder, channel, allocator.get(), &media->settings, &decCallbacks);
+  if(shouldPrealloc)
+  {
+    media->settings.tStream.tDim.iHeight = RoundUp(media->settings.tStream.tDim.iHeight, 16);
+    media->settings.tStream.tDim.iWidth = RoundUp(media->settings.tStream.tDim.iWidth, 16);
+  }
+
+  AL_ERR errorCode;
+
+  auto scheduler = device->Init();
+
+  errorCode = AL_Decoder_Create(&decoder, scheduler, allocator.get(), &media->settings, &decCallbacks);
 
   if(AL_IS_ERROR_CODE(errorCode))
   {
@@ -558,7 +568,7 @@ AL_TBuffer* DecModule::CreateInputBuffer(char* buffer, int size)
       bool isInputParsed;
       media->Get(SETTINGS_INDEX_INPUT_PARSED, &isInputParsed);
 
-      if(isInputParsed)
+      if(isInputParsed || device->GetDeviceContext())
       {
         input = AL_Buffer_Create_And_Allocate(allocator.get(), size, RedirectionInputBufferDestroy);
         copy(buffer, buffer + size, AL_Buffer_GetData(input));
@@ -677,9 +687,9 @@ bool DecModule::Empty(BufferHandleInterface* handle)
   return pushed;
 }
 
-static AL_TMetaData* CreatePixMapMeta(AL_TStreamSettings const& streamSettings, Resolution resolution)
+static AL_TMetaData* CreatePixMapMeta(AL_TStreamSettings const& streamSettings, AL_EFbStorageMode storage, Resolution resolution)
 {
-  auto picFormat = AL_GetDecPicFormat(streamSettings.eChroma, static_cast<uint8_t>(streamSettings.iBitDepth), AL_FB_RASTER, false);
+  auto picFormat = AL_GetDecPicFormat(streamSettings.eChroma, static_cast<uint8_t>(streamSettings.iBitDepth), storage, false);
   auto fourCC = AL_GetDecFourCC(picFormat);
   auto stride = resolution.stride.horizontal;
   auto sliceHeight = resolution.stride.vertical;
@@ -747,7 +757,7 @@ AL_TBuffer* DecModule::CreateOutputBuffer(char* buffer, int size)
         AL_MetaData_Destroy(meta);
   });
 
-  pendingMetas.push_back(CreatePixMapMeta(media->settings.tStream, resolution));
+  pendingMetas.push_back(CreatePixMapMeta(media->settings.tStream, media->settings.eFBStorageMode, resolution));
   pendingMetas.push_back(CreateHDRMeta());
 
   if(!pendingMetas[0] || !pendingMetas[1])

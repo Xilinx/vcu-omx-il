@@ -79,14 +79,6 @@ static AL_TAllocator* createDmaAlloc(string deviceName)
   return alloc;
 }
 
-static BufferContiguities constexpr BUFFER_CONTIGUITIES_HARDWARE {
-  true, true
-};
-
-static BufferBytesAlignments constexpr BUFFER_BYTES_ALIGNMENTS_HARDWARE {
-  HORIZONTAL_STRIDE_ALIGNMENTS, HORIZONTAL_STRIDE_ALIGNMENTS
-};
-
 #include "base/omx_component/omx_expertise_avc.h"
 #include "module/settings_enc_avc.h"
 
@@ -104,15 +96,15 @@ static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
       AL_Allocator_Destroy(allocator);
     }
   };
-  shared_ptr<EncSettingsAVC> media {
-    new EncSettingsAVC {
-      BUFFER_CONTIGUITIES_HARDWARE, BUFFER_BYTES_ALIGNMENTS_HARDWARE, STRIDE_ALIGNMENTS_AVC, IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED, allocator
-    }
-  };
   shared_ptr<EncDeviceHardwareMcu> device {
     new EncDeviceHardwareMcu {
       deviceName,
       allocator
+    }
+  };
+  shared_ptr<EncSettingsAVC> media {
+    new EncSettingsAVC {
+      device->GetBufferContiguities(), device->GetBufferBytesAlignments(), STRIDE_ALIGNMENTS_AVC, IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED, allocator
     }
   };
   shared_ptr<MemoryInterface> memory {
@@ -127,7 +119,7 @@ static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
     new ExpertiseAVC {}
   };
   return new EncComponent {
-           hComponent, media, std::move(module), cComponentName, cRole, std::move(expertise)
+           hComponent, media, move(module), cComponentName, cRole, move(expertise)
   };
 }
 
@@ -145,15 +137,15 @@ static EncComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
       AL_Allocator_Destroy(allocator);
     }
   };
-  shared_ptr<EncSettingsHEVC> media {
-    new EncSettingsHEVC {
-      BUFFER_CONTIGUITIES_HARDWARE, BUFFER_BYTES_ALIGNMENTS_HARDWARE, STRIDE_ALIGNMENTS_HEVC, IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED, allocator
-    }
-  };
   shared_ptr<EncDeviceHardwareMcu> device {
     new EncDeviceHardwareMcu {
-      deviceName,
+      string(deviceName),
       allocator
+    }
+  };
+  shared_ptr<EncSettingsHEVC> media {
+    new EncSettingsHEVC {
+      device->GetBufferContiguities(), device->GetBufferBytesAlignments(), STRIDE_ALIGNMENTS_HEVC, IS_SEPARATE_CONFIGURATION_FROM_DATA_ENABLED, allocator
     }
   };
   shared_ptr<MemoryInterface> memory {
@@ -168,7 +160,7 @@ static EncComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
     new ExpertiseHEVC {}
   };
   return new EncComponent {
-           hComponent, media, std::move(module), cComponentName, cRole, std::move(expertise)
+           hComponent, media, move(module), cComponentName, cRole, move(expertise)
   };
 }
 

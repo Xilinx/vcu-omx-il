@@ -40,6 +40,8 @@ extern "C" {
  * file to compile successfully
  */
 
+#include <OMX_IVCommon.h>
+
 // This value already exist in OpenMax IL version 1.2 (3.7.3.7.1)
 #define OMX_InterlaceFrameProgressive                   0x00000001
 #define OMX_InterlaceInterleaveFrameTopFieldFirst       0x00000002
@@ -52,6 +54,49 @@ extern "C" {
 // Alternate interlaced format
 #define OMX_ALG_InterlaceAlternateTopFieldFirst         0x00000080
 #define OMX_ALG_InterlaceAlternateBottomFieldFirst      0x00000100
+
+/** Extended enumeration of video formats */
+typedef enum OMX_ALG_COLOR_FORMATTYPE
+{
+  OMX_ALG_COLOR_FormatUnused = OMX_COLOR_FormatVendorStartUnused,
+  OMX_ALG_COLOR_FormatL8bitTiled32x4,
+  OMX_ALG_COLOR_FormatL8bitTiled64x4,
+  OMX_ALG_COLOR_FormatL10bitTiled32x4,
+  OMX_ALG_COLOR_FormatL10bitTiled64x4,
+  OMX_ALG_COLOR_FormatL10bitPacked,
+  OMX_ALG_COLOR_FormatL10bit,
+  OMX_ALG_COLOR_FormatL12bitTiled32x4,
+  OMX_ALG_COLOR_FormatL12bitTiled64x4,
+  OMX_ALG_COLOR_FormatL12bit,
+  OMX_ALG_COLOR_FormatYUV420SemiPlanar8bitTiled32x4,
+  OMX_ALG_COLOR_FormatYUV420SemiPlanar8bitTiled64x4,
+  OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitTiled32x4,
+  OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitTiled64x4,
+  OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked,
+  OMX_ALG_COLOR_FormatYUV420SemiPlanar10bit,
+  OMX_ALG_COLOR_FormatYUV420SemiPlanar12bitTiled32x4,
+  OMX_ALG_COLOR_FormatYUV420SemiPlanar12bitTiled64x4,
+  OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit,
+  OMX_ALG_COLOR_FormatYUV422SemiPlanar8bitTiled32x4,
+  OMX_ALG_COLOR_FormatYUV422SemiPlanar8bitTiled64x4,
+  OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitTiled32x4,
+  OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitTiled64x4,
+  OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked,
+  OMX_ALG_COLOR_FormatYUV422SemiPlanar10bit,
+  OMX_ALG_COLOR_FormatYUV422SemiPlanar12bitTiled32x4,
+  OMX_ALG_COLOR_FormatYUV422SemiPlanar12bitTiled64x4,
+  OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit,
+  OMX_ALG_COLOR_FormatYUV444Planar8bitTiled32x4,
+  OMX_ALG_COLOR_FormatYUV444Planar8bitTiled64x4,
+  OMX_ALG_COLOR_FormatYUV444Planar8bit,
+  OMX_ALG_COLOR_FormatYUV444Planar10bitTiled32x4,
+  OMX_ALG_COLOR_FormatYUV444Planar10bitTiled64x4,
+  OMX_ALG_COLOR_FormatYUV444Planar10bit,
+  OMX_ALG_COLOR_FormatYUV444Planar12bitTiled32x4,
+  OMX_ALG_COLOR_FormatYUV444Planar12bitTiled64x4,
+  OMX_ALG_COLOR_FormatYUV444Planar12bit,
+  OMX_ALG_COLOR_FormatMaxEnum = 0x7FFFFFFF,
+}OMX_ALG_COLOR_FORMATTYPE;
 
 /**
  * Interlaced format parameters

@@ -147,7 +147,6 @@ static inline void SetDefaultApplication(Application& app)
 static string input_file;
 static string output_file;
 static string cmd_file;
-
 static ifstream infile;
 static ofstream outfile;
 static int user_slice = 0;
@@ -377,8 +376,10 @@ static void parseCommandLine(int argc, char** argv, Application& app)
 
   opt.addFlag("--hevc", &settings.codec, "Use the default hevc encoder", Codec::HEVC);
   opt.addFlag("--avc", &settings.codec, "Use the default avc encoder", Codec::AVC);
+
   opt.addFlag("--hevc-hard", &settings.codec, "Use hard hevc encoder", Codec::HEVC_HARD);
   opt.addFlag("--avc-hard", &settings.codec, "Use hard avc encoder", Codec::AVC_HARD);
+
   opt.addFlag("--dma-in", &app.input.isDMA, "Use dmabufs on input port");
   opt.addFlag("--dma-out", &app.output.isDMA, "Use dmabufs on output port");
   opt.addInt("--subframe", &user_slice, "<4 || 8 || 16>: activate subframe latency '(0)'");
@@ -433,6 +434,7 @@ static void parseCommandLine(int argc, char** argv, Application& app)
     case Codec::AVC_HARD:
       output_file = "output.hardware.h264";
       break;
+
     case Codec::HEVC:
       output_file = "output.hardware.h265";
       break;
@@ -440,6 +442,7 @@ static void parseCommandLine(int argc, char** argv, Application& app)
     case Codec::HEVC_HARD:
       output_file = "output.hardware.h265";
       break;
+
     default:
       assert(0);
       break;
@@ -722,10 +725,12 @@ static string chooseComponent(Codec codec)
     return "OMX.allegro.h264.encoder";
   case Codec::AVC_HARD:
     return "OMX.allegro.h264.hardware.encoder";
+
   case Codec::HEVC:
     return "OMX.allegro.h265.encoder";
   case Codec::HEVC_HARD:
     return "OMX.allegro.h265.hardware.encoder";
+
   default:
     assert(0);
   }

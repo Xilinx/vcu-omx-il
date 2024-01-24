@@ -40,7 +40,6 @@ extern "C" {
  * for this header file to compile successfully
  */
 #include <OMX_Video.h>
-#include <OMX_IVCommonAlg.h>
 
 /** Enum for vendor video codingtype extensions */
 typedef enum OMX_ALG_VIDEO_CODINGTYPE
@@ -566,7 +565,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_ALTERNATIVE_TRANSFER_CHARACTERISTICS_SEI
  *  nSize                : Size of the structure in bytes
  *  nVersion             : OMX specification version information
  *  nPortIndex           : Port that this structure applies to
- *  bEnableST209410SEI   : Indicate if st2094-10 sei should be enabled
+ *  bEnableST209410SEI  : Indicate if st2094-10 sei should be enabled
  */
 typedef struct OMX_ALG_VIDEO_PARAM_ST2094_10_SEI
 {
@@ -1109,25 +1108,6 @@ typedef struct OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC
   OMX_U32 nPortIndex;
   OMX_S8 nLoopFilterTc;
 }OMX_ALG_VIDEO_PARAM_LOOP_FILTER_TC;
-
-/** Extended enumeration of video formats */
-typedef enum OMX_ALG_COLOR_FORMATTYPE
-{
-  OMX_ALG_COLOR_FormatUnused = OMX_COLOR_FormatVendorStartUnused,
-  OMX_ALG_COLOR_FormatL10bitPacked,
-  OMX_ALG_COLOR_FormatL10bit,
-  OMX_ALG_COLOR_FormatL12bit,
-  OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked,
-  OMX_ALG_COLOR_FormatYUV420SemiPlanar10bit,
-  OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit,
-  OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked,
-  OMX_ALG_COLOR_FormatYUV422SemiPlanar10bit,
-  OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit,
-  OMX_ALG_COLOR_FormatYUV444Planar8bit,
-  OMX_ALG_COLOR_FormatYUV444Planar10bit,
-  OMX_ALG_COLOR_FormatYUV444Planar12bit,
-  OMX_ALG_COLOR_FormatMaxEnum = 0x7FFFFFFF,
-}OMX_ALG_COLOR_FORMATTYPE;
 
 /** Extended enumeration of bitrate control types */
 typedef enum OMX_ALG_VIDEO_CONTROLRATETYPE

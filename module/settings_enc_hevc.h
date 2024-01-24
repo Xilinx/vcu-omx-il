@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "module/module_enums.h"
 #include "settings_enc_interface.h"
 
 extern "C"
@@ -89,12 +90,15 @@ private:
     10,
   };
 
+  std::vector<StorageType> const storages
+  {
+    StorageType::STORAGE_RASTER,
+  };
+
   std::vector<VideoModeType> const videoModes
   {
     VideoModeType::VIDEO_MODE_PROGRESSIVE,
     VideoModeType::VIDEO_MODE_ALTERNATE_TOP_BOTTOM_FIELD,
     VideoModeType::VIDEO_MODE_ALTERNATE_BOTTOM_TOP_FIELD,
   };
-
-  std::map<Format, std::vector<Format>> supportedFormatsMap;
 };

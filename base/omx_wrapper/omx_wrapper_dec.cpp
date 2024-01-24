@@ -44,14 +44,6 @@ static AL_TAllocator* createDmaAlloc(string const deviceName)
   return alloc;
 }
 
-static BufferContiguities constexpr BUFFER_CONTIGUITIES_HARDWARE {
-  false, true
-};
-
-static BufferBytesAlignments constexpr BUFFER_BYTES_ALIGNMENTS_HARDWARE {
-  0, 32
-};
-
 static StrideAlignments constexpr STRIDE_ALIGNMENTS_HARDWARE
 {
   64, 64
@@ -64,11 +56,6 @@ static DecComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
 {
   (void)nCoreParamIndex;
   (void)pSettings;
-  shared_ptr<DecSettingsAVC> media {
-    new DecSettingsAVC {
-      BUFFER_CONTIGUITIES_HARDWARE, BUFFER_BYTES_ALIGNMENTS_HARDWARE, STRIDE_ALIGNMENTS_HARDWARE
-    }
-  };
   string deviceName = DEVICE_DEC_NAME();
 
   if(nCoreParamIndex == OMX_ALG_CoreIndexDevice)
@@ -84,6 +71,13 @@ static DecComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
       AL_Allocator_Destroy(allocator);
     }
   };
+
+  shared_ptr<DecSettingsAVC> media {
+    new DecSettingsAVC {
+      device->GetBufferContiguities(), device->GetBufferBytesAlignments(), STRIDE_ALIGNMENTS_HARDWARE
+    }
+  };
+
   unique_ptr<DecModule> module {
     new DecModule {
       media, device, allocator
@@ -93,7 +87,7 @@ static DecComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX
     new ExpertiseAVC {}
   };
   return new DecComponent {
-           hComponent, media, std::move(module), cComponentName, cRole, std::move(expertise)
+           hComponent, media, move(module), cComponentName, cRole, move(expertise)
   };
 }
 
@@ -101,11 +95,6 @@ static DecComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
 {
   (void)nCoreParamIndex;
   (void)pSettings;
-  shared_ptr<DecSettingsHEVC> media {
-    new DecSettingsHEVC {
-      BUFFER_CONTIGUITIES_HARDWARE, BUFFER_BYTES_ALIGNMENTS_HARDWARE, STRIDE_ALIGNMENTS_HARDWARE
-    }
-  };
   string deviceName = DEVICE_DEC_NAME();
 
   if(nCoreParamIndex == OMX_ALG_CoreIndexDevice)
@@ -121,6 +110,13 @@ static DecComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
       AL_Allocator_Destroy(allocator);
     }
   };
+
+  shared_ptr<DecSettingsHEVC> media {
+    new DecSettingsHEVC {
+      device->GetBufferContiguities(), device->GetBufferBytesAlignments(), STRIDE_ALIGNMENTS_HARDWARE
+    }
+  };
+
   unique_ptr<DecModule> module {
     new DecModule {
       media, device, allocator
@@ -130,7 +126,7 @@ static DecComponent* GenerateHevcComponentHardware(OMX_HANDLETYPE hComponent, OM
     new ExpertiseHEVC {}
   };
   return new DecComponent {
-           hComponent, media, std::move(module), cComponentName, cRole, std::move(expertise)
+           hComponent, media, move(module), cComponentName, cRole, move(expertise)
   };
 }
 

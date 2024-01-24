@@ -293,6 +293,7 @@ void parseCommandLine(int argc, char** argv, Application& app)
 
   opt.addFlag("--hevc-hard,-hevc-hard", &settings.codecImplem, "Use hard hevc decoder", Codec::HEVC_HARD);
   opt.addFlag("--avc-hard,-avc-hard", &settings.codecImplem, "Use hard avc decoder", Codec::AVC_HARD);
+
   opt.addString("--out,-o", &output_file, "Output compressed file name");
   opt.addOption("--dma-in,-dma-in", [&](string) {
     settings.bDMAIn = true;
@@ -303,6 +304,7 @@ void parseCommandLine(int argc, char** argv, Application& app)
     settings.eDMAOut = OMX_ALG_BUF_DMA;
   }, "use dmabufs for output port");
   string prealloc_args = "";
+
   opt.addString("--prealloc-args", &prealloc_args, "Specify the stream dimension: 1920x1080:unkwn:nv12:omx-profile-value:omx-level-value");
   opt.addFlag("--subframe", &settings.enableSubframe, "Use the subframe latency mode");
   opt.addFlag("--print-sei", &print_sei, "Print SEI on stdout");
@@ -723,10 +725,12 @@ string chooseComponent(Codec codecImplem)
     return "OMX.allegro.h264.decoder";
   case Codec::AVC_HARD:
     return "OMX.allegro.h264.hardware.decoder";
+
   case Codec::HEVC:
     return "OMX.allegro.h265.decoder";
   case Codec::HEVC_HARD:
     return "OMX.allegro.h265.hardware.decoder";
+
   default:
     assert(0);
   }

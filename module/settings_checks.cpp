@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "settings_checks.h"
+#include "module/module_enums.h"
 
 using namespace std;
 
@@ -141,12 +142,15 @@ bool CheckSlicesParameter(Slices slices)
   return true;
 }
 
-bool CheckFormat(Format format, vector<ColorType> colors, vector<int> bitdepths)
+bool CheckFormat(Format format, vector<ColorType> colors, vector<int> bitdepths, vector<StorageType> storages)
 {
   if(!IsSupported(format.color, colors))
     return false;
 
   if(!IsSupported(format.bitdepth, bitdepths))
+    return false;
+
+  if(!IsSupported(format.storage, storages))
     return false;
 
   return true;
