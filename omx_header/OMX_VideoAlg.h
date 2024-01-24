@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 Allegro DVT.  All rights reserved.
+ * Copyright (C) 2016-2024 Allegro DVT. All rights reserved.
  * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -40,6 +40,11 @@ extern "C" {
  * for this header file to compile successfully
  */
 #include <OMX_Video.h>
+
+/*
+ * Keep below headers for retro-compat
+ */
+#include <OMX_IVCommonAlg.h>
 
 /** Enum for vendor video codingtype extensions */
 typedef enum OMX_ALG_VIDEO_CODINGTYPE
@@ -1362,8 +1367,8 @@ typedef struct OMX_ALG_VIDEO_CHROMA_COORDINATES
  * Struct for mastering display colour volume SEI
  *
  * STRUCT MEMBERS:
- *  tDisplayPrimaries             : Chroma coordinates of the primary components of the mastering display
- *  tWhitePointX                  : Chroma coordinates of the white point of the mastering display
+ *  displayPrimaries              : Chroma coordinates of the primary components of the mastering display
+ *  whitePoint                    : Chroma coordinates of the white point of the mastering display
  *  nMaxDisplayMasteringLuminance : Maximum luminance of the mastering display
  *  nMinDisplayMasteringLuminance : Minimum luminance of the mastering display
  */
@@ -1460,12 +1465,12 @@ typedef struct OMX_ALG_MANUAL_ADJUSTMENT_ST2094_10
  *  Struct for ST2094_10 SEI (Dynamic HDR)
  *
  * STRUCT MEMBERS:
- *  nApplicationVersion : version of the SEI, shall be 0.
- *  nProcessingWindowFlag : Indicates if a processing window is specified
- *  processingWindow : The processing window description
- *  imageCharacteristics : The image characteristics description
- *  uNumManualAdjustments : The number of manual adjustments
- *  manualAdjustments : The manual adjustment descriptions
+ *  nApplicationVersion   : version of the SEI, shall be 0.
+ *  bProcessingWindowFlag : Indicates if a processing window is specified
+ *  processingWindow      : The processing window description
+ *  imageCharacteristics  : The image characteristics description
+ *  nNumManualAdjustments : The number of manual adjustments
+ *  manualAdjustments     : The manual adjustment descriptions
  */
 typedef struct OMX_ALG_DYNAMIC_META_ST2094_10
 {
@@ -1530,10 +1535,10 @@ typedef struct OMX_ALG_PROCESSING_WINDOW_ST2094_40
  *  Display Peak Luminance for ST2094_40 SEI (Dynamic HDR)
  *
  * STRUCT MEMBERS:
- *  bActualPeakLuminanceFlag : Indicates if the actual peak luminance is specified for the display
+ *  bActualPeakLuminanceFlag    : Indicates if the actual peak luminance is specified for the display
  *  nNumRowsActualPeakLuminance : Number of rows in the peak lumimance array
  *  nNumColsActualPeakLuminance : Number of columns in the peak lumimance array
- *  nActualPeakLuminance : Normalized actual peak luminance array
+ *  nActualPeakLuminance        : Normalized actual peak luminance array
  */
 typedef struct OMX_ALG_DISPLAY_PEAK_LUMINANCE_ST2094_40
 {
@@ -1547,8 +1552,8 @@ typedef struct OMX_ALG_DISPLAY_PEAK_LUMINANCE_ST2094_40
  *  TargetedSystemDisplay for ST2094_40 SEI (Dynamic HDR)
  *
  * STRUCT MEMBERS:
- *  uMaximumLuminance : Maximum luminance of the targeted system display
- *  peakLuminance : Description of the actual peak luminance of the targeted system display
+ *  nMaximumLuminance : Maximum luminance of the targeted system display
+ *  peakLuminance     : Description of the actual peak luminance of the targeted system display
  */
 typedef struct OMX_ALG_TARGETED_SYSTEM_DISPLAY_ST2094_40
 {
@@ -1560,11 +1565,11 @@ typedef struct OMX_ALG_TARGETED_SYSTEM_DISPLAY_ST2094_40
  *  ToneMapping for ST2094_40 SEI (Dynamic HDR)
  *
  * STRUCT MEMBERS:
- *  bToneMappingFlag : Indicates the presence of the tone mapping metadata
- *  bKneePointX : The X coordinate of the separation point between the linear and the curved part of the tone mapping function
- *  bKneePointY : The Y coordinate of the separation point between the linear and the curved part of the tone mapping function
+ *  bToneMappingFlag       : Indicates the presence of the tone mapping metadata
+ *  bKneePointX            : The X coordinate of the separation point between the linear and the curved part of the tone mapping function
+ *  bKneePointY            : The Y coordinate of the separation point between the linear and the curved part of the tone mapping function
  *  nNumBezierCurveAnchors : The number of the intermediate anchor parameters of the tone mapping function (max 15)
- *  nBezierCurveAnchors : The i-th intermediate anchor parameter of the tone mapping function
+ *  nBezierCurveAnchors    : The i-th intermediate anchor parameter of the tone mapping function
  */
 typedef struct OMX_ALG_TONE_MAPPING_ST2094_40
 {
@@ -1579,15 +1584,15 @@ typedef struct OMX_ALG_TONE_MAPPING_ST2094_40
  *  ColorVolumeTransform associated to a ProcessingWindow, for ST2094_40 SEI (Dynamic HDR)
  *
  * STRUCT MEMBERS:
- *  nMaxScl : Maximum of color components of linearized RGB values in the window
- *  nAverageMaxrgb : Average of linearized maxRGB values in the window
+ *  nMaxScl                           : Maximum of color components of linearized RGB values in the window
+ *  nAverageMaxrgb                    : Average of linearized maxRGB values in the window
  *  nNumDistributionMaxrgbPercentiles : Number of values for the maxRGB distribution
- *  nDistributionMaxrgbPercentages : Percentages of linearized maxRGB values at given percentiles in the window
- *  nDistributionMaxrgbPercentiles : Linearized maxRGB value at the i-th percentile in the window
- *  nFractionBrightPixels : The fraction of selected pixels in the image that contains the brightest pixel
- *  toneMapping : The tone mapping specification
- *  bColorSaturationMappingFlag : Indicates the presence of the color saturation weight. Shall be false.
- *  nColorSaturationWeight : Specify the color saturation gain is adjusted
+ *  nDistributionMaxrgbPercentages    : Percentages of linearized maxRGB values at given percentiles in the window
+ *  nDistributionMaxrgbPercentiles    : Linearized maxRGB value at the i-th percentile in the window
+ *  nFractionBrightPixels             : The fraction of selected pixels in the image that contains the brightest pixel
+ *  toneMapping                       : The tone mapping specification
+ *  bColorSaturationMappingFlag       : Indicates the presence of the color saturation weight. Shall be false.
+ *  bColorSaturationWeight            : Specify the color saturation gain is adjusted
  */
 typedef struct OMX_ALG_PROCESSING_WINDOW_TRANSFORM_ST2094_40
 {
@@ -1757,4 +1762,3 @@ typedef struct OMX_ALG_VIDEO_PARAM_REALTIME
 
 #endif /* OMX_VideoAlg_h */
 /* File EOF */
-

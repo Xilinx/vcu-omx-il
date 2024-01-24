@@ -4,7 +4,3 @@ OMX_CHECKER_SRCS+=\
         $(THIS.omx_checker)/omx_checker.cpp
 
 UNITTESTS+=$(OMX_CHECKER_SRCS)
-
-
-
-

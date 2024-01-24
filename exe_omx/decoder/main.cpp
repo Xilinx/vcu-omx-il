@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include <cassert>
@@ -6,33 +6,28 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cctype>
 #include <string>
 #include <sstream>
-#include <list>
-#include <algorithm>
 #include <stdexcept>
 #include <iostream>
-#include <iomanip>
 #include <fstream>
 #include <unistd.h>
-#include <vector>
-#include <map>
-#include <deque>
 #include <memory>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
 #include <functional>
+#include <list>
 
 #include <OMX_Core.h>
 #include <OMX_Component.h>
 #include <OMX_Types.h>
 #include <OMX_Video.h>
-#include <OMX_VideoExt.h>
+#include <OMX_VideoAlg.h>
 #include <OMX_ComponentExt.h>
 #include <OMX_IndexAlg.h>
 #include <OMX_IVCommonAlg.h>
+#include <OMX_VideoHEVCAndroid.h>
 
 #include <utility/logger.h>
 #include <utility/locked_queue.h>
@@ -1166,4 +1161,3 @@ int main(int argc, char** argv)
     return EXIT_FAILURE;
   }
 }
-

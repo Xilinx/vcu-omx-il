@@ -53,4 +53,3 @@ typedef enum OMX_IMAGE_CODINGEXTTYPE
 
 #endif /* OMX_ImageExt_h */
 /* File EOF */
-

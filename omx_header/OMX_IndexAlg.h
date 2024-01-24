@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 Allegro DVT.  All rights reserved.
+ * Copyright (C) 2016-2024 Allegro DVT. All rights reserved.
  * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -150,4 +150,3 @@ typedef enum OMX_ALG_INDEXTYPE
 
 #endif /* OMX_IndexAlg_h */
 /* File EOF */
-

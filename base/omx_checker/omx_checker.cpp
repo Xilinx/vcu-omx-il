@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "omx_checker.h"
@@ -286,4 +286,3 @@ void OMXChecker::CheckStateExistence(OMX_STATETYPE state)
     throw OMX_ErrorBadParameter;
   }
 }
-

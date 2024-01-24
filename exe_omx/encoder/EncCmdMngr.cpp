@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "EncCmdMngr.h"
@@ -513,4 +513,3 @@ void CEncCmdMngr::Process(ICommandsSender* sender, int iFrame)
       Refill(iFrame + 1);
   }
 }
-

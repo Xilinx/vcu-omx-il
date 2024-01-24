@@ -923,4 +923,3 @@ typedef struct OMX_PARAM_FOCUSSTATUSTYPE
 
 #endif
 /* File EOF */
-

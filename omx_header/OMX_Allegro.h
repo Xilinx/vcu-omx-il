@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 Allegro DVT.  All rights reserved.
+ * Copyright (C) 2016-2024 Allegro DVT. All rights reserved.
  * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -34,7 +34,11 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#warning "This file is deprecated. It only serves for API retrocompatibility."
+#include "OMX_CoreAlg.h"
+#include "OMX_ComponentAlg.h"
+#include "OMX_IVCommonAlg.h"
+#include "OMX_IndexAlg.h"
+#include "OMX_VideoAlg.h"
 
 #ifdef __cplusplus
 }
@@ -42,4 +46,3 @@ extern "C" {
 
 #endif /* OMX_Allegro_h */
 /* File EOF */
-

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "ROIMngr.h"
@@ -453,4 +453,3 @@ void AL_RoiMngr_FillBuff(AL_TRoiMngrCtx* pCtx, int iNumQPPerLCU, int iNumBytesPe
     for(int i = 0; i < AL_QPTABLE_NUM_SEGMENTS; ++i)
       pCtx->pDeltaQpSegments[i] *= 5;
 }
-

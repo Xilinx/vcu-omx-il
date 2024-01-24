@@ -30,6 +30,3 @@ TARGETS+=core
 
 UNITTESTS+=$(OMX_CORE_SRCS)
 UNITTESTS+=$(shell find $(THIS.core)/unittests -name "*.cpp")
-
-
-

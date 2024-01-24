@@ -1,15 +1,12 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "omx_component_dec.h"
-#include "omx_component_getset.h"
 
-#include <OMX_VideoExt.h>
+#include <OMX_VideoAlg.h>
 #include <OMX_ComponentAlg.h>
 #include <OMX_IVCommonAlg.h>
 #include <OMX_CoreAlg.h>
-
-#include <cmath>
 
 #include <utility/omx_translate.h>
 
@@ -354,4 +351,3 @@ void DecComponent::TreatEmptyBufferCommand(Task* task)
     return;
   }
 }
-

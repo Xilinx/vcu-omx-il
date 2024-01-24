@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "dma_memory.h"
@@ -68,4 +68,3 @@ void DMAMemory::set(AL_TBuffer* destination, int destination_offset, int value, 
   // To be optimized later if such DMA capability exists
   std::memset(AL_Buffer_GetData(destination) + destination_offset, value, size);
 }
-

@@ -43,5 +43,3 @@ omx_encoder:  $(BIN)/$(EXE_NAME_ENC) $(BIN)/$(SH_NAME_ENC)
 
 .PHONY: omx_encoder
 TARGETS+=omx_encoder
-
-

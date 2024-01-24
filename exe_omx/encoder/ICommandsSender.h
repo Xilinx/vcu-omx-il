@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -37,4 +37,3 @@ struct ICommandsSender
   virtual void setAutoQP(bool bUseAutoQP) = 0;
   virtual void setHDRIndex(int iHDRIdx) = 0;
 };
-

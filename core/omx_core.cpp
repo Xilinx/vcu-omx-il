@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include <cstdlib>
@@ -260,4 +260,3 @@ OMX_ERRORTYPE OMX_GetContentPipe(OMX_OUT OMX_HANDLETYPE* hPipe, OMX_IN OMX_STRIN
   LOG_IMPORTANT(string { "hPipe: " } +ToStringAddr(hPipe) + string { ", szURI: " } +szURI);
   return OMX_ErrorNotImplemented;
 }
-

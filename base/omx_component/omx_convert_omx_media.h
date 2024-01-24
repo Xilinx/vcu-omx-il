@@ -1,9 +1,9 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
 
-#include <OMX_VideoExt.h>
+#include <OMX_VideoAlg.h>
 #include <OMX_ComponentAlg.h>
 #include <OMX_IVCommonAlg.h>
 

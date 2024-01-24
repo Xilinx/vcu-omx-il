@@ -347,4 +347,3 @@ typedef struct OMX_OTHER_PARAM_PORTFORMATTYPE
 
 #endif
 /* File EOF */
-

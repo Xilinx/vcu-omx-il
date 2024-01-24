@@ -329,4 +329,3 @@ typedef struct OMX_IMAGE_PARAM_HUFFMANTTABLETYPE
 
 #endif
 /* File EOF */
-

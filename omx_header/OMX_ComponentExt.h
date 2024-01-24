@@ -60,4 +60,3 @@ typedef struct OMX_CONFIG_COMMITTYPE
 #endif /* __cplusplus */
 
 #endif /* OMX_ComponentExt_h */
-

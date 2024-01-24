@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "cpp_memory.h"
@@ -18,4 +18,3 @@ void CPPMemory::set(AL_TBuffer* destination, int destination_offset, int value, 
 {
   std::memset(AL_Buffer_GetData(destination) + destination_offset, value, size);
 }
-

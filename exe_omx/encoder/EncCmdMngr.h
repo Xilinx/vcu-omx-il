@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -99,4 +99,3 @@ private:
   bool ParseCmd(std::string sLine, TFrmCmd& Cmd, bool bSameFrame);
   bool GetNextLine(std::string& sNextLine);
 };
-

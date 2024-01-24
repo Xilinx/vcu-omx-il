@@ -71,4 +71,3 @@ typedef struct OMX_CONFIG_CALLBACKREQUESTTYPE
 
 #endif /* OMX_CoreExt_h */
 /* File EOF */
-

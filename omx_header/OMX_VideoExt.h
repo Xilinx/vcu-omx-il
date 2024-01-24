@@ -39,6 +39,10 @@ extern "C" {
  * for this header file to compile successfully
  */
 #include <OMX_Core.h>
+
+/*
+ * Keep below headers for retro-compat
+ */
 #include <OMX_VideoAlg.h>
 #include <OMX_VideoHEVCAndroid.h>
 
@@ -130,4 +134,3 @@ typedef struct OMX_VIDEO_VP8REFERENCEFRAMEINFOTYPE
 
 #endif /* OMX_VideoExt_h */
 /* File EOF */
-

@@ -43,4 +43,3 @@ omx_decoder: $(BIN)/$(EXE_NAME_DEC) $(BIN)/$(SH_NAME_DEC)
 
 .PHONY: omx_decoder
 TARGETS+=omx_decoder
-

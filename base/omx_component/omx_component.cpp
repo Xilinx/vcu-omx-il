@@ -1,15 +1,15 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "omx_component.h"
-#include "OMX_ComponentAlg.h"
-#include "OMX_IndexAlg.h"
+
+#include <OMX_ComponentAlg.h>
+#include <OMX_IndexAlg.h>
+#include <OMX_VideoAlg.h>
+#include <OMX_CoreAlg.h>
 #include "base/omx_checker/omx_checker.h"
 #include <cassert>
-#include <cstring>
-#include <string>
 
-#include <OMX_VideoExt.h>
 #include <utility/logger.h>
 #include <utility/omx_translate.h>
 
@@ -2406,4 +2406,3 @@ void Component::_ProcessEmptyBuffer(Task task)
   else
     assert(0 == "bad command");
 }
-

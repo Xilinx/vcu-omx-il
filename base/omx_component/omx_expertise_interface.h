@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -31,4 +31,3 @@ struct ExpertiseInterface
   virtual OMX_ERRORTYPE GetExpertise(OMX_PTR param, Port const& port, std::shared_ptr<SettingsInterface> media) = 0;
   virtual OMX_ERRORTYPE SetExpertise(OMX_PTR param, Port const& port, std::shared_ptr<SettingsInterface> media) = 0;
 };
-

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -140,4 +140,3 @@ private:
   do { \
     Logger::GetSingleton().log(Logger::TraceType::VCD_WITH_VALUE, 10, std::string { wire } +std::string { ' ' } +std::to_string(value), Logger::GetTime(), __func__, __FILE__, __LINE__); \
   } while(0)
-

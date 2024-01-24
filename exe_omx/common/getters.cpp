@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "getters.h"
@@ -6,8 +6,8 @@
 #include "helpers.h"
 #include <cassert>
 #include <OMX_Component.h>
-#include <OMX_ComponentExt.h>
-#include <OMX_IndexExt.h>
+#include <OMX_ComponentAlg.h>
+#include <OMX_IndexAlg.h>
 
 Getters::Getters(OMX_HANDLETYPE* component) :
   component(component)
@@ -73,4 +73,3 @@ bool Getters::IsComponentSupplier(int index)
 
   return false;
 }
-

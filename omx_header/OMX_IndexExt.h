@@ -38,6 +38,10 @@ extern "C" {
  * for this header file to compile successfully
  */
 #include <OMX_Index.h>
+
+/*
+ * Keep below headers for retro-compat
+ */
 #include <OMX_IndexAlg.h>
 
 /** Khronos standard extension indices.
@@ -88,4 +92,3 @@ typedef enum OMX_INDEXEXTTYPE
 
 #endif /* OMX_IndexExt_h */
 /* File EOF */
-

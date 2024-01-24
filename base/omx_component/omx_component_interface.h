@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -29,4 +29,3 @@ struct OMXComponentInterface
   virtual OMX_ERRORTYPE UseEGLImage(OMX_INOUT OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_IN OMX_U32 nPortIndex, OMX_IN OMX_PTR pAppPrivate, OMX_IN void* eglImage) = 0;
   virtual OMX_ERRORTYPE ComponentRoleEnum(OMX_OUT OMX_U8* cRole, OMX_IN OMX_U32 nIndex) = 0;
 };
-

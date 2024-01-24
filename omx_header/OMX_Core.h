@@ -1367,4 +1367,3 @@ OMX_API OMX_ERRORTYPE OMX_GetRolesOfComponent(OMX_IN OMX_STRING compName, OMX_IN
 
 #endif
 /* File EOF */
-

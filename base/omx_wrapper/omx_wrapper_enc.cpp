@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "module/settings_enc_hevc.h"
@@ -190,4 +190,3 @@ void DestroyEncComponentPrivate(OMX_IN OMX_PTR pComponentPrivate)
 {
   delete static_cast<EncComponent*>(pComponentPrivate);
 }
-

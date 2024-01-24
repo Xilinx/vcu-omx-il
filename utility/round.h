@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -14,4 +14,3 @@ static inline T RoundUp(T value, T multiple)
 {
   return value >= 0 ? ((value + multiple - 1) / multiple) * multiple : (value / multiple) * multiple;
 }
-
