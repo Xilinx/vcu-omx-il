@@ -274,9 +274,9 @@ void DecModule::Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info)
   currentDisplayPictureInfo.concealed = false;
 }
 
-void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSettings const& settings, AL_TCropInfo const& crop)
+void DecModule::ResolutionFound(int bufferNumber, AL_TStreamSettings const& settings, AL_TCropInfo const& crop)
 {
-  (void)bufferNumber, (void)bufferSize, (void)crop;
+  (void)bufferNumber, (void)crop;
 
   if(resolutionFoundHasBeenCalled)
     return;
@@ -289,7 +289,9 @@ void DecModule::ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSett
   StrideAlignments strideAlignments;
   media->Get(SETTINGS_INDEX_STRIDE_ALIGNMENTS, &strideAlignments);
 
-  media->stride.horizontal = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(settings.tDim.iWidth, settings.iBitDepth, media->settings.eFBStorageMode)), strideAlignments.horizontal);
+  AL_TPicFormat const tPicFormat = AL_GetDecPicFormat(settings.eChroma, settings.iBitDepth, media->settings.eFBStorageMode, false, AL_PLANE_MODE_MAX_ENUM);
+
+  media->stride.horizontal = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(settings.tDim.iWidth, &tPicFormat)), strideAlignments.horizontal);
   media->stride.vertical = RoundUp(static_cast<int>(AL_Decoder_GetMinStrideHeight(settings.tDim.iHeight)), strideAlignments.vertical);
 
   callbacks.event(Callbacks::Event::RESOLUTION_DETECTED, nullptr);
@@ -689,7 +691,7 @@ bool DecModule::Empty(BufferHandleInterface* handle)
 
 static AL_TMetaData* CreatePixMapMeta(AL_TStreamSettings const& streamSettings, AL_EFbStorageMode storage, Resolution resolution)
 {
-  auto picFormat = AL_GetDecPicFormat(streamSettings.eChroma, static_cast<uint8_t>(streamSettings.iBitDepth), storage, false);
+  auto picFormat = AL_GetDecPicFormat(streamSettings.eChroma, static_cast<uint8_t>(streamSettings.iBitDepth), storage, false, AL_PLANE_MODE_MAX_ENUM);
   auto fourCC = AL_GetDecFourCC(picFormat);
   auto stride = resolution.stride.horizontal;
   auto sliceHeight = resolution.stride.vertical;
@@ -701,7 +703,7 @@ static AL_TMetaData* CreatePixMapMeta(AL_TStreamSettings const& streamSettings, 
 
   if(AL_IsMonochrome(fourCC))
     return (AL_TMetaData*)meta;
-  assert((AL_IsSemiPlanar(fourCC) || (AL_GetChromaMode(fourCC) == AL_CHROMA_4_4_4 && AL_GetChromaOrder(fourCC) == AL_C_ORDER_U_V))
+  assert((AL_IsSemiPlanar(fourCC) || (AL_GetChromaMode(fourCC) == AL_CHROMA_4_4_4 && AL_GetPlaneMode(fourCC) == AL_PLANE_MODE_PLANAR))
          && "Unsupported chroma format");
 
   if(AL_IsSemiPlanar(fourCC))

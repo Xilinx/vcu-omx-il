@@ -99,12 +99,18 @@ void DecComponent::FillThisBufferCallBack(BufferHandleInterface* filled)
       AssociateCallBack(eosHandles.input, eosHandles.output);
 
     if(eosHandles.input)
-      EmptyThisBufferCallBack(eosHandles.input);
+    {
+      auto input = eosHandles.input;
+      eosHandles.input = nullptr;
+      EmptyThisBufferCallBack(input);
+    }
 
     if(eosHandles.output)
-      FillThisBufferCallBack(eosHandles.output);
-    eosHandles.input = nullptr;
-    eosHandles.output = nullptr;
+    {
+      auto output = eosHandles.output;
+      eosHandles.output = nullptr;
+      FillThisBufferCallBack(output);
+    }
     return;
   }
 
@@ -293,10 +299,11 @@ void DecComponent::TreatEmptyBufferCommand(Task* task)
   }
 
   AttachMark(header);
+  bool eos = header->nFlags & OMX_BUFFERFLAG_EOS;
 
   if(header->nFilledLen == 0)
   {
-    if(header->nFlags & OMX_BUFFERFLAG_EOS)
+    if(eos)
     {
       auto handle = new OMXBufferHandle(header);
       eosHandles.input = handle;
@@ -338,13 +345,13 @@ void DecComponent::TreatEmptyBufferCommand(Task* task)
   }
 
   auto flags = CreateFlags(header->nFlags);
+
   module->SetDynamic(DYNAMIC_INDEX_STREAM_FLAGS, &flags);
   auto handle = new OMXBufferHandle(header);
-
   auto success = module->Empty(handle);
   assert(success);
 
-  if(header->nFlags & OMX_BUFFERFLAG_EOS)
+  if(eos)
   {
     success = module->Empty(nullptr);
     assert(success);

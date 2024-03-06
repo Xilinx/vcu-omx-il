@@ -16,6 +16,7 @@ extern "C"
 #include <lib_common/SEI.h>
 #include <lib_common_enc/EncChanParam.h>
 #include <lib_fpga/DmaAllocLinux.h>
+#include <lib_common_enc/IpEncFourCC.h>
 }
 
 using namespace std;
@@ -190,15 +191,21 @@ static int RawAllocationSize(Stride stride, AL_EChromaMode eChromaMode)
   auto IP_HEIGHT_ALIGNMENT = 8;
   assert(stride.horizontal % IP_WIDTH_ALIGNMENT == 0); // IP requirements
   assert(stride.vertical % IP_HEIGHT_ALIGNMENT == 0); // IP requirements
-  auto const lumaSize = AL_GetAllocSizeSrc_PixPlane(AL_SRC_RASTER, stride.horizontal, stride.vertical, eChromaMode, AL_PLANE_Y);
+
+  AL_TPicFormat tPicFormat = GetDefaultPicFormat();
+  tPicFormat.eChromaMode = eChromaMode;
+  tPicFormat.eStorageMode = AL_FB_RASTER;
+  tPicFormat.ePlaneMode = GetInternalBufPlaneMode(eChromaMode);
+
+  auto const lumaSize = AL_GetAllocSizeSrc_PixPlane(&tPicFormat, stride.horizontal, stride.vertical, AL_PLANE_Y);
 
   if(eChromaMode == AL_CHROMA_MONO)
     return lumaSize;
 
   auto const chromaSize = eChromaMode == AL_CHROMA_4_4_4 ?
-                          AL_GetAllocSizeSrc_PixPlane(AL_SRC_RASTER, stride.horizontal, stride.vertical, eChromaMode, AL_PLANE_U) +
-                          AL_GetAllocSizeSrc_PixPlane(AL_SRC_RASTER, stride.horizontal, stride.vertical, eChromaMode, AL_PLANE_V) :
-                          AL_GetAllocSizeSrc_PixPlane(AL_SRC_RASTER, stride.horizontal, stride.vertical, eChromaMode, AL_PLANE_UV);
+                          AL_GetAllocSizeSrc_PixPlane(&tPicFormat, stride.horizontal, stride.vertical, AL_PLANE_U) +
+                          AL_GetAllocSizeSrc_PixPlane(&tPicFormat, stride.horizontal, stride.vertical, AL_PLANE_V) :
+                          AL_GetAllocSizeSrc_PixPlane(&tPicFormat, stride.horizontal, stride.vertical, AL_PLANE_UV);
 
   auto const size = lumaSize + chromaSize;
   return size;
@@ -243,7 +250,7 @@ bool CreateFillerData(AL_TEncSettings settings)
 
 bool UpdateFillerData(AL_TEncSettings& settings, bool isFillerDataEnabled)
 {
-  settings.eEnableFillerData = isFillerDataEnabled ? AL_FILLER_APP : AL_FILLER_DISABLE;
+  settings.eEnableFillerData = isFillerDataEnabled ? AL_FILLER_ENC : AL_FILLER_DISABLE;
   return true;
 }
 
@@ -353,7 +360,7 @@ Format CreateFormat(AL_TEncSettings settings)
   AL_EChromaMode eChromaMode = AL_GET_CHROMA_MODE(channel.ePicFormat);
   format.color = ConvertSoftToModuleColor(eChromaMode);
   format.bitdepth = AL_GET_BITDEPTH(channel.ePicFormat);
-  format.storage = ConvertSoftToModuleStorage(ConvertSoftSrcToSoftStorage(channel.eSrcMode));
+  format.storage = ConvertSoftToModuleSrcStorage(channel.eSrcMode);
   return format;
 }
 
@@ -366,9 +373,10 @@ bool UpdateFormat(AL_TEncSettings& settings, Format format, vector<ColorType> co
   AL_SET_CHROMA_MODE(&channel.ePicFormat, ConvertModuleToSoftChroma(format.color));
   AL_SET_BITDEPTH(&channel.ePicFormat, format.bitdepth);
   channel.uSrcBitDepth = AL_GET_BITDEPTH(channel.ePicFormat);
-  channel.eSrcMode = ConvertSoftStorageToSoftSrc(ConvertModuleToSoftStorage(format.storage));
+  channel.eSrcMode = ConvertModuleToSoftSrcStorage(format.storage);
 
-  int minStride = static_cast<int>(RoundUp(AL_EncGetMinPitch(channel.uEncWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_GetSrcStorageMode(channel.eSrcMode)), strideAlignments.horizontal));
+  AL_TPicFormat const tPicFormat = AL_EncGetSrcPicFormat(AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), channel.eSrcMode);
+  int minStride = static_cast<int>(RoundUp(AL_EncGetMinPitch(channel.uEncWidth, &tPicFormat), strideAlignments.horizontal));
   stride.horizontal = max(minStride, stride.horizontal);
 
   return true;
@@ -399,7 +407,9 @@ bool UpdateResolution(AL_TEncSettings& settings, Stride& stride, StrideAlignment
   channel.uSrcWidth = channel.uEncWidth;
   channel.uSrcHeight = channel.uEncHeight;
 
-  int minStride = RoundUp(AL_EncGetMinPitch(channel.uEncWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignments.horizontal);
+  AL_TPicFormat const tPicFormat = AL_EncGetSrcPicFormat(AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), channel.eSrcMode);
+
+  int minStride = RoundUp(AL_EncGetMinPitch(channel.uEncWidth, &tPicFormat), strideAlignments.horizontal);
   stride.horizontal = max(minStride, static_cast<int>(RoundUp(resolution.stride.horizontal, strideAlignments.horizontal)));
 
   int minSliceHeight = RoundUp(static_cast<int>(channel.uEncHeight), strideAlignments.vertical);

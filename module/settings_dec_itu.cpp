@@ -91,7 +91,9 @@ bool UpdateFormat(AL_TDecSettings& settings, Format format, vector<ColorType> co
   stream.iBitDepth = format.bitdepth;
   settings.eFBStorageMode = ConvertModuleToSoftStorage(format.storage);
 
-  int minHorizontalStride = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode)), strideAlignments.horizontal);
+  AL_TPicFormat const tPicFormat = AL_GetDecPicFormat(stream.eChroma, stream.iBitDepth, settings.eFBStorageMode, false, AL_PLANE_MODE_MAX_ENUM);
+
+  int minHorizontalStride = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(stream.tDim.iWidth, &tPicFormat)), strideAlignments.horizontal);
   stride.horizontal = max(minHorizontalStride, stride.horizontal);
 
   return true;
@@ -161,7 +163,9 @@ bool UpdateResolution(AL_TDecSettings& settings, Stride& stride, StrideAlignment
   auto& streamSettings = settings.tStream;
   streamSettings.tDim = { resolution.dimension.horizontal, resolution.dimension.vertical };
 
-  int minHorizontalStride = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(streamSettings.tDim.iWidth, streamSettings.iBitDepth, settings.eFBStorageMode)), strideAlignments.horizontal);
+  AL_TPicFormat const tPicFormat = AL_GetDecPicFormat(streamSettings.eChroma, streamSettings.iBitDepth, settings.eFBStorageMode, false, AL_PLANE_MODE_MAX_ENUM);
+
+  int minHorizontalStride = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(streamSettings.tDim.iWidth, &tPicFormat)), strideAlignments.horizontal);
   stride.horizontal = max(minHorizontalStride, RoundUp(resolution.stride.horizontal, strideAlignments.horizontal));
 
   int minVerticalStride = RoundUp(static_cast<int>(AL_Decoder_GetMinStrideHeight(streamSettings.tDim.iHeight)), strideAlignments.vertical);

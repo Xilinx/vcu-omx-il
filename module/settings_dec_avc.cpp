@@ -56,7 +56,10 @@ void DecSettingsAVC::Reset()
   stream.eSequenceMode = AL_SM_PROGRESSIVE;
 
   initialDisplayResolution = { -1, -1 };
-  stride.horizontal = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(stream.tDim.iWidth, stream.iBitDepth, settings.eFBStorageMode)), strideAlignments.horizontal);
+
+  AL_TPicFormat const tPicFormat = AL_GetDecPicFormat(stream.eChroma, stream.iBitDepth, settings.eFBStorageMode, false, AL_PLANE_MODE_MAX_ENUM);
+
+  stride.horizontal = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(stream.tDim.iWidth, &tPicFormat)), strideAlignments.horizontal);
   stride.vertical = RoundUp(static_cast<int>(AL_Decoder_GetMinStrideHeight(stream.tDim.iHeight)), strideAlignments.vertical);
 }
 

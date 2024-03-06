@@ -21,6 +21,7 @@ QPControlType ConvertSoftToModuleQPControl(AL_EQpCtrlMode mode);
 QPTableType ConvertSoftToModuleQPTable(AL_EQpTableMode mode);
 ScalingListType ConvertSoftToModuleScalingList(AL_EScalingList scalingList);
 LoopFilterType ConvertSoftToModuleLoopFilter(AL_EChEncTool tools);
+StorageType ConvertSoftToModuleSrcStorage(AL_ESrcMode srcMode);
 
 AL_ERateCtrlMode ConvertModuleToSoftRateControl(RateControlType mode);
 AL_EAspectRatio ConvertModuleToSoftAspectRatio(AspectRatioType aspectRatio);
@@ -31,7 +32,4 @@ AL_ERateCtrlOption ConvertModuleToSoftRateControlOption(RateControlOptions optio
 AL_EQpCtrlMode ConvertModuleToSoftQPControl(QPControlType mode);
 AL_EQpTableMode ConvertModuleToSoftQPTable(QPTableType mode);
 AL_EChEncTool ConvertModuleToSoftLoopFilter(LoopFilterType loopFilter);
-
-
-AL_EFbStorageMode ConvertSoftSrcToSoftStorage(AL_ESrcMode srcMode);
-AL_ESrcMode ConvertSoftStorageToSoftSrc(AL_EFbStorageMode storage);
+AL_ESrcMode ConvertModuleToSoftSrcStorage(StorageType storage);

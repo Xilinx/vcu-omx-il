@@ -19,6 +19,7 @@ extern "C"
 #include <lib_common/SliceConsts.h>
 #include <lib_common/StreamBuffer.h>
 #include <lib_common/BufferSeiMeta.h>
+#include <lib_common_dec/IpDecFourCC.h>
 }
 
 struct DecModule final : ModuleInterface
@@ -100,13 +101,20 @@ private:
   };
   void Display(AL_TBuffer* frameToDisplay, AL_TInfoDecode* info);
 
-  static AL_ERR RedirectionResolutionFound(int buffersNumber, int bufferSize, AL_TStreamSettings const* settings, AL_TCropInfo const* crop, void* userParam)
+  static AL_ERR RedirectionResolutionFound(int buffersNumber, AL_TStreamSettings const* settings, AL_TCropInfo const* crop, void* userParam)
   {
     auto pThis = static_cast<DecModule*>(userParam);
-    pThis->ResolutionFound(buffersNumber, bufferSize, *settings, *crop);
+
+    AL_TDecOutputSettings userOutputSettings;
+    SetDefaultDecOutputSettings(&userOutputSettings);
+    userOutputSettings.tPicFormat = AL_GetDecPicFormat(settings->eChroma, settings->iBitDepth, AL_FB_RASTER, false, AL_PLANE_MODE_MAX_ENUM);
+
+    AL_Decoder_ConfigureOutputSettings(pThis->decoder, &userOutputSettings);
+
+    pThis->ResolutionFound(buffersNumber, *settings, *crop);
     return AL_SUCCESS;
   };
-  void ResolutionFound(int bufferNumber, int bufferSize, AL_TStreamSettings const& settings, AL_TCropInfo const& crop);
+  void ResolutionFound(int bufferNumber, AL_TStreamSettings const& settings, AL_TCropInfo const& crop);
 
   static void RedirectionParsedSei(bool isPrefix, int payloadType, uint8_t* payload, int payloadSize, void* userParam)
   {

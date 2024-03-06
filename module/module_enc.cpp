@@ -523,7 +523,8 @@ static AL_TMetaData* CreatePixMapMeta(shared_ptr<SettingsInterface> media)
 {
   Format format {};
   media->Get(SETTINGS_INDEX_FORMAT, &format);
-  auto picFormat = AL_EncGetSrcPicFormat(ConvertModuleToSoftChroma(format.color), static_cast<uint8_t>(format.bitdepth), ConvertModuleToSoftStorage(format.storage), false);
+
+  auto const picFormat = AL_EncGetSrcPicFormat(ConvertModuleToSoftChroma(format.color), static_cast<uint8_t>(format.bitdepth), ConvertModuleToSoftSrcStorage(format.storage));
   auto fourCC = AL_EncGetSrcFourCC(picFormat);
   Resolution resolution;
   auto ret = media->Get(SETTINGS_INDEX_RESOLUTION, &resolution);
@@ -538,7 +539,7 @@ static AL_TMetaData* CreatePixMapMeta(shared_ptr<SettingsInterface> media)
 
   if(AL_IsMonochrome(fourCC))
     return (AL_TMetaData*)meta;
-  assert((AL_IsSemiPlanar(fourCC) || (AL_GetChromaMode(fourCC) == AL_CHROMA_4_4_4 && AL_GetChromaOrder(fourCC) == AL_C_ORDER_U_V))
+  assert((AL_IsSemiPlanar(fourCC) || (AL_GetChromaMode(fourCC) == AL_CHROMA_4_4_4 && AL_GetPlaneMode(fourCC) == AL_PLANE_MODE_PLANAR))
          && "Unsupported chroma format");
 
   if(AL_IsSemiPlanar(fourCC))
@@ -880,21 +881,6 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 {
   AL_HEncoder encoder = encoders.back().enc;
 
-  auto errorCode = AL_Encoder_GetLastError(encoder);
-  bool shouldBeConcealed = false;
-
-  if(AL_IS_ERROR_CODE(errorCode))
-  {
-    shouldBeConcealed = errorCode == AL_ERR_WATCHDOG_TIMEOUT;
-    LOG_ERROR(ToStringEncodeError(errorCode));
-
-    if(!shouldBeConcealed)
-      callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(errorCode));
-  }
-
-  if(AL_IS_WARNING_CODE(errorCode))
-    LOG_WARNING(ToStringEncodeError(errorCode));
-
   BufferHandles bufferHandles;
   media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
 
@@ -913,6 +899,23 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
     ReleaseBuf(stream, isFd(bufferHandles.output), false);
     return;
   }
+
+  // VCU 2 Workaround, this is being investigated (context destruction management error)
+
+  auto errorCode = AL_Encoder_GetLastError(encoder);
+  bool shouldBeConcealed = false;
+
+  if(AL_IS_ERROR_CODE(errorCode))
+  {
+    shouldBeConcealed = errorCode == AL_ERR_WATCHDOG_TIMEOUT;
+    LOG_ERROR(ToStringEncodeError(errorCode));
+
+    if(!shouldBeConcealed)
+      callbacks.event(Callbacks::Event::ERROR, (void*)ToModuleError(errorCode));
+  }
+
+  if(AL_IS_WARNING_CODE(errorCode))
+    LOG_WARNING(ToStringEncodeError(errorCode));
 
   auto isEOS = ((stream == nullptr) && (source == nullptr));
 

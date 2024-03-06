@@ -9,6 +9,7 @@
 #include <OMX_CoreAlg.h>
 
 #include <cmath>
+#include <utility>
 
 #include "omx_component_getset.h"
 

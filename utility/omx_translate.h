@@ -382,6 +382,7 @@ static std::map<OMX_INDEXTYPE, std::string> OMXIndexInStringMap =
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLongTerm), "OMX_ALG_IndexParamVideoLongTerm" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoLookAhead), "OMX_ALG_IndexParamVideoLookAhead" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoTwoPass), "OMX_ALG_IndexParamVideoTwoPass" },
+  { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoSkipFrame), "OMX_ALG_IndexParamVideoSkipFrame" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoColorPrimaries), "OMX_ALG_IndexParamVideoColorPrimaries" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoTransferCharacteristics), "OMX_ALG_IndexParamVideoTransferCharacteristics" },
   { static_cast<OMX_INDEXTYPE>(OMX_ALG_IndexParamVideoColorMatrix), "OMX_ALG_IndexParamVideoColorMatrix" },

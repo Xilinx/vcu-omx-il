@@ -89,6 +89,7 @@ struct Port
 
   void setExpected(int iExpected)
   {
+    std::unique_lock<std::mutex> lck(mutex);
     expected = iExpected;
     playable = ((int)buffers.size() >= expected);
   }

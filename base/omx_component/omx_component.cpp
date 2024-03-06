@@ -1852,13 +1852,18 @@ void Component::FlushComponent()
 void Component::FlushEosHandles()
 {
   if(eosHandles.input)
-    ReleaseCallBack(true, eosHandles.input);
+  {
+    auto input = eosHandles.input;
+    eosHandles.input = nullptr;
+    ReleaseCallBack(true, input);
+  }
 
   if(eosHandles.output)
-    ReleaseCallBack(false, eosHandles.output);
-
-  eosHandles.input = nullptr;
-  eosHandles.output = nullptr;
+  {
+    auto output = eosHandles.output;
+    eosHandles.output = nullptr;
+    ReleaseCallBack(false, output);
+  }
 }
 
 static bool isFlushingRequired(OMX_STATETYPE prevState, OMX_STATETYPE newState)
@@ -2069,9 +2074,11 @@ void Component::TreatEmptyBufferCommand(Task* task)
 
   AttachMark(header);
 
+  bool eos = header->nFlags & OMX_BUFFERFLAG_EOS;
+
   if(header->nFilledLen == 0)
   {
-    if(header->nFlags & OMX_BUFFERFLAG_EOS)
+    if(eos)
     {
       auto handle = new OMXBufferHandle(header);
       eosHandles.input = handle;
@@ -2084,11 +2091,10 @@ void Component::TreatEmptyBufferCommand(Task* task)
   }
 
   auto handle = new OMXBufferHandle(header);
-
   auto success = module->Empty(handle);
   assert(success);
 
-  if(header->nFlags & OMX_BUFFERFLAG_EOS)
+  if(eos)
   {
     success = module->Empty(nullptr);
     assert(success);

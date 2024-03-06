@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "convert_module_soft_enc.h"
+#include "module_enums.h"
 
 RateControlType ConvertSoftToModuleRateControl(AL_ERateCtrlMode mode)
 {
@@ -299,15 +300,26 @@ AL_EFbStorageMode ConvertSoftSrcToSoftStorage(AL_ESrcMode srcMode)
   return AL_GetSrcStorageMode(srcMode);
 }
 
-AL_ESrcMode ConvertSoftStorageToSoftSrc(AL_EFbStorageMode storage)
+StorageType ConvertSoftToModuleSrcStorage(AL_ESrcMode srcMode)
+{
+  switch(srcMode)
+  {
+    case AL_SRC_RASTER: return StorageType::STORAGE_RASTER;
+    case AL_SRC_TILE_32x4: return StorageType::STORAGE_TILE_32x4;
+    case AL_SRC_TILE_64x4: return StorageType::STORAGE_TILE_64x4;
+    default: return StorageType::STORAGE_MAX_ENUM;
+  }
+  return StorageType::STORAGE_MAX_ENUM;
+}
+
+AL_ESrcMode ConvertModuleToSoftSrcStorage(StorageType storage)
 {
   switch(storage)
   {
-  case AL_FB_RASTER: return AL_SRC_RASTER;
-  case AL_FB_TILE_64x4: return AL_SRC_TILE_64x4;
-  case AL_FB_TILE_32x4: return AL_SRC_TILE_32x4;
-  default: return AL_SRC_MAX_ENUM;
+    case StorageType::STORAGE_RASTER: return AL_SRC_RASTER;
+    case StorageType::STORAGE_TILE_32x4: return AL_SRC_TILE_32x4;
+    case StorageType::STORAGE_TILE_64x4: return AL_SRC_TILE_64x4;
+    default: return AL_SRC_MAX_ENUM;
   }
-
   return AL_SRC_MAX_ENUM;
 }

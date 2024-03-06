@@ -8,6 +8,7 @@
 
 #include "module/device_dec_hardware_mcu.h"
 
+#include <utility>
 #include <cstring>
 #include <memory>
 #include <functional>

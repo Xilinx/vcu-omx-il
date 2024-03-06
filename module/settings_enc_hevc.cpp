@@ -69,14 +69,15 @@ void EncSettingsHEVC::Reset()
   rateControl.uFrameRate = 15;
   auto& gopParam = channel.tGopParam;
   gopParam.bEnableLT = false;
-  settings.eEnableFillerData = AL_FILLER_APP;
+  settings.eEnableFillerData = AL_FILLER_ENC;
   settings.bEnableAUD = false;
   settings.iPrefetchLevel2 = 0;
   settings.LookAhead = 0;
   settings.TwoPass = 0;
   settings.uEnableSEI = AL_SEI_NONE;
 
-  stride.horizontal = RoundUp(AL_EncGetMinPitch(channel.uEncWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_GetSrcStorageMode(channel.eSrcMode)), strideAlignments.horizontal);
+  AL_TPicFormat const tPicFormat = AL_EncGetSrcPicFormat(AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), channel.eSrcMode);
+  stride.horizontal = RoundUp(AL_EncGetMinPitch(channel.uEncWidth, &tPicFormat), strideAlignments.horizontal);
   stride.vertical = RoundUp(static_cast<int>(channel.uEncHeight), strideAlignments.vertical);
 
   ResetRcPluginContext(this->allocator.get(), &this->settings);
@@ -990,12 +991,12 @@ bool EncSettingsHEVC::Check()
     return false;
 
   auto& channel = settings.tChParam[0];
-  auto picFormat = AL_EncGetSrcPicFormat(AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER, false);
+  auto const picFormat = AL_EncGetSrcPicFormat(AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), AL_SRC_RASTER);
   auto fourCC = AL_EncGetSrcFourCC(picFormat);
   assert(AL_GET_BITDEPTH(channel.ePicFormat) == channel.uSrcBitDepth);
   AL_Settings_CheckCoherency(&settings, &channel, fourCC, stdout);
 
-  stride.horizontal = max(stride.horizontal, RoundUp(AL_EncGetMinPitch(channel.uEncWidth, AL_GET_BITDEPTH(channel.ePicFormat), AL_FB_RASTER), strideAlignments.horizontal));
+  stride.horizontal = max(stride.horizontal, RoundUp(AL_EncGetMinPitch(channel.uEncWidth, &picFormat), strideAlignments.horizontal));
   stride.vertical = max(stride.vertical, RoundUp(static_cast<int>(channel.uEncHeight), strideAlignments.vertical));
 
   return true;

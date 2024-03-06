@@ -11,6 +11,7 @@
 extern "C"
 {
 #include <lib_decode/lib_decode.h>
+#include <lib_common_dec/IpDecFourCC.h>
 }
 
 Clock CreateClock(AL_TDecSettings settings);

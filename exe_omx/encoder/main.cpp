@@ -466,7 +466,7 @@ static bool readOneYuvFrame(OMX_BUFFERHEADERTYPE* pBufferHdr, Application const&
   auto div_coef = is420(color) ? 2 : 1;
   auto mul_coef = is444(color) ? 2 : 1;
 
-  auto column_size = is400(color) ? height : height + height * mul_coef / div_coef;
+  auto column_size = is400(color) ? height : height + (height / div_coef) * mul_coef;
   auto size = row_size * column_size;
   vector<uint8_t> frame(size);
 
@@ -476,13 +476,20 @@ static bool readOneYuvFrame(OMX_BUFFERHEADERTYPE* pBufferHdr, Application const&
 
   /* luma */
   for(auto h = 0; h < (int)height; h++)
+  {
     memcpy(&dst[h * stride], &frame.data()[h * row_size], row_size);
+  }
 
   /* chroma */
   if(!is400(color))
   {
-    for(struct { long unsigned int sh; long unsigned int h; } v { sliceHeight, height }; v.sh < sliceHeight + height / div_coef * mul_coef; v.sh++, v.h++)
+    for(struct { long unsigned int sh; long unsigned int h; } v { sliceHeight, height }; v.h < height + ((height / div_coef) * mul_coef); v.sh++, v.h++)
+    {
+      if((v.h > height) && ((v.h % (height / div_coef)) == 0))
+        v.sh = sliceHeight * 2;
+
       memcpy(&dst[v.sh * stride], &frame.data()[v.h * row_size], row_size);
+    }
   }
 
   pBufferHdr->nFilledLen = pBufferHdr->nAllocLen;
