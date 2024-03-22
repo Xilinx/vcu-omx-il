@@ -86,6 +86,7 @@ void EncSettingsAVC::Reset()
   tPicFormat.uBitDepth = AL_GET_BITDEPTH(channel.ePicFormat);
   tPicFormat.eStorageMode = AL_GetSrcStorageMode(channel.eSrcMode);
   tPicFormat.eChromaMode = AL_GET_CHROMA_MODE(channel.ePicFormat);
+  tPicFormat.eSamplePackMode = tPicFormat.uBitDepth > 8 ? AL_SAMPLE_PACK_MODE_PACKED_XV : AL_SAMPLE_PACK_MODE_BYTE;
   stride.horizontal = RoundUp(AL_EncGetMinPitch(channel.uEncWidth, &tPicFormat), strideAlignments.horizontal);
   stride.vertical = RoundUp(static_cast<int>(channel.uEncHeight), strideAlignments.vertical);
 
@@ -1065,7 +1066,7 @@ bool EncSettingsAVC::Check()
   tPicFormat.uBitDepth = AL_GET_BITDEPTH(channel.ePicFormat);
   tPicFormat.eStorageMode = AL_GetSrcStorageMode(channel.eSrcMode);
   tPicFormat.eChromaMode = AL_GET_CHROMA_MODE(channel.ePicFormat);
-
+  tPicFormat.eSamplePackMode = tPicFormat.uBitDepth > 8 ? AL_SAMPLE_PACK_MODE_PACKED_XV : AL_SAMPLE_PACK_MODE_BYTE;
   stride.horizontal = max(stride.horizontal, RoundUp(AL_EncGetMinPitch(channel.uEncWidth, &tPicFormat), strideAlignments.horizontal));
   stride.horizontal = max(stride.horizontal, RoundUp(AL_EncGetMinPitch(channel.uEncWidth, &tPicFormat), strideAlignments.horizontal));
   stride.vertical = max(stride.vertical, RoundUp(static_cast<int>(channel.uEncHeight), strideAlignments.vertical));
