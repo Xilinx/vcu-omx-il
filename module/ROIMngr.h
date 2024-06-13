@@ -18,7 +18,7 @@ extern "C"
 /*************************************************************************//*!
    \brief Types of ROI
 *****************************************************************************/
-typedef enum
+typedef enum al_eRoiQuality
 {
   AL_ROI_QUALITY_HIGH = -5,
   AL_ROI_QUALITY_MEDIUM = 0,
@@ -31,7 +31,7 @@ typedef enum
 /*************************************************************************//*!
    \brief Priority in case of intersecting ROIs
 *****************************************************************************/
-typedef enum
+typedef enum al_eRoiOrder
 {
   AL_ROI_INCOMING_ORDER,
   AL_ROI_QUALITY_ORDER,

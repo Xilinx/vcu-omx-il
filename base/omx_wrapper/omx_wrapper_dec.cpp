@@ -50,7 +50,6 @@ static StrideAlignments constexpr STRIDE_ALIGNMENTS_HARDWARE
   64, 64
 };
 
-
 #include "base/omx_component/omx_expertise_avc.h"
 #include "module/settings_dec_avc.h"
 

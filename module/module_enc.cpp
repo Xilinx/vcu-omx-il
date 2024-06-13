@@ -881,7 +881,6 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 {
   AL_HEncoder encoder = encoders.back().enc;
 
-
   BufferHandles bufferHandles;
   media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
 
@@ -902,8 +901,8 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
   }
 
   // VCU 2 Workaround, this is being investigated (context destruction management error)
-  auto errorCode = AL_Encoder_GetLastError(encoder);
 
+  auto errorCode = AL_Encoder_GetLastError(encoder);
   bool shouldBeConcealed = false;
 
   if(AL_IS_ERROR_CODE(errorCode))

@@ -808,9 +808,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   if(app.input.isDMA || app.output.isDMA)
   {
-
-      app.pAllocator = AL_DmaAlloc_Create(app.settings.deviceName.c_str());
-
+    app.pAllocator = AL_DmaAlloc_Create(app.settings.deviceName.c_str());
 
     if(!app.pAllocator)
       throw runtime_error(string("Couldn't create dma allocator (using ") + app.settings.deviceName + string(")"));
