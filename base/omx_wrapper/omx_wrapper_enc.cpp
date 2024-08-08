@@ -19,6 +19,7 @@
 #include <functional>
 #include <stdexcept>
 #include <utility>
+#include <unistd.h>
 
 using namespace std;
 
@@ -50,10 +51,11 @@ static MemoryInterface* createMemory()
 {
 #if AL_ENABLE_DMA_COPY_ENC
   char const* device = "/dev/dmaproxy";
-  return new DMAMemory(device);
-#else
-  return new CPPMemory();
+  bool exist = access( device, F_OK ) == 0;
+  if( exist )
+    return new DMAMemory(device);
 #endif
+  return new CPPMemory();
 }
 
 #include <cstdlib>

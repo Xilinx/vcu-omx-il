@@ -146,14 +146,14 @@ TwoPassMngr::TwoPassMngr(std::string p_FileName, int p_iPass, bool p_bEnabledFir
 }
 
 /***************************************************************************/
-TwoPassMngr::~TwoPassMngr()
+TwoPassMngr::~TwoPassMngr(void)
 {
   tFrames.clear();
   CloseLog();
 }
 
 /***************************************************************************/
-void TwoPassMngr::OpenLog()
+void TwoPassMngr::OpenLog(void)
 {
   if(iPass == 1)
   {
@@ -173,14 +173,14 @@ void TwoPassMngr::OpenLog()
 }
 
 /***************************************************************************/
-void TwoPassMngr::CloseLog()
+void TwoPassMngr::CloseLog(void)
 {
   inputFile.close();
   outputFile.close();
 }
 
 /***************************************************************************/
-void TwoPassMngr::EmptyLog()
+void TwoPassMngr::EmptyLog(void)
 {
   if(!inputFile.is_open())
     OpenLog();
@@ -211,7 +211,7 @@ void TwoPassMngr::EmptyLog()
 }
 
 /***************************************************************************/
-void TwoPassMngr::FillLog()
+void TwoPassMngr::FillLog(void)
 {
   if(!outputFile.is_open())
     OpenLog();
@@ -247,7 +247,7 @@ void TwoPassMngr::AddFrame(AL_TLookAheadMetaData* pMetaData)
 }
 
 /***************************************************************************/
-void TwoPassMngr::Flush()
+void TwoPassMngr::Flush(void)
 {
   FillLog();
 }
@@ -268,7 +268,7 @@ void TwoPassMngr::GetFrame(AL_TLookAheadMetaData* pMetaData)
 }
 
 /***************************************************************************/
-void TwoPassMngr::ComputeTwoPass()
+void TwoPassMngr::ComputeTwoPass(void)
 {
   auto iSequenceSize = static_cast<int>(tFrames.size());
 
@@ -295,7 +295,7 @@ void TwoPassMngr::ComputeTwoPass()
 }
 
 /***************************************************************************/
-void TwoPassMngr::ComputeComplexity()
+void TwoPassMngr::ComputeComplexity(void)
 {
   auto iSequenceSize = static_cast<int>(tFrames.size());
 
@@ -389,7 +389,7 @@ void TwoPassMngr::ComputeComplexity()
 }
 
 /***************************************************************************/
-bool TwoPassMngr::HasPatternTwoFrames()
+bool TwoPassMngr::HasPatternTwoFrames(void)
 {
   vector<int> v {};
 
@@ -416,7 +416,7 @@ LookAheadMngr::LookAheadMngr(int p_iLookAhead, bool p_bEnableFirstPassSceneChang
 }
 
 /***************************************************************************/
-LookAheadMngr::~LookAheadMngr()
+LookAheadMngr::~LookAheadMngr(void)
 {
   m_fifo.clear();
 
@@ -465,7 +465,7 @@ int32_t LookAheadMngr::ComputeIPRatio(AL_TBuffer* pCurrentSrc, AL_TBuffer* pNext
 }
 
 /***************************************************************************/
-int LookAheadMngr::GetNextSceneChange()
+int LookAheadMngr::GetNextSceneChange(void)
 {
   int iFifoSize = static_cast<int>(m_fifo.size());
   int iIndex = 0;
@@ -479,7 +479,7 @@ int LookAheadMngr::GetNextSceneChange()
 }
 
 /***************************************************************************/
-void LookAheadMngr::ProcessLookAheadParams()
+void LookAheadMngr::ProcessLookAheadParams(void)
 {
   int iFifoSize = static_cast<int>(m_fifo.size());
 
@@ -523,7 +523,7 @@ void LookAheadMngr::ProcessLookAheadParams()
 }
 
 /***************************************************************************/
-void LookAheadMngr::ComputeComplexity()
+void LookAheadMngr::ComputeComplexity(void)
 {
   int iFifoSize = static_cast<int>(m_fifo.size());
 
@@ -555,7 +555,7 @@ void LookAheadMngr::ComputeComplexity()
 }
 
 /***************************************************************************/
-bool LookAheadMngr::HasPatternTwoFrames()
+bool LookAheadMngr::HasPatternTwoFrames(void)
 {
   vector<int> v {};
 

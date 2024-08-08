@@ -250,7 +250,7 @@ bool CreateFillerData(AL_TEncSettings settings)
 
 bool UpdateFillerData(AL_TEncSettings& settings, bool isFillerDataEnabled)
 {
-  settings.eEnableFillerData = isFillerDataEnabled ? AL_FILLER_ENC : AL_FILLER_DISABLE;
+  settings.eEnableFillerData = isFillerDataEnabled ? AL_FILLER_APP : AL_FILLER_DISABLE;
   return true;
 }
 

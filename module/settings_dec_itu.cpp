@@ -168,7 +168,7 @@ bool UpdateResolution(AL_TDecSettings& settings, Stride& stride, StrideAlignment
   int minHorizontalStride = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(streamSettings.tDim.iWidth, &tPicFormat)), strideAlignments.horizontal);
   stride.horizontal = max(minHorizontalStride, RoundUp(resolution.stride.horizontal, strideAlignments.horizontal));
 
-  int minVerticalStride = RoundUp(static_cast<int>(AL_Decoder_GetMinStrideHeight(streamSettings.tDim.iHeight)), strideAlignments.vertical);
+  int minVerticalStride = RoundUp(static_cast<int>(AL_Decoder_GetMinStrideHeight(streamSettings.tDim.iHeight, &tPicFormat)), strideAlignments.vertical);
   stride.vertical = max(minVerticalStride, RoundUp(resolution.stride.vertical, strideAlignments.vertical));
 
   return true;

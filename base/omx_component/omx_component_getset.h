@@ -154,6 +154,9 @@ OMX_ERRORTYPE SetVideoQuantizationTable(OMX_ALG_VIDEO_PARAM_QUANTIZATION_TABLE c
 OMX_ERRORTYPE ConstructPortEarlyCallback(OMX_ALG_PORT_PARAM_EARLY_CALLBACK& earlyCB, Port const& port, std::shared_ptr<SettingsInterface> media);
 OMX_ERRORTYPE SetPortEarlyCallback(OMX_ALG_PORT_PARAM_EARLY_CALLBACK const& earlyCB, Port const& port, std::shared_ptr<SettingsInterface> media);
 
+OMX_ERRORTYPE ConstructPortSynchronization(OMX_ALG_PORT_PARAM_SYNCHRONIZATION& srcSync, Port const& port, std::shared_ptr<SettingsInterface> media);
+OMX_ERRORTYPE SetPortSynchronization(OMX_ALG_PORT_PARAM_SYNCHRONIZATION const& srcSync, Port const& port, std::shared_ptr<SettingsInterface> media);
+
 OMX_ERRORTYPE ConstructVideoAccessUnitDelimiter(OMX_ALG_VIDEO_PARAM_ACCESS_UNIT_DELIMITER& aud, Port const& port, std::shared_ptr<SettingsInterface> media);
 OMX_ERRORTYPE SetVideoAccessUnitDelimiter(OMX_ALG_VIDEO_PARAM_ACCESS_UNIT_DELIMITER const& aud, Port const& port, std::shared_ptr<SettingsInterface> media);
 

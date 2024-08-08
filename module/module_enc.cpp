@@ -881,7 +881,6 @@ void EncModule::EndEncoding(AL_TBuffer* stream, AL_TBuffer const* source)
 {
   AL_HEncoder encoder = encoders.back().enc;
 
-
   BufferHandles bufferHandles;
   media->Get(SETTINGS_INDEX_BUFFER_HANDLES, &bufferHandles);
 

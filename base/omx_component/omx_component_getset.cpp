@@ -1762,6 +1762,48 @@ OMX_ERRORTYPE SetPortEarlyCallback(OMX_ALG_PORT_PARAM_EARLY_CALLBACK const& earl
   return OMX_ErrorNone;
 }
 
+OMX_ERRORTYPE ConstructPortSynchronization(OMX_ALG_PORT_PARAM_SYNCHRONIZATION& srcSync, Port const& port, std::shared_ptr<SettingsInterface> media)
+{
+  if(!IsInputPort(port.index))
+    throw OMX_ErrorBadParameter;
+
+  OMXChecker::SetHeaderVersion(srcSync);
+  srcSync.nPortIndex = port.index;
+  bool shouldUseSrcSync {
+    false
+  };
+  auto ret = media->Get(SETTINGS_INDEX_INPUT_SYNCHRONIZATION, &shouldUseSrcSync);
+  OMX_CHECK_MEDIA_GET(ret);
+  srcSync.bEnableSrcSynchronization = ConvertMediaToOMXBool(shouldUseSrcSync);
+  return OMX_ErrorNone;
+}
+
+static OMX_ERRORTYPE SetSynchronization(OMX_BOOL bEnableSrcSynchronization, shared_ptr<SettingsInterface> media)
+{
+  auto shouldUseSrcSync = ConvertOMXToMediaBool(bEnableSrcSynchronization);
+  auto ret = media->Set(SETTINGS_INDEX_INPUT_SYNCHRONIZATION, &shouldUseSrcSync);
+  OMX_CHECK_MEDIA_SET(ret);
+  return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE SetPortSynchronization(OMX_ALG_PORT_PARAM_SYNCHRONIZATION const& srcSync, Port const& port, std::shared_ptr<SettingsInterface> media)
+{
+  if(!IsInputPort(port.index))
+    throw OMX_ErrorBadParameter;
+
+  OMX_ALG_PORT_PARAM_SYNCHRONIZATION rollback;
+  ConstructPortSynchronization(rollback, port, media);
+  auto ret = SetSynchronization(srcSync.bEnableSrcSynchronization, media);
+
+  if(ret != OMX_ErrorNone)
+  {
+    SetPortSynchronization(rollback, port, media);
+    throw ret;
+  }
+
+  return OMX_ErrorNone;
+}
+
 OMX_ERRORTYPE ConstructVideoAccessUnitDelimiter(OMX_ALG_VIDEO_PARAM_ACCESS_UNIT_DELIMITER& aud, Port const& port, std::shared_ptr<SettingsInterface> media)
 {
   OMXChecker::SetHeaderVersion(aud);

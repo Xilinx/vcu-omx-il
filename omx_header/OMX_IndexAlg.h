@@ -59,6 +59,7 @@ typedef enum OMX_ALG_INDEXTYPE
   OMX_ALG_IndexVendorPortStartUnused = OMX_IndexVendorStartUnused + 0x00200000,
   OMX_ALG_IndexPortParamBufferMode,    /**< reference: OMX_ALG_PORT_PARAM_BUFFER_MODE */
   OMX_ALG_IndexPortParamEarlyCallback, /**< reference: OMX_ALG_PORT_PARAM_EARLY_CALLBACK */
+  OMX_ALG_IndexPortParamSynchronization, /**< reference: OMX_ALG_PORT_PARAM_SYNCHRONIZATION */
 
   /* Vendor Video parameters */
   OMX_ALG_IndexParamVendorVideoStartUnused = OMX_IndexVendorStartUnused + 0x00300000,

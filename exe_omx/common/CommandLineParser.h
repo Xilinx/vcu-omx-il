@@ -13,17 +13,11 @@
 #include <iostream>
 #include "lib_rtos/types.h"
 
-static inline bool ShouldShowAdvancedFeatures()
-{
-  return true;
-}
-
 struct CommandLineParser
 {
 public:
   CommandLineParser() = default;
-  explicit CommandLineParser(bool showAdvancedFeatures_) : showAdvancedFeatures{showAdvancedFeatures_} {};
-  explicit CommandLineParser(std::function<void(std::string)> onOptionParsed_, bool showAdvancedFeatures_) : onOptionParsed{onOptionParsed_}, showAdvancedFeatures{showAdvancedFeatures_} {};
+  explicit CommandLineParser(std::function<void(std::string)> onOptionParsed_) : onOptionParsed{onOptionParsed_} {};
   void setErrorOnUnknown(bool errorOut)
   {
     errorOnUnknown = errorOut;
@@ -35,7 +29,6 @@ public:
     std::string type; /* type of the option */
     std::string desc; /* full formatted description with the name of the option */
     std::string desc_; /* description provided by the user verbatim */
-    bool advancedFeature = false;
     bool repeat = false;
   };
 
@@ -94,7 +87,7 @@ public:
     curSection = sectionName;
   }
 
-  void startDeprecatedSection()
+  void startDeprecatedSection(void)
   {
     startSection(DEPRECATED_SECTION);
   }
@@ -135,31 +128,31 @@ public:
     return readVal<double>(word);
   }
 
-  int popInt()
+  int popInt(void)
   {
     auto word = popWord();
     return readInt(word);
   }
 
-  uint32_t popUint()
+  uint32_t popUint(void)
   {
     auto word = popWord();
     return readUint(word);
   }
 
-  AL_PADDR popPAddr()
+  AL_PADDR popPAddr(void)
   {
     auto word = popWord();
     return readVal<AL_PADDR>(word);
   }
 
-  double popDouble()
+  double popDouble(void)
   {
     auto word = popWord();
     return readDouble(word);
   }
 
-  std::string popWord()
+  std::string popWord(void)
   {
     if(words.empty())
       throw std::runtime_error("Unexpected end of command line, use -h to get help");
@@ -324,10 +317,16 @@ public:
     insertOption(name, o);
   }
 
+  void addNote(std::string name, std::string desc)
+  {
+    insertNote(name, desc);
+  }
+
   std::map<std::string, Option> options;
   std::map<std::string, std::string> descs;
   std::map<std::string, std::string> sections;
   std::map<std::string, std::string> types;
+  std::map<std::string, std::string> notes;
   std::string curSection = "";
   std::vector<std::string> displayOrder;
   std::deque<Option> positionals;
@@ -347,12 +346,6 @@ public:
         std::cout << std::endl;
         std::cout << "  [" << section << "]" << std::endl;
       }
-
-      std::string item;
-      std::stringstream ss(command);
-
-      if(getline(ss, item, ',') && options.at(item).advancedFeature && !showAdvancedFeatures)
-        continue;
 
       std::cout << "  " << descs.at(command) << std::endl;
     }
@@ -393,9 +386,7 @@ public:
       auto name = o_.first;
       auto& o = o_.second;
       auto section = sections.at(name);
-
-      if(o.advancedFeature && !showAdvancedFeatures)
-        continue;
+      std::string note = notes.count(name) == 1 ? notes.at(name) : "";
 
       if(!first)
         std::cout << ", " << std::endl;
@@ -404,34 +395,14 @@ public:
       std::cout << "\"name\":\"" << name << "\"," << std::endl;
       std::cout << "\"type\":\"" << jsonEscape(o.type) << "\"," << std::endl;
       std::cout << "\"description\":\"" << jsonEscape(o.desc_) << "\"," << std::endl;
+
+      if(!note.empty())
+        std::cout << "\"notes\":\"" << note << "\"," << std::endl;
       std::cout << "\"section\":\"" << section << "\"" << std::endl;
       std::cout << "}";
     }
 
     std::cout << std::endl << "]" << std::endl;
-  }
-
-  // You can also use "X,Y,Z unrelated option to set multiple option as advanced at the same time"
-  void setAdvanced(std::string name)
-  {
-    std::string item;
-    std::stringstream ss(name);
-
-    if(isOption(name))
-    {
-      int num_opt = 0;
-
-      while(getline(ss, item, ','))
-      {
-        ++num_opt;
-        options[item].advancedFeature = true;
-      }
-
-      if(num_opt == 0)
-        throw std::runtime_error("You need to call setAdvanced on an existing option");
-    }
-    else
-      throw std::runtime_error("You can't set a positional argument as advanced as it would change the place of all the other positional arguments.");
   }
 
 private:
@@ -455,6 +426,11 @@ private:
     types[name] = o.type;
     sections[name] = curSection;
     displayOrder.push_back(name);
+  }
+
+  void insertNote(std::string name, std::string desc)
+  {
+    notes[name] = desc;
   }
 
   std::string makeDescription(std::string word, std::string type, std::string desc)
@@ -493,7 +469,6 @@ private:
   std::function<void(std::string)> onOptionParsed = [](std::string) {};
   std::vector<std::string> deprecatedWordsParsed;
   bool errorOnUnknown = true;
-  bool showAdvancedFeatures = true;
   static const std::string DEPRECATED_SECTION;
 };
 

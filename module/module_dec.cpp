@@ -292,7 +292,7 @@ void DecModule::ResolutionFound(int bufferNumber, AL_TStreamSettings const& sett
   AL_TPicFormat const tPicFormat = AL_GetDecPicFormat(settings.eChroma, settings.iBitDepth, media->settings.eFBStorageMode, false, AL_PLANE_MODE_MAX_ENUM);
 
   media->stride.horizontal = RoundUp(static_cast<int>(AL_Decoder_GetMinPitch(settings.tDim.iWidth, &tPicFormat)), strideAlignments.horizontal);
-  media->stride.vertical = RoundUp(static_cast<int>(AL_Decoder_GetMinStrideHeight(settings.tDim.iHeight)), strideAlignments.vertical);
+  media->stride.vertical = RoundUp(static_cast<int>(AL_Decoder_GetMinStrideHeight(settings.tDim.iHeight, &tPicFormat)), strideAlignments.vertical);
 
   callbacks.event(Callbacks::Event::RESOLUTION_DETECTED, nullptr);
 }

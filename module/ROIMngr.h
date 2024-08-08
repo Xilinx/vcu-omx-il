@@ -48,9 +48,9 @@ struct AL_TRoiMngrCtx
   int iPicWidth;
   int iPicHeight;
 
-  int iLcuPicWidth;
-  int iLcuPicHeight;
-  int iNumLCUs;
+  int16_t iLcuPicWidth;
+  int16_t iLcuPicHeight;
+  int32_t iNumLCUs;
   uint8_t uLog2MaxCuSize;
   int8_t iMinQP;
   int8_t iMaxQP;

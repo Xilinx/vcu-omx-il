@@ -656,20 +656,54 @@ OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
       auto videoDef = param.format.video;
       auto stride = videoDef.nStride;
       auto sliceHeight = videoDef.nSliceHeight;
-      auto div_coef = is420(videoDef.eColorFormat) ? 2 : 1;
-      auto mul_coef = is444(videoDef.eColorFormat) ? 2 : 1;
       auto height = videoDef.nFrameHeight;
       auto row_size = is8bits(videoDef.eColorFormat) ? videoDef.nFrameWidth :
                       (((videoDef.nFrameWidth + 2) / 3) * 4);
+      const char* p = data;
 
-      /* luma */
-      for(auto h = 0; h < (int)height; h++)
-        outfile.write(&data[h * stride], row_size);
+      for( unsigned h = 0; h < height; h++)
+      {
+          outfile.write( p , row_size);
+          p += stride;
+      }
 
-      /* chroma */
-      if(!is400(videoDef.eColorFormat))
-        for(auto h = sliceHeight; h < sliceHeight + height / div_coef * mul_coef; h++)
-          outfile.write(&data[h * stride], row_size);
+      if( is420(videoDef.eColorFormat) )
+      {
+          p = &data[0] + sliceHeight * stride;
+          height /= 2;
+          for( unsigned h = 0 ; h < height; ++h )
+          {
+              outfile.write( p, row_size );
+              p += stride;
+          }
+      }
+      else if( is422(videoDef.eColorFormat) )
+      {
+          p = &data[0] + sliceHeight * stride;
+          for( unsigned h = 0 ; h < height; ++h )
+          {
+              outfile.write( p, row_size );
+              p += stride;
+          }
+      }
+      else if( is444(videoDef.eColorFormat) )
+      {
+          p = &data[0] + sliceHeight * stride;
+          for( unsigned h = 0 ; h < height; ++h )
+          {
+              outfile.write( p, row_size );
+              p += stride;
+          }
+
+          p = &data[0] + sliceHeight * stride * 2;
+          for( unsigned  h = 0; h < height; ++h )
+          {
+              outfile.write( p, row_size );
+              p += stride;
+          }
+      }
+      else if( ! is400(videoDef.eColorFormat) )
+          assert( 0 && "This should never happen" );
 
       outfile.flush();
     }

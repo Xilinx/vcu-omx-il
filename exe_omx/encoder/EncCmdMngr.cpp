@@ -28,7 +28,7 @@ struct CCmdTokenizer
     m_sVal("")
   {}
 
-  bool GetNext()
+  bool GetNext(void)
   {
     m_sVal = "";
 
@@ -63,7 +63,7 @@ struct CCmdTokenizer
 
   double GetValue() { return atof(m_sVal.c_str()); }
 
-  TBounds GetValueBounds()
+  TBounds GetValueBounds(void)
   {
     TBounds tBounds = { 0, 0 };
 
@@ -80,7 +80,7 @@ struct CCmdTokenizer
     return tBounds;
   }
 
-  std::list<std::string> GetValueList()
+  std::list<std::string> GetValueList(void)
   {
     size_t sLowerPos = m_sVal.find('(');
     size_t sUpperPos = m_sVal.find(')');
@@ -125,7 +125,7 @@ struct CCmdTokenizer
   }
 
   bool operator == (const char* S) const { return m_sLine.substr(m_zBeg, m_zEnd - m_zBeg) == S; }
-  int atoi()
+  int atoi(void)
   {
     return ::atoi(m_sLine.substr(m_zBeg, m_zEnd - m_zBeg).c_str());
   }

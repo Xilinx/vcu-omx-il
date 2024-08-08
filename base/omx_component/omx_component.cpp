@@ -531,6 +531,12 @@ OMX_ERRORTYPE Component::GetParameter(OMX_IN OMX_INDEXTYPE index, OMX_INOUT OMX_
     auto port = getCurrentPort(param);
     return ConstructPortEarlyCallback(*earlyCB, *port, media);
   }
+  case OMX_ALG_IndexPortParamSynchronization:
+  {
+    auto srcSync = static_cast<OMX_ALG_PORT_PARAM_SYNCHRONIZATION*>(param);
+    auto port = getCurrentPort(param);
+    return ConstructPortSynchronization(*srcSync, *port, media);
+  }
   case OMX_ALG_IndexPortParamBufferMode:
   {
     auto port = getCurrentPort(param);
@@ -929,6 +935,11 @@ OMX_ERRORTYPE Component::SetParameter(OMX_IN OMX_INDEXTYPE index, OMX_IN OMX_PTR
   {
     auto earlyCB = static_cast<OMX_ALG_PORT_PARAM_EARLY_CALLBACK*>(param);
     return SetPortEarlyCallback(*earlyCB, *port, media);
+  }
+  case OMX_ALG_IndexPortParamSynchronization:
+  {
+    auto srcSync = static_cast<OMX_ALG_PORT_PARAM_SYNCHRONIZATION*>(param);
+    return SetPortSynchronization(*srcSync, *port, media);
   }
   case OMX_IndexParamVideoPortFormat:
   {

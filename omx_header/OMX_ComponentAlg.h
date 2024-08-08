@@ -85,6 +85,23 @@ typedef struct OMX_ALG_PORT_PARAM_EARLY_CALLBACK
 }OMX_ALG_PORT_PARAM_EARLY_CALLBACK;
 
 /**
+ * Input Synchronization parameters
+ *
+ * STRUCT MEMBERS:
+ *  nSize                : Size of the structure in bytes
+ *  nVersion             : OMX specification version information
+ *  nPortIndex           : Port that this structure applies to
+ *  bEnableSrcSynchronization : Indicate if input src synchronization should be enabled
+ */
+typedef struct OMX_ALG_PORT_PARAM_SYNCHRONIZATION
+{
+  OMX_U32 nSize;
+  OMX_VERSIONTYPE nVersion;
+  OMX_U32 nPortIndex;
+  OMX_BOOL bEnableSrcSynchronization;
+}OMX_ALG_PORT_PARAM_SYNCHRONIZATION;
+
+/**
  * Component reported latency parameters
  *
  * STRUCT MEMBERS:
