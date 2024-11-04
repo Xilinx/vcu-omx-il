@@ -339,7 +339,7 @@ void EncComponent::TreatEmptyBufferCommand(Task* task)
 
   auto handle = new OMXBufferHandle(header);
 
-  seisMap.Add(handle, move(tmpSeis));
+  seisMap.Add(handle, std::move(tmpSeis));
   auto success = module->Empty(handle);
   assert(success);
 

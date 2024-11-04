@@ -76,7 +76,6 @@ endif
 
 include $(THIS)/builder.mk
 
-DEFAULT_CFLAGS:=$(CFLAGS)
 DEFAULT_CFLAGS+=-O3
 DEFAULT_CFLAGS+=-pedantic
 DEFAULT_CFLAGS+=-g0
@@ -84,6 +83,7 @@ DEFAULT_CFLAGS+=-Wall
 DEFAULT_CFLAGS+=-Wextra
 
 DEFAULT_CFLAGS+=-Wno-missing-field-initializers
+DEFAULT_CFLAGS+=$(CFLAGS)
 
 DEFAULT_LDFLAGS:=$(LDFLAGS)
 

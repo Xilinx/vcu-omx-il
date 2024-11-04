@@ -8,15 +8,19 @@
 #include <sstream>
 #include <iomanip>
 #include <queue>
+#include <vector>
 #include <map>
 #include <stdexcept>
 #include <iostream>
-#include "lib_rtos/types.h"
+#include "lib_app/TypeName.h"
 
+extern "C"
+{
+#include "lib_rtos/types.h"
+}
 struct CommandLineParser
 {
-public:
-  CommandLineParser() = default;
+  explicit CommandLineParser(void) = default;
   explicit CommandLineParser(std::function<void(std::string)> onOptionParsed_) : onOptionParsed{onOptionParsed_} {};
   void setErrorOnUnknown(bool errorOut)
   {
@@ -108,14 +112,14 @@ public:
     ss >> value;
 
     if(ss.fail() || ss.tellg() != std::streampos(-1))
-      throw std::runtime_error("Expected an integer, got '" + word + "'");
+      throw std::runtime_error("Expected an " + type_name<T>() + ", got '" + word + "'");
 
     return value;
   }
 
-  int readInt(std::string word)
+  int32_t readInt(std::string word)
   {
-    return readVal<int>(word);
+    return readVal<int32_t>(word);
   }
 
   uint32_t readUint(std::string word)
@@ -128,7 +132,7 @@ public:
     return readVal<double>(word);
   }
 
-  int popInt(void)
+  int32_t popInt(void)
   {
     auto word = popWord();
     return readInt(word);
@@ -199,6 +203,30 @@ public:
   void addCustom(std::string name, VariableType* value, std::function<ParserRetType(std::string const &)> customParser, std::string desc_, std::string const& type = "")
   {
     setCustom_(name, value, customParser, desc_, type);
+  }
+
+  template<typename VariableType, typename Func>
+  void setCustomVector_(std::string name, std::vector<VariableType>& values, Func customParser, std::string desc_, std::string const& type)
+  {
+    Option o;
+    o.parser = [=, &values](std::string word)
+               {
+                 if(isOption(word))
+                   values.push_back((VariableType)customParser(popWord()));
+                 else
+                   values.push_back((VariableType)customParser(word));
+               };
+    o.type = type;
+    o.desc_ = desc_;
+    o.desc = makeDescription(name, type, desc_);
+    insertOption(name, o);
+  }
+
+  // add an option with a user-provided value parsing function
+  template<typename VariableType, typename ParserRetType>
+  void addCustom(std::string name, std::vector<VariableType>& values, std::function<ParserRetType(std::string const &)> customParser, std::string desc_, std::string const& type = "")
+  {
+    setCustomVector_(name, values, customParser, desc_, type);
   }
 
   template<typename T>
@@ -296,6 +324,24 @@ public:
                    *value = popWord();
                  else
                    *value = word;
+               };
+    insertOption(name, o);
+  }
+
+  template<typename T>
+  void addStringWithAFlag(std::string name, std::string* sValue, std::string desc_, T* flag, T tValue = (T) 1)
+  {
+    Option o;
+    o.type = "string";
+    o.desc_ = desc_;
+    o.desc = makeDescription(name, o.type, desc_);
+    o.parser = [=](std::string word)
+               {
+                 if(isOption(word))
+                   *sValue = popWord();
+                 else
+                   *sValue = word;
+                 *flag = tValue;
                };
     insertOption(name, o);
   }

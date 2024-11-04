@@ -7,6 +7,39 @@
 
 #include "helpers.h"
 
+struct fourcc_map
+{
+  const char* fourcc;
+  enum OMX_ALG_COLOR_FORMATTYPE format;
+};
+
+static struct fourcc_map supported_fourcc[]
+{
+// VCU1
+  {
+    "Y800", OMX_ALG_COLOR_FormatL8
+  },
+  {
+    "XV10", OMX_ALG_COLOR_FormatL10bitPacked
+  },
+  {
+    "NV12", OMX_ALG_COLOR_FormatYUV420SemiPlanar,
+  },
+  {
+    "XV15", OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked
+  },
+  {
+    "NV16", OMX_ALG_COLOR_FormatYUV422SemiPlanar
+  },
+  {
+    "XV20", OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked
+  },
+// VCU2
+  {
+    NULL, OMX_ALG_COLOR_FormatUnused
+  }
+};
+
 static inline size_t AlignToPageSize(size_t size)
 {
   unsigned long pagesize = sysconf(_SC_PAGESIZE);
@@ -51,42 +84,34 @@ void Buffer_UnmapData(char* data, size_t zSize, bool use_dmabuf)
 
 bool setChroma(std::string user_chroma, OMX_COLOR_FORMATTYPE* chroma)
 {
-  if(user_chroma == "y800")
-    *chroma = OMX_COLOR_FormatL8;
-  else if(user_chroma == "nv12")
-    *chroma = OMX_COLOR_FormatYUV420SemiPlanar;
-  else if(user_chroma == "nv16")
-    *chroma = OMX_COLOR_FormatYUV422SemiPlanar;
-  else if(user_chroma == "i444")
-    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar8bit);
+  int i;
+  char fcc[4];
+  struct fourcc_map* entry;
 
-  else if(user_chroma == "xv10")
-    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bitPacked);
-  else if(user_chroma == "xv15")
-    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked);
-  else if(user_chroma == "xv20")
-    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked);
-
-  else if(user_chroma == "y010")
-    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL10bit);
-  else if(user_chroma == "p010")
-    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bit);
-  else if(user_chroma == "p210")
-    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bit);
-  else if(user_chroma == "i4al")
-    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar10bit);
-
-  else if(user_chroma == "y012")
-    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatL12bit);
-  else if(user_chroma == "p012")
-    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit);
-  else if(user_chroma == "p212")
-    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit);
-  else if(user_chroma == "i4cl")
-    *chroma = static_cast<OMX_COLOR_FORMATTYPE>(OMX_ALG_COLOR_FormatYUV444Planar12bit);
-  else
+  if(user_chroma.size() != 4)
     return false;
-  return true;
+
+  for(i = 0; i < 4; ++i)
+    fcc[i] = toupper(user_chroma.c_str()[i]);
+
+  i = 0;
+
+  for(;;)
+  {
+    entry = &supported_fourcc[i];
+
+    if(entry->fourcc == NULL)
+      break;
+
+    if(strncmp(entry->fourcc, fcc, 4) == 0)
+    {
+      *chroma = (OMX_COLOR_FORMATTYPE)entry->format;
+      return true;
+    }
+    ++i;
+  }
+
+  return false;
 }
 
 extern "C" bool setChromaWrapper(char* user_chroma, OMX_COLOR_FORMATTYPE* chroma)
@@ -95,4 +120,76 @@ extern "C" bool setChromaWrapper(char* user_chroma, OMX_COLOR_FORMATTYPE* chroma
     user_chroma
   };
   return setChroma(user_chroma_string, chroma);
+}
+
+bool isFormatSupported(OMX_COLOR_FORMATTYPE format)
+{
+  struct fourcc_map* m;
+  int i;
+
+  i = 0;
+
+  for(;;)
+  {
+    m = &supported_fourcc[i];
+
+    if(m->fourcc == NULL)
+      break;
+
+    if(m->format == (OMX_ALG_COLOR_FORMATTYPE)format)
+      return true;
+    ++i;
+  }
+
+  return false;
+}
+
+void appendSupportedFourccString(std::string& str)
+{
+  struct fourcc_map* m;
+  int i;
+
+  i = 0;
+
+  for(;;)
+  {
+    m = &supported_fourcc[i];
+
+    if(m->fourcc == NULL)
+      break;
+
+    str += m->fourcc;
+    str += " | ";
+
+    ++i;
+  }
+
+  if(i)
+    str.resize(str.length() - 3);
+}
+
+bool is8bits(OMX_COLOR_FORMATTYPE format)
+{
+  switch((OMX_U32)format)
+  {
+  case OMX_COLOR_FormatL8:
+  case OMX_ALG_COLOR_FormatL8bitTiled32x4:
+  case OMX_ALG_COLOR_FormatL8bitTiled64x4:
+
+  case OMX_COLOR_FormatYUV420SemiPlanar:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar8bitTiled32x4:
+  case OMX_ALG_COLOR_FormatYUV420SemiPlanar8bitTiled64x4:
+
+  case OMX_COLOR_FormatYUV422SemiPlanar:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar8bitTiled32x4:
+  case OMX_ALG_COLOR_FormatYUV422SemiPlanar8bitTiled64x4:
+
+  case OMX_ALG_COLOR_FormatYUV444Planar8bit:
+  case OMX_ALG_COLOR_FormatYUV444Planar8bitTiled32x4:
+  case OMX_ALG_COLOR_FormatYUV444Planar8bitTiled64x4:
+    return true;
+
+  default:
+    return false;
+  }
 }

@@ -1,11 +1,9 @@
 // SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-/****************************************************************************
-   -----------------------------------------------------------------------------
- **************************************************************************//*!
+/******************************************************************************
    \addtogroup ExeEncoder
-   @{
+   !@{
    \file
  *****************************************************************************/
 #pragma once
@@ -15,7 +13,7 @@ extern "C"
 #include <lib_common_enc/EncBuffers.h>
 }
 
-/*************************************************************************//*!
+/*****************************************************************************
    \brief Types of ROI
 *****************************************************************************/
 typedef enum
@@ -28,7 +26,7 @@ typedef enum
   AL_ROI_QUALITY_MAX_ENUM,
 }AL_ERoiQuality;
 
-/*************************************************************************//*!
+/*****************************************************************************
    \brief Priority in case of intersecting ROIs
 *****************************************************************************/
 typedef enum
@@ -40,7 +38,7 @@ typedef enum
 
 struct AL_TRoiNode;
 
-/*************************************************************************//*!
+/*****************************************************************************
    \brief ROI Manager context
 *****************************************************************************/
 struct AL_TRoiMngrCtx
@@ -64,7 +62,7 @@ struct AL_TRoiMngrCtx
   int16_t* pDeltaQpSegments;
 };
 
-/*************************************************************************//*!
+/*****************************************************************************
    \brief Create a ROI Manager context
    \param[in] iPicWidth Source width
    \param[in] iPicHeight Source Height
@@ -76,19 +74,19 @@ struct AL_TRoiMngrCtx
 *****************************************************************************/
 AL_TRoiMngrCtx* AL_RoiMngr_Create(int iPicWidth, int iPicHeight, AL_EProfile eProf, uint8_t uLog2MaxCuSize, AL_ERoiQuality eBkgQuality, AL_ERoiOrder eOrder);
 
-/*************************************************************************//*!
+/*****************************************************************************
    \brief Destroy a ROI Manager context
    \param[in] pCtx Pointer to the ROI Manager context to destroy
 *****************************************************************************/
 void AL_RoiMngr_Destroy(AL_TRoiMngrCtx* pCtx);
 
-/*************************************************************************//*!
+/*****************************************************************************
    \brief Clear all ROIs of a ROI Manager
    \param[in] pCtx Pointer to the ROI Manager context to clear
 *****************************************************************************/
 void AL_RoiMngr_Clear(AL_TRoiMngrCtx* pCtx);
 
-/*************************************************************************//*!
+/*****************************************************************************
    \brief Add a ROI to a ROI Manager
    \param[in] pCtx Pointer to the ROI Manager context
    \param[in] iPosX Left position of the ROI
@@ -100,7 +98,7 @@ void AL_RoiMngr_Clear(AL_TRoiMngrCtx* pCtx);
 *****************************************************************************/
 bool AL_RoiMngr_AddROI(AL_TRoiMngrCtx* pCtx, int iPosX, int iPosY, int iWidth, int iHeight, AL_ERoiQuality eQuality);
 
-/*************************************************************************//*!
+/*****************************************************************************
    \brief Fill a QP table buffer according to the configuration of a ROI Manager
    \param[in] pCtx Pointer to the ROI Manager context
    \param[in] iNumQPPerLCU Number of QP values for a codec LCU
@@ -110,4 +108,4 @@ bool AL_RoiMngr_AddROI(AL_TRoiMngrCtx* pCtx, int iPosX, int iPosY, int iWidth, i
 *****************************************************************************/
 void AL_RoiMngr_FillBuff(AL_TRoiMngrCtx* pCtx, int iNumQPPerLCU, int iNumBytesPerLCU, uint8_t* pQPs, int iLcuQpOffset);
 
-/*@}*/
+/*!@}*/

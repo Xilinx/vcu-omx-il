@@ -58,34 +58,43 @@ extern "C" {
 /** Extended enumeration of video formats */
 typedef enum OMX_ALG_COLOR_FORMATTYPE
 {
+
+  OMX_ALG_COLOR_FormatL8 = OMX_COLOR_FormatL8,
+  OMX_ALG_COLOR_FormatYUV420SemiPlanar = OMX_COLOR_FormatYUV420SemiPlanar,
+  OMX_ALG_COLOR_FormatYUV422SemiPlanar = OMX_COLOR_FormatYUV422SemiPlanar,
+
+
   OMX_ALG_COLOR_FormatUnused = OMX_COLOR_FormatVendorStartUnused,
   OMX_ALG_COLOR_FormatL8bitTiled32x4,
   OMX_ALG_COLOR_FormatL8bitTiled64x4,
   OMX_ALG_COLOR_FormatL10bitTiled32x4,
   OMX_ALG_COLOR_FormatL10bitTiled64x4,
-  OMX_ALG_COLOR_FormatL10bitPacked,
+  OMX_ALG_COLOR_FormatL10bitPacked, // XV10
   OMX_ALG_COLOR_FormatL10bit,
   OMX_ALG_COLOR_FormatL12bitTiled32x4,
   OMX_ALG_COLOR_FormatL12bitTiled64x4,
   OMX_ALG_COLOR_FormatL12bit,
+
   OMX_ALG_COLOR_FormatYUV420SemiPlanar8bitTiled32x4,
   OMX_ALG_COLOR_FormatYUV420SemiPlanar8bitTiled64x4,
   OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitTiled32x4,
   OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitTiled64x4,
-  OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked,
+  OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked, // XV15
   OMX_ALG_COLOR_FormatYUV420SemiPlanar10bit,
   OMX_ALG_COLOR_FormatYUV420SemiPlanar12bitTiled32x4,
   OMX_ALG_COLOR_FormatYUV420SemiPlanar12bitTiled64x4,
   OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit,
+
   OMX_ALG_COLOR_FormatYUV422SemiPlanar8bitTiled32x4,
   OMX_ALG_COLOR_FormatYUV422SemiPlanar8bitTiled64x4,
   OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitTiled32x4,
   OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitTiled64x4,
-  OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked,
+  OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked, // XV20
   OMX_ALG_COLOR_FormatYUV422SemiPlanar10bit,
   OMX_ALG_COLOR_FormatYUV422SemiPlanar12bitTiled32x4,
   OMX_ALG_COLOR_FormatYUV422SemiPlanar12bitTiled64x4,
   OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit,
+
   OMX_ALG_COLOR_FormatYUV444Planar8bitTiled32x4,
   OMX_ALG_COLOR_FormatYUV444Planar8bitTiled64x4,
   OMX_ALG_COLOR_FormatYUV444Planar8bit,

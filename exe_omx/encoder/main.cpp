@@ -42,6 +42,7 @@
 #include "../common/getters.h"
 #include "../common/CommandLineParser.h"
 #include "../common/codec.h"
+#include "../common/YuvReadWrite.h"
 
 extern "C"
 {
@@ -50,6 +51,8 @@ extern "C"
 }
 
 #include "RCPlugin.h"
+
+#define DEFAULT_MAX_FRAMES 0
 
 using namespace std;
 
@@ -83,6 +86,7 @@ struct Settings
   OMX_VIDEO_CONTROLRATETYPE eControlRate;
   int targetBitrate;
   bool isVideoFullRangeEnabled;
+  int maxFrames = DEFAULT_MAX_FRAMES;
 };
 
 struct Application
@@ -359,6 +363,8 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   string fourcc = "nv12";
   string controlRate = "";
 
+  string supported_fourccc;
+
   CommandLineParser opt {};
   opt.addString("input_file", &input_file, "Input file");
   opt.addFlag("--help", &help, "Show this help");
@@ -367,12 +373,13 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addInt("--framerate", &settings.framerate, "Input fps ('1')");
   opt.addString("--device", &settings.deviceName, "Device's name");
   opt.addString("--out", &output_file, "Output compressed file name");
-  opt.addString("--fourcc", &fourcc, "Input file fourcc <y800 || nv12 "
-                "|| nv16 "
-                "|| xv10 "
-                "|| xv15 "
-                "|| xv20 "
-                "> ('nv12')");
+
+  std::string str;
+  str = "Input file format";
+  appendSupportedFourccString(str);
+  str.append(" ('NV12') ");
+  opt.addString("--fourcc", &fourcc, str);
+  str.clear();
 
   opt.addFlag("--hevc", &settings.codec, "Use the default hevc encoder", Codec::HEVC);
   opt.addFlag("--avc", &settings.codec, "Use the default avc encoder", Codec::AVC);
@@ -392,6 +399,7 @@ static void parseCommandLine(int argc, char** argv, Application& app)
   opt.addString("--rate-control-type", &controlRate, "Available rate control mode: CONST_QP, CBR, VBR and PLUGIN");
   opt.addInt("--target-bitrate", &settings.targetBitrate, "Targeted bitrate (Not applicable in CONST_QP)");
   opt.addFlag("--video-full-range", &settings.isVideoFullRangeEnabled, "Enable Video Full Range");
+  opt.addUint("--max-frames", &settings.maxFrames, "Specify number or frames to encode (default: 0 -> continue until EOF)");
 
   opt.parse(argc, argv);
 
@@ -449,63 +457,6 @@ static void parseCommandLine(int argc, char** argv, Application& app)
       break;
     }
   }
-}
-
-static bool readOneYuvFrame(OMX_BUFFERHEADERTYPE* pBufferHdr, Application const& app)
-{
-  if(infile.peek() == EOF)
-    return false;
-
-  auto width = paramPort.format.video.nFrameWidth;
-  auto height = paramPort.format.video.nFrameHeight;
-
-  static int input_frame_count;
-  LOG_VERBOSE(string { string { "Reading input frame: " } +to_string(input_frame_count) });
-  auto stride = paramPort.format.video.nStride;
-  auto sliceHeight = paramPort.format.video.nSliceHeight;
-  LOG_VERBOSE(string { std::to_string(width) + string { "x" } +to_string(height) + string { "(" } +to_string(stride) + string { "x" } +to_string(sliceHeight) + string { ")" }
-              });
-  input_frame_count++;
-
-  auto color = app.settings.format;
-  auto row_size = is8bits(color) ? width :
-                  (((width + 2) / 3) * 4);
-
-  auto div_coef = is420(color) ? 2 : 1;
-  auto mul_coef = is444(color) ? 2 : 1;
-
-  auto column_size = is400(color) ? height : height + (height / div_coef) * mul_coef;
-  auto size = row_size * column_size;
-  vector<uint8_t> frame(size);
-
-  infile.read((char*)frame.data(), frame.size());
-
-  auto dst = Buffer_MapData((char*)(pBufferHdr->pBuffer), pBufferHdr->nOffset, pBufferHdr->nAllocLen, app.input.isDMA);
-
-  /* luma */
-  for(auto h = 0; h < (int)height; h++)
-  {
-    memcpy(&dst[h * stride], &frame.data()[h * row_size], row_size);
-  }
-
-  /* chroma */
-  if(!is400(color))
-  {
-    for(struct { long unsigned int sh; long unsigned int h; } v { sliceHeight, height }; v.h < height + ((height / div_coef) * mul_coef); v.sh++, v.h++)
-    {
-      if((v.h > height) && ((v.h % (height / div_coef)) == 0))
-        v.sh = sliceHeight * 2;
-
-      memcpy(&dst[v.sh * stride], &frame.data()[v.h * row_size], row_size);
-    }
-  }
-
-  pBufferHdr->nFilledLen = pBufferHdr->nAllocLen;
-  assert(pBufferHdr->nFilledLen <= pBufferHdr->nAllocLen);
-
-  Buffer_UnmapData((char*)pBufferHdr->pBuffer, pBufferHdr->nAllocLen, app.input.isDMA);
-
-  return true;
 }
 
 // Callbacks implementation of the video encoder component
@@ -574,21 +525,42 @@ static OMX_ERRORTYPE onComponentEvent(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
 
 static void Read(OMX_BUFFERHEADERTYPE* pBuffer, Application& app)
 {
-  static int frame = 0;
-  pBuffer->nFlags = 0; // clear flags;
-  auto eos = (readOneYuvFrame(pBuffer, app) == false);
-  pBuffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
+  static int frameCount = 0;
 
-  if(eos)
+  pBuffer->nFlags = 0; // clear flags;
+
+  int width = paramPort.format.video.nFrameWidth;
+  int height = paramPort.format.video.nFrameHeight;
+  OMX_S32 bufferPlaneStride = paramPort.format.video.nStride;
+  OMX_U32 bufferPlaneStrideHeight = paramPort.format.video.nSliceHeight;
+  auto color = app.settings.format;
+
+  LOG_VERBOSE(string { string { "Reading input frame: " } +to_string(frameCount) });
+  LOG_VERBOSE(string { std::to_string(width) + string { "x" } +to_string(height) + string { "( " } +to_string(bufferPlaneStride) + string { "x" } +to_string(bufferPlaneStrideHeight) + string { ")" }
+              });
+
+  char* dst = Buffer_MapData((char*)(pBuffer->pBuffer), pBuffer->nOffset, pBuffer->nAllocLen, app.input.isDMA);
+  int read_count = readOneYuvFrame(infile, color, width, height, dst, bufferPlaneStride, bufferPlaneStrideHeight);
+  Buffer_UnmapData((char*)pBuffer->pBuffer, pBuffer->nAllocLen, app.input.isDMA);
+
+  if(read_count)
   {
+// pBuffer->nFilledLen = read_count;
+// assert(pBuffer->nFilledLen <= pBuffer->nAllocLen);
+    pBuffer->nFilledLen = pBuffer->nAllocLen;
+    pBuffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
+    app.encCmd->Process(app.cmdSender, frameCount);
+    ++frameCount;
+  }
+
+  if((read_count == 0) || (frameCount == app.settings.maxFrames))
+  {
+    frameCount = 0;
+
     pBuffer->nFlags |= OMX_BUFFERFLAG_EOS;
     app.input.isEOS = true;
     LOG_IMPORTANT("Waiting for EOS...");
-    return;
   }
-
-  app.encCmd->Process(app.cmdSender, frame);
-  frame++;
 }
 
 static OMX_ERRORTYPE onInputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_BUFFERHEADERTYPE* pBuffer)
@@ -888,7 +860,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
     seiSuffix.pBuffer[i] = seiSuffix.nFilledLen - 1 - i;
   }
 
-  for(auto i = 0; i < get.GetBuffersCount(app.input.index); i++)
+  for(auto i = 0; i < 1; ++i)
   {
     auto buf = app.input.buffers.at(i);
     Read(buf, app);

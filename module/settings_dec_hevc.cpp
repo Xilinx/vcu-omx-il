@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 #include <cstring> // memset
-#include <cmath>
 #include <cassert>
+#include <math.h>
 #include <utility/round.h>
 #include "settings_dec_hevc.h"
 #include "settings_dec_itu.h"

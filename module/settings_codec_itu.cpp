@@ -7,15 +7,15 @@
 
 using namespace std;
 
-vector<Format> CreateFormatsSupported(vector<ColorType> colors, vector<int> bitdepths, vector<StorageType> storages)
+vector<Format> CreateFormatsSupported(vector<ColorType> const& colors, vector<int> const& bitdepths, vector<StorageType> const& storages)
 {
   vector<Format> formatsSupported;
 
-  for(auto color : colors)
+  for(auto const& color : colors)
   {
-    for(auto bitdepth : bitdepths)
+    for(auto const& bitdepth : bitdepths)
     {
-      for(auto storage : storages)
+      for(auto const& storage : storages)
       {
         Format format;
         format.color = color;
@@ -29,7 +29,7 @@ vector<Format> CreateFormatsSupported(vector<ColorType> colors, vector<int> bitd
   return formatsSupported;
 }
 
-bool UpdateBufferHandles(BufferHandles& current, BufferHandles bufferHandles)
+bool UpdateBufferHandles(BufferHandles& current, BufferHandles const& bufferHandles)
 {
   if(!CheckBufferHandles(bufferHandles))
     return false;

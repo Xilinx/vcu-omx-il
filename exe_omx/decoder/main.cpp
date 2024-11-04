@@ -37,12 +37,17 @@
 #include "../common/helpers.h"
 #include "../common/CommandLineParser.h"
 #include "../common/codec.h"
+#include "../common/YuvReadWrite.h"
 
 extern "C"
 {
 #include "lib_fpga/DmaAlloc.h"
 #include "lib_fpga/DmaAllocLinux.h"
 }
+
+#define PORT_INPUT 0
+#define PORT_OUTPUT 1
+#define DEFAULT_MAX_FRAMES_COUNT 0
 
 using namespace std;
 
@@ -154,7 +159,8 @@ struct Settings
   bool bDMAOut = false;
   OMX_ALG_BUFFER_MODE eDMAIn = OMX_ALG_BUF_NORMAL;
   OMX_ALG_BUFFER_MODE eDMAOut = OMX_ALG_BUF_NORMAL;
-  OMX_COLOR_FORMATTYPE chroma = OMX_COLOR_FormatYUV420SemiPlanar;
+  OMX_COLOR_FORMATTYPE eChromaIn = OMX_COLOR_FormatYUV420SemiPlanar;
+  OMX_COLOR_FORMATTYPE eChromaOut = OMX_COLOR_FormatUnused;
   int width = 176;
   int height = 144;
   OMX_U32 level = OMX_VIDEO_HEVCLevelUnknown;
@@ -164,6 +170,8 @@ struct Settings
   bool hasPrealloc = false;
   bool enableSubframe = false;
   string deviceName = string("/dev/allegroDecodeIP");
+
+  int maxFrames = DEFAULT_MAX_FRAMES_COUNT;
 };
 
 struct Application
@@ -260,7 +268,7 @@ void parsePreAllocArgs(Settings* settings, string& toParse)
   getExpectedSeparator(ss, ':');
   ss >> settings->level;
 
-  if(!setChroma(chroma, &settings->chroma) || !isFormatSupported(settings->chroma))
+  if(!setChroma(chroma, &settings->eChromaIn) || !isFormatSupported(settings->eChromaIn))
     throw runtime_error("wrong prealloc chroma format");
 
   if(!setSequence(seq, &settings->sequencePicture))
@@ -304,6 +312,15 @@ void parseCommandLine(int argc, char** argv, Application& app)
   opt.addFlag("--subframe", &settings.enableSubframe, "Use the subframe latency mode");
   opt.addFlag("--print-sei", &print_sei, "Print SEI on stdout");
 
+  // output-format
+  std::string output_format;
+  std::string str;
+  str = "Specify output format";
+  appendSupportedFourccString(str);
+  opt.addString("--output-format", &output_format, str);
+  str.clear();
+  opt.addUint("--max-frames", &settings.maxFrames, "Specify number or frames to decode (default: 0 -> continue until EOF)");
+
   if(argc < 2)
   {
     Usage(opt, argv[0]);
@@ -316,6 +333,19 @@ void parseCommandLine(int argc, char** argv, Application& app)
   {
     Usage(opt, argv[0]);
     exit(0);
+  }
+
+  // output-format
+  if(output_format.size())
+  {
+    bool b;
+    b = setChroma(output_format, &settings.eChromaOut);
+
+    if(b == false)
+    {
+      cerr << "[Error] Unhandled output format";
+      exit(1);
+    }
   }
 
   Codec codec = Codec::HEVC;
@@ -607,7 +637,7 @@ static OMX_ERRORTYPE setPortParameters(Application& app)
   // This should always be done at the beginning
   auto updateColorFormat = [&](OMX_VIDEO_PARAM_PORTFORMATTYPE& format)
                            {
-                             format.eColorFormat = app.settings.chroma;
+                             format.eColorFormat = app.settings.eChromaIn;
                            };
   OMX_CALL(PortSetup<OMX_VIDEO_PARAM_PORTFORMATTYPE>(app.hDecoder, OMX_IndexParamVideoPortFormat, updateColorFormat, 1));
 
@@ -631,6 +661,7 @@ OMX_ERRORTYPE onInputBufferAvailable(OMX_HANDLETYPE /*hComponent*/, OMX_PTR pApp
 
 OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_BUFFERHEADERTYPE* pBuffer)
 {
+  static int frameCount = 0;
   static bool end = false;
   auto app = static_cast<Application*>(pAppData);
 
@@ -644,73 +675,28 @@ OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
 
   if(pBuffer->nFilledLen)
   {
-    auto data = Buffer_MapData((char*)(pBuffer->pBuffer), pBuffer->nOffset, pBuffer->nAllocLen, app->settings.bDMAOut);
+    char* data = Buffer_MapData((char*)(pBuffer->pBuffer), pBuffer->nOffset, pBuffer->nAllocLen, app->settings.bDMAOut);
 
-    if(data)
-    {
-      OMX_PARAM_PORTDEFINITIONTYPE param;
-
-      InitHeader(param);
-      param.nPortIndex = 1;
-      OMX_CALL(OMX_GetParameter(app->hDecoder, OMX_IndexParamPortDefinition, &param));
-      auto videoDef = param.format.video;
-      auto stride = videoDef.nStride;
-      auto sliceHeight = videoDef.nSliceHeight;
-      auto height = videoDef.nFrameHeight;
-      auto row_size = is8bits(videoDef.eColorFormat) ? videoDef.nFrameWidth :
-                      (((videoDef.nFrameWidth + 2) / 3) * 4);
-      const char* p = data;
-
-      for( unsigned h = 0; h < height; h++)
-      {
-          outfile.write( p , row_size);
-          p += stride;
-      }
-
-      if( is420(videoDef.eColorFormat) )
-      {
-          p = &data[0] + sliceHeight * stride;
-          height /= 2;
-          for( unsigned h = 0 ; h < height; ++h )
-          {
-              outfile.write( p, row_size );
-              p += stride;
-          }
-      }
-      else if( is422(videoDef.eColorFormat) )
-      {
-          p = &data[0] + sliceHeight * stride;
-          for( unsigned h = 0 ; h < height; ++h )
-          {
-              outfile.write( p, row_size );
-              p += stride;
-          }
-      }
-      else if( is444(videoDef.eColorFormat) )
-      {
-          p = &data[0] + sliceHeight * stride;
-          for( unsigned h = 0 ; h < height; ++h )
-          {
-              outfile.write( p, row_size );
-              p += stride;
-          }
-
-          p = &data[0] + sliceHeight * stride * 2;
-          for( unsigned  h = 0; h < height; ++h )
-          {
-              outfile.write( p, row_size );
-              p += stride;
-          }
-      }
-      else if( ! is400(videoDef.eColorFormat) )
-          assert( 0 && "This should never happen" );
-
-      outfile.flush();
-    }
-    else
+    if(data == NULL)
       assert(0);
 
+    OMX_PARAM_PORTDEFINITIONTYPE param;
+    InitHeader(param);
+    param.nPortIndex = PORT_OUTPUT;
+    OMX_CALL(OMX_GetParameter(app->hDecoder, OMX_IndexParamPortDefinition, &param));
+
+    int width = param.format.video.nFrameWidth;
+    int height = param.format.video.nFrameHeight;
+    OMX_S32 bufferPlaneStride = param.format.video.nStride;
+    OMX_U32 bufferPlaneStrideHeight = param.format.video.nSliceHeight;
+    auto color = param.format.video.eColorFormat;
+
+    writeOneYuvFrame(outfile, color, width, height, data, bufferPlaneStride, bufferPlaneStrideHeight);
+    outfile.flush();
+
     Buffer_UnmapData(data, pBuffer->nAllocLen, app->settings.bDMAOut);
+
+    ++frameCount;
   }
 
   pBuffer->nFilledLen = 0;
@@ -718,8 +704,12 @@ OMX_ERRORTYPE onOutputBufferAvailable(OMX_HANDLETYPE hComponent, OMX_PTR pAppDat
 
   OMX_CALL(OMX_FillThisBuffer(hComponent, pBuffer));
 
+  if(frameCount == app->settings.maxFrames)
+    wasEos = true;
+
   if(wasEos)
   {
+    frameCount = 0;
     end = true;
     app->eventBus.queueEvent({ eosEvent, nullptr });
   }
@@ -789,14 +779,14 @@ OMX_ERRORTYPE setDimensions(Application& app)
   return OMX_ErrorNone;
 }
 
-OMX_ERRORTYPE setFormat(Application& app)
+static OMX_ERRORTYPE setFormat(Application& app, int port, OMX_COLOR_FORMATTYPE color_format)
 {
   auto updateFormat = [&](OMX_VIDEO_PARAM_PORTFORMATTYPE& format)
                       {
-                        format.eColorFormat = app.settings.chroma;
+                        format.eColorFormat = color_format;
                         format.xFramerate = app.settings.framerate;
                       };
-  OMX_CALL(PortSetup<OMX_VIDEO_PARAM_PORTFORMATTYPE>(app.hDecoder, OMX_IndexParamVideoPortFormat, updateFormat, 0));
+  OMX_CALL(PortSetup<OMX_VIDEO_PARAM_PORTFORMATTYPE>(app.hDecoder, OMX_IndexParamVideoPortFormat, updateFormat, port));
   return OMX_ErrorNone;
 }
 
@@ -826,7 +816,7 @@ OMX_ERRORTYPE setPreallocParameters(Application& app)
   if(error != OMX_ErrorNone)
     return error;
 
-  error = setFormat(app);
+  error = setFormat(app, PORT_INPUT, app.settings.eChromaIn);
 
   if(error != OMX_ErrorNone)
     return error;
@@ -858,8 +848,8 @@ OMX_ERRORTYPE setWorstCaseParameters(Application& app)
 
   settings.framerate = 1 << 16;
 
-  settings.chroma = returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV444Planar12bit) :
-                    returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV444Planar10bit) : returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV444Planar8bit) : returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit) : returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bit) : returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked) : returnsFormatIfSupported(OMX_COLOR_FormatYUV422SemiPlanar) : returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit) : returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bit) : returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked) : static_cast<OMX_COLOR_FORMATTYPE>(OMX_COLOR_FormatYUV420SemiPlanar);
+  settings.eChromaIn = returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV444Planar12bit) :
+                       returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV444Planar10bit) : returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV444Planar8bit) : returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV422SemiPlanar12bit) : returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bit) : returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV422SemiPlanar10bitPacked) : returnsFormatIfSupported(OMX_COLOR_FormatYUV422SemiPlanar) : returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV420SemiPlanar12bit) : returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bit) : returnsFormatIfSupported(OMX_ALG_COLOR_FormatYUV420SemiPlanar10bitPacked) : static_cast<OMX_COLOR_FORMATTYPE>(OMX_COLOR_FormatYUV420SemiPlanar);
 
   settings.sequencePicture = OMX_ALG_SEQUENCE_PICTURE_UNKNOWN;
 
@@ -941,6 +931,14 @@ static OMX_ERRORTYPE configureComponent(Application& app)
     OMX_SendCommand(app.hDecoder, OMX_CommandPortDisable, 1, nullptr);
     app.disableEvent.wait();
     outputPortDisabled = true;
+  }
+
+  if(app.settings.eChromaOut != OMX_COLOR_FormatUnused)
+  {
+    auto error = setFormat(app, PORT_OUTPUT, app.settings.eChromaOut);
+
+    if(error != OMX_ErrorNone)
+      return error;
   }
 
   InitHeader(paramPort);
@@ -1152,7 +1150,7 @@ static OMX_ERRORTYPE safeMain(int argc, char** argv)
 
   if(app.settings.bDMAIn || app.settings.bDMAOut)
   {
-      app.pAllocator = AL_DmaAlloc_Create(app.settings.deviceName.c_str());
+    app.pAllocator = AL_DmaAlloc_Create(app.settings.deviceName.c_str());
 
     if(!app.pAllocator)
       throw runtime_error(string("Couldn't create dma allocator (using ") + app.settings.deviceName + string(")"));

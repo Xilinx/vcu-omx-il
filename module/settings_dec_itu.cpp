@@ -16,7 +16,7 @@ extern "C"
 
 using namespace std;
 
-Clock CreateClock(AL_TDecSettings settings)
+Clock CreateClock(AL_TDecSettings const& settings)
 {
   Clock clock;
 
@@ -38,7 +38,7 @@ bool UpdateClock(AL_TDecSettings& settings, Clock clock)
   return true;
 }
 
-int CreateInternalEntropyBuffer(AL_TDecSettings settings)
+int CreateInternalEntropyBuffer(AL_TDecSettings const& settings)
 {
   return settings.iStackSize;
 }
@@ -53,7 +53,7 @@ bool UpdateInternalEntropyBuffer(AL_TDecSettings& settings, int internalEntropyB
   return true;
 }
 
-SequencePictureModeType CreateSequenceMode(AL_TDecSettings settings)
+SequencePictureModeType CreateSequenceMode(AL_TDecSettings const& settings)
 {
   auto stream = settings.tStream;
   return ConvertSoftToModuleSequenceMode(stream.eSequenceMode);
@@ -69,7 +69,7 @@ bool UpdateSequenceMode(AL_TDecSettings& settings, SequencePictureModeType seque
   return true;
 }
 
-Format CreateFormat(AL_TDecSettings settings)
+Format CreateFormat(AL_TDecSettings const& settings)
 {
   Format format;
   auto stream = settings.tStream;
@@ -99,7 +99,7 @@ bool UpdateFormat(AL_TDecSettings& settings, Format format, vector<ColorType> co
   return true;
 }
 
-Resolution CreateResolution(AL_TDecSettings settings, Stride stride)
+Resolution CreateResolution(AL_TDecSettings const& settings, Stride stride)
 {
   auto streamSettings = settings.tStream;
   Resolution resolution;
@@ -128,7 +128,7 @@ static int RawAllocationSize(Stride stride, AL_EChromaMode eChromaMode)
   }
 }
 
-BufferSizes CreateBufferSizes(AL_TDecSettings settings, Stride stride)
+BufferSizes CreateBufferSizes(AL_TDecSettings const& settings, Stride stride)
 {
   BufferSizes bufferSizes {};
   auto streamSettings = settings.tStream;
@@ -137,7 +137,7 @@ BufferSizes CreateBufferSizes(AL_TDecSettings settings, Stride stride)
   return bufferSizes;
 }
 
-DecodedPictureBufferType CreateDecodedPictureBuffer(AL_TDecSettings settings)
+DecodedPictureBufferType CreateDecodedPictureBuffer(AL_TDecSettings const& settings)
 {
   return ConvertSoftToModuleDecodedPictureBuffer(settings.eDpbMode);
 }
@@ -174,7 +174,7 @@ bool UpdateResolution(AL_TDecSettings& settings, Stride& stride, StrideAlignment
   return true;
 }
 
-bool CreateRealtime(AL_TDecSettings settings)
+bool CreateRealtime(AL_TDecSettings const& settings)
 {
   return settings.bNonRealtime;
 }
@@ -185,7 +185,7 @@ bool UpdateRealtime(AL_TDecSettings& settings, bool isSubframeDisabled)
   return true;
 }
 
-Point<int> CreateOutputPosition(AL_TDecSettings settings)
+Point<int> CreateOutputPosition(AL_TDecSettings const& settings)
 {
   Point<int> position {};
   position.x = settings.tOutputPosition.iX;

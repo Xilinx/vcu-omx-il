@@ -971,7 +971,6 @@ OMX_ERRORTYPE SetVideoPrefetchBuffer(OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER const& 
 {
   OMX_ALG_VIDEO_PARAM_PREFETCH_BUFFER rollback;
   ConstructVideoPrefetchBuffer(rollback, port, media);
-
   auto ret = SetPrefetchBuffer(prefetchBuffer.bEnablePrefetchBuffer, prefetchBuffer.bEnableReducedRange, media);
 
   if(ret != OMX_ErrorNone)
