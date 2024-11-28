@@ -1025,6 +1025,14 @@ static inline int ConvertOMXToMediaHEVCLevel(OMX_ALG_VIDEO_HEVCLEVELTYPE level)
   case OMX_ALG_VIDEO_HEVCHighTierLevel61: return 61;
   case OMX_ALG_VIDEO_HEVCMainTierLevel62:
   case OMX_ALG_VIDEO_HEVCHighTierLevel62: return 62;
+  case OMX_ALG_VIDEO_HEVCMainTierLevel63:
+  case OMX_ALG_VIDEO_HEVCHighTierLevel63: return 63;
+  case OMX_ALG_VIDEO_HEVCMainTierLevel7:
+  case OMX_ALG_VIDEO_HEVCHighTierLevel7: return 70;
+  case OMX_ALG_VIDEO_HEVCMainTierLevel71:
+  case OMX_ALG_VIDEO_HEVCHighTierLevel71: return 71;
+  case OMX_ALG_VIDEO_HEVCMainTierLevel72:
+  case OMX_ALG_VIDEO_HEVCHighTierLevel72: return 72;
   default:
     return 0;
   }
@@ -1145,6 +1153,10 @@ static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertMediaToOMXHEVCMainLevel(Profile
   case 60: return OMX_ALG_VIDEO_HEVCMainTierLevel6;
   case 61: return OMX_ALG_VIDEO_HEVCMainTierLevel61;
   case 62: return OMX_ALG_VIDEO_HEVCMainTierLevel62;
+  case 63: return OMX_ALG_VIDEO_HEVCMainTierLevel63;
+  case 70: return OMX_ALG_VIDEO_HEVCMainTierLevel7;
+  case 71: return OMX_ALG_VIDEO_HEVCMainTierLevel71;
+  case 72: return OMX_ALG_VIDEO_HEVCMainTierLevel72;
   default: return OMX_ALG_VIDEO_HEVCLevelMaxEnum;
   }
 
@@ -1163,6 +1175,10 @@ static inline OMX_ALG_VIDEO_HEVCLEVELTYPE ConvertMediaToOMXHEVCHighLevel(Profile
   case 60: return OMX_ALG_VIDEO_HEVCHighTierLevel6;
   case 61: return OMX_ALG_VIDEO_HEVCHighTierLevel61;
   case 62: return OMX_ALG_VIDEO_HEVCHighTierLevel62;
+  case 63: return OMX_ALG_VIDEO_HEVCHighTierLevel63;
+  case 70: return OMX_ALG_VIDEO_HEVCHighTierLevel7;
+  case 71: return OMX_ALG_VIDEO_HEVCHighTierLevel71;
+  case 72: return OMX_ALG_VIDEO_HEVCHighTierLevel72;
   default: return OMX_ALG_VIDEO_HEVCLevelMaxEnum;
   }
 
