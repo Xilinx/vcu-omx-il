@@ -91,6 +91,10 @@ private:
     60,
     61,
     62,
+    63,
+    70,
+    71,
+    72,
   };
 
   std::vector<ColorType> const colors
