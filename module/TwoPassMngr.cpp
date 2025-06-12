@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "TwoPassMngr.h"
@@ -30,7 +30,7 @@ static bool SceneChangeDetected_Crop(AL_TLookAheadMetaData* pPrevMeta, AL_TLookA
   if(!pPrevMeta || !pCurrentMeta)
     return false;
 
-  int iOk = 0, iKo = 0;
+  int32_t iOk = 0, iKo = 0;
 
   for(int8_t i = 0; i < 5; i++)
   {
@@ -117,9 +117,9 @@ static bool DetectPatternTwoFrames(vector<int> v)
   if(v.size() < 5)
     return false;
 
-  int nb_zero = 0, ecart = 0, ecart_max = 0;
+  int32_t nb_zero = 0, ecart = 0, ecart_max = 0;
 
-  for(int i = 1; i < (int)v.size(); i++)
+  for(int32_t i = 1; i < (int)v.size(); i++)
   {
     if(v[i] == 0)
     {
@@ -137,7 +137,7 @@ static bool DetectPatternTwoFrames(vector<int> v)
 /***************************************************************************/
 /*Offline TwoPass methods*/
 /***************************************************************************/
-TwoPassMngr::TwoPassMngr(std::string p_FileName, int p_iPass, bool p_bEnabledFirstPassSceneChangeDetection, int p_iGopSize, int p_iCpbLevel, int p_iInitialLevel, int p_iFrameRate) :
+TwoPassMngr::TwoPassMngr(std::string p_FileName, int32_t p_iPass, bool p_bEnabledFirstPassSceneChangeDetection, int32_t p_iGopSize, int32_t p_iCpbLevel, int32_t p_iInitialLevel, int32_t p_iFrameRate) :
   iPass(p_iPass), bEnableFirstPassSceneChangeDetection(p_bEnabledFirstPassSceneChangeDetection), iGopSize(p_iGopSize),
   iCpbLevel(p_iCpbLevel), iInitialLevel(p_iInitialLevel), iFrameRate(p_iFrameRate)
 {
@@ -189,7 +189,7 @@ void TwoPassMngr::EmptyLog(void)
 
   char sLine[256];
   bool bFind = true;
-  int i = 0;
+  int32_t i = 0;
 
   while(bFind && !inputFile.eof() && i < SEQUENCE_SIZE_MAX)
   {
@@ -223,7 +223,7 @@ void TwoPassMngr::FillLog(void)
 }
 
 /***************************************************************************/
-void TwoPassMngr::AddNewFrame(int iPictureSize, int iPercentIntra)
+void TwoPassMngr::AddNewFrame(int32_t iPictureSize, int32_t iPercentIntra)
 {
   AL_TLookAheadMetaData tParams;
   tParams.iPictureSize = iPictureSize;
@@ -274,20 +274,20 @@ void TwoPassMngr::ComputeTwoPass(void)
 
   if(HasPatternTwoFrames())
   {
-    for(int i = 0; i < iSequenceSize - 1; i++)
+    for(int32_t i = 0; i < iSequenceSize - 1; i++)
       tFrames[i].iPictureSize = 0;
 
     return;
   }
 
-  for(int i = 0; i < iSequenceSize - 1; i++)
+  for(int32_t i = 0; i < iSequenceSize - 1; i++)
     tFrames[i].eSceneChange = SceneChangeDetected(&tFrames[i], &tFrames[i + 1]) ? AL_SC_NEXT : AL_SC_NONE;
 
-  for(int i = 0; i < iSequenceSize - 1; i++)
+  for(int32_t i = 0; i < iSequenceSize - 1; i++)
   {
     tFrames[i].iIPRatio = GetIPRatio(&tFrames[i], &tFrames[i + 1]);
 
-    for(int k = i + 2; k < min(iSequenceSize, i + 4) && !SceneChangeDetected(&tFrames[k - 1], &tFrames[k]); k++)
+    for(int32_t k = i + 2; k < min(iSequenceSize, i + 4) && !SceneChangeDetected(&tFrames[k - 1], &tFrames[k]); k++)
       tFrames[i].iIPRatio = min(tFrames[i].iIPRatio, GetIPRatio(&tFrames[i], &tFrames[k]));
   }
 
@@ -312,11 +312,11 @@ void TwoPassMngr::ComputeComplexity(void)
     return;
 
   size_t uSumCompGops = 0;
-  int iIndex = 0, iNbGop = 0;
+  int32_t iIndex = 0, iNbGop = 0;
 
   while(iIndex < iSequenceSize)
   {
-    int iLength = 0;
+    int32_t iLength = 0;
     size_t uSumComp = 0;
 
     while(iLength < iGopSize && iIndex + iLength < iSequenceSize)
@@ -328,9 +328,9 @@ void TwoPassMngr::ComputeComplexity(void)
         break;
     }
 
-    int iComp = iLength ? uSumComp / iLength : uSumComp;
+    int32_t iComp = iLength ? uSumComp / iLength : uSumComp;
 
-    for(int k = 0; k < iLength; k++)
+    for(int32_t k = 0; k < iLength; k++)
       tFrames[iIndex + k].iComplexity = iComp;
 
     uSumCompGops += iComp;
@@ -338,13 +338,13 @@ void TwoPassMngr::ComputeComplexity(void)
     iIndex += iLength;
   }
 
-  int iMeanComp = uSumCompGops / iNbGop;
+  int32_t iMeanComp = uSumCompGops / iNbGop;
 
-  int iLevel = 0, iLevelMax = 0, iLevelMin = 0;
-  int iLimitMin = -iInitialLevel;
-  int iLimitMax = (iCpbLevel - iInitialLevel);
+  int32_t iLevel = 0, iLevelMax = 0, iLevelMin = 0;
+  int32_t iLimitMin = -iInitialLevel;
+  int32_t iLimitMax = (iCpbLevel - iInitialLevel);
 
-  for(int i = 0; i < iSequenceSize; i++)
+  for(int32_t i = 0; i < iSequenceSize; i++)
   {
     tFrames[i].iComplexity = (tFrames[i].iComplexity * 1000 / iMeanComp) - 1000;
     iLevel -= tFrames[i].iComplexity / iFrameRate;
@@ -352,7 +352,7 @@ void TwoPassMngr::ComputeComplexity(void)
     iLevelMin = min(iLevelMin, iLevel);
   }
 
-  int iCoeff = 1000;
+  int32_t iCoeff = 1000;
 
   if(iLevelMax > 0)
     iCoeff = min(iCoeff, iLimitMax * 1000 / iLevelMax);
@@ -360,7 +360,7 @@ void TwoPassMngr::ComputeComplexity(void)
   if(iLevelMin < 0)
     iCoeff = min(iCoeff, iLimitMin * 900 / iLevelMin);
 
-  for(int i = 0; i < iSequenceSize; i++)
+  for(int32_t i = 0; i < iSequenceSize; i++)
     tFrames[i].iComplexity = (tFrames[i].iComplexity * iCoeff / 1000) + 1000;
 
   iIndex = 0;
@@ -368,7 +368,7 @@ void TwoPassMngr::ComputeComplexity(void)
 
   while(iIndex < iSequenceSize)
   {
-    int iLength = 0;
+    int32_t iLength = 0;
 
     while(iLength < iGopSize && iIndex + iLength < iSequenceSize)
     {
@@ -378,10 +378,10 @@ void TwoPassMngr::ComputeComplexity(void)
         break;
     }
 
-    int iTarget = iLevel - iGopSize * (tFrames[iIndex].iComplexity - 1000) / iFrameRate;
+    int32_t iTarget = iLevel - iGopSize * (tFrames[iIndex].iComplexity - 1000) / iFrameRate;
     iLevel -= iLength * (tFrames[iIndex].iComplexity - 1000) / iFrameRate;
 
-    for(int k = 0; k < iLength; k++)
+    for(int32_t k = 0; k < iLength; k++)
       tFrames[iIndex + k].iTargetLevel = iTarget;
 
     iIndex += iLength;
@@ -402,7 +402,7 @@ bool TwoPassMngr::HasPatternTwoFrames(void)
 /***************************************************************************/
 /*LookAhead structures and methods*/
 /***************************************************************************/
-LookAheadMngr::LookAheadMngr(int p_iLookAhead, bool p_bEnableFirstPassSceneChangeDetection) : uLookAheadSize(p_iLookAhead), bEnableFirstPassSceneChangeDetection(p_bEnableFirstPassSceneChangeDetection)
+LookAheadMngr::LookAheadMngr(int32_t p_iLookAhead, bool p_bEnableFirstPassSceneChangeDetection) : uLookAheadSize(p_iLookAhead), bEnableFirstPassSceneChangeDetection(p_bEnableFirstPassSceneChangeDetection)
 {
   iComplexity = 1000;
   iFrameCount = 0;
@@ -465,10 +465,10 @@ int32_t LookAheadMngr::ComputeIPRatio(AL_TBuffer* pCurrentSrc, AL_TBuffer* pNext
 }
 
 /***************************************************************************/
-int LookAheadMngr::GetNextSceneChange(void)
+int32_t LookAheadMngr::GetNextSceneChange(void)
 {
-  int iFifoSize = static_cast<int>(m_fifo.size());
-  int iIndex = 0;
+  int32_t iFifoSize = static_cast<int>(m_fifo.size());
+  int32_t iIndex = 0;
 
   while((iIndex + 1 < iFifoSize) && !ComputeSceneChange(m_fifo[iIndex], m_fifo[iIndex + 1]))
     iIndex++;
@@ -481,7 +481,7 @@ int LookAheadMngr::GetNextSceneChange(void)
 /***************************************************************************/
 void LookAheadMngr::ProcessLookAheadParams(void)
 {
-  int iFifoSize = static_cast<int>(m_fifo.size());
+  int32_t iFifoSize = static_cast<int>(m_fifo.size());
 
   if(iFifoSize <= 0)
     throw runtime_error("iFifoSize(" + to_string(iFifoSize) + ") must be higher than 0");
@@ -516,16 +516,16 @@ void LookAheadMngr::ProcessLookAheadParams(void)
   }
 
   pPictureMetaLA->iIPRatio = ComputeIPRatio(m_fifo[0], m_fifo[1]);
-  int iNextSceneChange = GetNextSceneChange();
+  int32_t iNextSceneChange = GetNextSceneChange();
 
-  for(int i = 2; i < min(iNextSceneChange, 4); i++)
+  for(int32_t i = 2; i < min(iNextSceneChange, 4); i++)
     pPictureMetaLA->iIPRatio = min(pPictureMetaLA->iIPRatio, ComputeIPRatio(m_fifo[0], m_fifo[i]));
 }
 
 /***************************************************************************/
 void LookAheadMngr::ComputeComplexity(void)
 {
-  int iFifoSize = static_cast<int>(m_fifo.size());
+  int32_t iFifoSize = static_cast<int>(m_fifo.size());
 
   if(iFrameCount % 5 == 0)
   {
@@ -536,7 +536,7 @@ void LookAheadMngr::ComputeComplexity(void)
     {
       intmax_t iComp[2] = { 0, 0 };
 
-      for(int i = 0; i < iFifoSize; i++)
+      for(int32_t i = 0; i < iFifoSize; i++)
       {
         auto pPictureMetaLA = (AL_TLookAheadMetaData*)AL_Buffer_GetMetaData(m_fifo[i], AL_META_TYPE_LOOKAHEAD);
         iComp[(i < 5) ? 0 : 1] += pPictureMetaLA->iPictureSize;

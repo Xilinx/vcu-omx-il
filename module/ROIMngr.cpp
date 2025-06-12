@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "ROIMngr.h"
@@ -18,22 +18,22 @@ struct AL_TRoiNode
   AL_TRoiNode* pPrev;
   AL_TRoiNode* pNext;
 
-  int iPosX;
-  int iPosY;
-  int iWidth;
-  int iHeight;
+  int32_t iPosX;
+  int32_t iPosY;
+  int32_t iWidth;
+  int32_t iHeight;
 
   int16_t iDeltaQP;
 };
 
 /***************************************************************************/
-static inline int Clip3(int iVal, int iMin, int iMax)
+static inline int32_t Clip3(int32_t iVal, int32_t iMin, int32_t iMax)
 {
   return ((iVal) < (iMin)) ? (iMin) : ((iVal) > (iMax)) ? (iMax) : (iVal);
 }
 
 /****************************************************************************/
-static int32_t extendSign(uint32_t value, int numBits)
+static int32_t extendSign(uint32_t value, int32_t numBits)
 {
   value &= 0xffffffff >> (32 - numBits);
 
@@ -133,7 +133,7 @@ static void Insert(AL_TRoiMngrCtx* pCtx, AL_TRoiNode* pNode)
 }
 
 /****************************************************************************/
-static inline uint8_t TranslateSegIDToDltQP(int16_t* pDeltaQpSegments, uint8_t* pLcuBuf, bool bIsAOM, int iLcuQpOffset)
+static inline uint8_t TranslateSegIDToDltQP(int16_t* pDeltaQpSegments, uint8_t* pLcuBuf, bool bIsAOM, int32_t iLcuQpOffset)
 {
   if(!bIsAOM)
     return *pLcuBuf;
@@ -149,7 +149,7 @@ static inline uint8_t TranslateSegIDToDltQP(int16_t* pDeltaQpSegments, uint8_t* 
 }
 
 /****************************************************************************/
-static void MeanQuality(AL_TRoiMngrCtx* pCtx, uint8_t* pTargetQP, uint8_t* iDQp1, uint8_t iDQp2, int iNumQPPerLCU, int iLcuQpOffset)
+static void MeanQuality(AL_TRoiMngrCtx* pCtx, uint8_t* pTargetQP, uint8_t* iDQp1, uint8_t iDQp2, int32_t iNumQPPerLCU, int32_t iLcuQpOffset)
 {
   auto eMask = (*pTargetQP & MASK_FORCE);
 
@@ -162,12 +162,12 @@ static void MeanQuality(AL_TRoiMngrCtx* pCtx, uint8_t* pTargetQP, uint8_t* iDQp1
   if(iLcuQpOffset && !pCtx->bIsAOM)
     pTargetQP[0] = iQP | eMask;
   else
-    for(int i = iLcuQpOffset; i < iNumQPPerLCU; ++i)
+    for(int32_t i = iLcuQpOffset; i < iNumQPPerLCU; ++i)
       pTargetQP[i] = iQP | eMask;
 }
 
 /****************************************************************************/
-static void UpdateTransitionHorz(AL_TRoiMngrCtx* pCtx, uint8_t* pLcu1, uint8_t* pLcu2, int iNumQPPerLCU, int iNumBytesPerLCU, int iLcuPicWidth, int iPosX, int iWidth, int8_t iQP, int iLcuQpOffset)
+static void UpdateTransitionHorz(AL_TRoiMngrCtx* pCtx, uint8_t* pLcu1, uint8_t* pLcu2, int32_t iNumQPPerLCU, int32_t iNumBytesPerLCU, int32_t iLcuPicWidth, int32_t iPosX, int32_t iWidth, int8_t iQP, int32_t iLcuQpOffset)
 {
   /* Left corner */
   if(iPosX > 1)
@@ -176,7 +176,7 @@ static void UpdateTransitionHorz(AL_TRoiMngrCtx* pCtx, uint8_t* pLcu1, uint8_t* 
     MeanQuality(pCtx, &pLcu1[-iNumBytesPerLCU], &pLcu2[-iNumBytesPerLCU], iQP, iNumQPPerLCU, iLcuQpOffset);
 
   /* Width */
-  for(int w = 0; w < iWidth; ++w)
+  for(int32_t w = 0; w < iWidth; ++w)
     MeanQuality(pCtx, &pLcu1[w * iNumBytesPerLCU], &pLcu2[w * iNumBytesPerLCU], iQP, iNumQPPerLCU, iLcuQpOffset);
 
   /* Right corner */
@@ -187,9 +187,9 @@ static void UpdateTransitionHorz(AL_TRoiMngrCtx* pCtx, uint8_t* pLcu1, uint8_t* 
 }
 
 /****************************************************************************/
-static void UpdateTransitionVert(AL_TRoiMngrCtx* pCtx, uint8_t* pLcu1, uint8_t* pLcu2, int iNumQPPerLCU, int iNumBytesPerLCU, int iLcuPicWidth, int iHeight, int8_t iQP, int iLcuQpOffset)
+static void UpdateTransitionVert(AL_TRoiMngrCtx* pCtx, uint8_t* pLcu1, uint8_t* pLcu2, int32_t iNumQPPerLCU, int32_t iNumBytesPerLCU, int32_t iLcuPicWidth, int32_t iHeight, int8_t iQP, int32_t iLcuQpOffset)
 {
-  for(int h = 0; h < iHeight; ++h)
+  for(int32_t h = 0; h < iHeight; ++h)
   {
     MeanQuality(pCtx, pLcu1, pLcu2, iQP, iNumQPPerLCU, iLcuQpOffset);
     pLcu1 += (iLcuPicWidth * iNumBytesPerLCU);
@@ -198,7 +198,7 @@ static void UpdateTransitionVert(AL_TRoiMngrCtx* pCtx, uint8_t* pLcu1, uint8_t* 
 }
 
 /****************************************************************************/
-static uint32_t GetNodePosInBuf(AL_TRoiMngrCtx* pCtx, uint32_t uLcuX, uint32_t uLcuY, int iNumBytesPerLCU)
+static uint32_t GetNodePosInBuf(AL_TRoiMngrCtx* pCtx, uint32_t uLcuX, uint32_t uLcuY, int32_t iNumBytesPerLCU)
 {
   uint32_t uLcuNum = uLcuY * pCtx->iLcuPicWidth + uLcuX;
   return uLcuNum * iNumBytesPerLCU;
@@ -222,7 +222,7 @@ static inline void SetLCUQuality(T* pLCUQP, uint16_t uROIQP)
 }
 
 /****************************************************************************/
-static void ComputeROI(AL_TRoiMngrCtx* pCtx, int iNumQPPerLCU, int iNumBytesPerLCU, uint8_t* pQPs, int iLcuQpOffset, AL_TRoiNode* pNode)
+static void ComputeROI(AL_TRoiMngrCtx* pCtx, int32_t iNumQPPerLCU, int32_t iNumBytesPerLCU, uint8_t* pQPs, int32_t iLcuQpOffset, AL_TRoiNode* pNode)
 {
   auto* pLCU = pQPs + GetNodePosInBuf(pCtx, pNode->iPosX, pNode->iPosY, iNumBytesPerLCU);
   uint16_t uDeltaQPOrSegId = pNode->iDeltaQP;
@@ -231,9 +231,9 @@ static void ComputeROI(AL_TRoiMngrCtx* pCtx, int iNumQPPerLCU, int iNumBytesPerL
     uDeltaQPOrSegId = GetSegmentId(pCtx->pDeltaQpSegments, pNode->iDeltaQP);
 
   /* Fill ROI */
-  for(int h = 0; h < pNode->iHeight; ++h)
+  for(int32_t h = 0; h < pNode->iHeight; ++h)
   {
-    for(int w = 0; w < pNode->iWidth; ++w)
+    for(int32_t w = 0; w < pNode->iWidth; ++w)
     {
       if(iLcuQpOffset)
       {
@@ -246,7 +246,7 @@ static void ComputeROI(AL_TRoiMngrCtx* pCtx, int iNumQPPerLCU, int iNumBytesPerL
 
       if(!iLcuQpOffset || pCtx->bIsAOM)
       {
-        for(int i = 0; i < iNumQPPerLCU - iLcuQpOffset; ++i)
+        for(int32_t i = 0; i < iNumQPPerLCU - iLcuQpOffset; ++i)
         {
           uDeltaQPOrSegId = ((MASK_FORCE & pNode->iDeltaQP) >> (MASK_QP_NUMBITS - 6)) | uDeltaQPOrSegId;
           SetLCUQuality<uint8_t>(pLCU + w * iNumBytesPerLCU + iLcuQpOffset + i, uDeltaQPOrSegId);
@@ -310,7 +310,7 @@ static void ComputeROI(AL_TRoiMngrCtx* pCtx, int iNumQPPerLCU, int iNumBytesPerL
 }
 
 /****************************************************************************/
-AL_TRoiMngrCtx* AL_RoiMngr_Create(int iPicWidth, int iPicHeight, AL_EProfile eProf, uint8_t uLog2MaxCuSize, AL_ERoiQuality eBkgQuality, AL_ERoiOrder eOrder)
+AL_TRoiMngrCtx* AL_RoiMngr_Create(int32_t iPicWidth, int32_t iPicHeight, AL_EProfile eProf, uint8_t uLog2MaxCuSize, AL_ERoiQuality eBkgQuality, AL_ERoiOrder eOrder)
 {
   AL_TRoiMngrCtx* pCtx = (AL_TRoiMngrCtx*)Rtos_Malloc(sizeof(AL_TRoiMngrCtx));
 
@@ -358,7 +358,7 @@ void AL_RoiMngr_Clear(AL_TRoiMngrCtx* pCtx)
 }
 
 /****************************************************************************/
-bool AL_RoiMngr_AddROI(AL_TRoiMngrCtx* pCtx, int iPosX, int iPosY, int iWidth, int iHeight, AL_ERoiQuality eQuality)
+bool AL_RoiMngr_AddROI(AL_TRoiMngrCtx* pCtx, int32_t iPosX, int32_t iPosY, int32_t iWidth, int32_t iHeight, AL_ERoiQuality eQuality)
 {
   if(iPosX >= pCtx->iPicWidth || iPosY >= pCtx->iPicHeight)
     return false;
@@ -391,7 +391,7 @@ bool AL_RoiMngr_AddROI(AL_TRoiMngrCtx* pCtx, int iPosX, int iPosY, int iWidth, i
 }
 
 /****************************************************************************/
-void AL_RoiMngr_FillBuff(AL_TRoiMngrCtx* pCtx, int iNumQPPerLCU, int iNumBytesPerLCU, uint8_t* pQPs, int iLcuQpOffset)
+void AL_RoiMngr_FillBuff(AL_TRoiMngrCtx* pCtx, int32_t iNumQPPerLCU, int32_t iNumBytesPerLCU, uint8_t* pQPs, int32_t iLcuQpOffset)
 {
   if(pQPs == nullptr)
     throw runtime_error("pQPs buffer must exist");
@@ -414,9 +414,9 @@ void AL_RoiMngr_FillBuff(AL_TRoiMngrCtx* pCtx, int iNumQPPerLCU, int iNumBytesPe
   }
 
   /* Fill background */
-  for(int iLCU = 0; iLCU < pCtx->iNumLCUs; iLCU++)
+  for(int32_t iLCU = 0; iLCU < pCtx->iNumLCUs; iLCU++)
   {
-    int iFirst = iLCU * iNumBytesPerLCU;
+    int32_t iFirst = iLCU * iNumBytesPerLCU;
 
     /* iLcuQpOffset is used to make the distinction between QP Table:
      * V1 (iLcuQpOffset = 0)
@@ -433,7 +433,7 @@ void AL_RoiMngr_FillBuff(AL_TRoiMngrCtx* pCtx, int iNumQPPerLCU, int iNumBytesPe
 
     if(!iLcuQpOffset || pCtx->bIsAOM)
     {
-      for(int iQP = iLcuQpOffset; iQP < iNumQPPerLCU; ++iQP)
+      for(int32_t iQP = iLcuQpOffset; iQP < iNumQPPerLCU; ++iQP)
       {
         pQPs[iFirst + iQP] = ((MASK_FORCE & uDeltaQP) >> (MASK_QP_NUMBITS - 6)) | uBkgQPOrSegId;
       }
@@ -450,6 +450,6 @@ void AL_RoiMngr_FillBuff(AL_TRoiMngrCtx* pCtx, int iNumQPPerLCU, int iNumBytesPe
   }
 
   if(pCtx->bIsAOM)
-    for(int i = 0; i < AL_QPTABLE_NUM_SEGMENTS; ++i)
+    for(int32_t i = 0; i < AL_QPTABLE_NUM_SEGMENTS; ++i)
       pCtx->pDeltaQpSegments[i] *= 5;
 }

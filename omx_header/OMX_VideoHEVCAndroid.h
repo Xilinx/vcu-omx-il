@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2024 Allegro DVT. All rights reserved.
+ * Copyright (C) 2016-2025 Allegro DVT. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the

@@ -653,7 +653,7 @@ typedef struct OMX_TUNNELSETUPTYPE
     @param [out] pComponentUUID
         pointer to the UUID of the component which will be filled in by
         the component.  The UUID is a unique identifier that is set at
-        RUN time for the component and is unique to each instantion of
+        RUN time for the component and is unique to each instantiation of
         the component.
     @return OMX_ERRORTYPE
         If the command successfully executes, the return code will be

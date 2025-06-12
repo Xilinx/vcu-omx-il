@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 /******************************************************************************
@@ -43,8 +43,8 @@ struct AL_TRoiNode;
 *****************************************************************************/
 struct AL_TRoiMngrCtx
 {
-  int iPicWidth;
-  int iPicHeight;
+  int32_t iPicWidth;
+  int32_t iPicHeight;
 
   int16_t iLcuPicWidth;
   int16_t iLcuPicHeight;
@@ -72,7 +72,7 @@ struct AL_TRoiMngrCtx
    \param[in] eOrder ROI priority
    \returns Pointer to the ROI Manager context created
 *****************************************************************************/
-AL_TRoiMngrCtx* AL_RoiMngr_Create(int iPicWidth, int iPicHeight, AL_EProfile eProf, uint8_t uLog2MaxCuSize, AL_ERoiQuality eBkgQuality, AL_ERoiOrder eOrder);
+AL_TRoiMngrCtx* AL_RoiMngr_Create(int32_t iPicWidth, int32_t iPicHeight, AL_EProfile eProf, uint8_t uLog2MaxCuSize, AL_ERoiQuality eBkgQuality, AL_ERoiOrder eOrder);
 
 /*****************************************************************************
    \brief Destroy a ROI Manager context
@@ -96,7 +96,7 @@ void AL_RoiMngr_Clear(AL_TRoiMngrCtx* pCtx);
    \param[in] eQuality Quality of the ROI
    \return True if the ROI was successfully added
 *****************************************************************************/
-bool AL_RoiMngr_AddROI(AL_TRoiMngrCtx* pCtx, int iPosX, int iPosY, int iWidth, int iHeight, AL_ERoiQuality eQuality);
+bool AL_RoiMngr_AddROI(AL_TRoiMngrCtx* pCtx, int32_t iPosX, int32_t iPosY, int32_t iWidth, int32_t iHeight, AL_ERoiQuality eQuality);
 
 /*****************************************************************************
    \brief Fill a QP table buffer according to the configuration of a ROI Manager
@@ -106,6 +106,6 @@ bool AL_RoiMngr_AddROI(AL_TRoiMngrCtx* pCtx, int iPosX, int iPosY, int iWidth, i
    \param[out] pQPs The buffer of QPs to fill
    \param[in] iLcuQpOffset Offset of the beginning of CU Qp per block of the given LCU
 *****************************************************************************/
-void AL_RoiMngr_FillBuff(AL_TRoiMngrCtx* pCtx, int iNumQPPerLCU, int iNumBytesPerLCU, uint8_t* pQPs, int iLcuQpOffset);
+void AL_RoiMngr_FillBuff(AL_TRoiMngrCtx* pCtx, int32_t iNumQPPerLCU, int32_t iNumBytesPerLCU, uint8_t* pQPs, int32_t iLcuQpOffset);
 
 /*!@}*/

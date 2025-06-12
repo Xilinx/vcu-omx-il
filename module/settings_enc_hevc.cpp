@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "settings_enc_hevc.h"
@@ -76,7 +76,7 @@ void EncSettingsHEVC::Reset()
   settings.iPrefetchLevel2 = 0;
   settings.LookAhead = 0;
   settings.TwoPass = 0;
-  settings.uEnableSEI = AL_SEI_NONE;
+  settings.eEnableSEI = AL_SEI_NONE;
 
   AL_TPicFormat const tPicFormat = AL_EncGetSrcPicFormat(AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), channel.eSrcMode);
   stride.horizontal = RoundUp(AL_EncGetMinPitch(channel.uEncWidth, &tPicFormat), strideAlignments.horizontal);
@@ -998,7 +998,9 @@ bool EncSettingsHEVC::Check()
   auto const picFormat = AL_EncGetSrcPicFormat(AL_GET_CHROMA_MODE(channel.ePicFormat), AL_GET_BITDEPTH(channel.ePicFormat), AL_SRC_RASTER);
   auto fourCC = AL_EncGetSrcFourCC(picFormat);
   assert(AL_GET_BITDEPTH(channel.ePicFormat) == channel.uSrcBitDepth);
-  AL_Settings_CheckCoherency(&settings, &channel, fourCC, stdout);
+
+  if(AL_Settings_CheckCoherency(&settings, &channel, fourCC, stdout) < 0)
+    return false;
 
   stride.horizontal = max(stride.horizontal, RoundUp(AL_EncGetMinPitch(channel.uEncWidth, &picFormat), strideAlignments.horizontal));
   stride.vertical = max(stride.vertical, RoundUp(static_cast<int>(channel.uEncHeight), strideAlignments.vertical));

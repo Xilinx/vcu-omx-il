@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -36,11 +36,11 @@ struct CommandLineParser
     bool repeat = false;
   };
 
-  bool parse(int argc, char* argv[])
+  bool parse(int32_t argc, char* argv[])
   {
     deprecatedWordsParsed.clear();
 
-    for(int i = 1; i < argc; ++i)
+    for(int32_t i = 1; i < argc; ++i)
       words.push(argv[i]);
 
     while(!words.empty())

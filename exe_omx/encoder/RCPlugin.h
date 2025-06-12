@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -9,6 +9,13 @@ extern "C"
 
 #include <stdexcept>
 
+extern "C"
+{
+#include "lib_common/Allocator.h"
+#include "lib_common_enc/Settings.h"
+#include "lib_common_enc/EncChanParam.h"
+}
+
 struct RCPlugin
 {
   uint32_t capacity;
@@ -18,7 +25,7 @@ struct RCPlugin
   uint32_t curQp;
 };
 
-inline void RCPlugin_SetNextFrameQP(RCPlugin* rc)
+static inline void RCPlugin_SetNextFrameQP(RCPlugin* rc)
 {
   rc->qpFifo[rc->head] = rc->curQp;
   rc->head = (rc->head + 1) % rc->capacity;
@@ -29,7 +36,7 @@ inline void RCPlugin_SetNextFrameQP(RCPlugin* rc)
     rc->curQp = 30;
 }
 
-inline void RCPlugin_SetNextFrameQP(AL_TEncSettings const* pSettings, AL_TAllocator* pDmaAllocator)
+static inline void RCPlugin_SetNextFrameQP(AL_TEncSettings const* pSettings, AL_TAllocator* pDmaAllocator)
 {
   if(pSettings->hRcPluginDmaContext == NULL)
     throw std::runtime_error("RC Context isn't allocated");
@@ -42,7 +49,7 @@ inline void RCPlugin_SetNextFrameQP(AL_TEncSettings const* pSettings, AL_TAlloca
   RCPlugin_SetNextFrameQP(rc);
 }
 
-inline void RCPlugin_Init(RCPlugin* rc)
+static inline void RCPlugin_Init(RCPlugin* rc)
 {
   rc->head = 0;
   rc->tail = 0;
@@ -53,7 +60,7 @@ inline void RCPlugin_Init(RCPlugin* rc)
     rc->qpFifo[i] = 0;
 }
 
-inline void RCPlugin_Init(AL_TEncSettings* pSettings, AL_TEncChanParam* pChParam, AL_TAllocator* pDmaAllocator)
+static inline void RCPlugin_Init(AL_TEncSettings* pSettings, AL_TEncChanParam* pChParam, AL_TAllocator* pDmaAllocator)
 {
   pSettings->hRcPluginDmaContext = NULL;
   pChParam->pRcPluginDmaContext = 0;

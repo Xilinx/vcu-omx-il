@@ -1,8 +1,10 @@
-// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "EncCmdMngr.h"
 #include <stdexcept>
+
+#include "EncTokenizerUtils.h"
 
 using namespace std;
 
@@ -11,139 +13,10 @@ extern "C"
 #include "lib_common_enc/EncChanParam.h"
 }
 
-struct TBounds
-{
-  int min;
-  int max;
-};
-
-/****************************************************************************/
-struct CCmdTokenizer
-{
-  explicit CCmdTokenizer(string& sLine)
-    : m_sLine(sLine),
-    m_zBeg(0),
-    m_zEnd(0),
-    m_zNext(0),
-    m_sVal("")
-  {}
-
-  bool GetNext(void)
-  {
-    m_sVal = "";
-
-    if(m_zNext == string::npos)
-      return false;
-
-    m_zBeg = m_sLine.find_first_not_of(m_Separators, m_zNext);
-
-    if(m_zBeg == string::npos)
-      return false;
-
-    m_zEnd = m_sLine.find_first_of(m_Separators, m_zBeg);
-
-    if(m_zEnd != string::npos && m_sLine[m_zEnd] == '=')
-    {
-      size_t zPos1 = m_sLine.find_first_not_of(m_Separators, m_zEnd + 1);
-
-      if(zPos1 == string::npos)
-        return false;
-
-      size_t zPos2 = m_sLine.find_first_of(m_Separators, zPos1 + 1);
-
-      m_sVal = m_sLine.substr(zPos1, zPos2 - zPos1);
-
-      m_zNext = zPos2;
-    }
-    else
-      m_zNext = m_zEnd;
-
-    return true;
-  }
-
-  double GetValue() { return atof(m_sVal.c_str()); }
-
-  TBounds GetValueBounds(void)
-  {
-    TBounds tBounds = { 0, 0 };
-
-    size_t sLowerPos = m_sVal.find('[');
-    size_t sSplitPos = m_sVal.find(';');
-    size_t sUpperPos = m_sVal.find(']');
-
-    if(sLowerPos != 0 || sSplitPos == std::string::npos || sSplitPos <= sLowerPos || sUpperPos == std::string::npos || sUpperPos <= sSplitPos)
-      throw std::runtime_error("bad range syntax for line " + m_sLine);
-
-    tBounds.min = atof(m_sVal.substr(1, sSplitPos - 1).c_str());
-    tBounds.max = atof(m_sVal.substr(sSplitPos + 1, sUpperPos - (sSplitPos + 1)).c_str());
-
-    return tBounds;
-  }
-
-  std::list<std::string> GetValueList(void)
-  {
-    size_t sLowerPos = m_sVal.find('(');
-    size_t sUpperPos = m_sVal.find(')');
-    size_t last_element_detection = m_sVal.find_last_of(';');
-
-    std::list<std::string> listElement;
-
-    size_t lower = sLowerPos + 1;
-
-    if((sLowerPos == std::string::npos) || (sUpperPos == std::string::npos))
-      throw std::runtime_error("missing parentheses in dynamic commands");
-
-    if(last_element_detection != std::string::npos)
-    {
-      for(size_t i = sLowerPos; i < sUpperPos; i++)
-      {
-        if(m_sVal.substr(i).find(';') == 0)
-        {
-          if(i != last_element_detection)
-          {
-            // retrieve element from beginning to n-2
-            listElement.push_back(m_sVal.substr(lower, i - lower));
-            lower = i + 1;
-          }
-          else
-          {
-            // retrieve before last element
-            listElement.push_back(m_sVal.substr(lower, last_element_detection - lower));
-            // retrieve last element
-            listElement.push_back(m_sVal.substr(last_element_detection + 1, sUpperPos - last_element_detection - 1));
-          }
-        }
-      }
-    }
-    else
-    {
-      // singleton
-      listElement.push_back(m_sVal.substr(1, sUpperPos - 1));
-    }
-
-    return listElement;
-  }
-
-  bool operator == (const char* S) const { return m_sLine.substr(m_zBeg, m_zEnd - m_zBeg) == S; }
-  int atoi(void)
-  {
-    return ::atoi(m_sLine.substr(m_zBeg, m_zEnd - m_zBeg).c_str());
-  }
-
-private:
-  const char* m_Separators = ":,= \t\r";
-
-  string const& m_sLine;
-  size_t m_zBeg;
-  size_t m_zEnd;
-  size_t m_zNext;
-  string m_sVal;
-};
-
 /****************************************************************************
  * Class CEncCmdMngr                                                         *
  *****************************************************************************/
-CEncCmdMngr::CEncCmdMngr(std::istream& CmdInput, int iLookAhead, uint32_t iFreqLT)
+CEncCmdMngr::CEncCmdMngr(std::istream& CmdInput, int32_t iLookAhead, uint32_t iFreqLT)
   : m_CmdInput(CmdInput),
   m_iLookAhead(iLookAhead),
   m_uFreqLT(iFreqLT),
@@ -153,7 +26,7 @@ CEncCmdMngr::CEncCmdMngr(std::istream& CmdInput, int iLookAhead, uint32_t iFreqL
 }
 
 /****************************************************************************/
-void CEncCmdMngr::Refill(int iCurFrame)
+void CEncCmdMngr::Refill(int32_t iCurFrame)
 {
   while(m_Cmds.size() && m_Cmds.front().iFrame < iCurFrame)
     m_Cmds.pop_front();
@@ -224,7 +97,7 @@ bool CEncCmdMngr::ParseCmd(std::string sLine, TFrmCmd& Cmd, bool bSameFrame)
   if(!Tok.GetNext())
     return bSameFrame;
 
-  int iFrame = Tok.atoi();
+  int32_t iFrame = Tok.atoi();
 
   if(bSameFrame && iFrame != Cmd.iFrame)
     return false;
@@ -282,7 +155,7 @@ bool CEncCmdMngr::ParseCmd(std::string sLine, TFrmCmd& Cmd, bool bSameFrame)
       Cmd.bChangeFrameRate = true;
       Cmd.iFrameRate = int(Tok.GetValue());
       Cmd.iClkRatio = 1000;
-      int iFrac = int(Tok.GetValue() * 1000) % 1000;
+      int32_t iFrac = int(Tok.GetValue() * 1000) % 1000;
 
       if(iFrac)
         Cmd.iClkRatio += (1000 - iFrac) / ++Cmd.iFrameRate;
@@ -339,6 +212,11 @@ bool CEncCmdMngr::ParseCmd(std::string sLine, TFrmCmd& Cmd, bool bSameFrame)
     {
       Cmd.bChangeResolution = true;
       Cmd.iInputIdx = int(Tok.GetValue());
+    }
+    else if(Tok == "LF.Mode")
+    {
+      Cmd.bSetLFMode = true;
+      Cmd.iLFMode = int(Tok.GetValue());
     }
     else if(Tok == "LF.BetaOffset")
     {
@@ -398,7 +276,7 @@ bool CEncCmdMngr::ParseCmd(std::string sLine, TFrmCmd& Cmd, bool bSameFrame)
 }
 
 /****************************************************************************/
-void CEncCmdMngr::Process(ICommandsSender* sender, int iFrame)
+void CEncCmdMngr::Process(ICommandsSender* sender, int32_t iFrame)
 {
   if(!m_Cmds.empty())
   {
@@ -477,6 +355,9 @@ void CEncCmdMngr::Process(ICommandsSender* sender, int iFrame)
 
       if(m_Cmds.front().bChangeResolution)
         sender->setDynamicInput(m_Cmds.front().iInputIdx);
+
+      if(m_Cmds.front().bSetLFMode)
+        sender->setLFMode(m_Cmds.front().iLFMode);
 
       if(m_Cmds.front().bSetLFBetaOffset)
         sender->setLFBetaOffset(m_Cmds.front().iLFBetaOffset);

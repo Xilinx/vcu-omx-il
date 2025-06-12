@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -32,14 +32,14 @@ AL_TLookAheadMetaData* AL_TwoPassMngr_CreateAndAttachTwoPassMetaData(AL_TBuffer*
 */
 struct TwoPassMngr
 {
-  TwoPassMngr(std::string p_FileName, int p_iPass, bool p_bEnabledFirstPassSceneChangeDetection, int p_iGopSize, int p_iCpbLevel, int p_iInitialLevel, int p_iFrameRate);
+  TwoPassMngr(std::string p_FileName, int32_t p_iPass, bool p_bEnabledFirstPassSceneChangeDetection, int32_t p_iGopSize, int32_t p_iCpbLevel, int32_t p_iInitialLevel, int32_t p_iFrameRate);
   ~TwoPassMngr();
 
   void AddFrame(AL_TLookAheadMetaData* pMetaData);
   void GetFrame(AL_TLookAheadMetaData* pMetaData);
   void Flush();
 
-  int iPass;
+  int32_t iPass;
   bool bEnableFirstPassSceneChangeDetection;
 
 private:
@@ -47,7 +47,7 @@ private:
   void CloseLog();
   void EmptyLog();
   void FillLog();
-  void AddNewFrame(int iPictureSize, int iPercentIntra);
+  void AddNewFrame(int32_t iPictureSize, int32_t iPercentIntra);
   void ComputeTwoPass();
   void ComputeComplexity();
   bool HasPatternTwoFrames();
@@ -56,12 +56,12 @@ private:
   std::vector<AL_TLookAheadMetaData> tFrames;
   std::ofstream outputFile;
   std::ifstream inputFile;
-  int iCurrentFrame = 0;
+  int32_t iCurrentFrame = 0;
 
-  int iGopSize;
-  int iCpbLevel;
-  int iInitialLevel;
-  int iFrameRate;
+  int32_t iGopSize;
+  int32_t iCpbLevel;
+  int32_t iInitialLevel;
+  int32_t iFrameRate;
 };
 
 /***************************************************************************/
@@ -75,7 +75,7 @@ private:
 */
 struct LookAheadMngr
 {
-  LookAheadMngr(int p_iLookAhead, bool p_bEnableFirstPassSceneChangeDetection);
+  LookAheadMngr(int32_t p_iLookAhead, bool p_bEnableFirstPassSceneChangeDetection);
   ~LookAheadMngr();
 
   uint16_t uLookAheadSize;
@@ -89,11 +89,11 @@ struct LookAheadMngr
   bool ComputeSceneChange(AL_TBuffer* pPrevSrc, AL_TBuffer* pCurrentSrc);
   bool ComputeSceneChange_LA1(AL_TBuffer* pCurrentSrc);
   int32_t ComputeIPRatio(AL_TBuffer* pCurrentSrc, AL_TBuffer* pNextSrc);
-  int GetNextSceneChange();
+  int32_t GetNextSceneChange();
 
 private:
-  int iComplexity;
-  int iFrameCount;
-  int iComplexityDiff;
+  int32_t iComplexity;
+  int32_t iFrameCount;
+  int32_t iComplexityDiff;
   AL_TLookAheadMetaData tPrevMetaData;
 };

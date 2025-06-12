@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2024 Allegro DVT. All rights reserved.
+ * Copyright (C) 2016-2025 Allegro DVT. All rights reserved.
  * Copyright (c) 2016 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -694,7 +694,7 @@ typedef struct OMX_ALG_VIDEO_PARAM_LOW_BANDWIDTH
 }OMX_ALG_VIDEO_PARAM_LOW_BANDWIDTH;
 
 /**
- * Enumration of possible aspect ratio types
+ * Enumeration of possible aspect ratio types
  */
 typedef enum OMX_ALG_EAspectRatio
 {

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "settings_enc_itu.h"
@@ -83,9 +83,9 @@ bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop gop)
   gopParam.eGdrMode = ConvertModuleToSoftGdr(gop.gdr);
 
   if(isGDREnabled(gop))
-    settings.uEnableSEI |= AL_SEI_RP;
+    settings.eEnableSEI = static_cast<AL_ESeiFlag>(settings.eEnableSEI | AL_SEI_RP);
   else
-    settings.uEnableSEI &= ~AL_SEI_RP;
+    settings.eEnableSEI = static_cast<AL_ESeiFlag>(settings.eEnableSEI & ~AL_SEI_RP);
 
   gopParam.bEnableLT = gop.isLongTermEnabled;
   gopParam.uFreqLT = gop.ltFrequency;
@@ -290,8 +290,8 @@ QPs CreateQuantizationParameter(AL_TEncSettings const& settings)
   qps.mode.table = ConvertSoftToModuleQPTable(settings.eQpTableMode);
   auto rateControl = settings.tChParam[0].tRCParam;
   qps.initial = rateControl.iInitialQP;
-  qps.deltaIP = rateControl.uIPDelta;
-  qps.deltaPB = rateControl.uPBDelta;
+  qps.deltaIP = rateControl.iIPDelta;
+  qps.deltaPB = rateControl.iPBDelta;
 
   for(int frame_type = 0; frame_type < QPs::MAX_FRAME_TYPE; frame_type++)
   {
@@ -318,8 +318,8 @@ bool UpdateQuantizationParameter(AL_TEncSettings& settings, QPs qps)
   settings.eQpTableMode = ConvertModuleToSoftQPTable(qps.mode.table);
   auto& rateControl = settings.tChParam[0].tRCParam;
   rateControl.iInitialQP = qps.initial;
-  rateControl.uIPDelta = qps.deltaIP;
-  rateControl.uPBDelta = qps.deltaPB;
+  rateControl.iIPDelta = qps.deltaIP;
+  rateControl.iPBDelta = qps.deltaPB;
 
   for(int frame_type = 0; frame_type < AL_MAX_FRAME_TYPE; frame_type++)
   {
@@ -598,89 +598,89 @@ bool UpdateAccessUnitDelimiter(AL_TEncSettings& settings, bool isAUDEnabled)
 
 bool CreateBufferingPeriodSEI(AL_TEncSettings const& settings)
 {
-  return (settings.uEnableSEI & AL_SEI_BP) != 0;
+  return (settings.eEnableSEI & AL_SEI_BP) != 0;
 }
 
 bool UpdateBufferingPeriodSEI(AL_TEncSettings& settings, bool isBPEnabled)
 {
-  isBPEnabled ? settings.uEnableSEI |= AL_SEI_BP : settings.uEnableSEI &= ~AL_SEI_BP;
+  settings.eEnableSEI = isBPEnabled ? static_cast<AL_ESeiFlag>(settings.eEnableSEI | AL_SEI_BP) : static_cast<AL_ESeiFlag>(settings.eEnableSEI & ~AL_SEI_BP);
   return true;
 }
 
 bool CreatePictureTimingSEI(AL_TEncSettings const& settings)
 {
-  return (settings.uEnableSEI & AL_SEI_PT) != 0;
+  return (settings.eEnableSEI & AL_SEI_PT) != 0;
 }
 
 bool UpdatePictureTimingSEI(AL_TEncSettings& settings, bool isPTEnabled)
 {
-  isPTEnabled ? settings.uEnableSEI |= AL_SEI_PT : settings.uEnableSEI &= ~AL_SEI_PT;
+  settings.eEnableSEI = isPTEnabled ? static_cast<AL_ESeiFlag>(settings.eEnableSEI | AL_SEI_PT) : static_cast<AL_ESeiFlag>(settings.eEnableSEI & ~AL_SEI_PT);
   return true;
 }
 
 bool CreateRecoveryPointSEI(AL_TEncSettings const& settings)
 {
-  return (settings.uEnableSEI & AL_SEI_RP) != 0;
+  return (settings.eEnableSEI & AL_SEI_RP) != 0;
 }
 
 bool UpdateRecoveryPointSEI(AL_TEncSettings& settings, bool isRPEnabled)
 {
-  isRPEnabled ? settings.uEnableSEI |= AL_SEI_RP : settings.uEnableSEI &= ~AL_SEI_RP;
+  settings.eEnableSEI = isRPEnabled ? static_cast<AL_ESeiFlag>(settings.eEnableSEI | AL_SEI_RP) : static_cast<AL_ESeiFlag>(settings.eEnableSEI & ~AL_SEI_RP);
   return true;
 }
 
 bool CreateMasteringDisplayColourVolumeSEI(AL_TEncSettings const& settings)
 {
-  return (settings.uEnableSEI & AL_SEI_MDCV) != 0;
+  return (settings.eEnableSEI & AL_SEI_MDCV) != 0;
 }
 
 bool UpdateMasteringDisplayColourVolumeSEI(AL_TEncSettings& settings, bool isMDCVEnabled)
 {
-  isMDCVEnabled ? settings.uEnableSEI |= AL_SEI_MDCV : settings.uEnableSEI &= ~AL_SEI_MDCV;
+  settings.eEnableSEI = isMDCVEnabled ? static_cast<AL_ESeiFlag>(settings.eEnableSEI | AL_SEI_MDCV) : static_cast<AL_ESeiFlag>(settings.eEnableSEI & ~AL_SEI_MDCV);
   return true;
 }
 
 bool CreateContentLightLevelSEI(AL_TEncSettings const& settings)
 {
-  return (settings.uEnableSEI & AL_SEI_CLL) != 0;
+  return (settings.eEnableSEI & AL_SEI_CLL) != 0;
 }
 
 bool UpdateContentLightLevelSEI(AL_TEncSettings& settings, bool isCLLEnabled)
 {
-  isCLLEnabled ? settings.uEnableSEI |= AL_SEI_CLL : settings.uEnableSEI &= ~AL_SEI_CLL;
+  settings.eEnableSEI = isCLLEnabled ? static_cast<AL_ESeiFlag>(settings.eEnableSEI | AL_SEI_CLL) : static_cast<AL_ESeiFlag>(settings.eEnableSEI & ~AL_SEI_CLL);
   return true;
 }
 
 bool CreateAlternativeTransferCharacteristicsSEI(AL_TEncSettings const& settings)
 {
-  return (settings.uEnableSEI & AL_SEI_ATC) != 0;
+  return (settings.eEnableSEI & AL_SEI_ATC) != 0;
 }
 
 bool UpdateAlternativeTransferCharacteristicsSEI(AL_TEncSettings& settings, bool isATCEnabled)
 {
-  isATCEnabled ? settings.uEnableSEI |= AL_SEI_ATC : settings.uEnableSEI &= ~AL_SEI_ATC;
+  settings.eEnableSEI = isATCEnabled ? static_cast<AL_ESeiFlag>(settings.eEnableSEI | AL_SEI_ATC) : static_cast<AL_ESeiFlag>(settings.eEnableSEI & ~AL_SEI_ATC);
   return true;
 }
 
 bool CreateST209410SEI(AL_TEncSettings const& settings)
 {
-  return (settings.uEnableSEI & AL_SEI_ST2094_10) != 0;
+  return (settings.eEnableSEI & AL_SEI_ST2094_10) != 0;
 }
 
 bool UpdateST209410SEI(AL_TEncSettings& settings, bool isST209410Enabled)
 {
-  isST209410Enabled ? settings.uEnableSEI |= AL_SEI_ST2094_10 : settings.uEnableSEI &= ~AL_SEI_ST2094_10;
+  settings.eEnableSEI = isST209410Enabled ? static_cast<AL_ESeiFlag>(settings.eEnableSEI | AL_SEI_ST2094_10) : static_cast<AL_ESeiFlag>(settings.eEnableSEI & ~AL_SEI_ST2094_10);
   return true;
 }
 
 bool CreateST209440SEI(AL_TEncSettings const& settings)
 {
-  return (settings.uEnableSEI & AL_SEI_ST2094_40) != 0;
+  return (settings.eEnableSEI & AL_SEI_ST2094_40) != 0;
 }
 
 bool UpdateST209440SEI(AL_TEncSettings& settings, bool isST209440Enabled)
 {
-  isST209440Enabled ? settings.uEnableSEI |= AL_SEI_ST2094_40 : settings.uEnableSEI &= ~AL_SEI_ST2094_40;
+  settings.eEnableSEI = isST209440Enabled ? static_cast<AL_ESeiFlag>(settings.eEnableSEI | AL_SEI_ST2094_40) : static_cast<AL_ESeiFlag>(settings.eEnableSEI & ~AL_SEI_ST2094_40);
   return true;
 }
 

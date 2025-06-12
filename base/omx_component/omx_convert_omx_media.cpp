@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "omx_convert_omx_media.h"
@@ -1057,6 +1057,10 @@ static inline bool IsMainTier(OMX_ALG_VIDEO_HEVCLEVELTYPE level)
   case OMX_ALG_VIDEO_HEVCMainTierLevel6:
   case OMX_ALG_VIDEO_HEVCMainTierLevel61:
   case OMX_ALG_VIDEO_HEVCMainTierLevel62:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel63:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel7:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel71:
+  case OMX_ALG_VIDEO_HEVCMainTierLevel72:
     return true;
   default: return false;
   }

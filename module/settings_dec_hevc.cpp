@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include <cstring> // memset
@@ -431,7 +431,8 @@ bool DecSettingsHEVC::Check()
   if(AL_DecSettings_CheckValidity(&settings, stderr) != 0)
     return false;
 
-  AL_DecSettings_CheckCoherency(&settings, stdout);
+  if(AL_DecSettings_CheckCoherency(&settings, stdout) < 0)
+    return false;
 
   return true;
 }

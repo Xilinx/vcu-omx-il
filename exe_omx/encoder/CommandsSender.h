@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2024 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -15,36 +15,38 @@ struct CommandsSender final : public ICommandsSender
 {
   CommandsSender(OMX_HANDLETYPE hEnc);
   ~CommandsSender() override;
-  void notifySceneChange(int lookAhead) override;
+  void notifySceneChange(int32_t lookAhead) override;
   void notifyIsLongTerm() override;
   void notifyUseLongTerm() override;
   void restartGop() override;
   void restartGopRecoveryPoint() override;
-  void setGopLength(int gopLength) override;
-  void setNumB(int numB) override;
-  void setFreqIDR(int freqIDR) override;
-  void setFrameRate(int frameRate, int clockRatio) override;
-  void setBitRate(int bitRate) override;
-  void setMaxBitRate(int iTargetBitRate, int iMaxBitRate) override;
-  void setQP(int qp) override;
-  void setQPOffset(int iQpOffset) override;
-  void setQPBounds(int iMinQP, int iMaxQP) override;
-  void setQPBounds_I(int iMinQP_I, int iMaxQP_I) override;
-  void setQPBounds_P(int iMinQP_P, int iMaxQP_P) override;
-  void setQPBounds_B(int iMinQP_B, int iMaxQP_B) override;
-  void setQPIPDelta(int iQPDelta) override;
-  void setQPPBDelta(int iQPDelta) override;
-  void setDynamicInput(int iInputIdx) override;
-  void setLFBetaOffset(int iBetaOffset) override;
-  void setLFTcOffset(int iTcOffset) override;
+  void setGopLength(int32_t gopLength) override;
+  void setNumB(int32_t numB) override;
+  void setFreqIDR(int32_t freqIDR) override;
+  void setFrameRate(int32_t frameRate, int32_t clockRatio) override;
+  void setBitRate(int32_t bitRate) override;
+  void setMaxBitRate(int32_t iTargetBitRate, int32_t iMaxBitRate) override;
+  void setQP(int32_t qp) override;
+  void setQPOffset(int32_t iQpOffset) override;
+  void setQPBounds(int32_t iMinQP, int32_t iMaxQP) override;
+  void setQPBounds_I(int32_t iMinQP_I, int32_t iMaxQP_I) override;
+  void setQPBounds_P(int32_t iMinQP_P, int32_t iMaxQP_P) override;
+  void setQPBounds_B(int32_t iMinQP_B, int32_t iMaxQP_B) override;
+  void setQPIPDelta(int32_t iQPDelta) override;
+  void setQPPBDelta(int32_t iQPDelta) override;
+  void setDynamicInput(int32_t iInputIdx) override;
+  void setLFMode(int32_t iMode) override;
+  void setLFBetaOffset(int32_t iBetaOffset) override;
+  void setLFTcOffset(int32_t iTcOffset) override;
   void setCostMode(bool bCostMode) override;
-  void setMaxPictureSize(int iMaxPictureSize) override;
-  void setMaxPictureSize_I(int iMaxPictureSize_I) override;
-  void setMaxPictureSize_P(int iMaxPictureSize_P) override;
-  void setMaxPictureSize_B(int iMaxPictureSize_B) override;
-  void setQPChromaOffsets(int iQp1Offset, int iQp2Offset) override;
+  void setMaxPictureSize(int32_t iMaxPictureSize) override;
+  void setMaxPictureSize_I(int32_t iMaxPictureSize_I) override;
+  void setMaxPictureSize_P(int32_t iMaxPictureSize_P) override;
+  void setMaxPictureSize_B(int32_t iMaxPictureSize_B) override;
+
+  void setQPChromaOffsets(int32_t iQp1Offset, int32_t iQp2Offset) override;
   void setAutoQP(bool bUseAutoQP) override;
-  void setHDRIndex(int iHDRIdx) override;
+  void setHDRIndex(int32_t iHDRIdx) override;
 
 private:
   OMX_HANDLETYPE hEnc;
