@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "settings_codec_avc.h"
-#include "convert_module_soft_avc.h"
+#include "settings_codec_avc.hpp"
+#include "convert_module_soft_avc.hpp"
 
 using namespace std;
 

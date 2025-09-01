@@ -1,0 +1,22 @@
+// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+#include "module_structs.hpp"
+
+extern "C"
+{
+#include <lib_encode/lib_encoder.h>
+}
+
+struct EncDeviceInterface
+{
+  virtual ~EncDeviceInterface() = 0;
+
+  virtual AL_IEncScheduler* Init() = 0;
+  virtual void Deinit() = 0;
+  virtual BufferContiguities GetBufferContiguities() const = 0;
+  virtual BufferBytesAlignments GetBufferBytesAlignments() const = 0;
+  virtual void* GetDeviceContext() = 0;
+};

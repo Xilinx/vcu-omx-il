@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "dma_memory.h"
-#include "dmaproxy.h"
+#include "dma_memory.hpp"
+#include "dmaproxy.hpp"
 
 #include <algorithm> // move
 #include <cstring> // memset
@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 
-#include <utility/logger.h>
+#include <utility/logger.hpp>
 
 extern "C"
 {

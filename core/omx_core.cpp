@@ -7,11 +7,12 @@
 #include <dlfcn.h>
 #include <algorithm>
 #include <type_traits>
-#include <utility/logger.h>
-#include <utility/omx_translate.h>
+#include <utility/logger.hpp>
+#include <utility/omx_translate.hpp>
 
-#include "omx_core.h"
+#include "omx_core.hpp"
 #include <OMX_Component.h>
+#include <OMX_Core.h>
 #include <stdexcept>
 
 using namespace std;
@@ -202,6 +203,9 @@ OMX_ERRORTYPE OMX_GetComponentsOfRole(OMX_IN OMX_STRING role, OMX_INOUT OMX_U32*
   {
     if(strncmp(AL_COMP_LIST[i].role, role, strlen(role)) == 0)
     {
+      if(strlen(AL_COMP_LIST[i].name) >= OMX_MAX_STRINGNAME_SIZE)
+        return OMX_ErrorInvalidComponentName;
+
       strncpy((char*)compNames[compNamesIndex++], AL_COMP_LIST[i].name, OMX_MAX_STRINGNAME_SIZE);
 
       if(static_cast<OMX_U32>(compNamesIndex) >= *pNumComps)

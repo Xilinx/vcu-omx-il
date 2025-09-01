@@ -1,9 +1,12 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "convert_module_soft.h"
-#include "lib_common/PicFormat.h"
-#include "module_enums.h"
+#include "convert_module_soft.hpp"
+#include "module_enums.hpp"
+extern "C"
+{
+#include <lib_common/PicFormat.h>
+}
 
 AL_EChromaMode ConvertModuleToSoftChroma(ColorType color)
 {

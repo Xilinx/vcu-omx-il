@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "EncCmdMngr.h"
+#include "EncCmdMngr.hpp"
 #include <stdexcept>
 
-#include "EncTokenizerUtils.h"
+#include "EncTokenizerUtils.hpp"
 
 using namespace std;
 

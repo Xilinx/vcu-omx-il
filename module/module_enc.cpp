@@ -1,17 +1,17 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "module_enc.h"
-#include "convert_module_soft_enc_roi.h"
-#include "convert_module_soft_enc.h"
-#include "convert_module_soft.h"
-#include "ROIMngr.h"
+#include "module_enc.hpp"
+#include "convert_module_soft_enc_roi.hpp"
+#include "convert_module_soft_enc.hpp"
+#include "convert_module_soft.hpp"
+#include "ROIMngr.hpp"
 #include <cassert>
 #include <cmath>
 #include <algorithm>
 #include <future>
-#include <utility/logger.h>
-#include <utility/round.h>
+#include <utility/logger.hpp>
+#include <utility/round.hpp>
 #include <string>
 
 extern "C"

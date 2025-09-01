@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "omx_component_getset.h"
-#include "base/omx_checker/omx_checker.h"
-#include "omx_convert_omx_media.h"
+#include "omx_component_getset.hpp"
+#include "base/omx_checker/omx_checker.hpp"
+#include "omx_convert_omx_media.hpp"
 #include <algorithm> // max
 
 using namespace std;

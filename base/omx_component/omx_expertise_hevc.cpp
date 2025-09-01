@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "omx_expertise_hevc.h"
-#include "omx_convert_omx_media.h"
+#include "omx_expertise_hevc.hpp"
+#include "omx_convert_omx_media.hpp"
 
 using namespace std;
 

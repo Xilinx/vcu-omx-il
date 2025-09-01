@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "module_interface.h"
+#include "module_interface.hpp"
 
 ModuleInterface::~ModuleInterface() = default;

@@ -11,9 +11,10 @@ MODULE_ENC_SRCS+=\
                  $(THIS.module_enc)/dma_memory.cpp\
                  $(THIS.module_enc)/cpp_memory.cpp\
                  $(THIS.module_enc)/device_enc_interface.cpp\
-                 $(THIS.module_enc)/ROIMngr.cpp\
-                 $(THIS.module_enc)/TwoPassMngr.cpp\
 
+  MODULE_ENC_SRCS+=$(THIS.module_enc)/ROIMngr.cpp
+
+MODULE_ENC_SRCS+=$(THIS.module_enc)/TwoPassMngr.cpp
 
 
 ifeq ($(ENABLE_OMX_MCU), 1)

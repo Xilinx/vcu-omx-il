@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "convert_module_soft_dec.h"
+#include "convert_module_soft_dec.hpp"
 #include <cassert>
 
 AL_EDpbMode ConvertModuleToSoftDecodedPictureBuffer(DecodedPictureBufferType mode)

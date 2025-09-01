@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "cpp_memory.h"
+#include "cpp_memory.hpp"
 
 #include <algorithm> // move
 #include <cstring> // memset

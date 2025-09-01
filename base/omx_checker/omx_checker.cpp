@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "omx_checker.h"
+#include "omx_checker.hpp"
 
 static inline bool isStateLoaded(OMX_STATETYPE curState)
 {

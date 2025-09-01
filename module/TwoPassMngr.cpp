@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "TwoPassMngr.h"
+#include "TwoPassMngr.hpp"
 #include <stdexcept>
 #include <string>
 #include <algorithm>

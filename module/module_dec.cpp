@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "module_dec.h"
+#include "module_dec.hpp"
 #include <cmath>
 #include <cassert>
 #include <algorithm>
-#include <utility/round.h>
-#include <utility/logger.h>
-#include <utility/scope_exit.h>
-#include "convert_module_soft.h"
+#include <utility/round.hpp>
+#include <utility/logger.hpp>
+#include <utility/scope_exit.hpp>
+#include "convert_module_soft.hpp"
 
 extern "C"
 {

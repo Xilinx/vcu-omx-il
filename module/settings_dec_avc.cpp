@@ -4,13 +4,13 @@
 #include <cstring> // memset
 #include <cmath>
 #include <cassert>
-#include <utility/round.h>
-#include "settings_dec_avc.h"
-#include "settings_dec_itu.h"
-#include "settings_codec_avc.h"
-#include "settings_codec_itu.h"
-#include "settings_checks.h"
-#include "convert_module_soft_avc.h"
+#include <utility/round.hpp>
+#include "settings_dec_avc.hpp"
+#include "settings_dec_itu.hpp"
+#include "settings_codec_avc.hpp"
+#include "settings_codec_itu.hpp"
+#include "settings_checks.hpp"
+#include "convert_module_soft_avc.hpp"
 
 using namespace std;
 

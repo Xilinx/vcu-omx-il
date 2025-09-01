@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "base/omx_component/omx_component_dec.h"
-#include "base/omx_component/omx_expertise_hevc.h"
-#include "module/settings_dec_hevc.h"
-#include "module/module_dec.h"
+#include "base/omx_component/omx_component_dec.hpp"
+#include "base/omx_component/omx_expertise_hevc.hpp"
+#include "module/settings_dec_hevc.hpp"
+#include "module/module_dec.hpp"
 
-#include "module/device_dec_hardware_mcu.h"
+#include "module/device_dec_hardware_mcu.hpp"
 
 #include <utility>
 #include <cstring>
@@ -50,8 +50,8 @@ static StrideAlignments constexpr STRIDE_ALIGNMENTS_HARDWARE
   64, 64
 };
 
-#include "base/omx_component/omx_expertise_avc.h"
-#include "module/settings_dec_avc.h"
+#include "base/omx_component/omx_expertise_avc.hpp"
+#include "module/settings_dec_avc.hpp"
 
 static DecComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole, OMX_ALG_COREINDEXTYPE nCoreParamIndex, OMX_PTR pSettings)
 {

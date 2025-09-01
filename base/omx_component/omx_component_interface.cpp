@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "omx_component_interface.h"
+#include "omx_component_interface.hpp"
 
 OMXComponentInterface::~OMXComponentInterface() = default;

@@ -1,18 +1,18 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "module/settings_enc_hevc.h"
-#include "module/module_enc.h"
-#include "module/cpp_memory.h"
+#include "module/settings_enc_hevc.hpp"
+#include "module/module_enc.hpp"
+#include "module/cpp_memory.hpp"
 
-#include "base/omx_component/omx_component_enc.h"
-#include "base/omx_component/omx_expertise_hevc.h"
+#include "base/omx_component/omx_component_enc.hpp"
+#include "base/omx_component/omx_expertise_hevc.hpp"
 
 #if AL_ENABLE_DMA_COPY_ENC
-#include "module/dma_memory.h"
+#include "module/dma_memory.hpp"
 #endif
 
-#include "module/device_enc_hardware_mcu.h"
+#include "module/device_enc_hardware_mcu.hpp"
 
 #include <cstring>
 #include <memory>
@@ -51,8 +51,9 @@ static MemoryInterface* createMemory()
 {
 #if AL_ENABLE_DMA_COPY_ENC
   char const* device = "/dev/dmaproxy";
-  bool exist = access( device, F_OK ) == 0;
-  if( exist )
+  bool exist = access(device, F_OK) == 0;
+
+  if(exist)
     return new DMAMemory(device);
 #endif
   return new CPPMemory();
@@ -82,8 +83,8 @@ static AL_TAllocator* createDmaAlloc(string deviceName)
   return alloc;
 }
 
-#include "base/omx_component/omx_expertise_avc.h"
-#include "module/settings_enc_avc.h"
+#include "base/omx_component/omx_expertise_avc.hpp"
+#include "module/settings_enc_avc.hpp"
 
 static EncComponent* GenerateAvcComponentHardware(OMX_HANDLETYPE hComponent, OMX_STRING cComponentName, OMX_STRING cRole, OMX_ALG_COREINDEXTYPE nCoreParamIndex, OMX_PTR pSettings)
 {

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "settings_codec_itu.h"
-#include "settings_checks.h"
+#include "settings_codec_itu.hpp"
+#include "settings_checks.hpp"
 #include <cassert>
 
 using namespace std;

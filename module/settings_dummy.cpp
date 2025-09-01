@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "settings_dummy.h"
+#include "settings_dummy.hpp"
 
 using namespace std;
 

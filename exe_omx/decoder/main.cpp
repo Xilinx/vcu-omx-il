@@ -29,15 +29,15 @@
 #include <OMX_IVCommonAlg.h>
 #include <OMX_VideoHEVCAndroid.h>
 
-#include <utility/logger.h>
-#include <utility/locked_queue.h>
-#include <utility/semaphore.h>
-#include <utility/omx_translate.h>
+#include <utility/logger.hpp>
+#include <utility/locked_queue.hpp>
+#include <utility/semaphore.hpp>
+#include <utility/omx_translate.hpp>
 
-#include "../common/helpers.h"
-#include "../common/CommandLineParser.h"
-#include "../common/codec.h"
-#include "../common/YuvReadWrite.h"
+#include "../common/helpers.hpp"
+#include "../common/CommandLineParser.hpp"
+#include "../common/codec.hpp"
+#include "../common/YuvReadWrite.hpp"
 
 extern "C"
 {

@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "getters.h"
+#include "getters.hpp"
 
-#include "helpers.h"
+#include "helpers.hpp"
 #include <cassert>
 #include <OMX_Component.h>
 #include <OMX_ComponentAlg.h>

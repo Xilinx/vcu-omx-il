@@ -1,16 +1,16 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "settings_enc_avc.h"
-#include "module/module_structs.h"
-#include "settings_enc_itu.h"
-#include "settings_codec_avc.h"
-#include "settings_codec_itu.h"
-#include "convert_module_soft_avc.h"
-#include "convert_module_soft_enc.h"
-#include "convert_module_soft.h"
-#include "settings_checks.h"
-#include <utility/round.h>
+#include "settings_enc_avc.hpp"
+#include "module/module_structs.hpp"
+#include "settings_enc_itu.hpp"
+#include "settings_codec_avc.hpp"
+#include "settings_codec_itu.hpp"
+#include "convert_module_soft_avc.hpp"
+#include "convert_module_soft_enc.hpp"
+#include "convert_module_soft.hpp"
+#include "settings_checks.hpp"
+#include <utility/round.hpp>
 #include <cmath>
 #include <cassert>
 #include <cstring> // memset

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "convert_module_soft_enc_roi.h"
+#include "convert_module_soft_enc_roi.hpp"
 
 AL_ERoiQuality ConvertModuleToSoftQualityByPreset(QualityType const& quality)
 {

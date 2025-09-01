@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "omx_wrapper_codec_entry_point.h"
+#include "omx_wrapper_codec_entry_point.hpp"
 #include <string>
-#include <utility/logger.h>
-#include <utility/omx_translate.h>
+#include <utility/logger.hpp>
+#include <utility/omx_translate.hpp>
 
 using namespace std;
 

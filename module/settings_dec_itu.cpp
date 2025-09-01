@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 #include <cassert>
-#include <utility/round.h>
-#include "module/module_enums.h"
-#include "settings_dec_itu.h"
-#include "settings_checks.h"
-#include "convert_module_soft.h"
-#include "convert_module_soft_dec.h"
+#include <utility/round.hpp>
+#include "module/module_enums.hpp"
+#include "settings_dec_itu.hpp"
+#include "settings_checks.hpp"
+#include "convert_module_soft.hpp"
+#include "convert_module_soft_dec.hpp"
 
 extern "C"
 {

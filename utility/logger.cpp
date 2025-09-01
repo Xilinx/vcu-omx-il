@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "logger.h"
+#include "logger.hpp"
 #include <3rd_party/date.h>
 
 #include <fstream>

@@ -1,16 +1,16 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "omx_component_dec.h"
+#include "omx_component_dec.hpp"
 
 #include <OMX_VideoAlg.h>
 #include <OMX_ComponentAlg.h>
 #include <OMX_IVCommonAlg.h>
 #include <OMX_CoreAlg.h>
 
-#include <utility/omx_translate.h>
+#include <utility/omx_translate.hpp>
 
-#include "base/omx_checker/omx_checker.h"
+#include "base/omx_checker/omx_checker.hpp"
 
 using namespace std;
 

@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "ROIMngr.h"
+#include "ROIMngr.hpp"
 
 #include <stdexcept>
 
 extern "C"
 {
 #include "lib_rtos/lib_rtos.h"
-#include "lib_common/RoundUp.h"
+#include "lib_common/Round.h"
 }
 
 using namespace std;

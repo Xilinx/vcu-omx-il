@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "omx_convert_omx_media.h"
-#include "OMX_Types.h"
-#include "OMX_VideoAlg.h"
-#include "module/module_enums.h"
+#include "omx_convert_omx_media.hpp"
+#include <OMX_Types.h>
+#include <OMX_VideoAlg.h>
+#include "module/module_enums.hpp"
 
 #include <stdexcept>
 #include <cassert>

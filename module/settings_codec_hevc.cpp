@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "settings_codec_hevc.h"
-#include "convert_module_soft_hevc.h"
+#include "settings_codec_hevc.hpp"
+#include "convert_module_soft_hevc.hpp"
 
 using namespace std;
 

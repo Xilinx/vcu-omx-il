@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "module_dummy.h"
+#include "module_dummy.hpp"
 
 DummyModule::DummyModule() = default;
 DummyModule::~DummyModule() = default;

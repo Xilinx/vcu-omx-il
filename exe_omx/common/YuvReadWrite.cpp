@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "YuvReadWrite.h"
+#include "YuvReadWrite.hpp"
 
 #include <OMX_IVCommonAlg.h>
-#include <utility/logger.h>
-#include <utility/round.h>
+#include <utility/logger.hpp>
+#include <utility/round.hpp>
 #include <cstring>
 
 #define MAX_PLANES 3

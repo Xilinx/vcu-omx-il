@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "convert_module_soft_enc.h"
-#include "module_enums.h"
+#include "convert_module_soft_enc.hpp"
+#include "module_enums.hpp"
 
 RateControlType ConvertSoftToModuleRateControl(AL_ERateCtrlMode mode)
 {

@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "settings_enc_itu.h"
-#include "module/module_enums.h"
-#include "settings_checks.h"
-#include "convert_module_soft.h"
-#include "convert_module_soft_enc.h"
-#include <utility/round.h>
+#include "settings_enc_itu.hpp"
+#include "module/module_enums.hpp"
+#include "settings_checks.hpp"
+#include "convert_module_soft.hpp"
+#include "convert_module_soft_enc.hpp"
+#include <utility/round.hpp>
 #include <cassert>
 
 extern "C"
@@ -55,7 +55,7 @@ Gop CreateGroupOfPictures(AL_TEncSettings const& settings)
   gop.b = gopParam.uNumB;
   gop.length = gopParam.uGopLength;
   gop.idrFrequency = gopParam.uFreqIDR;
-  gop.rpFrequency = gopParam.uFreqRP;
+  gop.rpFrequency = gopParam.iFreqRP;
   gop.mode = ConvertSoftToModuleGopControl(gopParam.eMode);
   gop.gdr = ConvertSoftToModuleGdr(gopParam.eGdrMode);
   gop.isLongTermEnabled = gopParam.bEnableLT;
@@ -78,7 +78,7 @@ bool UpdateGroupOfPictures(AL_TEncSettings& settings, Gop gop)
   gopParam.uNumB = gop.b;
   gopParam.uGopLength = gop.length;
   gopParam.uFreqIDR = gop.idrFrequency;
-  gopParam.uFreqRP = gop.rpFrequency;
+  gopParam.iFreqRP = gop.rpFrequency;
   gopParam.eMode = ConvertModuleToSoftGopControl(gop.mode);
   gopParam.eGdrMode = ConvertModuleToSoftGdr(gop.gdr);
 

@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "settings_checks.h"
-#include "module/module_enums.h"
+#include "settings_checks.hpp"
+#include "module/module_enums.hpp"
 
 using namespace std;
 
-bool CheckClock(Clock clock)
+bool CheckClock(Clock const& clock)
 {
   if(clock.framerate < 0)
     return false;
@@ -17,7 +17,7 @@ bool CheckClock(Clock clock)
   return true;
 }
 
-bool CheckGroupOfPictures(Gop gop)
+bool CheckGroupOfPictures(Gop const& gop)
 {
   if(gop.b < 0)
     return false;
@@ -43,7 +43,7 @@ bool CheckGroupOfPictures(Gop gop)
   return true;
 }
 
-bool CheckInternalEntropyBuffer(int internalEntropyBuffer)
+bool CheckInternalEntropyBuffer(int const& internalEntropyBuffer)
 {
   if(internalEntropyBuffer < 1)
     return false;
@@ -54,19 +54,19 @@ bool CheckInternalEntropyBuffer(int internalEntropyBuffer)
   return true;
 }
 
-bool CheckVideoMode(VideoModeType videoMode)
+bool CheckVideoMode(VideoModeType const& videoMode)
 {
   return videoMode != VideoModeType::VIDEO_MODE_MAX_ENUM;
 }
 
-bool CheckSequenceMode(SequencePictureModeType sequenceMode, vector<SequencePictureModeType> sequenceModes)
+bool CheckSequenceMode(SequencePictureModeType const& sequenceMode, vector<SequencePictureModeType> const& sequenceModes)
 {
   if(!IsSupported(sequenceMode, sequenceModes))
     return false;
   return true;
 }
 
-bool CheckBitrate(Bitrate bitrate, Clock clock)
+bool CheckBitrate(Bitrate const& bitrate, Clock const& clock)
 {
   if(bitrate.target <= 0)
     return false;
@@ -95,17 +95,17 @@ bool CheckBitrate(Bitrate bitrate, Clock clock)
   return true;
 }
 
-bool CheckAspectRatio(AspectRatioType aspectRatio)
+bool CheckAspectRatio(AspectRatioType const& aspectRatio)
 {
   return aspectRatio != AspectRatioType::ASPECT_RATIO_MAX_ENUM;
 }
 
-bool CheckScalingList(ScalingListType scalingList)
+bool CheckScalingList(ScalingListType const& scalingList)
 {
   return scalingList != ScalingListType::SCALING_LIST_MAX_ENUM;
 }
 
-bool CheckQuantizationParameter(QPs qps)
+bool CheckQuantizationParameter(QPs const& qps)
 {
   if(qps.mode.ctrl == QPControlType::QP_CONTROL_MAX_ENUM)
     return false;
@@ -134,7 +134,7 @@ bool CheckQuantizationParameter(QPs qps)
   return true;
 }
 
-bool CheckSlicesParameter(Slices slices)
+bool CheckSlicesParameter(Slices const& slices)
 {
   if(slices.num <= 0)
     return false;
@@ -142,7 +142,7 @@ bool CheckSlicesParameter(Slices slices)
   return true;
 }
 
-bool CheckFormat(Format format, vector<ColorType> colors, vector<int> bitdepths, vector<StorageType> storages)
+bool CheckFormat(Format const& format, vector<ColorType> const& colors, vector<int> const& bitdepths, vector<StorageType> const& storages)
 {
   if(!IsSupported(format.color, colors))
     return false;
@@ -156,7 +156,7 @@ bool CheckFormat(Format format, vector<ColorType> colors, vector<int> bitdepths,
   return true;
 }
 
-bool CheckBufferHandles(BufferHandles bufferHandles)
+bool CheckBufferHandles(BufferHandles const& bufferHandles)
 {
   if(bufferHandles.input == BufferHandleType::BUFFER_HANDLE_MAX_ENUM)
     return false;
@@ -167,7 +167,7 @@ bool CheckBufferHandles(BufferHandles bufferHandles)
   return true;
 }
 
-bool CheckColorPrimaries(ColorPrimariesType colorPrimaries)
+bool CheckColorPrimaries(ColorPrimariesType const& colorPrimaries)
 {
   if(colorPrimaries == ColorPrimariesType::COLOR_PRIMARIES_MAX_ENUM)
     return false;
@@ -175,17 +175,17 @@ bool CheckColorPrimaries(ColorPrimariesType colorPrimaries)
   return true;
 }
 
-bool CheckTransferCharacteristics(TransferCharacteristicsType transferCharacteristics)
+bool CheckTransferCharacteristics(TransferCharacteristicsType const& transferCharacteristics)
 {
   return transferCharacteristics != TransferCharacteristicsType::TRANSFER_CHARACTERISTICS_MAX_ENUM;
 }
 
-bool CheckColourMatrix(ColourMatrixType colourMatrix)
+bool CheckColourMatrix(ColourMatrixType const& colourMatrix)
 {
   return colourMatrix != ColourMatrixType::COLOUR_MATRIX_MAX_ENUM;
 }
 
-bool CheckLookAhead(LookAhead la)
+bool CheckLookAhead(LookAhead const& la)
 {
   if(la.lookAhead < 0)
     return false;
@@ -193,7 +193,7 @@ bool CheckLookAhead(LookAhead la)
   return true;
 }
 
-bool CheckTwoPass(TwoPass tp)
+bool CheckTwoPass(TwoPass const& tp)
 {
   if(tp.nPass < 0 || tp.nPass > 2)
     return false;
@@ -201,7 +201,7 @@ bool CheckTwoPass(TwoPass tp)
   return true;
 }
 
-bool CheckMaxPictureSizes(MaxPicturesSizes sizes)
+bool CheckMaxPictureSizes(MaxPicturesSizes const& sizes)
 {
   if(sizes.i < 0 || sizes.p < 0 || sizes.b < 0)
     return false;
@@ -209,29 +209,29 @@ bool CheckMaxPictureSizes(MaxPicturesSizes sizes)
   return true;
 }
 
-bool CheckLoopFilterBeta(int beta)
+bool CheckLoopFilterBeta(int const& beta)
 {
   (void)beta;
   return true;
 }
 
-bool CheckLoopFilterTc(int tc)
+bool CheckLoopFilterTc(int const& tc)
 {
   (void)tc;
   return true;
 }
 
-bool CheckCrop(Region region)
+bool CheckCrop(Region const& region)
 {
   return (region.point.x >= 0) && (region.point.y >= 0) && (region.dimension.horizontal >= 0) && (region.dimension.vertical >= 0);
 }
 
-bool CheckLog2CodingUnit(MinMax<int> log2CodingUnit)
+bool CheckLog2CodingUnit(MinMax<int> const& log2CodingUnit)
 {
   return log2CodingUnit.min >= 0 && log2CodingUnit.max >= 0;
 }
 
-bool CheckStartCodeBytesAlignment(StartCodeBytesAlignmentType startCodeBytesAlignment)
+bool CheckStartCodeBytesAlignment(StartCodeBytesAlignmentType const& startCodeBytesAlignment)
 {
   return startCodeBytesAlignment != StartCodeBytesAlignmentType::START_CODE_BYTES_ALIGNMENT_MAX_ENUM;
 }

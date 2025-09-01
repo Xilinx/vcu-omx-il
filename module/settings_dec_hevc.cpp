@@ -3,14 +3,14 @@
 
 #include <cstring> // memset
 #include <cassert>
-#include <math.h>
-#include <utility/round.h>
-#include "settings_dec_hevc.h"
-#include "settings_dec_itu.h"
-#include "settings_codec_hevc.h"
-#include "settings_codec_itu.h"
-#include "settings_checks.h"
-#include "convert_module_soft_hevc.h"
+#include <cmath>
+#include <utility/round.hpp>
+#include "settings_dec_hevc.hpp"
+#include "settings_dec_itu.hpp"
+#include "settings_codec_hevc.hpp"
+#include "settings_codec_itu.hpp"
+#include "settings_checks.hpp"
+#include "convert_module_soft_hevc.hpp"
 
 using namespace std;
 

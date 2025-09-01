@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
-#include "CommandsSender.h"
+#include "CommandsSender.hpp"
 
 #include <cassert>
 #include <cmath>
-#include "../common/helpers.h"
+#include "../common/helpers.hpp"
 
 extern "C"
 {
