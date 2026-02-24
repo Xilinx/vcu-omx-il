@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2026 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "device_enc_hardware_mcu.hpp"
@@ -6,7 +6,7 @@
 extern "C"
 {
 #include <lib_encode/EncSchedulerMcu.h>
-#include <lib_common/HardwareDriver.h>
+#include <lib_common/LinuxDriverCommunication.h>
 }
 
 using namespace std;
@@ -19,7 +19,7 @@ EncDeviceHardwareMcu::~EncDeviceHardwareMcu() = default;
 
 AL_IEncScheduler* EncDeviceHardwareMcu::Init()
 {
-  scheduler = AL_SchedulerMcu_Create(AL_GetHardwareDriver(), (AL_TLinuxDmaAllocator*)allocator.get(), device.c_str());
+  scheduler = AL_SchedulerMcu_Create(AL_GetLinuxDriverCommunication(), (AL_TLinuxDmaAllocator*)allocator.get(), device.c_str());
   return scheduler;
 }
 

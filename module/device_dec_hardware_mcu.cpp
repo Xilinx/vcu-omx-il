@@ -1,11 +1,11 @@
-// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2026 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "device_dec_hardware_mcu.hpp"
 
 extern "C"
 {
-#include "lib_common/HardwareDriver.h"
+#include "lib_common/LinuxDriverCommunication.h"
 #include "lib_decode/DecSchedulerMcu.h"
 }
 
@@ -20,7 +20,7 @@ DecDeviceHardwareMcu::~DecDeviceHardwareMcu() = default;
 
 AL_IDecScheduler* DecDeviceHardwareMcu::Init()
 {
-  scheduler = AL_DecSchedulerMcu_Create(AL_GetHardwareDriver(), device.c_str());
+  scheduler = AL_DecSchedulerMcu_Create(AL_GetLinuxDriverCommunication(), device.c_str());
   return scheduler;
 }
 

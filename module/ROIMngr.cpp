@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2026 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "ROIMngr.hpp"
@@ -318,7 +318,7 @@ AL_TRoiMngrCtx* AL_RoiMngr_Create(int32_t iPicWidth, int32_t iPicHeight, AL_EPro
     return nullptr;
   pCtx->iMinQP = AL_IS_AVC(eProf) || AL_IS_HEVC(eProf) ? -32 : -128;
   pCtx->iMaxQP = AL_IS_AVC(eProf) || AL_IS_HEVC(eProf) ? 31 : 127;
-  pCtx->bIsAOM = AL_CODEC_VP9 == AL_GET_CODEC(eProf) || AL_CODEC_AV1 == AL_GET_CODEC(eProf);
+  pCtx->bIsAOM = AL_IS_AOM(eProf);
   pCtx->iPicWidth = iPicWidth; // TODO convert Pixel to LCU
   pCtx->iPicHeight = iPicHeight; // TODO convert Pixel to LCU
   pCtx->uLog2MaxCuSize = uLog2MaxCuSize;

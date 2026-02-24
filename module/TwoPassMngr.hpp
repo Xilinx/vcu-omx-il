@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2026 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -32,14 +32,14 @@ AL_TLookAheadMetaData* AL_TwoPassMngr_CreateAndAttachTwoPassMetaData(AL_TBuffer*
 */
 struct TwoPassMngr
 {
-  TwoPassMngr(std::string p_FileName, int32_t p_iPass, bool p_bEnabledFirstPassSceneChangeDetection, int32_t p_iGopSize, int32_t p_iCpbLevel, int32_t p_iInitialLevel, int32_t p_iFrameRate);
+  TwoPassMngr(std::string p_FileName, int8_t p_iPass, bool p_bEnabledFirstPassSceneChangeDetection, int32_t p_iGopSize, int32_t p_iCpbLevel, int32_t p_iInitialLevel, int32_t p_iFrameRate);
   ~TwoPassMngr();
 
   void AddFrame(AL_TLookAheadMetaData* pMetaData);
   void GetFrame(AL_TLookAheadMetaData* pMetaData);
   void Flush();
 
-  int32_t iPass;
+  int8_t iPass;
   bool bEnableFirstPassSceneChangeDetection;
 
 private:

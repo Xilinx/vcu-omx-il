@@ -1,25 +1,25 @@
-// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2026 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
 
 extern "C"
 {
-#include "lib_common/IDriver.h"
+#include "lib_common/I_Communication.h"
 }
 
 #include <vector>
 
 #include "SyncIp.hpp"
 
-struct DummyDriver : public AL_TDriver
+struct DummyDriver : public AL_ICommunication
 {
   DummyDriver();
   virtual ~DummyDriver() {};
 
   int32_t Open(const char* device);
   void Close(int32_t fd);
-  AL_EDriverError PostMessage(int32_t fd, uint32_t messageId, void* data, bool isBlocking);
+  AL_ECommunicationError PostMessage(int32_t fd, uint32_t messageId, void* data, bool isBlocking);
 
   /* mock-up interface */
 

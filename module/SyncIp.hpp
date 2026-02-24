@@ -1,11 +1,11 @@
-// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2026 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
 
 extern "C"
 {
-#include "lib_common/IDriver.h"
+#include "lib_common/I_Communication.h"
 #include "lib_common/BufferAPI.h"
 }
 
@@ -45,7 +45,7 @@ struct sync_no_buf_slot_available : public sync_error
 
 struct SyncIp
 {
-  SyncIp(AL_TDriver* driver, char const* device);
+  SyncIp(AL_ICommunication* driver, char const* device);
   ~SyncIp();
   int32_t getFreeChannel();
   void enableChannel(int32_t chanId);
@@ -70,7 +70,7 @@ private:
   void pollingRoutine();
   void pollErrors(int32_t timeout);
 
-  AL_TDriver* driver;
+  AL_ICommunication* driver;
   std::mutex mutex {};
   std::vector<std::function<void(ChannelStatus &)>> eventListeners {};
   std::vector<ChannelStatus> channelStatuses {};

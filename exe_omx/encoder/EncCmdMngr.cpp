@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2026 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "EncCmdMngr.hpp"
@@ -26,7 +26,7 @@ CEncCmdMngr::CEncCmdMngr(std::istream& CmdInput, int32_t iLookAhead, uint32_t iF
 }
 
 /****************************************************************************/
-void CEncCmdMngr::Refill(int32_t iCurFrame)
+void CEncCmdMngr::Refill(AL_64S iCurFrame)
 {
   while(m_Cmds.size() && m_Cmds.front().iFrame < iCurFrame)
     m_Cmds.pop_front();
@@ -276,7 +276,7 @@ bool CEncCmdMngr::ParseCmd(std::string sLine, TFrmCmd& Cmd, bool bSameFrame)
 }
 
 /****************************************************************************/
-void CEncCmdMngr::Process(ICommandsSender* sender, int32_t iFrame)
+void CEncCmdMngr::Process(ICommandsSender* sender, AL_64S iFrame)
 {
   if(!m_Cmds.empty())
   {

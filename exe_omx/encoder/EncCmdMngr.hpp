@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2026 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -9,13 +9,14 @@
 #include <string>
 #include <vector>
 
+#include "lib_rtos/types.h"
 #include "ICommandsSender.hpp"
 
 struct CEncCmdMngr
 {
   CEncCmdMngr(std::istream& CmdInput, int32_t iLookAhead, uint32_t uFreqLT);
 
-  void Process(ICommandsSender* sender, int32_t iFrame);
+  void Process(ICommandsSender* sender, AL_64S iFrame);
 
 private:
   std::istream& m_CmdInput;
@@ -26,7 +27,7 @@ private:
 
   struct TFrmCmd
   {
-    int32_t iFrame = 0;
+    AL_64S iFrame = 0;
     bool bSceneChange = false;
     bool bIsLongTerm = false;
     bool bUseLongTerm = false;
@@ -95,7 +96,7 @@ private:
 
   std::list<TFrmCmd> m_Cmds;
 
-  void Refill(int32_t iCurFrame);
+  void Refill(AL_64S iCurFrame);
   bool ReadNextCmd(TFrmCmd& Cmd);
   bool ParseCmd(std::string sLine, TFrmCmd& Cmd, bool bSameFrame);
   bool GetNextLine(std::string& sNextLine);

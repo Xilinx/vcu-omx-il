@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2026 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -402,11 +402,17 @@ struct CommandLineParser
     insertNote(name, desc);
   }
 
+  void addWarning(std::string name, std::string desc)
+  {
+    insertWarning(name, desc);
+  }
+
   std::map<std::string, Option> options;
   std::map<std::string, std::string> descs;
   std::map<std::string, std::string> sections;
   std::map<std::string, std::string> types;
   std::map<std::string, std::string> notes;
+  std::map<std::string, std::string> warnings;
   std::string curSection = "";
   std::vector<std::string> displayOrder;
   std::deque<Option> positionals;
@@ -467,6 +473,7 @@ struct CommandLineParser
       auto& o = o_.second;
       auto section = sections.at(name);
       std::string note = notes.count(name) == 1 ? notes.at(name) : "";
+      std::string warning = warnings.count(name) == 1 ? warnings.at(name) : "";
 
       if(!first)
         std::cout << ", " << std::endl;
@@ -478,6 +485,9 @@ struct CommandLineParser
 
       if(!note.empty())
         std::cout << "\"notes\":\"" << note << "\"," << std::endl;
+
+      if(!warning.empty())
+        std::cout << "\"warnings\":\"" << warning << "\"," << std::endl;
       std::cout << "\"section\":\"" << section << "\"" << std::endl;
       std::cout << "}";
     }
@@ -511,6 +521,11 @@ private:
   void insertNote(std::string name, std::string desc)
   {
     notes[name] = desc;
+  }
+
+  void insertWarning(std::string name, std::string desc)
+  {
+    warnings[name] = desc;
   }
 
   std::string makeDescription(std::string word, std::string type, std::string desc)

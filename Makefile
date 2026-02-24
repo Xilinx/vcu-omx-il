@@ -33,12 +33,18 @@ EXTERNAL_SRC?=
 EXTERNAL_LIB?=
 
 
-
+ifneq ($(EXTERNAL_SRC),)
+ifneq ($(MAKECMDGOALS), clean)
+include ${EXTERNAL_SRC}/config.mk
+else
+-include ${EXTERNAL_SRC}/config.mk
+endif
+endif
 
 
 ENABLE_VCU?=1
 ifndef ENABLE_OMX_MCU
-	ENABLE_MICROBLAZE?=1
+ENABLE_MICROBLAZE?=1
 endif
 ENABLE_OMX_MCU?=${ENABLE_MICROBLAZE}
 ENABLE_64BIT?=1

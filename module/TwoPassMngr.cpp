@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2025 Allegro DVT <github-ip@allegrodvt.com>
+// SPDX-FileCopyrightText: © 2026 Allegro DVT <github-ip@allegrodvt.com>
 // SPDX-License-Identifier: MIT
 
 #include "TwoPassMngr.hpp"
@@ -137,11 +137,11 @@ static bool DetectPatternTwoFrames(vector<int> v)
 /***************************************************************************/
 /*Offline TwoPass methods*/
 /***************************************************************************/
-TwoPassMngr::TwoPassMngr(std::string p_FileName, int32_t p_iPass, bool p_bEnabledFirstPassSceneChangeDetection, int32_t p_iGopSize, int32_t p_iCpbLevel, int32_t p_iInitialLevel, int32_t p_iFrameRate) :
+TwoPassMngr::TwoPassMngr(std::string p_FileName, int8_t p_iPass, bool p_bEnabledFirstPassSceneChangeDetection, int32_t p_iGopSize, int32_t p_iCpbLevel, int32_t p_iInitialLevel, int32_t p_iFrameRate) :
   iPass(p_iPass), bEnableFirstPassSceneChangeDetection(p_bEnabledFirstPassSceneChangeDetection), iGopSize(p_iGopSize),
   iCpbLevel(p_iCpbLevel), iInitialLevel(p_iInitialLevel), iFrameRate(p_iFrameRate)
 {
-  FileName = { p_FileName };
+  FileName = p_FileName;
   tFrames.clear();
 }
 
@@ -534,7 +534,9 @@ void LookAheadMngr::ComputeComplexity(void)
 
     if(iFifoSize >= 5 && AL_Buffer_GetMetaData(m_fifo.front(), AL_META_TYPE_LOOKAHEAD))
     {
-      intmax_t iComp[2] = { 0, 0 };
+      AL_64S iComp[2] {
+        0, 0
+      };
 
       for(int32_t i = 0; i < iFifoSize; i++)
       {
